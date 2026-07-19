@@ -406,7 +406,7 @@ get_image:
     controller  : App\Controller\ImageController::getImage
 
 upload_image:
-    path        : /api/upload-image
+    path        : /upload-image
     methods     : POST
     controller  : App\Controller\ImageController::uploadImage
 

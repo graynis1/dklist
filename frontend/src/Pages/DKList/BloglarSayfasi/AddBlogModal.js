@@ -33,7 +33,8 @@ const AddBlogModal = ({show, setShow, query, setQuery}) => {
 
                 try {
                     // Resmi sunucuya upload et
-                    const response = await fetch('/api/upload-image', {
+                    const apiBaseUrl = process.env.REACT_APP_API_BASE_URL || 'https://dklist.com/api';
+                    const response = await fetch(`${apiBaseUrl}/upload-image`, {
                         method: 'POST',
                         headers: {
                             'Authorization': user.token
