@@ -1,0 +1,6 @@
+.ant-select-selection-item{
+    height: 30px !important;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}

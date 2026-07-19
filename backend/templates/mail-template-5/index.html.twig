@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hesabınızı Aktif Edin - DK List</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .welcome-section h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .info-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-box h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .activation-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+            transition: transform 0.2s;
+        }
+        .activation-button:hover {
+            transform: translateY(-2px);
+        }
+        .features {
+            margin: 30px 0;
+        }
+        .feature {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+        }
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background-color: #667eea;
+            border-radius: 50%;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .stat {
+            flex: 1;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 DK List</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Kitap tutkunlarının dijital evi</p>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-section">
+                <h2>Merhaba {{ username }}! 👋</h2>
+                <p style="color: #666; font-size: 16px;">
+                    {{ registrationDate }} tarihinde DK List'e katıldınız, ancak henüz hesabınızı aktif etmediniz.
+                </p>
+            </div>
+            
+            <div class="info-box">
+                <h3>🎯 Hesap Aktivasyonu Gerekli</h3>
+                <p>DK List'in tüm özelliklerinden yararlanabilmek için lütfen hesabınızı aktif edin. Sadece birkaç saniye sürecek!</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="http://localhost:3000/auth/{{ activationToken }}" class="activation-button">
+                    ✨ Hesabımı Aktif Et
+                </a>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number">10K+</div>
+                    <div class="stat-label">Aktif Üye</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">50K+</div>
+                    <div class="stat-label">Kitap</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">25K+</div>
+                    <div class="stat-label">Değerlendirme</div>
+                </div>
+            </div>
+            
+            <div class="features">
+                <h3 style="color: #333;">Hesabınızı aktif ettiğinizde:</h3>
+                
+                <div class="feature">
+                    <div class="feature-icon">📖</div>
+                    <div>
+                        <strong>Kişisel Kütüphane</strong><br>
+                        <small>Okuduğunuz, okumak istediğiniz kitapları takip edin</small>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">⭐</div>
+                    <div>
+                        <strong>Kitap Değerlendirme</strong><br>
+                        <small>Kitaplara puan verin ve yorumlarınızı paylaşın</small>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <div>
+                        <strong>Okuma Hedefleri</strong><br>
+                        <small>Yıllık okuma hedeflerinizi belirleyin ve takip edin</small>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">👥</div>
+                    <div>
+                        <strong>Sosyal Özellikler</strong><br>
+                        <small>Diğer okurları takip edin ve deneyimlerinizi paylaşın</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #666;">Sorunuz mu var? <a href="mailto:support@dklist.com" style="color: #667eea;">Bizimle iletişime geçin!</a></p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>DK List</strong> - Kitap Severlerin Dijital Evi</p>
+            <p>Bu e-posta {{ email }} adresine gönderilmiştir.</p>
+            <p style="margin-top: 15px; font-size: 12px;">
+                © 2024 DK List. Tüm hakları saklıdır.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Son Hatırlatma: Hesabınızı Aktif Edin - DK List</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24, #ff6b6b);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .final-warning {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3);
+            animation: shake 3s ease-in-out infinite;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        .countdown-timer {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 25px 0;
+        }
+        .days-count {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #e74c3c;
+        }
+        .activation-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 20px 40px;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 20px;
+            margin: 20px 0;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .activation-button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.6);
+        }
+        .missed-opportunities {
+            background-color: #fff5f5;
+            border: 2px solid #feb2b2;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .opportunity {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+        .opportunity-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 50%;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .last-chance-box {
+            background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(225, 112, 85, 0.3);
+        }
+        .social-proof {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        .proof-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 2px solid #e74c3c;
+        }
+        .proof-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .proof-label {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .footer {
+            background-color: #2c3e50;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        .urgency-bar {
+            height: 6px;
+            background: linear-gradient(90deg, #e74c3c 0%, #f39c12 50%, #e74c3c 100%);
+            border-radius: 3px;
+            margin: 20px 0;
+            animation: loading 2s ease-in-out infinite;
+        }
+        @keyframes loading {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 DK List</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 18px;">SON HATIRLATMA</p>
+        </div>
+        
+        <div class="content">
+            <div class="final-warning">
+                <h2 style="margin: 0 0 10px 0;">⚠️ HESABINIZ SİLİNEBİLİR!</h2>
+                <p style="margin: 0; font-size: 16px;">{{ username }}, bu son hatırlatmamız. Hesabınızı hemen aktif etmezseniz silinecektir.</p>
+            </div>
+            
+            <div class="countdown-timer">
+                <h3 style="margin: 0;">🕒 Kayıt Tarihinizden Bu Yana</h3>
+                <div class="days-count">{{ daysSince }}</div>
+                <p style="margin: 0;">GÜN GEÇTİ</p>
+                <div class="urgency-bar"></div>
+                <small>{{ registrationDate }} - Bugün</small>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="http://localhost:3000/auth/{{ activationToken }}" class="activation-button">
+                    🔥 HESABIMI KURTAR
+                </a>
+                <p style="color: #e74c3c; font-weight: bold; margin-top: 10px;">
+                    ⏱️ Son şansınız! Hemen aktif edin.
+                </p>
+            </div>
+            
+            <div class="missed-opportunities">
+                <h3 style="color: #e74c3c; text-align: center; margin-bottom: 20px;">
+                    {{ daysSince }} Gün Boyunca Kaçırdıklarınız:
+                </h3>
+                
+                <div class="opportunity">
+                    <div class="opportunity-icon">📚</div>
+                    <div>
+                        <strong>Kişisel Kütüphane</strong><br>
+                        <small style="color: #666;">{{ daysSince }} gün boyunca kitaplarınızı organize edemediniz</small>
+                    </div>
+                </div>
+                
+                <div class="opportunity">
+                    <div class="opportunity-icon">⭐</div>
+                    <div>
+                        <strong>Kitap Değerlendirmeleri</strong><br>
+                        <small style="color: #666;">Okuduğunuz kitapları değerlendirip puan veremediniz</small>
+                    </div>
+                </div>
+                
+                <div class="opportunity">
+                    <div class="opportunity-icon">👥</div>
+                    <div>
+                        <strong>Sosyal Etkileşim</strong><br>
+                        <small style="color: #666;">Kitap severlerle tanışma ve sohbet fırsatını kaçırdınız</small>
+                    </div>
+                </div>
+                
+                <div class="opportunity">
+                    <div class="opportunity-icon">🎯</div>
+                    <div>
+                        <strong>Okuma Hedefleri</strong><br>
+                        <small style="color: #666;">2024 okuma hedefinizi belirleyip takip edemediniz</small>
+                    </div>
+                </div>
+                
+                <div class="opportunity">
+                    <div class="opportunity-icon">🏆</div>
+                    <div>
+                        <strong>Rozetler & Başarımlar</strong><br>
+                        <small style="color: #666;">Okuma aktivitelerinizle rozetler kazanma şansını kaybettiniz</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="last-chance-box">
+                <h3 style="margin: 0 0 15px 0;">🎁 SON ŞANS AVANTAJLARI</h3>
+                <p style="margin-bottom: 20px;">Hesabınızı bugün aktif ederseniz:</p>
+                <ul style="text-align: left; display: inline-block; margin: 0; padding-left: 20px;">
+                    <li>🎯 Ücretsiz okuma hedefi koçluğu</li>
+                    <li>📈 Gelişmiş istatistikler</li>
+                    <li>🔔 Özel kitap önerileri</li>
+                    <li>👑 Erken üye rozeti</li>
+                </ul>
+            </div>
+            
+            <div class="social-proof">
+                <div class="proof-item">
+                    <div class="proof-number">15K+</div>
+                    <div class="proof-label">Aktif Üye</div>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-number">75K+</div>
+                    <div class="proof-label">Kitap</div>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-number">500+</div>
+                    <div class="proof-label">Günlük Aktif</div>
+                </div>
+                <div class="proof-item">
+                    <div class="proof-number">95%</div>
+                    <div class="proof-label">Memnuniyet</div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background-color: #fff5f5; border-radius: 10px;">
+                <p style="color: #e74c3c; font-weight: bold; margin: 0;">
+                    ❗ Aktivasyon sorunu yaşıyorsanız derhal bize yazın: 
+                    <a href="mailto:support@dklist.com" style="color: #e74c3c;">support@dklist.com</a>
+                </p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>DK List</strong> - Son Hatırlatma</p>
+            <p>Bu e-posta {{ email }} adresine gönderilmiştir.</p>
+            <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
+                © 2024 DK List. Bu hesap yakında silinebilir.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

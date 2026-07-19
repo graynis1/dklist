@@ -1,0 +1,28 @@
+.cevirmenlerBody{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    /* justify-content: space-between; */
+}
+.cevirmenlerHeader{
+    width: 100%;
+    height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+.cevirmenlerContainer{
+    padding: 40px;
+}
+@media screen and (max-width:380px) {
+    .cevirmenlerBody{
+        justify-content: center;
+    }
+}
+
+@media screen and (max-width:900px) {
+    .cevirmenlerContainer{
+        padding: 30px;
+    }
+}

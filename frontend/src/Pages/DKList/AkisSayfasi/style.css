@@ -1,0 +1,37 @@
+.postList{
+    width: '100%';
+}
+.likeButton:hover{
+    color: green !important;
+}
+.commentButtons{
+    cursor: pointer;
+    transition: .5s all ease;
+}
+.commentButtons:hover{
+    color: var(--softBlue);
+}
+.commentItem{
+    margin-bottom: 50px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+.postExtra{
+    display: flex;
+    flex-direction: column;
+}
+
+.postImageSrcText{
+    width:150px;
+    margin-top:5px; 
+    overflow:hidden
+}
+
+@media screen and (max-width:400px) {
+    .postExtra{
+        width: 80px;
+    }
+    .postImageSrcText{
+        width:100px;
+    }
+}
+

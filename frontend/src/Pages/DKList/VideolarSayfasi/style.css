@@ -1,0 +1,45 @@
+.videolarContainer{
+    padding:20px;
+}
+.videolarRenderContainer{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+.youtubeVideo{
+    width: 40%;
+    height: 250px;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+.youtubeVideo span{
+    font-size: 18px;
+    line-height: 50px;
+}
+.youtubeVideo iframe{
+    width: 100%;
+    height: 200px;
+}
+@media screen and (max-width:900px) {
+    .youtubeVideo iframe{
+        height: 175px;
+    }
+}
+
+@media screen and (max-width:750px) {
+    .youtubeVideo iframe{
+        height: 200px;
+    }
+}
+
+@media screen and (max-width:550px) {
+    .youtubeVideo{
+        width: 80%;
+    }
+    .youtubeVideo iframe{
+        height: 200px;
+    }
+}

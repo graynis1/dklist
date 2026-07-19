@@ -1,0 +1,100 @@
+.storeContainer{
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+.storeHeader{
+    width: 100%;
+    line-height: 40px;
+    font-size: 20px;
+    border-bottom: 1px solid rgba(0,0,0,.2);
+    margin-bottom: 10px;
+}
+.storeBody{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+.advertContainer{
+    width: 33%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+    box-sizing: border-box;
+    margin-bottom: 30px;
+    border-radius: 10px;
+}
+.advertContainer *{
+    cursor: pointer;
+}
+.advertImage{
+    width: 45%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+.advertTitle{
+    width: 100%;
+    text-align: center;
+    font-size: 16px;
+    color: var(--softBlue);
+    margin-top: 10px;
+}
+.advertPrice{
+    color: rgba(0,0,0,.4);
+}
+.advertLocation{
+    color: rgba(0,0,0,.4);
+}
+.advertButton{
+    transition: .5s all ease;
+    margin-top: 20px;
+}
+.advertButton:hover{
+    background-color: white !important;
+    color: red !important;
+}
+.addAdvertButton{
+    cursor: pointer;
+    transition: .5s all ease;
+}
+.addAdvertButton:hover{
+    opacity: .7;
+}
+
+@media screen and (max-width:1200px) {
+    .advertImage{
+        height: 135px;
+    }
+}
+@media screen and (max-width:1000px) {
+    .advertImage{
+        height: 150px;
+    }
+    .advertContainer{
+        width: 50%;
+    }
+}
+@media screen and (max-width:750px) {
+    .advertImage{
+        height: 140px;
+    }
+    .advertContainer{
+        width: 33%;
+    }
+}
+@media screen and (max-width:600px) {
+    .advertContainer{
+        width: 50%;
+    }
+}
+@media screen and (max-width:400px) {
+    .advertImage{
+        height: 100px;
+    }
+}

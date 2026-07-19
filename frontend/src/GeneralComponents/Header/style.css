@@ -1,0 +1,147 @@
+.header{
+    width:100%;
+    height:80px;
+    background-color:white;
+    padding:0 10px;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+}
+.headerLogoContainer{
+    height:100%;
+    width:min-content;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+.headerLogo{
+    height:70%; 
+    object-fit:contain;
+    cursor: pointer;
+}
+.searchInput{
+    width: 400px;
+    margin: 0 200px;
+}
+.headerActionsGroup{
+    padding:5px;
+    box-sizing:border-box;
+    height:100%;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    width: 370px;
+}
+.headerActionItem{
+    width:max-content;
+    font-size:18px;
+    margin:0 15px;
+    transition: .5s all ease;
+    cursor: pointer;
+}
+.headerActionItem:hover{
+    color: var(--dkred);;
+}
+.headerAvatar{
+    background-color: var(--dkred);
+    vertical-align: middle;
+    transition: .5s all ease;
+}
+.headerAvatarImg{
+    object-fit: contain;
+    border: 1px solid rgb(214, 214, 214);
+}
+.popoverItem{
+    margin: 10px 0;
+    transition: .5s all ease;
+    cursor: pointer;
+    display: block;
+}
+.popoverItem:hover{
+    color: var(--dkred);
+}
+.drawerItems{
+    display: flex;
+    flex-direction: column;
+}
+.drawerItem{
+    margin: 10px 0;
+    transition: .5s all ease;
+    cursor: pointer;
+}
+.drawerItem:hover{
+    color:var(--dkred)
+}
+.hamburgerMenu{
+    width: 70px;
+    font-size: 30px;
+}
+.googleLogin{
+    color: var(--dkred);
+    font-size: 34px;
+    transition: .5s all ease;
+    cursor: pointer;
+}
+.googleLogin:hover{
+    color: var(--softBlue);
+}
+.loginPopupFooterText{
+    color: rgba(128, 128, 128, 1);
+    cursor: pointer;
+    transition: .5s all ease;
+}
+.loginPopupFooterText:hover{
+    color: rgba(128, 128, 128, .5);
+}
+
+@media screen and (max-width:1350px) {
+    .searchInput{
+        margin: 0 100px;
+    }
+}
+
+@media screen and (max-width:1150px) {
+    .searchInput{
+        margin: 0 50px;
+    }
+    .headerLogoContainer{
+        height: 75%;
+    }
+}
+
+@media screen and (max-width:1000px) {
+    .searchInput{
+        width: 320px;
+    }
+}
+
+@media screen and (max-width:800px) {
+    .searchInput{
+        width: 330px;
+    }
+    .headerLogoContainer{
+        height: 70%;
+    }
+}
+
+@media screen and (max-width:500px) {
+    .searchInput{
+        width: 200px;
+        margin: 0 15px;
+    }
+    .hamburgerMenu{
+        width: 40px;
+    }
+}
+
+@media screen and (max-width:400px) {
+    .headerLogoContainer{
+        height: 50%;
+    }
+    .hamburgerMenu{
+        width: 20px;
+        font-size: 20px;
+    }
+}

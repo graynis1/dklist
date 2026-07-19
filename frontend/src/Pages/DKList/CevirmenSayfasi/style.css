@@ -1,0 +1,16 @@
+.otherBooksContainer{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin-top: 30px;
+}
+
+@media screen and (max-width:850px) {
+    .otherBooksContainer{
+        justify-content: center;
+    }
+}
+
+

@@ -1,0 +1,22 @@
+*{
+    margin: 0;
+    padding: 0;
+    --softBlue:#007bff;
+    --dkred:#dc3035;
+    --dkGray:#797979;
+}
+.c-dkred{color: var(--dkred);}
+.c-softBlue{color: var(--softBlue);}
+.bgc-dkred{background-color: var(--dkred);}
+.bgc-softBlue{background-color: var(--softBlue);}
+
+body{
+    background-color: #f7f8fb;
+}
+
+.dkBox{
+    background-color: white;
+    box-sizing: border-box;
+    border-radius:10px;
+    box-shadow: 0 0 15px -3px gray;
+}

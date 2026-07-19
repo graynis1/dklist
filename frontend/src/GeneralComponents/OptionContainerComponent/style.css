@@ -1,0 +1,131 @@
+/*
+    Ana kapsayıcı 1200px ama 50px paddingli
+    kitapContainer 1100px
+    left column 320px
+    right column yayılmada
+*/
+.optionProfileContainer{
+    width: 1200px;
+    display: flex;
+    flex-direction: row;
+    padding: 50px;
+    background-color: white;
+    margin: 20px auto;
+    border-radius: 20px;
+    box-sizing: border-box;
+}
+
+.optionContainerLeftColumn{
+    width: 320px;
+}
+.imgContainer{
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.imgContainer img{
+    width: 320px !important;
+    border-radius: 10px;
+}
+.imgContainerFooter{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    width: 100%;
+    margin:15px 0;
+}
+.otherReadersContainer{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 30px;
+}
+.bookImg{
+    width: 100px;
+    max-height: 130px;
+    border-radius: 10px;
+}
+.optionContainerRightColumn{
+    flex-grow: 1;
+    padding-left: 30px;
+}
+.optionContainerRightColumnHeader{
+    width: 100%;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    color: rgba(0,0,0,0.8);
+    font-size: 22px;
+    font-weight: 600;
+    padding-bottom: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+.optionContainerRightColumnBody{
+    font-size: 18px;
+}
+.optionContainerRightColumnBody div{
+    margin-top: 20px;
+}
+.optionContainerRightColumnCommentContainer{
+    margin-top: 40px;
+}
+
+.urlRouter{
+    color: var(--softBlue);
+    margin-left: 10px;
+    transition: .5s all ease;
+    text-decoration: none;
+    font-size: 14px;
+}
+.urlRouter:hover{
+    opacity: .8;
+}
+
+@media screen and (max-width:1250px) {
+    .optionProfileContainer{
+        width: 1000px;
+    }
+}
+
+@media screen and (max-width:1050px) {
+    .optionProfileContainer{
+        width: 800px;
+    }
+}
+
+@media screen and (max-width:850px) {
+    .optionProfileContainer{
+        width: 100%;
+        flex-direction: column;
+        background-color: white;
+        align-items: center;
+    }
+    .optionContainerLeftColumn {
+        width: 100%;
+    }
+    .imgContainer {
+        margin: 0 auto;
+    }
+    .otherBooksContainer{
+        justify-content: center;
+    }
+    .optionContainerRightColumn{
+        margin-top: 30px;
+    }
+}
+
+@media screen and (max-width:450px) {
+    .imgContainer{
+        width: 250px;
+    }
+    .imgContainer img{
+        width: 250px !important;
+    }
+    .optionProfileContainer{
+        padding: 10px;
+    }
+
+}

@@ -1,0 +1,708 @@
+test1:
+    path        : /test1
+    methods     : GET
+    controller  : App\Controller\TestController::TestController_1
+
+
+
+############################## Kullanıcı ##############################
+
+add_user: 
+    path        : /user/register
+    methods     : POST
+    controller  : App\Controller\UserController::register
+
+login: 
+    path        : /user/login
+    methods     : POST
+    controller  : App\Controller\UserController::login
+
+auth: 
+    path        : /user/auth
+    methods     : POST
+    controller  : App\Controller\UserController::authAccount
+
+reset-request: 
+    path        : /user/reset-request
+    methods     : POST
+    controller  : App\Controller\UserController::resetPasswordRequest
+
+reset: 
+    path        : /user/reset
+    methods     : POST
+    controller  : App\Controller\UserController::resetPassword
+
+getAllUsersForAdmin: # admin mod 
+    path        : /user/get-for-admin
+    methods     : GET
+    controller  : App\Controller\UserController::getUserForAdmin
+    
+updateUserAdmin: # superadmin 
+    path        : /user/update-user-admin/{id}
+    methods     : POST
+    controller  : App\Controller\UserController::userAdminUpdate
+
+deleteUserAdmin: # superadmin 
+    path        : /user/delete-user-admin/{id}
+    methods     : DELETE
+    controller  : App\Controller\UserController::deleteUserAdmin
+
+deleteMultipleUserAdmin: # superadmin 
+    path        : /user/delete-user-admin
+    methods     : DELETE
+    controller  : App\Controller\UserController::deleteMultipleUserAdmin 
+
+getUserBadges:
+    path        : /user/get-user-badges # All
+    methods     : GET
+    controller  : App\Controller\UserController::getUserOptions   
+
+getTopUsers:
+    path        : /user/get-top-users # All
+    methods     : GET
+    controller  : App\Controller\UserController::getTopUsers   
+
+#######################################################################
+
+############################## Yayın Evi ##############################
+
+add_publisher:  # Mod
+    path        : /publisher/add
+    methods     : POST
+    controller  : App\Controller\PublisherController::add
+
+add_multiple_publisher:  # Mod
+    path        : /publisher/add-multiple
+    methods     : POST
+    controller  : App\Controller\PublisherController::addMultiple
+
+get_all_publishers: # All
+    path        : /publisher/get
+    methods     : GET
+    controller  : App\Controller\PublisherController::getAll
+
+get_publisher: # All
+    path        : /publisher/get/{id}
+    methods     : GET
+    controller  : App\Controller\PublisherController::get
+
+delete_publisher:
+    path        : /publisher/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\PublisherController::delete
+
+delete_multiple_publisher:
+    path        : /publisher/delete
+    methods     : DELETE
+    controller  : App\Controller\PublisherController::deleteMultiple
+
+update_publisher:
+    path        : /publisher/update/{id}
+    methods     : PUT
+    controller  : App\Controller\PublisherController::update
+    
+
+getAllPublishersForUser: # All
+    path        : /get-all-publishers-for-user
+    methods     : GET
+    controller  : App\Controller\PublisherController::getAllPublishersForUser
+
+
+#######################################################################
+
+################################ Kitap ################################
+
+add_book: # Mod
+    path        : /book/add
+    methods     : POST
+    controller  : App\Controller\BookController::add
+
+check-book: # All
+    path        : /book/check-book
+    methods     : POST
+    controller  : App\Controller\BookController::checkOriginalBooks
+
+get_all_books: # All
+    path        : /book/get
+    methods     : GET
+    controller  : App\Controller\BookController::getAll
+
+get_book_options: # All
+    path        : /book/get-options
+    methods     : GET
+    controller  : App\Controller\BookController::getBookOptions    
+
+delete_book: # All
+    path        : /book/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\BookController::delete    
+
+updat_book: # All
+    path        : /book/update/{id}
+    methods     : POST
+    controller  : App\Controller\BookController::update   
+
+get_book: # genel
+    path        : /book/{slug}
+    methods     : GET
+    controller  : App\Controller\BookController::getBook   
+
+get_books_for_client: # genel
+    path        : /books
+    methods     : GET
+    controller  : App\Controller\BookController::getAllBooksForClient   
+
+like_book: # genel
+    path        : /like-book/{id}
+    methods     : GET
+    controller  : App\Controller\BookController::like  
+
+set_book_read_status: # genel
+    path        : /set-book-read-status/{bookId}
+    methods     : PUT
+    controller  : App\Controller\BookController::setReadStatus 
+
+get_books_for_add_advert: # genel
+    path        : /get-books-for-advert
+    methods     : GET
+    controller  : App\Controller\BookController::getBooksToAdvert   
+
+# CSV Import endpoints
+book_import_template: # Mod/Admin
+    path        : /book/import/template
+    methods     : GET
+    controller  : App\Controller\BookImportController::downloadTemplate
+
+book_import_upload: # Mod/Admin
+    path        : /book/import/upload
+    methods     : POST
+    controller  : App\Controller\BookImportController::uploadCsv
+
+book_import_process: # Mod/Admin
+    path        : /book/import/process
+    methods     : POST
+    controller  : App\Controller\BookImportController::processImport
+
+
+
+#######################################################################
+
+################################ Yorum ################################
+
+like_comment: # kullanıcı özelinde
+    path        : /comment/{id}
+    methods     : GET
+    controller  : App\Controller\CommentController::like   
+
+update_comment: # kullanıcı özelinde
+    path        : /comment/{id}
+    methods     : PUT
+    controller  : App\Controller\CommentController::update   
+
+delete_comment: # kullanıcı özelinde
+    path        : /comment/{id}
+    methods     : DELETE
+    controller  : App\Controller\CommentController::delete   
+
+add_comment: # kullanıcı özelinde
+    path        : /comment/{id}
+    methods     : POST
+    controller  : App\Controller\CommentController::add   
+
+add_subcomment: # kullanıcı özelinde
+    path        : /sub-comment
+    methods     : POST
+    controller  : App\Controller\CommentController::addSubcomment   
+
+delete_subcomment: # kullanıcı özelinde
+    path        : /sub-comment/{id}
+    methods     : DELETE
+    controller  : App\Controller\CommentController::deleteSubComment   
+
+update_subcomment: # kullanıcı özelinde
+    path        : /sub-comment/{id}
+    methods     : PUT
+    controller  : App\Controller\CommentController::updateSubComment   
+
+get_comments_for_flow: # kullanıcı özelinde
+    path        : /comments/{page}
+    methods     : GET
+    controller  : App\Controller\CommentController::getComments 
+
+#######################################################################
+
+
+################################ Yazar ################################
+
+add_writer:  # Mod
+    path        : /writer/add
+    methods     : POST
+    controller  : App\Controller\WriterController::add
+
+get_all_writer:  # All
+    path        : /writer/get
+    methods     : GET
+    controller  : App\Controller\WriterController::getAll
+
+delete_multiple_writer:
+    path        : /writer/delete
+    methods     : DELETE
+    controller  : App\Controller\WriterController::deleteMultiple
+
+delete_writer:
+    path        : /writer/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\WriterController::delete
+
+update_writer:
+    path        : /writer/update/{id}
+    methods     : PUT
+    controller  : App\Controller\WriterController::update
+
+update_image_writer:
+    path        : /writer/update/image/{id}
+    methods     : POST
+    controller  : App\Controller\WriterController::updateImage
+
+get_all_writer_for_client:  # All
+    path        : /writer/get-for-client
+    methods     : GET
+    controller  : App\Controller\WriterController::getAllWritersForClient
+
+like_writer:  # All
+    path        : /like-writer/{id}
+    methods     : GET
+    controller  : App\Controller\WriterController::like
+
+get_writer:  # All
+    path        : /writer/{slug}
+    methods     : GET
+    controller  : App\Controller\WriterController::getWriter
+
+#######################################################################
+
+############################## Kategori ###############################
+
+add_category:  # Mod
+    path        : /category/add
+    methods     : POST
+    controller  : App\Controller\CategoryController::add
+
+add_category_multiple:  # Mod
+    path        : /category/add-multiple
+    methods     : POST
+    controller  : App\Controller\CategoryController::addMultiple
+
+get_all_categories:  # All
+    path        : /category/get
+    methods     : GET
+    controller  : App\Controller\CategoryController::getAll
+
+delete_category:
+    path        : /category/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\CategoryController::delete
+
+delete_category_multiple:
+    path        : /category/delete
+    methods     : DELETE
+    controller  : App\Controller\CategoryController::deleteMultiple
+
+update_category:
+    path        : /category/update/{id}
+    methods     : PUT
+    controller  : App\Controller\CategoryController::update
+
+get_all_categories_for_client:
+    path        : /category/get-for-client
+    methods     : GET
+    controller  : App\Controller\CategoryController::getAllCategoriesForClient
+
+
+#######################################################################
+
+############################## Çevirmen ###############################
+
+add_translator:  # Mod
+    path        : /translator/add
+    methods     : POST
+    controller  : App\Controller\TranslatorController::add
+
+get_all_translators:  # All
+    path        : /translator/get
+    methods     : GET
+    controller  : App\Controller\TranslatorController::getAll
+
+update_translators:  
+    path        : /translator/update/{id}
+    methods     : POST
+    controller  : App\Controller\TranslatorController::update
+
+delete_translators:  
+    path        : /translator/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\TranslatorController::delete
+
+delete_multiple_translators:  
+    path        : /translator/delete
+    methods     : DELETE
+    controller  : App\Controller\TranslatorController::deleteMultiple
+
+get_all_translator_for_client: 
+    path        : /translator/get-translators-for-client
+    methods     : GET
+    controller  : App\Controller\TranslatorController::getAllTranslatorsForClient
+
+get_translator: 
+    path        : /translator/{slug}
+    methods     : GET
+    controller  : App\Controller\TranslatorController::getTranslator
+
+like_translator: 
+    path        : /like-translator/{id}
+    methods     : GET
+    controller  : App\Controller\TranslatorController::like
+    
+
+#######################################################################
+
+################################ Rozet ################################
+
+get_all_badges:
+    path        : /badge/get
+    methods     : GET
+    controller  : App\Controller\BadgeController::getAll
+
+add_badge:
+    path        : /badge/add
+    methods     : POST
+    controller  : App\Controller\BadgeController::add
+
+delete_badge:
+    path        : /badge/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\BadgeController::delete
+
+delete_multiple_badge:
+    path        : /badge/delete
+    methods     : DELETE
+    controller  : App\Controller\BadgeController::deleteMultiple
+
+update_badge:
+    path        : /badge/update/{id}
+    methods     : POST
+    controller  : App\Controller\BadgeController::update
+   
+
+    
+#######################################################################
+
+
+################################ Resim ################################
+
+get_image:
+    path        : /image/{imageName}
+    methods     : GET
+    controller  : App\Controller\ImageController::getImage
+
+upload_image:
+    path        : /api/upload-image
+    methods     : POST
+    controller  : App\Controller\ImageController::uploadImage
+
+#######################################################################
+
+################################ Mail #################################
+
+test:
+    path        : /test
+    methods     : GET
+    controller  : App\Controller\MailController::sendMail
+
+test_mail_template:
+    path        : /mail/test-template
+    methods     : POST
+    controller  : App\Controller\MailController::testMailTemplate
+
+
+#######################################################################
+
+############################## Bülten ##############################
+
+add_newsletter: 
+    path        : /newsletter/add
+    methods     : POST
+    controller  : App\Controller\NewsletterController::add
+
+get_all_newsletter: 
+    path        : /newsletter/get
+    methods     : GET
+    controller  : App\Controller\NewsletterController::getAll
+
+delete_newsletter: 
+    path        : /newsletter/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\NewsletterController::delete
+
+#######################################################################
+
+############################## Youtube Evi ##############################
+
+add_youtube: 
+    path        : /youtube/add # mod, admin
+    methods     : POST
+    controller  : App\Controller\YoutubeController::add
+
+get_all_youtube: 
+    path        : /youtube/get
+    methods     : GET
+    controller  : App\Controller\YoutubeController::getAll
+
+delete_youtube: 
+    path        : /youtube/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\YoutubeController::delete
+
+delete_multiple_youtube: 
+    path        : /youtube/delete
+    methods     : DELETE
+    controller  : App\Controller\YoutubeController::deleteMultiple
+
+update_youtube: 
+    path        : /youtube/update/{id}
+    methods     : PUT
+    controller  : App\Controller\YoutubeController::update
+    
+#######################################################################
+
+############################## Genel ##############################
+
+increament_view:
+    path        : /increament-view/{id}/{type}
+    methods     : GET
+    controller  : App\Controller\GeneralController::increamentViewCount 
+
+score_action: # genel
+    path        : /score/{id}
+    methods     : PUT
+    controller  : App\Controller\GeneralController::score  
+
+get_top_items: # genel
+    path        : /get-top-items
+    methods     : GET
+    controller  : App\Controller\GeneralController::getTopItems 
+    
+search: # genel
+    path        : /search
+    methods     : GET
+    controller  : App\Controller\GeneralController::search 
+    
+
+#######################################################################
+
+############################## Şikayet ##############################
+
+add_notice:
+    path        : /notice
+    methods     : POST
+    controller  : App\Controller\NoticeController::add 
+
+report_user: # User report from profile
+    path        : /notice/report-user
+    methods     : POST
+    controller  : App\Controller\NoticeController::reportUser
+
+get_all_notice: # Mod/Admin
+    path        : /notice
+    methods     : GET
+    controller  : App\Controller\NoticeController::getAll  
+
+delete_notice: # Mod/Admin
+    path        : /notice/{id}
+    methods     : DELETE
+    controller  : App\Controller\NoticeController::delete  
+
+resolve_notice: # Mod/Admin
+    path        : /notice/{id}/resolve
+    methods     : PUT
+    controller  : App\Controller\NoticeController::resolve  
+     
+#######################################################################
+
+############################## Askıda Kitap ##############################
+
+add_store:
+    path        : /store
+    methods     : POST
+    controller  : App\Controller\StoreController::add 
+
+get_store:
+    path        : /store/{slug}
+    methods     : GET
+    controller  : App\Controller\StoreController::get 
+
+get_all_store:
+    path        : /store
+    methods     : GET
+    controller  : App\Controller\TestStoreController::getAllStore 
+
+delete_store:
+    path        : /store/{id}
+    methods     : DELETE
+    controller  : App\Controller\StoreController::delete 
+
+
+     
+#######################################################################
+
+############################## Profil #################################
+
+get_profile:
+    path        : /profile/{id}
+    methods     : GET
+    controller  : App\Controller\ProfileController::getProfile 
+
+update_profile_pic:
+    path        : /update-profile-pic
+    methods     : POST
+    controller  : App\Controller\ProfileController::updatePicture 
+
+follow_switch:
+    path        : /switch-follow/{targetID}
+    methods     : GET
+    controller  : App\Controller\ProfileController::followSwitcher 
+
+set_read_purpose:
+    path        : /set-read-purpose
+    methods     : POST
+    controller  : App\Controller\ProfileController::setReadPurpose     
+
+delete_follow:
+    path        : /delete-follow/{id}
+    methods     : GET
+    controller  : App\Controller\ProfileController::deleteOtherUserFollow     
+
+get_books_for_profile_drawer:
+    path        : /get-all-books-for-library
+    methods     : GET
+    controller  : App\Controller\ProfileController::getAllBooksForLibrary 
+
+
+profile_book_switch:
+    path        : /book-switch-for-profile/{id}
+    methods     : GET
+    controller  : App\Controller\ProfileController::bookSwitchLibrary 
+
+unlike:
+    path        : /user-unlike
+    methods     : POST
+    controller  : App\Controller\ProfileController::unlike 
+
+edit_profile:
+    path        : /edit-profile
+    methods     : POST
+    controller  : App\Controller\ProfileController::editProfile 
+
+share_reading_goal:
+    path        : /share-reading-goal
+    methods     : POST
+    controller  : App\Controller\ProfileController::shareReadingGoal 
+
+#######################################################################
+
+############################## Bildirim #################################
+
+delete_notify:
+    path        : /notify/{id}
+    methods     : DELETE
+    controller  : App\Controller\NotificationController::delete 
+
+set_all_view_count_for_notify:
+    path        : /notify
+    methods     : PUT
+    controller  : App\Controller\NotificationController::setViewAllNotify 
+
+get_view_count_for_user:
+    path        : /notify
+    methods     : GET
+    controller  : App\Controller\NotificationController::getViewCountNotify 
+
+get_all_notifu:
+    path        : /all-notify
+    methods     : GET
+    controller  : App\Controller\NotificationController::getNotifications 
+
+delete_all_notifications:
+    path        : /all-notify
+    methods     : DELETE
+    controller  : App\Controller\NotificationController::deleteAll 
+
+#######################################################################
+
+############################## Mesaj #################################
+
+send_message:
+    path        : /message/send
+    methods     : POST
+    controller  : App\Controller\MessageController::sendMessage
+
+delete_chat :
+    path        : /chat/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\MessageController::deleteChat
+
+get_unview_count :
+    path        : /message/unview-count
+    methods     : GET
+    controller  : App\Controller\MessageController::getUnviewedMessageCount
+
+get_messages :
+    path        : /message/get/{id}
+    methods     : GET
+    controller  : App\Controller\MessageController::getMessages
+
+delete_message :
+    path        : /message/delete/{id}
+    methods     : DELETE
+    controller  : App\Controller\MessageController::deleteMessage
+
+#######################################################################
+
+############################## Blog ###################################
+
+get_blog:
+    path        : /blog/{slug}
+    methods     : GET
+    controller  : App\Controller\BlogController::get 
+
+get_blogs:
+    path        : /blog
+    methods     : GET
+    controller  : App\Controller\BlogController::getAll 
+
+add_blog:
+    path        : /blog
+    methods     : POST
+    controller  : App\Controller\BlogController::add 
+
+delete_blog:
+    path        : /blog/{id}
+    methods     : DELETE
+    controller  : App\Controller\BlogController::delete 
+
+update_blog:
+    path        : /blog/{id}
+    methods     : POST
+    controller  : App\Controller\BlogController::update 
+
+set_approve_blog:
+    path        : /blog/{id}
+    methods     : PUT
+    controller  : App\Controller\BlogController::setApproveBlog 
+
+get_blog_by_id_admin:
+    path        : /blog/admin/{id}
+    methods     : GET
+    controller  : App\Controller\BlogController::getById 
+
+############################################################################

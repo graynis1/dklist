@@ -1,0 +1,393 @@
+/* Firefox Compatibility Fixes */
+
+/* Firefox-specific CSS fixes */
+@-moz-document url-prefix() {
+  
+  /* Firefox flexbox fixes */
+  .ant-layout,
+  .ant-layout-content,
+  .ant-layout-sider {
+    display: -webkit-box !important;
+    display: -moz-box !important;
+    display: -ms-flexbox !important;
+    display: flex !important;
+  }
+
+  /* Firefox grid fixes */
+  .ant-row {
+    display: -ms-grid !important;
+    display: grid !important;
+  }
+
+  /* Firefox button fixes */
+  .ant-btn {
+    -moz-appearance: none !important;
+    background-image: none !important;
+    border: 1px solid #d9d9d9 !important;
+  }
+
+  .ant-btn::-moz-focus-inner {
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Firefox input fixes */
+  .ant-input,
+  .ant-input-number-input {
+    -moz-appearance: none !important;
+    background-image: none !important;
+  }
+
+  .ant-input::-moz-placeholder {
+    color: #bfbfbf !important;
+    opacity: 1 !important;
+  }
+
+  /* Firefox select fixes */
+  .ant-select-selector {
+    -moz-appearance: none !important;
+    background-image: none !important;
+  }
+
+  /* Firefox table fixes */
+  .ant-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  /* Firefox scroll fixes */
+  .ant-layout-content {
+    scrollbar-width: thin !important;
+    scrollbar-color: #d9d9d9 #f0f0f0 !important;
+  }
+
+  /* Firefox card fixes */
+  .ant-card {
+    background-clip: padding-box !important;
+  }
+
+  /* Firefox modal fixes */
+  .ant-modal {
+    max-height: calc(100vh - 200px) !important;
+  }
+
+  /* Firefox drawer fixes */
+  .ant-drawer-content {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Firefox animation fixes */
+  .ant-spin-dot {
+    -moz-animation: antSpinMove 1s infinite linear !important;
+  }
+
+  /* Firefox transform fixes */
+  .ant-card-hoverable:hover {
+    -moz-transform: translateY(-2px) !important;
+    -webkit-transform: translateY(-2px) !important;
+    -ms-transform: translateY(-2px) !important;
+    transform: translateY(-2px) !important;
+  }
+}
+
+/* General Firefox compatibility */
+
+/* Vendor prefixes for animations */
+@-moz-keyframes antSpinMove {
+  to {
+    opacity: 1;
+    -moz-transform: rotate(405deg);
+    -webkit-transform: rotate(405deg);
+    -ms-transform: rotate(405deg);
+    transform: rotate(405deg);
+  }
+}
+
+@-webkit-keyframes antSpinMove {
+  to {
+    opacity: 1;
+    -webkit-transform: rotate(405deg);
+    transform: rotate(405deg);
+  }
+}
+
+@keyframes antSpinMove {
+  to {
+    opacity: 1;
+    -moz-transform: rotate(405deg);
+    -webkit-transform: rotate(405deg);
+    -ms-transform: rotate(405deg);
+    transform: rotate(405deg);
+  }
+}
+
+/* Firefox font rendering fixes */
+* {
+  -moz-font-feature-settings: "kern" 1 !important;
+  -webkit-font-feature-settings: "kern" 1 !important;
+  font-feature-settings: "kern" 1 !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+/* Firefox flexbox compatibility */
+.ant-row {
+  display: -webkit-box !important;
+  display: -moz-box !important;
+  display: -ms-flexbox !important;
+  display: flex !important;
+  -webkit-box-orient: horizontal !important;
+  -webkit-box-direction: normal !important;
+  -moz-flex-direction: row !important;
+  -ms-flex-direction: row !important;
+  flex-direction: row !important;
+  -ms-flex-wrap: wrap !important;
+  flex-wrap: wrap !important;
+}
+
+.ant-col {
+  -webkit-box-flex: 0 !important;
+  -moz-box-flex: 0 !important;
+  -ms-flex: 0 0 auto !important;
+  flex: 0 0 auto !important;
+}
+
+/* Firefox grid compatibility */
+.ant-form-item {
+  display: -webkit-box !important;
+  display: -moz-box !important;
+  display: -ms-flexbox !important;
+  display: flex !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-box-direction: normal !important;
+  -moz-flex-direction: column !important;
+  -ms-flex-direction: column !important;
+  flex-direction: column !important;
+}
+
+/* Firefox transition compatibility */
+.ant-btn,
+.ant-card,
+.ant-input,
+.ant-select-selector,
+.clickable-element,
+.book-item,
+.nav-item {
+  -moz-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  -webkit-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  -ms-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Firefox transform compatibility */
+.ant-btn:hover,
+.ant-card-hoverable:hover,
+.clickable-element:hover,
+.book-item:hover {
+  -moz-transform: translateY(-2px) !important;
+  -webkit-transform: translateY(-2px) !important;
+  -ms-transform: translateY(-2px) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Firefox box-shadow compatibility */
+.ant-btn:hover,
+.ant-card-hoverable:hover {
+  -moz-box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+  -webkit-box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+}
+
+/* Firefox border-radius compatibility */
+.ant-btn,
+.ant-card,
+.ant-input,
+.ant-modal,
+.ant-tooltip-inner {
+  -moz-border-radius: 6px !important;
+  -webkit-border-radius: 6px !important;
+  border-radius: 6px !important;
+}
+
+/* Firefox backdrop-filter fallback */
+.ant-modal-mask {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  /* Fallback for browsers that don't support backdrop-filter */
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .ant-modal-mask {
+    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+    background-color: rgba(0, 0, 0, 0.3) !important;
+  }
+}
+
+/* Firefox appearance fixes */
+.ant-input,
+.ant-select-selector,
+.ant-btn {
+  -moz-appearance: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Firefox outline fixes */
+.ant-btn:focus,
+.ant-input:focus,
+.ant-select:focus {
+  outline: 2px solid #1890ff !important;
+  outline-offset: 2px !important;
+  -moz-outline-radius: 4px !important;
+}
+
+/* Firefox placeholder fixes */
+.ant-input::-moz-placeholder {
+  color: #bfbfbf !important;
+  opacity: 1 !important;
+}
+
+.ant-input:-moz-placeholder {
+  color: #bfbfbf !important;
+  opacity: 1 !important;
+}
+
+.ant-input::-webkit-input-placeholder {
+  color: #bfbfbf !important;
+}
+
+.ant-input:-ms-input-placeholder {
+  color: #bfbfbf !important;
+}
+
+/* Firefox scrollbar compatibility */
+.ant-layout-content,
+.ant-drawer-content,
+.ant-modal-body {
+  scrollbar-width: thin !important;
+  scrollbar-color: #d9d9d9 #f0f0f0 !important;
+}
+
+/* Webkit scrollbar for non-Firefox browsers */
+.ant-layout-content::-webkit-scrollbar,
+.ant-drawer-content::-webkit-scrollbar,
+.ant-modal-body::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.ant-layout-content::-webkit-scrollbar-track,
+.ant-drawer-content::-webkit-scrollbar-track,
+.ant-modal-body::-webkit-scrollbar-track {
+  background: #f0f0f0 !important;
+  border-radius: 4px !important;
+}
+
+.ant-layout-content::-webkit-scrollbar-thumb,
+.ant-drawer-content::-webkit-scrollbar-thumb,
+.ant-modal-body::-webkit-scrollbar-thumb {
+  background: #d9d9d9 !important;
+  border-radius: 4px !important;
+}
+
+/* Firefox image rendering */
+img {
+  -ms-interpolation-mode: bicubic !important;
+  image-rendering: -moz-crisp-edges !important;
+  image-rendering: -webkit-optimize-contrast !important;
+  image-rendering: crisp-edges !important;
+}
+
+.ant-avatar img,
+.book-image {
+  image-rendering: auto !important;
+}
+
+/* Firefox text rendering */
+body,
+.ant-typography {
+  text-rendering: optimizeLegibility !important;
+  -moz-font-feature-settings: "liga" 1, "kern" 1 !important;
+  -webkit-font-feature-settings: "liga" 1, "kern" 1 !important;
+  font-feature-settings: "liga" 1, "kern" 1 !important;
+}
+
+/* Firefox selection color */
+::-moz-selection {
+  background-color: #e6f7ff !important;
+  color: #1890ff !important;
+}
+
+::selection {
+  background-color: #e6f7ff !important;
+  color: #1890ff !important;
+}
+
+/* Firefox focus ring */
+*:focus {
+  outline: 2px solid #1890ff !important;
+  outline-offset: 2px !important;
+  -moz-outline-radius: 4px !important;
+}
+
+/* Remove focus ring for mouse users */
+.no-focus-outline *:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* Firefox table rendering */
+.ant-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  empty-cells: show !important;
+}
+
+/* Firefox form elements */
+.ant-form-item-label {
+  text-align: start !important; /* Firefox doesn't support 'start' value for text-align in older versions */
+  text-align: left !important;
+}
+
+/* Firefox date input compatibility */
+.ant-picker-input input {
+  -moz-appearance: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Firefox number input compatibility */
+.ant-input-number-input {
+  -moz-appearance: textfield !important;
+}
+
+.ant-input-number-input::-webkit-outer-spin-button,
+.ant-input-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+/* Firefox print compatibility */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+
+/* Firefox mobile compatibility */
+@media (max-width: 768px) {
+  .ant-btn {
+    -webkit-tap-highlight-color: transparent !important;
+    -moz-tap-highlight-color: transparent !important;
+  }
+  
+  .clickable-element,
+  .clickable-icon {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+  }
+} 

@@ -1,0 +1,173 @@
+.dklistSecondLayout{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    margin: 0 0 30px 0;
+    flex-wrap: wrap;
+}
+.middleColumn{
+    width: 600px;
+    margin: 0 50px;
+}
+
+
+.kapakContainer{
+    width: 100%;
+    height: 200px;
+    margin-bottom: 20px;
+    position: relative;
+}
+.kapakContainer img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.kapakContainer h1, .kapakContainer p{
+    position: absolute;
+    right: 10%;
+    width: 500px;
+    color: white;
+}
+.kapakContainer p{
+    top: 60px;
+    font-size: 20px;
+}
+.kapakContainer h1{
+    top: 110px;
+}
+@media screen and (max-width:1300px) {
+    .kapakContainer h1, .kapakContainer p{
+        right: 5%;
+    }
+}
+@media screen and (max-width:1200px) {
+    .middleColumn{
+        width:500px;
+        margin: 0 25px;
+    }
+    .kapakContainer h1, .kapakContainer p{
+        width: 400px;
+    }
+    .kapakContainer p{
+        font-size: 16px;
+    }
+    .kapakContainer h1{
+        font-size: 20px;
+    }
+}
+@media screen and (max-width:950px) {
+    .middleColumn{
+        width:350px;
+    }
+    .kapakContainer h1, .kapakContainer p{
+        width: 300px;
+    }
+    .kapakContainer p{
+        font-size: 14px;
+    }
+    .kapakContainer h1{
+        font-size: 18px;
+    }
+}
+@media screen and (max-width:750px) {
+    .dklistSecondLayout{
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        margin: 30px 0;
+        flex-wrap: wrap;
+    }
+    .middleColumn{
+        width:90vw;
+    }
+    .kapakContainer h1, .kapakContainer p{
+        width: 250px;
+        right: 10px;
+    }
+    .kapakContainer p{
+        font-size: 12px;
+    }
+    .kapakContainer h1{
+        font-size: 16px;
+        top:100px;
+    }
+}
+
+@media screen and (max-width:600px) {
+
+    .kapakContainer p{
+        font-size: 10px;
+        top: 20px;
+    }
+    .kapakContainer h1{
+        font-size: 14px;
+        top: 50px;
+    }
+}
+
+@media screen and (max-width:450px) {
+    .kapakContainer h1, .kapakContainer p{
+        width: 200px;
+    }
+    .kapakContainer p{
+        top: 20px;
+    }
+    .kapakContainer h1{
+        top: 50px;
+    }
+}
+
+@media screen and (max-width:400px) {
+    .kapakContainer h1, .kapakContainer p{
+        width: 200px;
+    }
+    .kapakContainer p{
+        top: 5px;
+    }
+    .kapakContainer h1{
+        top: 35px;
+    }
+}
+@media screen and (max-width:400px) {
+    .kapakContainer h1, .kapakContainer p{
+        right: 0;
+        width: 180px;
+    }
+    .kapakContainer h1{
+        top: 35px;
+        font-size: 12px;
+    }
+}
+
+.middleColumn-2{
+    width: 925px;
+    margin-left:50px;
+}
+@media screen and (max-width:1250px) {
+    .middleColumn-2{
+        width:725px;
+        margin: 0 25px;
+    }
+}
+@media screen and (max-width:1000px) {
+    .middleColumn-2{
+        width:625px;
+    }
+}
+@media screen and (max-width:900px) {
+    .middleColumn-2{
+        width:475px;
+    }
+}
+@media screen and (max-width:750px) {
+    .middleColumn-2{
+        width:100%;
+    }
+}
+@media screen and (max-width:500px) {
+    .middleColumn-2{
+        margin: 0 10px;
+    }
+}

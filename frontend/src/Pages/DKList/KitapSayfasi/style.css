@@ -1,0 +1,37 @@
+.otherReadersContainer{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.otherBooksContainer{
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin-top: 30px;
+}
+
+.otherBookItem{
+    margin-top: 10px;
+}
+
+.add_library_icon{
+    cursor: pointer;
+    transition: .5s all ease;
+}
+
+
+@media screen and (max-width:850px) {
+    .otherBooksContainer{
+        justify-content: center;
+    }
+    .otherBookItem{
+        margin: 10px 5px;
+    }
+}
+

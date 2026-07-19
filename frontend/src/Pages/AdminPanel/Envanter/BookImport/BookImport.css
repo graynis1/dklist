@@ -1,0 +1,103 @@
+.book-import-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.upload-step .ant-card {
+    background: #fafafa;
+    border: 1px dashed #d9d9d9;
+}
+
+.preview-step .ant-table-thead > tr > th {
+    background-color: #f0f2f5;
+    font-weight: 600;
+}
+
+.results-step .ant-statistic-content {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.conflict-decision-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-tag {
+    margin-bottom: 4px;
+}
+
+.import-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.import-stat-card {
+    text-align: center;
+    padding: 20px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.import-stat-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.import-stat-number {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 8px 0 4px;
+}
+
+.import-stat-label {
+    color: #666;
+    font-size: 14px;
+}
+
+.step-description {
+    margin-bottom: 16px;
+    color: #666;
+}
+
+.conflict-explanation {
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 16px 0;
+}
+
+.template-download-section {
+    background: #f0f2ff;
+    border: 1px solid #adc6ff;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.csv-upload-section {
+    background: #fff7e6;
+    border: 1px solid #ffd591;
+    border-radius: 6px;
+    padding: 16px;
+}
+
+@media (max-width: 768px) {
+    .book-import-container {
+        padding: 10px;
+    }
+    
+    .import-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .conflict-decision-buttons {
+        flex-direction: column;
+    }
+} 

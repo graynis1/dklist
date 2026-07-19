@@ -1,0 +1,28 @@
+.yazarlarBody{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    /* justify-content: space-between; */
+}
+.yazarlarHeader{
+    width: 100%;
+    height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+.yazarlarContainer{
+    padding: 40px;
+}
+@media screen and (max-width:380px) {
+    .yazarlarBody{
+        justify-content: center;
+    }
+}
+
+@media screen and (max-width:900px) {
+    .yazarlarContainer{
+        padding: 30px;
+    }
+}

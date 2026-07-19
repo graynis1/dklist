@@ -1,0 +1,32 @@
+services:
+  - name: dklist-backend
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: SERVER_NAME
+        value: ":10000"
+      - key: APP_ENV
+        value: prod
+      - key: APP_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ALLOW_ORIGIN
+        sync: false
+      - key: MAILER_DSN
+        sync: false
+      - key: MAILER_FROM_ADDRESS
+        sync: false
+      - key: MAILER_FROM_NAME
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

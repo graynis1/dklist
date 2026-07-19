@@ -1,0 +1,10 @@
+.mainShaceIcon{
+    transition: .5s all ease;
+}
+.mainShaceIcon:hover{
+    color: var(--softBlue);
+}
+.shareIcons{
+    color: var(--softBlue);
+    font-size: 34px;
+}

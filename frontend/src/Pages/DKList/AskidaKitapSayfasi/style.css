@@ -1,0 +1,120 @@
+.advertPersonalContainer{
+    width: 1200px;
+    padding: 20px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+.advertImageContainer{
+    width: 260px;
+    height: 480px;
+    display: flex;
+    flex-direction: column;
+}
+.advertContentContainer{
+    flex-grow: 1;
+    padding: 0 30px;
+    display: flex;
+    flex-direction: column;    
+}
+.advertHeader{
+    font-size: 26px;
+    font-weight: 600;
+    color: rgba(0,0,0,.5);
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0,0,0,.1);
+    display: flex;
+    justify-content: space-between;
+}
+.deleteAdvertButton{
+    cursor: pointer;
+    transition: .5s all ease;
+}
+.deleteAdvertButton:hover{
+    transform: scale(1.05);
+    color: red;
+}
+.advertContent{
+    margin-top: 10px;
+    font-size: 16px;
+}
+.advertOwnerContainer{
+    margin-top: 10px;
+    background-color: #f8f9fa;
+    width: 300px;
+    line-height: 30px;
+    padding: 10px;
+    border-radius: 10px;
+}
+.advertOwnerContainerItemHeader{
+    font-weight: 600;
+    color: rgba(0,0,0,.85);
+}
+.advertActions{
+    margin-top: 20px;
+    width:100%;
+}
+
+@media screen and (max-width:1300px) {
+    .advertPersonalContainer{
+        width: 1000px;
+    }
+}
+
+
+@media screen and (max-width:1050px) {
+    .advertPersonalContainer{
+        width: 800px;
+    }
+    .advertImageContainer{
+        width: 200px;
+        height: 400px;
+    }
+}
+
+@media screen and (max-width:1050px) {
+    .advertPersonalContainer{
+        width: 600px;
+    }
+}
+
+@media screen and (max-width:650px) {
+    .advertImageContainer{
+        width: 150px;
+        height: 300px;
+    }
+    .advertPersonalContainer{
+        width: 450px;
+    }
+    .advertHeader{
+        font-size: 20px;
+    }
+    .advertContent{
+        font-size: 14px;
+    }
+    .advertOwnerContainer{
+        width: 200px;
+        padding: 7px;
+        border-radius: 10px;
+    }
+    .advertOwnerContainerItem{
+        font-size: 14px;
+        line-height: 20px;
+    }
+}
+
+@media screen and (max-width:500px) {
+    .advertContentContainer{
+        padding: 0 10px;
+        margin-top: 10px;
+    }
+    .advertHeader{
+        text-align: center;
+    }
+    .advertPersonalContainer{
+        flex-direction: column;
+        align-items: center;
+        width: 300px;
+    }
+}
