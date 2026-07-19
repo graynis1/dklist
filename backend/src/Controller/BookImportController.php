@@ -179,8 +179,8 @@ class BookImportController extends AbstractController
      */
     private function parseCsvRow(array $row, int $lineNumber): array
     {
-        // Expected columns: orgName, name, writers, translators, publisher, pageNumber, isbn, lang, format, date, content, categories
-        
+        // Expected columns: orgName, name, writers, translators, publisher, pageNumber, isbn, lang, format, date, content, categories, image, country
+
         $requiredFields = ['orgName', 'name', 'writers', 'publisher', 'pageNumber', 'lang'];
         $bookData = [
             'lineNumber' => $lineNumber,
@@ -196,6 +196,8 @@ class BookImportController extends AbstractController
             'date' => trim($row[9] ?? ''),
             'content' => trim($row[10] ?? ''),
             'categories' => trim($row[11] ?? ''),
+            'image' => trim($row[12] ?? ''),
+            'country' => trim($row[13] ?? ''),
             'hasError' => false,
             'error' => null
         ];
@@ -232,22 +234,17 @@ class BookImportController extends AbstractController
             'isEdition' => false
         ];
 
-        // Find writers
+        // Writers/publisher/translators/categories that don't exist yet are auto-created at
+        // import time (see createBookFromData), so they never block a row here - only used to
+        // detect whether this row matches an already-registered original book.
         $writerNames = array_map('trim', explode(',', $bookData['writers']));
         $writerIds = [];
-        
+
         foreach ($writerNames as $writerName) {
             $writer = $this->entityManager->getRepository(Writer::class)->findOneBy(['name' => $writerName]);
             if ($writer) {
                 $writerIds[] = $writer->getId();
             }
-        }
-
-        if (count($writerIds) !== count($writerNames)) {
-            $conflictInfo['hasConflict'] = true;
-            $conflictInfo['type'] = 'missing_writers';
-            $conflictInfo['message'] = 'Bazı yazarlar sistemde bulunamadı';
-            return $conflictInfo;
         }
 
         // Check if original book exists (same orgName and writers)
@@ -256,7 +253,7 @@ class BookImportController extends AbstractController
             'originalBook' => null
         ]);
 
-        if ($originalBook) {
+        if ($originalBook && count($writerIds) === count($writerNames)) {
             // Check if writers match
             $originalWriterIds = [];
             foreach ($originalBook->getWriters() as $writer) {
@@ -270,47 +267,39 @@ class BookImportController extends AbstractController
                 // Same original book found
                 $conflictInfo['hasConflict'] = true;
                 $conflictInfo['existingBook'] = $originalBook;
-                
-                // Check if this exact edition exists
+
                 $publisher = $this->entityManager->getRepository(Publisher::class)->findOneBy(['name' => $bookData['publisher']]);
-                
-                if ($publisher) {
-                    $existingEdition = $this->entityManager->getRepository(Book::class)->findOneBy([
-                        'originalBook' => $originalBook,
-                        'publisher' => $publisher,
-                        'lang' => $bookData['lang']
-                    ]);
 
-                    if ($existingEdition) {
-                        // Check if translators also match
-                        $translatorNames = !empty($bookData['translators']) ? array_map('trim', explode(',', $bookData['translators'])) : [];
-                        $existingTranslatorNames = [];
-                        foreach ($existingEdition->getTranslators() as $translator) {
-                            $existingTranslatorNames[] = $translator->getName();
-                        }
+                $existingEdition = $publisher ? $this->entityManager->getRepository(Book::class)->findOneBy([
+                    'originalBook' => $originalBook,
+                    'publisher' => $publisher,
+                    'lang' => $bookData['lang']
+                ]) : null;
 
-                        sort($translatorNames);
-                        sort($existingTranslatorNames);
+                if ($existingEdition) {
+                    // Check if translators also match
+                    $translatorNames = !empty($bookData['translators']) ? array_map('trim', explode(',', $bookData['translators'])) : [];
+                    $existingTranslatorNames = [];
+                    foreach ($existingEdition->getTranslators() as $translator) {
+                        $existingTranslatorNames[] = $translator->getName();
+                    }
 
-                        if ($translatorNames === $existingTranslatorNames) {
-                            $conflictInfo['type'] = 'exact_duplicate';
-                            $conflictInfo['message'] = 'Bu kitabın tam olarak aynısı zaten sistemde mevcut';
-                        } else {
-                            $conflictInfo['type'] = 'different_edition';
-                            $conflictInfo['message'] = 'Bu kitabın aynı yayınevinden farklı çevirmenli versiyonu mevcut';
-                            $conflictInfo['isEdition'] = true;
-                        }
+                    sort($translatorNames);
+                    sort($existingTranslatorNames);
+
+                    if ($translatorNames === $existingTranslatorNames) {
+                        $conflictInfo['type'] = 'exact_duplicate';
+                        $conflictInfo['message'] = 'Bu kitabın tam olarak aynısı zaten sistemde mevcut';
                     } else {
-                        $conflictInfo['type'] = 'new_edition';
-                        $conflictInfo['message'] = 'Bu kitabın farklı baskısı/çevirisi olarak eklenebilir';
+                        $conflictInfo['type'] = 'different_edition';
+                        $conflictInfo['message'] = 'Bu kitabın aynı yayınevinden farklı çevirmenli versiyonu mevcut';
                         $conflictInfo['isEdition'] = true;
                     }
                 } else {
-                    $conflictInfo['type'] = 'missing_publisher';
-                    $conflictInfo['message'] = 'Yayınevi sistemde bulunamadı';
+                    $conflictInfo['type'] = 'new_edition';
+                    $conflictInfo['message'] = 'Bu kitabın farklı baskısı/çevirisi olarak eklenebilir';
+                    $conflictInfo['isEdition'] = true;
                 }
-            } else {
-                $conflictInfo['hasConflict'] = false; // Different book with same name
             }
         }
 
@@ -332,11 +321,7 @@ class BookImportController extends AbstractController
                         return ['success' => false, 'skipped' => true, 'message' => "Satır {$bookData['lineNumber']}: Duplicate - atlandı"];
                     }
                     break;
-                
-                case 'missing_writers':
-                case 'missing_publisher':
-                    return ['success' => false, 'skipped' => false, 'message' => "Satır {$bookData['lineNumber']}: " . $conflict['message']];
-                
+
                 case 'new_edition':
                 case 'different_edition':
                     if ($decision !== 'add_edition') {
@@ -353,53 +338,100 @@ class BookImportController extends AbstractController
     /**
      * Create book entity from parsed data
      */
+    private function findOrCreateWriter(string $name): Writer
+    {
+        $writer = $this->entityManager->getRepository(Writer::class)->findOneBy(['name' => $name]);
+        if ($writer) {
+            return $writer;
+        }
+
+        $writer = new Writer();
+        $writer->setName($name);
+        $writer->setSlug($this->slugger->slug($name)->lower());
+        $writer->setViewCount(0);
+        $writer->setScore(0);
+        $this->entityManager->persist($writer);
+
+        return $writer;
+    }
+
+    private function findOrCreateTranslator(string $name): Translator
+    {
+        $translator = $this->entityManager->getRepository(Translator::class)->findOneBy(['name' => $name]);
+        if ($translator) {
+            return $translator;
+        }
+
+        $translator = new Translator();
+        $translator->setName($name);
+        $translator->setSlug($this->slugger->slug($name)->lower());
+        $translator->setViewCount(0);
+        $translator->setScore(0);
+        $this->entityManager->persist($translator);
+
+        return $translator;
+    }
+
+    private function findOrCreatePublisher(string $name): Publisher
+    {
+        $publisher = $this->entityManager->getRepository(Publisher::class)->findOneBy(['name' => $name]);
+        if ($publisher) {
+            return $publisher;
+        }
+
+        $publisher = new Publisher();
+        $publisher->setName($name);
+        $publisher->setSlug($this->slugger->slug($name)->lower());
+        $this->entityManager->persist($publisher);
+
+        return $publisher;
+    }
+
+    private function findOrCreateCategory(string $name): Category
+    {
+        $category = $this->entityManager->getRepository(Category::class)->findOneBy(['category' => $name]);
+        if ($category) {
+            return $category;
+        }
+
+        $category = new Category();
+        $category->setCategory($name);
+        $category->setSlug($this->slugger->slug($name)->lower());
+        $this->entityManager->persist($category);
+
+        return $category;
+    }
+
     private function createBookFromData(array $bookData): array
     {
-        // Find or create publisher
-        $publisher = $this->entityManager->getRepository(Publisher::class)->findOneBy(['name' => $bookData['publisher']]);
-        if (!$publisher) {
-            return ['success' => false, 'skipped' => false, 'message' => "Satır {$bookData['lineNumber']}: Yayınevi bulunamadı"];
-        }
+        $publisher = $this->findOrCreatePublisher($bookData['publisher']);
 
-        // Find writers
         $writers = [];
-        $writerNames = array_map('trim', explode(',', $bookData['writers']));
+        $writerNames = array_filter(array_map('trim', explode(',', $bookData['writers'])));
         foreach ($writerNames as $writerName) {
-            $writer = $this->entityManager->getRepository(Writer::class)->findOneBy(['name' => $writerName]);
-            if ($writer) {
-                $writers[] = $writer;
-            }
+            $writers[] = $this->findOrCreateWriter($writerName);
         }
 
-        // Find translators
         $translators = [];
         if (!empty($bookData['translators'])) {
-            $translatorNames = array_map('trim', explode(',', $bookData['translators']));
+            $translatorNames = array_filter(array_map('trim', explode(',', $bookData['translators'])));
             foreach ($translatorNames as $translatorName) {
-                $translator = $this->entityManager->getRepository(Translator::class)->findOneBy(['name' => $translatorName]);
-                if ($translator) {
-                    $translators[] = $translator;
-                }
-            }
-        }
-
-        // Find categories
-        $categories = [];
-        if (!empty($bookData['categories'])) {
-            $categoryNames = array_map('trim', explode(',', $bookData['categories']));
-            foreach ($categoryNames as $categoryName) {
-                $category = $this->entityManager->getRepository(Category::class)->findOneBy(['category' => $categoryName]);
-                if ($category) {
-                    $categories[] = $category;
-                }
+                $translators[] = $this->findOrCreateTranslator($translatorName);
             }
         }
 
         // Check for original book
-        $originalBook = null;
-        if (isset($bookData['conflict']['existingBook'])) {
-            $originalBook = $bookData['conflict']['existingBook'];
-            $categories = $originalBook->getCategories()->toArray(); // Use original book's categories
+        $originalBook = $bookData['conflict']['existingBook'] ?? null;
+
+        $categories = [];
+        if ($originalBook) {
+            // Editions inherit the original book's categories
+            $categories = $originalBook->getCategories()->toArray();
+        } elseif (!empty($bookData['categories'])) {
+            $categoryNames = array_filter(array_map('trim', explode(',', $bookData['categories'])));
+            foreach ($categoryNames as $categoryName) {
+                $categories[] = $this->findOrCreateCategory($categoryName);
+            }
         }
 
         // Create new book
@@ -410,19 +442,27 @@ class BookImportController extends AbstractController
         $book->setPageNumber((int)$bookData['pageNumber']);
         $book->setLang($bookData['lang']);
         $book->setOriginalBook($originalBook);
-        
+
         if (!empty($bookData['isbn'])) {
             $book->setIsbn($bookData['isbn']);
         }
-        
+
         if (!empty($bookData['format'])) {
             $book->setFormat($bookData['format']);
         }
-        
+
         if (!empty($bookData['content'])) {
             $book->setContent($bookData['content']);
         }
-        
+
+        if (!empty($bookData['image'])) {
+            $book->setImage($bookData['image']);
+        }
+
+        if (!empty($bookData['country'])) {
+            $book->setCountry($bookData['country']);
+        }
+
         if (!empty($bookData['date'])) {
             try {
                 $date = \DateTime::createFromFormat('Y-m-d', $bookData['date']);
@@ -487,7 +527,9 @@ class BookImportController extends AbstractController
                 'Format',
                 'Tarih (YYYY-MM-DD)',
                 'İçerik',
-                'Kategoriler (virgülle ayırın)'
+                'Kategoriler (virgülle ayırın)',
+                'Görsel (URL)',
+                'Ülke'
             ],
             'example' => [
                 'The Great Gatsby',
@@ -501,7 +543,9 @@ class BookImportController extends AbstractController
                 'Ciltli',
                 '2023-01-15',
                 'Klasik Amerikan edebiyatının başyapıtı...',
-                'Roman,Klasik'
+                'Roman,Klasik',
+                'https://example.com/kapak.jpg',
+                'ABD'
             ],
             'csv_content' => null
         ];

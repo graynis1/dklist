@@ -37,6 +37,9 @@ class Book
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $country = null;
+
     #[ORM\ManyToMany(targetEntity: Writer::class, mappedBy: 'books_writers')]
     private Collection $writers;
 
@@ -179,6 +182,18 @@ class Book
     public function setImage(?string $image): static
     {
         $this->image = $image;
+
+        return $this;
+    }
+
+    public function getCountry(): ?string
+    {
+        return $this->country;
+    }
+
+    public function setCountry(?string $country): static
+    {
+        $this->country = $country;
 
         return $this;
     }
