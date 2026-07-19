@@ -4,7 +4,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip libicu-dev libzip-dev \
     && docker-php-ext-install intl pdo_mysql zip opcache \
     && a2enmod rewrite \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
