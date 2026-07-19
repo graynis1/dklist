@@ -31,4 +31,6 @@ RUN sed -ri -e 's!DocumentRoot /var/www/html!DocumentRoot /app/public!g' /etc/ap
 # every boot instead. The existing migration history is incomplete (it's missing the table the
 # very first migration depends on), so schema:update --force syncs straight from the entity
 # mappings instead of replaying migrations; it's idempotent, safe to run on every boot.
-CMD ["sh", "-c", "php bin/console cache:clear --env=prod --no-debug; php bin/console doctrine:schema:update --force --complete --no-interaction; apache2-foreground"]
+# NOTE: intentionally NOT --complete - that flag drops any table/column not in the entity
+# mappings, which would wipe out the bulk-import staging tables on every container restart.
+CMD ["sh", "-c", "php bin/console cache:clear --env=prod --no-debug; php bin/console doctrine:schema:update --force --no-interaction; apache2-foreground"]
