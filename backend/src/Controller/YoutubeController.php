@@ -52,7 +52,7 @@ class YoutubeController extends AbstractController
             ->orderBy('youtube.' . $sortBy, $orderBy)
             ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
 
-        $filteredCount = count($qb->getQuery()->getResult());
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT youtube.id)')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ($page > $lastPage) {

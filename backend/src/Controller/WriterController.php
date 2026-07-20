@@ -477,7 +477,7 @@ class WriterController extends AbstractController
             ->orderBy('writer.' . $sortBy, $orderBy)
             ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
      
-        $filteredCount = count($qb->getQuery()->getResult());
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT writer.id)')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ($page > $lastPage) {
