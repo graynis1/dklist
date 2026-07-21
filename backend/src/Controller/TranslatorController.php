@@ -150,7 +150,7 @@ class TranslatorController extends AbstractController
                 ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT translator.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT translator.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;
@@ -457,7 +457,7 @@ class TranslatorController extends AbstractController
             ->orderBy('translator.' . $sortBy, $orderBy)
             ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
      
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT translator.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT translator.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ($page > $lastPage) {

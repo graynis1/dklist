@@ -184,7 +184,7 @@ class BlogController extends AbstractController
             $qb->setParameter('approvedStatus', true);
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT blog.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT blog.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

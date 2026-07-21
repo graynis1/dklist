@@ -129,7 +129,7 @@ class CategoryController extends AbstractController
                 ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT category.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT category.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

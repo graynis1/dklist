@@ -139,7 +139,7 @@ class WriterController extends AbstractController
                 ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT writer.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT writer.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;
@@ -477,7 +477,7 @@ class WriterController extends AbstractController
                 ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT writer.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT writer.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ($page > $lastPage) {

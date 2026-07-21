@@ -133,7 +133,7 @@ class PublisherController extends AbstractController
                 ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT publishers.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT publishers.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

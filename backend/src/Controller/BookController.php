@@ -322,7 +322,7 @@ class BookController extends AbstractController
             )->setParameter('searchTermLower', '%' . strtolower($search) . '%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT book.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT book.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ($page > $lastPage) {
@@ -1051,7 +1051,7 @@ class BookController extends AbstractController
             ->setParameter('readStatuses', ReadStatusEnum::FinishRead);
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT book.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT book.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ($page > $lastPage) {

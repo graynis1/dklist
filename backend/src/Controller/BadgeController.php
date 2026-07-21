@@ -115,7 +115,7 @@ class BadgeController extends AbstractController {
                 ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT badge.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT badge.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

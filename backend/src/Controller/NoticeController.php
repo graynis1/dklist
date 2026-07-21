@@ -198,7 +198,7 @@ class NoticeController extends AbstractController
 
         $qb->orderBy('notice.createdAt', 'DESC');
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT notice.id)')->getQuery()->getSingleScalarResult();
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT notice.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);
 
