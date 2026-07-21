@@ -322,7 +322,16 @@ class BookController extends AbstractController
             )->setParameter('searchTermLower', '%' . strtolower($search) . '%');
         }
 
-        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT book.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
+        if ($search === '') {
+            // An exact COUNT over the full book table gets more expensive every time this
+            // import grows (tens of millions of rows). With no filter applied, InnoDB's own
+            // table-row estimate is instant and accurate enough for pagination.
+            $filteredCount = (int) $this->entityManager->getConnection()->fetchOne(
+                "SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'book'"
+            );
+        } else {
+            $filteredCount = (int) (clone $qb)->select('COUNT(book.id)')->resetDQLPart('orderBy')->getQuery()->getSingleScalarResult();
+        }
 
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ($page > $lastPage) {
