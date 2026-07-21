@@ -343,7 +343,35 @@ class BookController extends AbstractController
                 ->setMaxResults($pagePerSize);
         }
 
-        $bookObjects = $qb->getQuery()->getResult();
+        // Fetch just the ordered page of IDs first (cheap), then hydrate everything this
+        // page needs (publisher/writers/categories/translators/originalBook) in a single
+        // eager-joined query. Looping over $bookObjects and calling getWriters()/getPublisher()/
+        // etc. per book previously triggered a lazy-load query PER RELATION PER BOOK
+        // (an N+1 problem) — harmless on localhost, but each round trip to this DB goes over
+        // an ngrok tunnel, so 40 books x ~5 relations meant 150+ latency-bound round trips.
+        $bookIds = array_column((clone $qb)->select('book.id')->getQuery()->getArrayResult(), 'id');
+
+        $bookObjects = [];
+        if (!empty($bookIds)) {
+            $unordered = $this->entityManager->createQueryBuilder()
+                ->select('book', 'publisher', 'writers', 'categories', 'translators', 'originalBook')
+                ->from('App\Entity\Book', 'book')
+                ->leftJoin('book.publisher', 'publisher')
+                ->leftJoin('book.writers', 'writers')
+                ->leftJoin('book.categories', 'categories')
+                ->leftJoin('book.translators', 'translators')
+                ->leftJoin('book.originalBook', 'originalBook')
+                ->where('book.id IN (:ids)')
+                ->setParameter('ids', $bookIds)
+                ->getQuery()
+                ->getResult();
+
+            $byId = [];
+            foreach ($unordered as $b) { $byId[$b->getId()] = $b; }
+            foreach ($bookIds as $id) {
+                if (isset($byId[$id])) { $bookObjects[] = $byId[$id]; }
+            }
+        }
 
         $data = [];
 
