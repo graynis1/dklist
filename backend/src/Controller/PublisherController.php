@@ -125,13 +125,15 @@ class PublisherController extends AbstractController
             $sortBy = 'name'; // TODO değişiklik3
 
         $qb = $this->entityManager->createQueryBuilder();
-        $filterQuery = [ $qb->expr()->like('LOWER(publishers.name)', ':searchTermLower') ];
         $qb ->select('publishers') ->from('App\Entity\Publisher', 'publishers')
-            ->where( ...$filterQuery )
-            ->orderBy('publishers.'.$sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+            ->orderBy('publishers.'.$sortBy, $orderBy);
 
-        $filteredCount = count( $qb->getQuery()->getResult() );
+        if ($search !== '') {
+            $qb->where( $qb->expr()->like('LOWER(publishers.name)', ':searchTermLower') )
+                ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+        }
+
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT publishers.id)')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

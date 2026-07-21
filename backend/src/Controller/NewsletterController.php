@@ -66,14 +66,15 @@ class NewsletterController extends AbstractController
             $sortBy = 'id';
 
         $qb = $this->entityManager->createQueryBuilder();
-        $filterQuery = [ $qb->expr()->like('LOWER(newsletter.mail)', ':searchTermLower') ];
         $qb ->select('newsletter') ->from('App\Entity\Newsletter', 'newsletter')
-            ->where( ...$filterQuery )
-            ->orderBy('newsletter.'.$sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+            ->orderBy('newsletter.'.$sortBy, $orderBy);
 
-            
-        $filteredCount = count( $qb->getQuery()->getResult() );
+        if ($search !== '') {
+            $qb->where( $qb->expr()->like('LOWER(newsletter.mail)', ':searchTermLower') )
+                ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+        }
+
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT newsletter.id)')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

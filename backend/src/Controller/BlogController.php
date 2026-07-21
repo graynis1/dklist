@@ -160,22 +160,31 @@ class BlogController extends AbstractController
             $sortBy = 'id';
 
         $qb = $this->entityManager->createQueryBuilder();
-        // $filterQuery = [ $qb->expr()->like('LOWER(blog.title)', ':searchTermLower') ];
-        $filterQuery = [$qb->expr()->orX(
-            $qb->expr()->like('LOWER(blog.title)', ':searchTermLower'),
-            $qb->expr()->like('LOWER(blog.preview)', ':searchTermLower'),
-            $qb->expr()->like('LOWER(blog.content)', ':searchTermLower')
-        )];
+        $filterQuery = [];
+        if ($search !== '') {
+            $filterQuery[] = $qb->expr()->orX(
+                $qb->expr()->like('LOWER(blog.title)', ':searchTermLower'),
+                $qb->expr()->like('LOWER(blog.preview)', ':searchTermLower'),
+                $qb->expr()->like('LOWER(blog.content)', ':searchTermLower')
+            );
+        }
         if ($sortBy !== 'approved') {
             $filterQuery[] = $qb->expr()->eq('blog.approved', ':approvedStatus');
-            $qb->setParameter('approvedStatus', true);
         }
         $qb ->select('blog') ->from('App\Entity\Blog', 'blog')
-            ->where( ...$filterQuery )
-            ->orderBy('blog.'.$sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+            ->orderBy('blog.'.$sortBy, $orderBy);
 
-        $filteredCount = count( $qb->getQuery()->getResult() );
+        if (!empty($filterQuery)) {
+            $qb->where( ...$filterQuery );
+        }
+        if ($search !== '') {
+            $qb->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+        }
+        if ($sortBy !== 'approved') {
+            $qb->setParameter('approvedStatus', true);
+        }
+
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT blog.id)')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

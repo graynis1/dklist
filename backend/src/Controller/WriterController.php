@@ -131,13 +131,15 @@ class WriterController extends AbstractController
             $sortBy = 'name'; // TODO değişiklik3
 
         $qb = $this->entityManager->createQueryBuilder();
-        $filterQuery = [ $qb->expr()->like('LOWER(writer.name)', ':searchTermLower') ];
         $qb ->select('writer') ->from('App\Entity\Writer', 'writer')
-            ->where( ...$filterQuery )
-            ->orderBy('writer.'.$sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+            ->orderBy('writer.'.$sortBy, $orderBy);
 
-        $filteredCount = count( $qb->getQuery()->getResult() );
+        if ($search !== '') {
+            $qb->where( $qb->expr()->like('LOWER(writer.name)', ':searchTermLower') )
+                ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+        }
+
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT writer.id)')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;
@@ -466,17 +468,15 @@ class WriterController extends AbstractController
 
         $qb = $this->entityManager->createQueryBuilder();
 
-        $filterQuery = [
-            $qb->expr()->like('LOWER(writer.name)', ':searchTermLower'),
-        ];
-
-
         $qb->select('writer')
             ->from('App\Entity\Writer', 'writer')
-            ->where(...$filterQuery)
-            ->orderBy('writer.' . $sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
-     
+            ->orderBy('writer.' . $sortBy, $orderBy);
+
+        if ($search !== '') {
+            $qb->where( $qb->expr()->like('LOWER(writer.name)', ':searchTermLower') )
+                ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
+        }
+
         $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT writer.id)')->getQuery()->getSingleScalarResult();
 
         $lastPage = ceil($filteredCount / $pagePerSize);

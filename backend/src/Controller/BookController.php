@@ -309,17 +309,18 @@ class BookController extends AbstractController
 
         $qb = $this->entityManager->createQueryBuilder();
 
-        $filterQuery = [
-            $qb->expr()->orX(
-                $qb->expr()->like('LOWER(book.name)', ':searchTermLower'),
-                $qb->expr()->like('LOWER(book.orgName)', ':searchTermLower')
-            )
-        ];
         $qb->select('book')
             ->from('App\Entity\Book', 'book')
-            ->where(...$filterQuery)
-            ->orderBy('book.' . $sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
+            ->orderBy('book.' . $sortBy, $orderBy);
+
+        if ($search !== '') {
+            $qb->where(
+                $qb->expr()->orX(
+                    $qb->expr()->like('LOWER(book.name)', ':searchTermLower'),
+                    $qb->expr()->like('LOWER(book.orgName)', ':searchTermLower')
+                )
+            )->setParameter('searchTermLower', '%' . strtolower($search) . '%');
+        }
 
         $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT book.id)')->getQuery()->getSingleScalarResult();
 
@@ -1003,12 +1004,14 @@ class BookController extends AbstractController
 
         $qb = $this->entityManager->createQueryBuilder();
 
-        $filterQuery = [
-            $qb->expr()->orX(
+        $filterQuery = [];
+
+        if ($search !== '') {
+            $filterQuery[] = $qb->expr()->orX(
                 $qb->expr()->like('LOWER(book.name)', ':searchTermLower'),
                 $qb->expr()->like('LOWER(book.orgName)', ':searchTermLower')
-            ),
-        ];
+            );
+        }
 
         if ($optionID) {
             if ($optionType === 'category') {
@@ -1024,11 +1027,17 @@ class BookController extends AbstractController
 
         $qb->select('book')
             ->from('App\Entity\Book', 'book')
-            ->where(...$filterQuery)
-            ->orderBy('book.' . $sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
+            ->orderBy('book.' . $sortBy, $orderBy);
 
-        
+        if (!empty($filterQuery)) {
+            $qb->where(...$filterQuery);
+        }
+
+        if ($search !== '') {
+            $qb->setParameter('searchTermLower', '%' . strtolower($search) . '%');
+        }
+
+
         if ($optionID) {
             if ($optionType === 'category') {
                 $qb->leftJoin('book.categories', 'category')->setParameter('categories', [$optionID]);
@@ -1188,17 +1197,19 @@ class BookController extends AbstractController
 
         $qb = $this->entityManager->createQueryBuilder();
 
-        $filterQuery = [
-            $qb->expr()->orX(
-                $qb->expr()->like('LOWER(book.name)', ':searchTermLower'),
-                $qb->expr()->like('LOWER(book.orgName)', ':searchTermLower')
-            )
-        ];
         $qb->select('book')
             ->from('App\Entity\Book', 'book')
-            ->where(...$filterQuery)
-            ->setParameter('searchTermLower', '%' . strtolower($search) . '%');
-        
+            ->setMaxResults(50);
+
+        if ($search !== '') {
+            $qb->where(
+                $qb->expr()->orX(
+                    $qb->expr()->like('LOWER(book.name)', ':searchTermLower'),
+                    $qb->expr()->like('LOWER(book.orgName)', ':searchTermLower')
+                )
+            )->setParameter('searchTermLower', '%' . strtolower($search) . '%');
+        }
+
         $bookObjects = $qb->getQuery()->getResult();
 
         $data = [];

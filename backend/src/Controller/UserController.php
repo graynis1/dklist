@@ -303,13 +303,15 @@ class UserController extends AbstractController{
             $sortBy = 'id';
 
         $qb = $this->entityManager->createQueryBuilder();
-        $filterQuery = [ $qb->expr()->like('LOWER(user.username)', ':searchTermLower') ];
         $qb ->select('user') ->from('App\Entity\User', 'user')
-            ->where( ...$filterQuery )
-            ->orderBy('user.'.$sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+            ->orderBy('user.'.$sortBy, $orderBy);
 
-        $filteredCount = count( $qb->getQuery()->getResult() );
+        if ($search !== '') {
+            $qb->where( $qb->expr()->like('LOWER(user.username)', ':searchTermLower') )
+                ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+        }
+
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT user.id)')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;

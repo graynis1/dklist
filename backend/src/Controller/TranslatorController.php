@@ -142,13 +142,15 @@ class TranslatorController extends AbstractController
             $sortBy = 'name'; // TODO değişiklik3
 
         $qb = $this->entityManager->createQueryBuilder();
-        $filterQuery = [ $qb->expr()->like('LOWER(translator.name)', ':searchTermLower') ];
         $qb ->select('translator') ->from('App\Entity\Translator', 'translator')
-            ->where( ...$filterQuery )
-            ->orderBy('translator.'.$sortBy, $orderBy)
-            ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+            ->orderBy('translator.'.$sortBy, $orderBy);
 
-        $filteredCount = count( $qb->getQuery()->getResult() );
+        if ($search !== '') {
+            $qb->where( $qb->expr()->like('LOWER(translator.name)', ':searchTermLower') )
+                ->setParameter('searchTermLower', '%'.strtolower( $search ).'%');
+        }
+
+        $filteredCount = (int) (clone $qb)->select('COUNT(DISTINCT translator.id)')->getQuery()->getSingleScalarResult();
         $lastPage = ceil($filteredCount / $pagePerSize);
         if ( $page > $lastPage ){
             $page = $lastPage;
