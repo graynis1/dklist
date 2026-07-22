@@ -29,6 +29,16 @@ RUN sed -ri -e 's!DocumentRoot /var/www/html!DocumentRoot /app/public!g' /etc/ap
     && sed -ri -e 's!Listen 80!Listen ${PORT}!g' /etc/apache2/ports.conf \
     && sed -ri -e 's!:80>!:${PORT}>!g' /etc/apache2/sites-available/*.conf
 
+# Force a single Apache worker process. Debian's default prefork MPM starts 5 children, each
+# with its own separate pool of persistent DB connections - most requests would still hit a
+# "cold" child that has to pay the full tunnel handshake again. Pinning to exactly one worker
+# makes every request reuse the same already-established connection.
+RUN sed -ri -e 's/StartServers\s+[0-9]+/StartServers 1/' \
+             -e 's/MinSpareServers\s+[0-9]+/MinSpareServers 1/' \
+             -e 's/MaxSpareServers\s+[0-9]+/MaxSpareServers 1/' \
+             -e 's/MaxRequestWorkers\s+[0-9]+/MaxRequestWorkers 1/' \
+             /etc/apache2/mods-available/mpm_prefork.conf
+
 # cache:clear/schema sync need the real DATABASE_URL, which only exists at runtime (not during
 # this Docker build), and the free tier has no shell/pre-deploy-command access - so both run on
 # every boot instead. The existing migration history is incomplete (it's missing the table the
