@@ -28,6 +28,14 @@ when@test:
 
 when@prod:
     doctrine:
+        dbal:
+            # The DB connection is proxied through a tunnel where each fresh connection pays an
+            # expensive handshake (crypto/multiplexing setup) - costly on a CPU-constrained
+            # instance. WEB_CONCURRENCY=1 means a single long-lived worker process, so a
+            # persistent PDO connection lets every request after the first reuse the same
+            # already-established connection instead of paying that cost every time.
+            options:
+                !php/const PDO::ATTR_PERSISTENT: true
         orm:
             auto_generate_proxy_classes: false
             proxy_dir: '%kernel.build_dir%/doctrine/orm/Proxies'
