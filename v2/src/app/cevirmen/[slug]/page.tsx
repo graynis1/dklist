@@ -5,7 +5,11 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EntityLikeButton } from "@/components/dklist/entity-like-button";
 import { getTranslatorBySlug, getBooksByTranslator } from "@/db/queries/translators";
+import { isTranslatorLiked, getTranslatorLikeCount } from "@/db/queries/likes";
+import { auth } from "@/auth";
+import { toggleTranslatorLikeAction } from "./actions";
 
 export default function TranslatorPage({ params }: PageProps<"/cevirmen/[slug]">) {
   return (
@@ -41,7 +45,13 @@ async function TranslatorContent({
     notFound();
   }
 
-  const books = await getBooksByTranslator(translator.id);
+  const session = await auth();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  const [books, liked, likeCount] = await Promise.all([
+    getBooksByTranslator(translator.id),
+    userId ? isTranslatorLiked(userId, translator.id) : Promise.resolve(false),
+    getTranslatorLikeCount(translator.id),
+  ]);
   const initials = translator.name
     .split(" ")
     .map((part) => part[0])
@@ -67,6 +77,15 @@ async function TranslatorContent({
               · {books.length} çeviri
             </span>
           </div>
+        </div>
+        <div className="sm:ml-auto">
+          <EntityLikeButton
+            entityId={translator.id}
+            signedIn={Boolean(userId)}
+            initialLiked={liked}
+            initialCount={likeCount}
+            toggleAction={toggleTranslatorLikeAction}
+          />
         </div>
       </div>
 

@@ -5,8 +5,11 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { EntityLikeButton } from "@/components/dklist/entity-like-button";
 import { getWriterBySlug, getBooksByWriter } from "@/db/queries/writers";
+import { isWriterLiked, getWriterLikeCount } from "@/db/queries/likes";
+import { auth } from "@/auth";
+import { toggleWriterLikeAction } from "./actions";
 
 export default function WriterPage({ params }: PageProps<"/yazar/[slug]">) {
   return (
@@ -47,7 +50,13 @@ async function WriterContent({
     notFound();
   }
 
-  const books = await getBooksByWriter(writer.id);
+  const session = await auth();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  const [books, liked, likeCount] = await Promise.all([
+    getBooksByWriter(writer.id),
+    userId ? isWriterLiked(userId, writer.id) : Promise.resolve(false),
+    getWriterLikeCount(writer.id),
+  ]);
   const initials = writer.name
     .split(" ")
     .map((part) => part[0])
@@ -74,9 +83,15 @@ async function WriterContent({
             </span>
           </div>
         </div>
-        <Button variant="outline" className="sm:ml-auto">
-          Takip Et
-        </Button>
+        <div className="sm:ml-auto">
+          <EntityLikeButton
+            entityId={writer.id}
+            signedIn={Boolean(userId)}
+            initialLiked={liked}
+            initialCount={likeCount}
+            toggleAction={toggleWriterLikeAction}
+          />
+        </div>
       </div>
 
       {writer.biyo && (

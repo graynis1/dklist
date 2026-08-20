@@ -16,6 +16,7 @@ import {
   getCurrentReadingGoal,
   getPastReadingGoals,
 } from "@/db/queries/profile";
+import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
 import { READ_STATUSES } from "@/lib/reading-status";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
@@ -63,15 +64,25 @@ async function ProfileContent({
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
   const isOwnProfile = viewerId === profile.id;
 
-  const [counts, viewerFollows, booksByStatus, libraryBooks, readingGoal, pastGoals] =
-    await Promise.all([
-      getFollowCounts(profile.id),
-      viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
-      getBooksByStatus(profile.id),
-      getLibraryBooks(profile.id),
-      getCurrentReadingGoal(profile.id),
-      getPastReadingGoals(profile.id),
-    ]);
+  const [
+    counts,
+    viewerFollows,
+    booksByStatus,
+    libraryBooks,
+    readingGoal,
+    pastGoals,
+    likedWriters,
+    likedTranslators,
+  ] = await Promise.all([
+    getFollowCounts(profile.id),
+    viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
+    getBooksByStatus(profile.id),
+    getLibraryBooks(profile.id),
+    getCurrentReadingGoal(profile.id),
+    getPastReadingGoals(profile.id),
+    getLikedWriters(profile.id),
+    getLikedTranslators(profile.id),
+  ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
 
@@ -172,6 +183,46 @@ async function ProfileContent({
                   className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
                 >
                   {b.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {likedWriters.length > 0 && (
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <SectionLabel>Beğenilen Yazarlar</SectionLabel>
+              <span className="text-sm text-muted-foreground">({likedWriters.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {likedWriters.map((w) => (
+                <Link
+                  key={w.id}
+                  href={`/yazar/${w.slug}`}
+                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+                >
+                  {w.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {likedTranslators.length > 0 && (
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <SectionLabel>Beğenilen Çevirmenler</SectionLabel>
+              <span className="text-sm text-muted-foreground">({likedTranslators.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {likedTranslators.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/cevirmen/${t.slug}`}
+                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+                >
+                  {t.name}
                 </Link>
               ))}
             </div>
