@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,9 +66,11 @@ async function BookDetailContent({
             {detail.categories.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {detail.categories.map((c) => (
-                  <Badge key={c.id} variant="secondary">
-                    {c.name}
-                  </Badge>
+                  <Link key={c.id} href={`/kategori/${c.slug}`}>
+                    <Badge variant="secondary" className="cursor-pointer hover:bg-accent">
+                      {c.name}
+                    </Badge>
+                  </Link>
                 ))}
               </div>
             )}
@@ -81,7 +84,21 @@ async function BookDetailContent({
               </p>
             )}
 
-            <p className="text-lg text-muted-foreground">{writerNames}</p>
+            <p className="text-lg text-muted-foreground">
+              {detail.writers.length > 0
+                ? detail.writers.map((w, i) => (
+                    <span key={w.id}>
+                      {i > 0 && ", "}
+                      <Link
+                        href={`/yazar/${w.slug}`}
+                        className="hover:text-foreground hover:underline"
+                      >
+                        {w.name}
+                      </Link>
+                    </span>
+                  ))
+                : "Yazar bilinmiyor"}
+            </p>
 
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <StarRating value={detail.score} />
