@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FollowButton } from "@/components/dklist/follow-button";
+import { ReadingGoalControl } from "@/components/dklist/reading-goal-control";
 import { auth } from "@/auth";
 import {
   getProfileByUsername,
@@ -12,6 +13,8 @@ import {
   isFollowing,
   getBooksByStatus,
   getLibraryBooks,
+  getCurrentReadingGoal,
+  getPastReadingGoals,
 } from "@/db/queries/profile";
 import { READ_STATUSES } from "@/lib/reading-status";
 
@@ -60,12 +63,15 @@ async function ProfileContent({
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
   const isOwnProfile = viewerId === profile.id;
 
-  const [counts, viewerFollows, booksByStatus, libraryBooks] = await Promise.all([
-    getFollowCounts(profile.id),
-    viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
-    getBooksByStatus(profile.id),
-    getLibraryBooks(profile.id),
-  ]);
+  const [counts, viewerFollows, booksByStatus, libraryBooks, readingGoal, pastGoals] =
+    await Promise.all([
+      getFollowCounts(profile.id),
+      viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
+      getBooksByStatus(profile.id),
+      getLibraryBooks(profile.id),
+      getCurrentReadingGoal(profile.id),
+      getPastReadingGoals(profile.id),
+    ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
 
@@ -98,10 +104,22 @@ async function ProfileContent({
       </div>
 
       {profile.biyo && (
-        <p className="mb-10 max-w-xl leading-relaxed text-muted-foreground">
+        <p className="mb-6 max-w-xl leading-relaxed text-muted-foreground">
           {profile.biyo}
         </p>
       )}
+
+      <div className="mb-10 flex flex-col gap-2">
+        <ReadingGoalControl isOwnProfile={isOwnProfile} initialGoal={readingGoal} />
+        {pastGoals.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Geçmiş yıllar:{" "}
+            {pastGoals
+              .map((g) => `${g.year}: ${g.readCount}/${g.targetCount}`)
+              .join(", ")}
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-col gap-8">
         {READ_STATUSES.map((status) => {
