@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { sql, eq, inArray, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { category as categoryTable, writer, writerBook, book } from "@/db/schema";
+import { translateCategoryName } from "@/lib/category-names";
 
 export interface CategoryBookListItem {
   id: number;
@@ -65,7 +66,42 @@ export async function getCategoryBySlug(
     .where(eq(categoryTable.slug, slug))
     .limit(1);
 
-  return row ?? null;
+  if (!row) return null;
+  return { ...row, name: translateCategoryName(row.name) };
+}
+
+export interface TopCategory {
+  id: number;
+  name: string;
+  slug: string;
+  bookCount: number;
+}
+
+/**
+ * v1's CategoryController::getAllCategoriesForClient() - the site-wide nav
+ * widget. On the real 98.5M-row/508K-category prod table this GROUP BY over
+ * ~50M book_category rows was expensive enough that v1 resorted to a 24h
+ * file cache with a flock() stampede guard (a live `information_schema`-style
+ * count wasn't an option here since book_category needs an actual join to
+ * rank by book count, unlike the simpler TABLE_ROWS estimate used elsewhere).
+ * `'use cache'` + a long cacheLife is the Cache Components equivalent of that
+ * file cache - same reasoning, no hand-rolled flock() needed.
+ */
+export async function getTopCategories(limit = 50): Promise<TopCategory[]> {
+  "use cache";
+  cacheLife("days");
+  cacheTag("top-categories");
+
+  const rows = (await db.execute(sql`
+    SELECT c.id, c.category AS name, c.slug, COUNT(bc.book_id) AS bookCount
+    FROM category c
+    JOIN book_category bc ON bc.category_id = c.id
+    GROUP BY c.id
+    ORDER BY bookCount DESC
+    LIMIT ${limit}
+  `))[0] as unknown as { id: number; name: string; slug: string; bookCount: number }[];
+
+  return rows.map((r) => ({ ...r, name: translateCategoryName(r.name), bookCount: Number(r.bookCount) }));
 }
 
 /**

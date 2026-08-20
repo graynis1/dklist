@@ -7,7 +7,7 @@ import { HeroShelf } from "@/components/dklist/hero-shelf";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { demoBooks } from "@/components/dklist/demo-books";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
-import { getLatestBooks } from "@/db/queries/books";
+import { getLatestBooks, getTopCategories } from "@/db/queries/books";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -15,6 +15,43 @@ const STATS = [
   { value: "4,6M+", label: "Yayınevi" },
   { value: "537K+", label: "Kategori" },
 ];
+
+function CategoriesSkeleton() {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="h-8 w-24 animate-pulse rounded-full bg-muted" />
+      ))}
+    </div>
+  );
+}
+
+async function CategoriesShelf() {
+  const categories = await getTopCategories(24);
+
+  if (categories.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">Henüz kategori yok.</p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {categories.map((cat) => (
+        <Link
+          key={cat.id}
+          href={`/kategori/${cat.slug}`}
+          className="rounded-full border border-border px-4 py-1.5 text-sm transition-colors hover:bg-accent"
+        >
+          {cat.name}
+          <span className="ml-1.5 text-muted-foreground">
+            {cat.bookCount.toLocaleString("tr-TR")}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
 
 function LatestBooksSkeleton() {
   return (
@@ -193,6 +230,22 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* Categories */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex flex-col gap-2">
+          <SectionLabel>Keşfet</SectionLabel>
+          <h2 className="font-heading text-3xl font-medium tracking-tight">
+            Kategoriler
+          </h2>
+        </div>
+
+        <Suspense fallback={<CategoriesSkeleton />}>
+          <CategoriesShelf />
+        </Suspense>
+      </section>
+
+      <Separator />
 
       {/* Shelf row */}
       <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
