@@ -4,26 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { BookCover, type BookCoverTone } from "@/components/dklist/book-cover";
+import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
 import { getBookBySlug } from "@/db/queries/book-detail";
-
-const TONES: BookCoverTone[] = [
-  "oxblood",
-  "dusk",
-  "ochre",
-  "sage",
-  "ink",
-  "olive",
-  "terracotta",
-  "teal",
-  "plum",
-  "mustard",
-];
-
-function toneForId(id: number): BookCoverTone {
-  return TONES[id % TONES.length];
-}
 
 export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
   return (

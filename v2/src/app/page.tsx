@@ -1,10 +1,13 @@
+import { Suspense } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { HeroShelf } from "@/components/dklist/hero-shelf";
-import { BookCover } from "@/components/dklist/book-cover";
+import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { demoBooks } from "@/components/dklist/demo-books";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
+import { getLatestBooks } from "@/db/queries/books";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -13,10 +16,54 @@ const STATS = [
   { value: "537K+", label: "Kategori" },
 ];
 
+function LatestBooksSkeleton() {
+  return (
+    <div className="flex gap-5 overflow-hidden">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="w-32 shrink-0">
+          <div className="aspect-[2/3] animate-pulse rounded-[0.35rem] bg-muted" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function LatestBooksShelf() {
+  const books = await getLatestBooks(12);
+
+  if (books.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Henüz kitap eklenmedi.
+      </p>
+    );
+  }
+
+  return (
+    <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {books.map((book) => (
+        <Link
+          key={book.id}
+          href={`/kitap/${book.slug}`}
+          className="flex w-32 shrink-0 flex-col gap-2"
+        >
+          <BookCover
+            title={book.name}
+            author={book.writers.join(", ") || "Yazar bilinmiyor"}
+            tone={toneForId(book.id)}
+            size="sm"
+            className="w-full"
+          />
+          <p className="truncate text-xs font-medium">{book.name}</p>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   const [featured, ...rest] = demoBooks;
   const picks = rest.slice(0, 4);
-  const shelfRow = demoBooks;
 
   return (
     <div className="flex-1 bg-background">
@@ -161,21 +208,9 @@ export default function Home() {
           </Button>
         </div>
 
-        <div
-          className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {shelfRow.map((book) => (
-            <div key={book.title} className="flex w-32 shrink-0 flex-col gap-2">
-              <BookCover
-                title={book.title}
-                author={book.author}
-                tone={book.tone}
-                size="sm"
-                className="w-full"
-              />
-              <p className="truncate text-xs font-medium">{book.title}</p>
-            </div>
-          ))}
-        </div>
+        <Suspense fallback={<LatestBooksSkeleton />}>
+          <LatestBooksShelf />
+        </Suspense>
       </section>
 
       <footer className="border-t border-border">

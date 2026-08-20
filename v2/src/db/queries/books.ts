@@ -1,12 +1,16 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { sql } from "drizzle-orm";
+import { sql, eq, inArray, desc } from "drizzle-orm";
 import { db } from "@/db";
+import { category as categoryTable, writer, writerBook, book } from "@/db/schema";
 
 export interface CategoryBookListItem {
   id: number;
   name: string;
+  slug: string;
+  score: number;
   viewCount: number;
+  writers: string[];
 }
 
 /**
@@ -28,8 +32,8 @@ export async function getBooksByCategory(
   cacheLife("hours");
   cacheTag(`category-books:${categoryId}`);
 
-  const rows = await db.execute(sql`
-    SELECT STRAIGHT_JOIN b.id, b.name, b.view_count AS viewCount
+  const rows = (await db.execute(sql`
+    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount
     FROM book b FORCE INDEX (idx_book_viewcount)
     WHERE EXISTS (
       SELECT 1 FROM book_category bc
@@ -37,7 +41,76 @@ export async function getBooksByCategory(
     )
     ORDER BY b.view_count DESC
     LIMIT ${limit}
-  `);
+  `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
 
-  return rows[0] as unknown as CategoryBookListItem[];
+  return attachWriterNames(rows);
+}
+
+export interface CategorySummary {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export async function getCategoryBySlug(
+  slug: string,
+): Promise<CategorySummary | null> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(`category:${slug}`);
+
+  const [row] = await db
+    .select({ id: categoryTable.id, name: categoryTable.category, slug: categoryTable.slug })
+    .from(categoryTable)
+    .where(eq(categoryTable.slug, slug))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/**
+ * Most recently added books, newest first. No `created_at` column exists on
+ * `book` (bulk-imported catalog, never had one) - `id DESC` is the closest
+ * available proxy for import/insertion order, same assumption v1 made.
+ */
+export async function getLatestBooks(limit = 12): Promise<CategoryBookListItem[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("latest-books");
+
+  const rows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      viewCount: book.viewCount,
+    })
+    .from(book)
+    .orderBy(desc(book.id))
+    .limit(limit);
+
+  return attachWriterNames(rows);
+}
+
+async function attachWriterNames<T extends { id: number }>(
+  books: T[],
+): Promise<(T & { writers: string[] })[]> {
+  if (books.length === 0) return [];
+
+  const bookIds = books.map((b) => b.id);
+  const writerRows = await db
+    .select({ bookId: writerBook.bookId, name: writer.name })
+    .from(writerBook)
+    .innerJoin(writer, eq(writerBook.writerId, writer.id))
+    .where(inArray(writerBook.bookId, bookIds));
+
+  const writersByBook = new Map<number, string[]>();
+  for (const row of writerRows) {
+    const list = writersByBook.get(row.bookId) ?? [];
+    list.push(row.name);
+    writersByBook.set(row.bookId, list);
+  }
+
+  return books.map((b) => ({ ...b, writers: writersByBook.get(b.id) ?? [] }));
 }

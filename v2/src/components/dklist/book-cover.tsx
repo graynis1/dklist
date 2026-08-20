@@ -25,6 +25,24 @@ const TONE_STYLE: Record<BookCoverTone, { bg: string; fg: string; rule: string }
   mustard: { bg: "oklch(0.65 0.13 90)", fg: "oklch(0.2 0.03 70)", rule: "oklch(0.35 0.06 80 / 45%)" },
 };
 
+const ALL_TONES: BookCoverTone[] = [
+  "oxblood",
+  "dusk",
+  "ochre",
+  "sage",
+  "ink",
+  "olive",
+  "terracotta",
+  "teal",
+  "plum",
+  "mustard",
+];
+
+/** Deterministic tone assignment for real book records (no tone stored in the DB). */
+export function toneForId(id: number): BookCoverTone {
+  return ALL_TONES[id % ALL_TONES.length];
+}
+
 interface BookCoverProps {
   title: string;
   author: string;
