@@ -100,6 +100,23 @@ async function BookDetailContent({
                 : "Yazar bilinmiyor"}
             </p>
 
+            {detail.translators.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Çeviren:{" "}
+                {detail.translators.map((t, i) => (
+                  <span key={t.id}>
+                    {i > 0 && ", "}
+                    <Link
+                      href={`/cevirmen/${t.slug}`}
+                      className="hover:text-foreground hover:underline"
+                    >
+                      {t.name}
+                    </Link>
+                  </span>
+                ))}
+              </p>
+            )}
+
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <StarRating value={detail.score} />
               <span className="font-medium">{detail.score.toFixed(2)}</span>

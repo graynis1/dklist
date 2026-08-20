@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { book, publisher, writer, writerBook, category, bookCategory } from "@/db/schema";
+import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook } from "@/db/schema";
 
 export interface BookDetail {
   id: number;
@@ -15,6 +15,7 @@ export interface BookDetail {
   publisher: { id: number; name: string; slug: string } | null;
   writers: { id: number; name: string; slug: string }[];
   categories: { id: number; name: string; slug: string }[];
+  translators: { id: number; name: string; slug: string }[];
 }
 
 export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
@@ -54,6 +55,12 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
     .innerJoin(category, eq(bookCategory.categoryId, category.id))
     .where(eq(bookCategory.bookId, row.id));
 
+  const translatorRows = await db
+    .select({ id: translator.id, name: translator.name, slug: translator.slug })
+    .from(translatorBook)
+    .innerJoin(translator, eq(translatorBook.translatorId, translator.id))
+    .where(eq(translatorBook.bookId, row.id));
+
   return {
     id: row.id,
     name: row.name,
@@ -67,5 +74,6 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
       : null,
     writers: writerRows,
     categories: categoryRows,
+    translators: translatorRows,
   };
 }

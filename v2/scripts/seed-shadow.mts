@@ -4,7 +4,7 @@ config({ path: ".env.local" });
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql, { type ResultSetHeader } from "mysql2/promise";
 import * as schema from "../src/db/schema";
-import { publisher, writer, category, book, bookCategory, writerBook } from "../src/db/schema";
+import { publisher, writer, category, book, bookCategory, writerBook, translator, translatorBook, work } from "../src/db/schema";
 
 // Small, safe, entirely fake dataset for local dev against dklist_shadow ONLY.
 // Never point this script at the real DATABASE_URL - it truncates tables.
@@ -45,7 +45,7 @@ async function main() {
   console.log("Seeding dklist_shadow with demo data...");
 
   await db.execute("SET FOREIGN_KEY_CHECKS = 0");
-  for (const table of ["book_category", "writer_book", "book", "category", "writer", "publisher"]) {
+  for (const table of ["book_category", "writer_book", "translator_book", "book", "work", "category", "writer", "publisher", "translator"]) {
     await db.execute(`TRUNCATE TABLE \`${table}\``);
   }
   await db.execute("SET FOREIGN_KEY_CHECKS = 1");
@@ -88,6 +88,25 @@ async function main() {
     );
   }
 
+  const translators = [
+    { name: "Nihal Yeğinobalı", slug: "nihal-yeginobali" },
+    { name: "Ergin Altay", slug: "ergin-altay" },
+    { name: "Özdemir İnce", slug: "ozdemir-ince" },
+  ];
+  const translatorIds: number[] = [];
+  for (const t of translators) {
+    translatorIds.push(
+      await insertId(
+        db.insert(translator).values({
+          name: t.name,
+          slug: t.slug,
+          viewCount: String(Math.floor(Math.random() * 2000)),
+          score: 4 + Math.random(),
+        } as never) as never,
+      ),
+    );
+  }
+
   const categories = [
     { category: "Roman", slug: "roman" },
     { category: "Klasik", slug: "klasik" },
@@ -107,26 +126,32 @@ async function main() {
   const books = [
     { name: "Kürk Mantolu Madonna", orgName: "Kürk Mantolu Madonna", writerIdx: 0, pub: 0, cat: 0 },
     { name: "İçimizdeki Şeytan", orgName: "İçimizdeki Şeytan", writerIdx: 0, pub: 0, cat: 0 },
-    { name: "Suç ve Ceza", orgName: "Преступление и наказание", writerIdx: 1, pub: 1, cat: 1 },
-    { name: "Karamazov Kardeşler", orgName: "Братья Карамазовы", writerIdx: 1, pub: 1, cat: 1 },
-    { name: "Simyacı", orgName: "O Alquimista", writerIdx: 2, pub: 2, cat: 2 },
-    { name: "Veronika Ölmek İstiyor", orgName: "Veronika Decide Morrer", writerIdx: 2, pub: 2, cat: 0 },
-    { name: "1984", orgName: "Nineteen Eighty-Four", writerIdx: 3, pub: 1, cat: 4 },
-    { name: "Hayvan Çiftliği", orgName: "Animal Farm", writerIdx: 3, pub: 1, cat: 4 },
+    { name: "Suç ve Ceza", orgName: "Преступление и наказание", writerIdx: 1, pub: 1, cat: 1, translatorIdx: 1 },
+    { name: "Karamazov Kardeşler", orgName: "Братья Карамазовы", writerIdx: 1, pub: 1, cat: 1, translatorIdx: 1 },
+    { name: "Simyacı", orgName: "O Alquimista", writerIdx: 2, pub: 2, cat: 2, translatorIdx: 0 },
+    { name: "Veronika Ölmek İstiyor", orgName: "Veronika Decide Morrer", writerIdx: 2, pub: 2, cat: 0, translatorIdx: 0 },
+    { name: "1984", orgName: "Nineteen Eighty-Four", writerIdx: 3, pub: 1, cat: 4, translatorIdx: 2 },
+    { name: "Hayvan Çiftliği", orgName: "Animal Farm", writerIdx: 3, pub: 1, cat: 4, translatorIdx: 2 },
     { name: "Siddhartha", orgName: "Siddhartha", writerIdx: 4, pub: 2, cat: 2 },
     { name: "Bozkırkurdu", orgName: "Der Steppenwolf", writerIdx: 4, pub: 2, cat: 2 },
-    { name: "Yabancı", orgName: "L'Étranger", writerIdx: 5, pub: 1, cat: 2 },
-    { name: "Veba", orgName: "La Peste", writerIdx: 5, pub: 1, cat: 1 },
-    { name: "Küçük Prens", orgName: "Le Petit Prince", writerIdx: 6, pub: 0, cat: 0 },
+    { name: "Yabancı", orgName: "L'Étranger", writerIdx: 5, pub: 1, cat: 2, translatorIdx: 0 },
+    { name: "Veba", orgName: "La Peste", writerIdx: 5, pub: 1, cat: 1, translatorIdx: 0 },
+    { name: "Küçük Prens", orgName: "Le Petit Prince", writerIdx: 6, pub: 0, cat: 0, translatorIdx: 1 },
     { name: "İnsanın Anlam Arayışı", orgName: "…trotzdem Ja zum Leben sagen", writerIdx: 7, pub: 2, cat: 3 },
-    { name: "Sineklerin Tanrısı", orgName: "Lord of the Flies", writerIdx: 8, pub: 1, cat: 1 },
-    { name: "Fareler ve İnsanlar", orgName: "Of Mice and Men", writerIdx: 9, pub: 1, cat: 1 },
+    { name: "Sineklerin Tanrısı", orgName: "Lord of the Flies", writerIdx: 8, pub: 1, cat: 1, translatorIdx: 2 },
+    { name: "Fareler ve İnsanlar", orgName: "Of Mice and Men", writerIdx: 9, pub: 1, cat: 1, translatorIdx: 2 },
   ];
 
   for (const b of books) {
+    // Every book gets its own new work row (1:1 to start) - matches the real
+    // migration's backfill state (src/db/migrations/0001_work_edition_split.sql).
+    // Only Phase 5's dedup pipeline merges editions onto a shared work_id later.
+    const workId = await insertId(db.execute("INSERT INTO work () VALUES ()") as never);
+
     const bookId = await insertId(
       db.insert(book).values({
         publisherId: pubIds[b.pub],
+        workId,
         name: b.name,
         orgName: b.orgName,
         lang: "tr",
@@ -147,9 +172,16 @@ async function main() {
       bookId,
       writerId: writerIds[b.writerIdx],
     } as never);
+
+    if (b.translatorIdx !== undefined) {
+      await db.insert(translatorBook).values({
+        bookId,
+        translatorId: translatorIds[b.translatorIdx],
+      } as never);
+    }
   }
 
-  console.log(`Seeded ${books.length} books, ${writers.length} writers, ${categories.length} categories, ${publishers.length} publishers.`);
+  console.log(`Seeded ${books.length} books (+work rows), ${writers.length} writers, ${translators.length} translators, ${categories.length} categories, ${publishers.length} publishers.`);
   await pool.end();
 }
 
