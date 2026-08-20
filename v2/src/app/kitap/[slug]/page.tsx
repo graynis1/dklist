@@ -8,9 +8,11 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
 import { ReadStatusControl } from "@/components/dklist/read-status-control";
+import { RateBookControl } from "@/components/dklist/rate-book-control";
 import { getBookBySlug } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
+import { getUserBookRating } from "@/db/queries/rating";
 
 export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
   return (
@@ -55,9 +57,10 @@ async function BookDetailContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [currentStatus, dropStats] = await Promise.all([
+  const [currentStatus, dropStats, userRating] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
+    userId ? getUserBookRating(userId, detail.id) : Promise.resolve(null),
   ]);
 
   return (
@@ -139,6 +142,13 @@ async function BookDetailContent({
                 </span>
               )}
             </div>
+
+            <RateBookControl
+              bookId={detail.id}
+              bookSlug={detail.slug}
+              signedIn={Boolean(userId)}
+              initialUserRating={userRating}
+            />
 
             {detail.publisher && (
               <p className="text-sm text-muted-foreground">

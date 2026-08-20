@@ -1,0 +1,12 @@
+-- Hand-written migration, applied manually. Applied to local dklist_shadow
+-- dev DB on 2026-08-21. NOT YET applied to the real prod database.
+--
+-- Phase 2: `score` is a polymorphic ratings table (owner_id, target_id,
+-- target_type + a 1-5 value) with no uniqueness constraint in the existing
+-- schema - a user could rate the same target an unbounded number of times.
+-- Adds UNIQUE(owner_id, target_id, target_type) so rating a book (or writer/
+-- translator/publisher, whatever target_type values turn out to be used for
+-- in the real data - only "book" is exercised by v2 so far) becomes a proper
+-- upsert: change your mind, your old vote updates instead of a new row
+-- piling up next to it.
+ALTER TABLE score ADD UNIQUE KEY uniq_score_owner_target (owner_id, target_id, target_type);

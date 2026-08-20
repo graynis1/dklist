@@ -320,6 +320,10 @@ export const score = mysqlTable("score", {
 },
 (table) => [
 	index("IDX_329937517E3C61F9").on(table.ownerId),
+	// Added by hand 2026-08-21, see src/db/migrations/0003_score_unique.sql -
+	// makes rating a target a proper upsert instead of allowing unlimited
+	// duplicate votes from the same user.
+	unique("uniq_score_owner_target").on(table.ownerId, table.targetId, table.targetType),
 	primaryKey({ columns: [table.id], name: "score_id"}),
 ]);
 
