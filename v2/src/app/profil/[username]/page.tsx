@@ -126,7 +126,13 @@ async function ProfileContent({
           )}
         </div>
         {viewerId && !isOwnProfile && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href={`/mesajlar?user=${profile.username}`}
+              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
+            >
+              Mesaj Yaz
+            </Link>
             <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} />
           </div>
         )}

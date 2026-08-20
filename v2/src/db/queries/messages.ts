@@ -1,0 +1,293 @@
+import "server-only";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { chat, message, user } from "@/db/schema";
+import { addNotification } from "@/db/queries/notifications";
+
+/**
+ * Phase 3 chat/messaging - ported from MessageController.php/MessageService.php.
+ * Text messages only for now; v1's book/store attachment message types
+ * (MessageTypeEnum::BookAttachment/StoreAttachment) are deliberately not
+ * ported yet since v2 has no marketplace/store feature built to attach -
+ * that's real Phase 3 marketplace scope, not something to fake here.
+ *
+ * Both `chat` and `message` model each conversation from a fixed
+ * "firstUser"/"secondUser" perspective set once at creation (whoever sent
+ * the first message becomes firstUser) - view/view2 and
+ * hiddenForFirstUser/hiddenForSecondUser track each side independently from
+ * then on. Every query below has to resolve "am I first or second in this
+ * chat" per-call rather than assuming a fixed role, exactly like v1 does.
+ */
+
+export interface ConversationItem {
+  otherUserId: number;
+  otherUsername: string;
+  lastMessagePreview: string | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+}
+
+export async function getConversations(userId: number): Promise<ConversationItem[]> {
+  const rows = await db
+    .select({
+      id: chat.id,
+      firstUserId: chat.firstUserId,
+      secondUserId: chat.secondUserId,
+      lastMessagePreview: chat.lastMessagePreview,
+      lastMessageAt: chat.lastMessageAt,
+      hiddenForFirstUser: chat.hiddenForFirstUser,
+      hiddenForSecondUser: chat.hiddenForSecondUser,
+      otherUsername: user.username,
+    })
+    .from(chat)
+    .innerJoin(
+      user,
+      or(
+        and(eq(chat.firstUserId, userId), eq(user.id, chat.secondUserId)),
+        and(eq(chat.secondUserId, userId), eq(user.id, chat.firstUserId)),
+      ),
+    )
+    .where(or(eq(chat.firstUserId, userId), eq(chat.secondUserId, userId)))
+    .orderBy(desc(chat.lastMessageAt), desc(chat.id));
+
+  const conversations: ConversationItem[] = [];
+
+  for (const row of rows) {
+    const isFirst = row.firstUserId === userId;
+    if (isFirst ? row.hiddenForFirstUser : row.hiddenForSecondUser) continue;
+
+    const [{ n: unreadCount }] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(message)
+      .where(and(eq(message.chatId, row.id), eq(isFirst ? message.view : message.view2, 0)));
+
+    conversations.push({
+      otherUserId: isFirst ? row.secondUserId : row.firstUserId,
+      otherUsername: row.otherUsername,
+      lastMessagePreview: row.lastMessagePreview,
+      lastMessageAt: row.lastMessageAt,
+      unreadCount,
+    });
+  }
+
+  return conversations;
+}
+
+/** Matches v1's getUnviewedMessageCount() exactly: two single-COUNT queries
+ * (as-first-user unread + as-second-user unread), excluding chats the user
+ * has hidden on their own side - otherwise a deleted conversation's unread
+ * badge would stick forever since nothing would ever clear it. */
+export async function getUnreadMessageCount(userId: number): Promise<number> {
+  const [asFirst, asSecond] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(message)
+      .innerJoin(chat, eq(message.chatId, chat.id))
+      .where(and(eq(chat.firstUserId, userId), eq(message.view, 0), eq(chat.hiddenForFirstUser, 0))),
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(message)
+      .innerJoin(chat, eq(message.chatId, chat.id))
+      .where(and(eq(chat.secondUserId, userId), eq(message.view2, 0), eq(chat.hiddenForSecondUser, 0))),
+  ]);
+  return asFirst[0].n + asSecond[0].n;
+}
+
+export interface MessageItem {
+  id: number;
+  text: string;
+  senderId: number;
+  createdAt: string | null;
+}
+
+export interface MessagesPage {
+  messages: MessageItem[];
+  hasMore: boolean;
+  nextCursor: number | null;
+}
+
+async function findChatBetween(userA: number, userB: number) {
+  const [row] = await db
+    .select()
+    .from(chat)
+    .where(
+      or(
+        and(eq(chat.firstUserId, userA), eq(chat.secondUserId, userB)),
+        and(eq(chat.firstUserId, userB), eq(chat.secondUserId, userA)),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Deliberately uncached - marks messages as read as a side effect (matching
+ * v1's exact behavior: opening a thread marks its unread messages as
+ * viewed), so this must always run against live data, never a cached view.
+ */
+export async function getMessages(
+  currentUserId: number,
+  otherUserId: number,
+  cursor?: number,
+  limit = 40,
+): Promise<MessagesPage> {
+  const chatRow = await findChatBetween(currentUserId, otherUserId);
+  // No Chat row yet means no message has ever been sent between these two -
+  // v1's own comment is explicit this is not an error state (e.g. the first
+  // time you message someone from their profile), just an empty thread.
+  if (!chatRow) return { messages: [], hasMore: false, nextCursor: null };
+
+  const isFirst = chatRow.firstUserId === currentUserId;
+
+  const rows = await db
+    .select({
+      id: message.id,
+      text: message.message,
+      senderUserId: message.senderUserId,
+      createdAt: message.createdAt,
+      view: message.view,
+      view2: message.view2,
+      hiddenForSender: message.hiddenForSender,
+    })
+    .from(message)
+    .where(
+      cursor
+        ? and(eq(message.chatId, chatRow.id), lt(message.id, cursor))
+        : eq(message.chatId, chatRow.id),
+    )
+    .orderBy(desc(message.id))
+    .limit(limit + 1);
+
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+
+  const visibleRows = pageRows.filter(
+    (r) => !(r.hiddenForSender && r.senderUserId === currentUserId),
+  );
+
+  const unreadIds = visibleRows
+    .filter((r) => (isFirst ? !r.view : !r.view2))
+    .map((r) => r.id);
+
+  if (unreadIds.length > 0) {
+    await db
+      .update(message)
+      .set(isFirst ? { view: 1 } : { view2: 1 })
+      .where(and(eq(message.chatId, chatRow.id), or(...unreadIds.map((id) => eq(message.id, id)))));
+  }
+
+  const messages: MessageItem[] = visibleRows
+    .map((r) => ({
+      id: r.id,
+      text: r.text,
+      senderId: r.senderUserId ?? (isFirst ? currentUserId : otherUserId),
+      createdAt: r.createdAt,
+    }))
+    .reverse(); // oldest-first, matching v1's array_reverse($messages)
+
+  const nextCursor = hasMore && messages.length > 0 ? messages[0].id : null;
+
+  return { messages, hasMore, nextCursor };
+}
+
+export interface SendMessageResult {
+  id: number;
+  text: string;
+  senderId: number;
+  createdAt: string | null;
+}
+
+export async function sendMessage(
+  senderId: number,
+  receiverId: number,
+  text: string,
+): Promise<SendMessageResult> {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    throw new Error("Mesaj boş olamaz.");
+  }
+  if (senderId === receiverId) {
+    throw new Error("Kendine mesaj gönderemezsin.");
+  }
+
+  let chatRow = await findChatBetween(senderId, receiverId);
+  let isFirst: boolean;
+
+  if (!chatRow) {
+    isFirst = true;
+    const [result] = await db.insert(chat).values({
+      firstUserId: senderId,
+      secondUserId: receiverId,
+      hiddenForFirstUser: 0,
+      hiddenForSecondUser: 0,
+    });
+    const [inserted] = await db.select().from(chat).where(eq(chat.id, result.insertId)).limit(1);
+    chatRow = inserted;
+  } else {
+    isFirst = chatRow.firstUserId === senderId;
+  }
+
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const preview = trimmed.slice(0, 140);
+
+  const [msgResult] = await db.insert(message).values({
+    chatId: chatRow.id,
+    message: trimmed,
+    sender: String(senderId),
+    receiver: String(receiverId),
+    senderUserId: senderId,
+    receiverUserId: receiverId,
+    view: isFirst ? 1 : 0,
+    view2: isFirst ? 0 : 1,
+    createdAt: now,
+    type: "text",
+    hiddenForSender: 0,
+  });
+
+  // A new message is a real new interaction even if either side had hidden
+  // the conversation - both become visible again, matching v1's send().
+  await db
+    .update(chat)
+    .set({ lastMessageAt: now, lastMessagePreview: preview, hiddenForFirstUser: 0, hiddenForSecondUser: 0 })
+    .where(eq(chat.id, chatRow.id));
+
+  const [sender] = await db.select({ username: user.username }).from(user).where(eq(user.id, senderId)).limit(1);
+  if (sender) {
+    const notifyText = trimmed.length > 60 ? `${trimmed.slice(0, 60)}...` : trimmed;
+    await addNotification(
+      receiverId,
+      senderId,
+      `Sana bir mesaj gönderdi: "${notifyText}"`,
+      `Sent you a message: "${notifyText}"`,
+    );
+  }
+
+  return { id: msgResult.insertId, text: trimmed, senderId, createdAt: now };
+}
+
+export async function deleteMessage(userId: number, messageId: number): Promise<void> {
+  const [row] = await db
+    .select({ senderUserId: message.senderUserId })
+    .from(message)
+    .where(eq(message.id, messageId))
+    .limit(1);
+
+  if (!row || row.senderUserId !== userId) {
+    throw new Error("Sadece kendi mesajını silebilirsin.");
+  }
+
+  await db.update(message).set({ hiddenForSender: 1 }).where(eq(message.id, messageId));
+}
+
+export async function deleteChat(userId: number, otherUserId: number): Promise<void> {
+  const chatRow = await findChatBetween(userId, otherUserId);
+  if (!chatRow) {
+    throw new Error("Sohbet bulunamadı.");
+  }
+
+  const isFirst = chatRow.firstUserId === userId;
+  await db
+    .update(chat)
+    .set(isFirst ? { hiddenForFirstUser: 1 } : { hiddenForSecondUser: 1 })
+    .where(eq(chat.id, chatRow.id));
+}

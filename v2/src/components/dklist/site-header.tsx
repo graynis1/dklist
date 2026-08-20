@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
 import { NotificationBell } from "@/components/dklist/notification-bell";
+import { MessageBell } from "@/components/dklist/message-bell";
 
 // "Yazarlar"/"Askıda Kitap"/"Bloglar" stay dead links deliberately - each
 // needs a page that doesn't exist yet (a writers-index/browse page for the
@@ -45,6 +46,7 @@ export function SiteHeader() {
               className="w-56 bg-secondary/60"
             />
           </form>
+          <MessageBell />
           <NotificationBell />
           <ThemeToggle />
           <AuthStatus />
