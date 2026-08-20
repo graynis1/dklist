@@ -11,12 +11,22 @@ import { ReadStatusControl } from "@/components/dklist/read-status-control";
 import { RateBookControl } from "@/components/dklist/rate-book-control";
 import { BookComments } from "@/components/dklist/book-comments";
 import { LibraryToggle } from "@/components/dklist/library-toggle";
-import { getBookBySlug } from "@/db/queries/book-detail";
+import { LikeButton } from "@/components/dklist/like-button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getBookBySlug, getBookReaders } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating } from "@/db/queries/rating";
 import { getBookComments } from "@/db/queries/comments";
 import { isInLibrary } from "@/db/queries/library";
+import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
+
+const READER_STATUS_LABELS: Record<string, string> = {
+  okudum: "okudu",
+  okuyorum: "okuyor",
+  okuyacagim: "okuyacak",
+  "yarida-birakildi": "yarıda bıraktı",
+};
 
 export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
   return (
@@ -61,12 +71,24 @@ async function BookDetailContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [currentStatus, dropStats, userRating, comments, inLibrary] = await Promise.all([
+  const [
+    currentStatus,
+    dropStats,
+    userRating,
+    comments,
+    inLibrary,
+    liked,
+    likeCount,
+    readers,
+  ] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
     userId ? getUserBookRating(userId, detail.id) : Promise.resolve(null),
     getBookComments(detail.id),
     userId ? isInLibrary(userId, detail.id) : Promise.resolve(false),
+    userId ? isBookLiked(userId, detail.id) : Promise.resolve(false),
+    getBookLikeCount(detail.id),
+    getBookReaders(detail.id),
   ]);
 
   return (
@@ -149,12 +171,20 @@ async function BookDetailContent({
               )}
             </div>
 
-            <RateBookControl
-              bookId={detail.id}
-              bookSlug={detail.slug}
-              signedIn={Boolean(userId)}
-              initialUserRating={userRating}
-            />
+            <div className="flex items-center gap-2">
+              <RateBookControl
+                bookId={detail.id}
+                bookSlug={detail.slug}
+                signedIn={Boolean(userId)}
+                initialUserRating={userRating}
+              />
+              <LikeButton
+                bookId={detail.id}
+                signedIn={Boolean(userId)}
+                initialLiked={liked}
+                initialCount={likeCount}
+              />
+            </div>
 
             {detail.publisher && (
               <p className="text-sm text-muted-foreground">
@@ -206,6 +236,36 @@ async function BookDetailContent({
           </div>
         </div>
       </section>
+
+      {readers.length > 0 && (
+        <>
+          <Separator />
+          <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+            <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+              Bu Kitabı Okuyan Üyeler
+            </h2>
+            <div className="flex flex-wrap gap-4">
+              {readers.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/profil/${r.username}`}
+                  className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm hover:bg-accent"
+                >
+                  <Avatar className="size-6 text-[10px]">
+                    <AvatarFallback>
+                      {r.username.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {r.username}
+                  <span className="text-xs text-muted-foreground">
+                    {READER_STATUS_LABELS[r.status] ?? r.status}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       <Separator />
 

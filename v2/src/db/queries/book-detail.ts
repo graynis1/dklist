@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook } from "@/db/schema";
+import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user } from "@/db/schema";
 
 export interface BookDetail {
   id: number;
@@ -76,4 +76,30 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
     categories: categoryRows,
     translators: translatorRows,
   };
+}
+
+export interface BookReader {
+  id: number;
+  username: string;
+  status: string;
+}
+
+/**
+ * "Bu kitabı okuyan üyeler" - direct customer ask (per PLAN.md/memory:
+ * "Kitaba girince bu kitabı okuyan üyeler kısmı yok"), ported from v1's
+ * getBook() which builds this from every `read` row for the book (v1 did
+ * not filter by disabled users here, unlike comments - matched deliberately,
+ * not an oversight, since v1's own code didn't filter it either).
+ */
+export async function getBookReaders(bookId: number, limit = 12): Promise<BookReader[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`book-readers:${bookId}`);
+
+  return db
+    .select({ id: user.id, username: user.username, status: read.status })
+    .from(read)
+    .innerJoin(user, eq(read.userId, user.id))
+    .where(eq(read.bookId, bookId))
+    .limit(limit);
 }

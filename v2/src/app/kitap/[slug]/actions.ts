@@ -10,6 +10,7 @@ import {
 import { rateBook } from "@/db/queries/rating";
 import { addBookComment } from "@/db/queries/comments";
 import { toggleLibrary } from "@/db/queries/library";
+import { toggleBookLike } from "@/db/queries/likes";
 
 export interface ActionResult {
   status: boolean;
@@ -95,4 +96,16 @@ export async function toggleLibraryAction(
 
   const result = await toggleLibrary(Number(session.user.id), bookId);
   return { status: true, inLibrary: result.inLibrary };
+}
+
+export async function toggleLikeAction(
+  bookId: number,
+): Promise<ActionResult & { liked?: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+
+  const result = await toggleBookLike(Number(session.user.id), bookId);
+  return { status: true, liked: result.liked };
 }

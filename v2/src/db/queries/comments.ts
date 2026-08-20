@@ -42,6 +42,10 @@ export async function getBookComments(
         eq(comment.targetId, bookId),
         eq(comment.type, BOOK_TYPE),
         eq(comment.commentType, commentType),
+        // v1's getBook() filters out comments from disabled/banned users
+        // (checked per-comment in BookController.php) - ported here rather
+        // than left out, per the "don't skip v1 details" directive.
+        eq(user.disable, 0),
       ),
     )
     .orderBy(desc(comment.id));
