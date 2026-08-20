@@ -44,10 +44,28 @@ export const blog = mysqlTable("blog", {
 	primaryKey({ columns: [table.id], name: "blog_id"}),
 ]);
 
+// Canonical "same underlying work" grouping - see PLAN.md's Phase 1 work/edition
+// split. Deliberately minimal (just an id): a `book` row IS an edition, carrying
+// its own title/author/etc as before; `book.work_id` just says "these editions
+// are the same work" so ratings/comments can eventually pool on work_id instead
+// of fragmenting per edition/translation. Added by hand via ALTER TABLE on
+// 2026-08-21 (dev shadow DB only so far, NOT yet applied to the real prod
+// schema) - never through drizzle-kit push/generate, per the project's standing
+// rule. Currently 1:1 with book (every book got its own new work row on
+// backfill) - Phase 5's dedup pipeline is what actually merges editions onto a
+// shared work_id later; this migration only adds the capability.
+export const work = mysqlTable("work", {
+	id: int().autoincrement().notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "work_id" }),
+]);
+
 export const book = mysqlTable("book", {
 	id: int().autoincrement().notNull(),
 	publisherId: int("publisher_id").notNull().references(() => publisher.id),
 	originalBookId: int("original_book_id"),
+	workId: int("work_id").references(() => work.id),
 	name: varchar({ length: 150 }).notNull(),
 	// you can use { mode: 'date' }, if you want to have Date as type for this column
 	date: date({ mode: 'string' }),
@@ -74,10 +92,16 @@ export const book = mysqlTable("book", {
 	index("idx_book_name").on(table.name),
 	index("idx_book_orgname").on(table.orgName),
 	index("idx_book_lang").on(table.lang, table.id),
+	index("idx_book_work").on(table.workId),
 	foreignKey({
 			columns: [table.originalBookId],
 			foreignColumns: [table.id],
 			name: "FK_CBE5A33190221D76"
+		}),
+	foreignKey({
+			columns: [table.workId],
+			foreignColumns: [work.id],
+			name: "FK_book_work"
 		}),
 	primaryKey({ columns: [table.id], name: "book_id"}),
 ]);
