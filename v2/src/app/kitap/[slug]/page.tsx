@@ -115,7 +115,13 @@ async function BookDetailContent({
 
             {detail.publisher && (
               <p className="text-sm text-muted-foreground">
-                Yayınevi: <span className="text-foreground">{detail.publisher.name}</span>
+                Yayınevi:{" "}
+                <Link
+                  href={`/yayinevi/${detail.publisher.slug}`}
+                  className="text-foreground hover:underline"
+                >
+                  {detail.publisher.name}
+                </Link>
               </p>
             )}
 

@@ -93,7 +93,9 @@ export async function getLatestBooks(limit = 12): Promise<CategoryBookListItem[]
   return attachWriterNames(rows);
 }
 
-async function attachWriterNames<T extends { id: number }>(
+/** Batched (no N+1) writer-name lookup for a list of book ids - shared across
+ * category/latest/publisher listing queries so each doesn't reimplement it. */
+export async function attachWriterNames<T extends { id: number }>(
   books: T[],
 ): Promise<(T & { writers: string[] })[]> {
   if (books.length === 0) return [];
