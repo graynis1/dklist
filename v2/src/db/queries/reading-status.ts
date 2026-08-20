@@ -59,11 +59,13 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   // ("1 kişi bıraktı" didn't appear until well after the write). updateTag
   // expires it immediately.
   updateTag(`book-drop-stats:${bookId}`);
+  updateTag(`profile-books:${userId}`);
 }
 
 export async function clearReadStatus(userId: number, bookId: number): Promise<void> {
   await db.delete(read).where(and(eq(read.userId, userId), eq(read.bookId, bookId)));
   updateTag(`book-drop-stats:${bookId}`);
+  updateTag(`profile-books:${userId}`);
 }
 
 /**

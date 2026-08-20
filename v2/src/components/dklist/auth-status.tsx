@@ -38,12 +38,17 @@ async function AuthStatusContent() {
 
   return (
     <div className="flex items-center gap-2">
-      <Avatar className="size-8">
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
-      <span className="hidden text-sm font-medium sm:inline">
-        {session.user.name}
-      </span>
+      <Link
+        href={`/profil/${session.user.name}`}
+        className="flex items-center gap-2"
+      >
+        <Avatar className="size-8">
+          <AvatarFallback>{initials}</AvatarFallback>
+        </Avatar>
+        <span className="hidden text-sm font-medium sm:inline">
+          {session.user.name}
+        </span>
+      </Link>
       <form
         action={async () => {
           "use server";
