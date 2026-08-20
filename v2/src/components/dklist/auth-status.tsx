@@ -1,0 +1,59 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import { auth, signOut } from "@/auth";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+// Isolated in its own Suspense boundary: auth() reads cookies(), which is
+// genuinely per-request data - keeping it out of SiteHeader directly means the
+// rest of the header (logo/nav/search/theme) still prerenders into the static
+// shell instead of forcing every page that uses SiteHeader to go dynamic.
+export function AuthStatus() {
+  return (
+    <Suspense fallback={<div className="h-8 w-20" />}>
+      <AuthStatusContent />
+    </Suspense>
+  );
+}
+
+async function AuthStatusContent() {
+  const session = await auth();
+
+  if (!session?.user) {
+    return (
+      <>
+        <Button
+          variant="ghost"
+          className="hidden sm:inline-flex"
+          render={<Link href="/giris" />}
+        >
+          Giriş Yap
+        </Button>
+        <Button>Üye Ol</Button>
+      </>
+    );
+  }
+
+  const initials = (session.user.name ?? "?").slice(0, 2).toUpperCase();
+
+  return (
+    <div className="flex items-center gap-2">
+      <Avatar className="size-8">
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
+      <span className="hidden text-sm font-medium sm:inline">
+        {session.user.name}
+      </span>
+      <form
+        action={async () => {
+          "use server";
+          await signOut({ redirectTo: "/" });
+        }}
+      >
+        <Button variant="ghost" size="sm" type="submit">
+          Çıkış
+        </Button>
+      </form>
+    </div>
+  );
+}

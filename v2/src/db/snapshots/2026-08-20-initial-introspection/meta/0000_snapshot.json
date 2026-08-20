@@ -1,0 +1,3959 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "prevId": "",
+  "version": "5",
+  "dialect": "mysql",
+  "tables": {
+    "_merge_bulk_progress": {
+      "name": "_merge_bulk_progress",
+      "columns": {
+        "label": {
+          "autoincrement": false,
+          "name": "label",
+          "type": "varchar(191)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_id": {
+          "default": 0,
+          "autoincrement": false,
+          "name": "last_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "_merge_bulk_progress_label": {
+          "name": "_merge_bulk_progress_label",
+          "columns": [
+            "label"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "badges": {
+      "name": "badges",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment": {
+          "autoincrement": false,
+          "name": "comment",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "img": {
+          "autoincrement": false,
+          "name": "img",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_us": {
+          "autoincrement": false,
+          "name": "name_us",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comment_us": {
+          "autoincrement": false,
+          "name": "comment_us",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "badges_id": {
+          "name": "badges_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "blog": {
+      "name": "blog",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "autoincrement": false,
+          "name": "owner_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "title": {
+          "autoincrement": false,
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image": {
+          "autoincrement": false,
+          "name": "image",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "autoincrement": false,
+          "name": "content",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_date": {
+          "autoincrement": false,
+          "name": "created_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preview": {
+          "autoincrement": false,
+          "name": "preview",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved": {
+          "autoincrement": false,
+          "name": "approved",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view_count": {
+          "autoincrement": false,
+          "name": "view_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "has_pending_revision": {
+          "autoincrement": false,
+          "name": "has_pending_revision",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pending_title": {
+          "autoincrement": false,
+          "name": "pending_title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pending_content": {
+          "autoincrement": false,
+          "name": "pending_content",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pending_preview": {
+          "autoincrement": false,
+          "name": "pending_preview",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pending_image": {
+          "autoincrement": false,
+          "name": "pending_image",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "blog_id": {
+          "name": "blog_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_C01551437E3C61F9": {
+          "name": "IDX_C01551437E3C61F9",
+          "columns": [
+            "owner_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_C01551437E3C61F9": {
+          "name": "FK_C01551437E3C61F9",
+          "tableFrom": "blog",
+          "tableTo": "user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "book": {
+      "name": "book",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "publisher_id": {
+          "autoincrement": false,
+          "name": "publisher_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_book_id": {
+          "autoincrement": false,
+          "name": "original_book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "autoincrement": false,
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "format": {
+          "autoincrement": false,
+          "name": "format",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lang": {
+          "autoincrement": false,
+          "name": "lang",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isbn": {
+          "autoincrement": false,
+          "name": "isbn",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "autoincrement": false,
+          "name": "content",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "autoincrement": false,
+          "name": "image",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "autoincrement": false,
+          "name": "country",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "org_name": {
+          "autoincrement": false,
+          "name": "org_name",
+          "type": "varchar(150)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "page_number": {
+          "autoincrement": false,
+          "name": "page_number",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "autoincrement": false,
+          "name": "score",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view_count": {
+          "autoincrement": false,
+          "name": "view_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approve": {
+          "autoincrement": false,
+          "name": "approve",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "book_id": {
+          "name": "book_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_CBE5A33140C86FCE": {
+          "name": "IDX_CBE5A33140C86FCE",
+          "columns": [
+            "publisher_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_CBE5A33190221D76": {
+          "name": "IDX_CBE5A33190221D76",
+          "columns": [
+            "original_book_id"
+          ],
+          "isUnique": false
+        },
+        "idx_book_viewcount": {
+          "name": "idx_book_viewcount",
+          "columns": [
+            "view_count"
+          ],
+          "isUnique": false
+        },
+        "idx_book_score": {
+          "name": "idx_book_score",
+          "columns": [
+            "score"
+          ],
+          "isUnique": false
+        },
+        "idx_book_approve": {
+          "name": "idx_book_approve",
+          "columns": [
+            "approve"
+          ],
+          "isUnique": false
+        },
+        "idx_book_slug": {
+          "name": "idx_book_slug",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": false
+        },
+        "idx_book_name": {
+          "name": "idx_book_name",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        },
+        "idx_book_orgname": {
+          "name": "idx_book_orgname",
+          "columns": [
+            "org_name"
+          ],
+          "isUnique": false
+        },
+        "idx_book_lang": {
+          "name": "idx_book_lang",
+          "columns": [
+            "lang",
+            "id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_CBE5A33140C86FCE": {
+          "name": "FK_CBE5A33140C86FCE",
+          "tableFrom": "book",
+          "tableTo": "publisher",
+          "columnsFrom": [
+            "publisher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_CBE5A33190221D76": {
+          "name": "FK_CBE5A33190221D76",
+          "tableFrom": "book",
+          "tableTo": "book",
+          "columnsFrom": [
+            "original_book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "book_category": {
+      "name": "book_category",
+      "columns": {
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "autoincrement": false,
+          "name": "category_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "book_category_book_id_category_id": {
+          "name": "book_category_book_id_category_id",
+          "columns": [
+            "book_id",
+            "category_id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_1FB30F9816A2B381": {
+          "name": "IDX_1FB30F9816A2B381",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_1FB30F9812469DE2": {
+          "name": "IDX_1FB30F9812469DE2",
+          "columns": [
+            "category_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_1FB30F9812469DE2": {
+          "name": "FK_1FB30F9812469DE2",
+          "tableFrom": "book_category",
+          "tableTo": "category",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "FK_1FB30F9816A2B381": {
+          "name": "FK_1FB30F9816A2B381",
+          "tableFrom": "book_category",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "category": {
+      "name": "category",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "autoincrement": false,
+          "name": "category",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_us": {
+          "autoincrement": false,
+          "name": "category_us",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug_en": {
+          "autoincrement": false,
+          "name": "slug_en",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "category_id": {
+          "name": "category_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_category_name": {
+          "name": "idx_category_name",
+          "columns": [
+            "category"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "chat": {
+      "name": "chat",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_user_id": {
+          "autoincrement": false,
+          "name": "first_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "second_user_id": {
+          "autoincrement": false,
+          "name": "second_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_message_at": {
+          "autoincrement": false,
+          "name": "last_message_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_message_preview": {
+          "autoincrement": false,
+          "name": "last_message_preview",
+          "type": "varchar(140)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hidden_for_first_user": {
+          "autoincrement": false,
+          "name": "hidden_for_first_user",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hidden_for_second_user": {
+          "autoincrement": false,
+          "name": "hidden_for_second_user",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "chat_id": {
+          "name": "chat_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_659DF2AAB4E2BF69": {
+          "name": "IDX_659DF2AAB4E2BF69",
+          "columns": [
+            "first_user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_659DF2AAB02C53F8": {
+          "name": "IDX_659DF2AAB02C53F8",
+          "columns": [
+            "second_user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_659DF2AAB02C53F8": {
+          "name": "FK_659DF2AAB02C53F8",
+          "tableFrom": "chat",
+          "tableTo": "user",
+          "columnsFrom": [
+            "second_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_659DF2AAB4E2BF69": {
+          "name": "FK_659DF2AAB4E2BF69",
+          "tableFrom": "chat",
+          "tableTo": "user",
+          "columnsFrom": [
+            "first_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "comment": {
+      "name": "comment",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment": {
+          "autoincrement": false,
+          "name": "comment",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment_type": {
+          "autoincrement": false,
+          "name": "comment_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "autoincrement": false,
+          "name": "type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "autoincrement": false,
+          "name": "target_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "autoincrement": false,
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lang": {
+          "autoincrement": false,
+          "name": "lang",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "comment_id": {
+          "name": "comment_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_9474526CA76ED395": {
+          "name": "IDX_9474526CA76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_9474526CA76ED395": {
+          "name": "FK_9474526CA76ED395",
+          "tableFrom": "comment",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "comment_like": {
+      "name": "comment_like",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment_id": {
+          "autoincrement": false,
+          "name": "comment_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "comment_like_id": {
+          "name": "comment_like_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_8A55E25FA76ED395": {
+          "name": "IDX_8A55E25FA76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_8A55E25FF8697D13": {
+          "name": "IDX_8A55E25FF8697D13",
+          "columns": [
+            "comment_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_8A55E25FA76ED395": {
+          "name": "FK_8A55E25FA76ED395",
+          "tableFrom": "comment_like",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_8A55E25FF8697D13": {
+          "name": "FK_8A55E25FF8697D13",
+          "tableFrom": "comment_like",
+          "tableTo": "comment",
+          "columnsFrom": [
+            "comment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "dknotifiaction": {
+      "name": "dknotifiaction",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_user_id": {
+          "autoincrement": false,
+          "name": "owner_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_user_id": {
+          "autoincrement": false,
+          "name": "sender_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view": {
+          "autoincrement": false,
+          "name": "view",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment_tr": {
+          "autoincrement": false,
+          "name": "comment_tr",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment_us": {
+          "autoincrement": false,
+          "name": "comment_us",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meta": {
+          "autoincrement": false,
+          "name": "meta",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "dknotifiaction_id": {
+          "name": "dknotifiaction_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_5E795EC62B18554A": {
+          "name": "IDX_5E795EC62B18554A",
+          "columns": [
+            "owner_user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_5E795EC62A98155E": {
+          "name": "IDX_5E795EC62A98155E",
+          "columns": [
+            "sender_user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_5E795EC62A98155E": {
+          "name": "FK_5E795EC62A98155E",
+          "tableFrom": "dknotifiaction",
+          "tableTo": "user",
+          "columnsFrom": [
+            "sender_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_5E795EC62B18554A": {
+          "name": "FK_5E795EC62B18554A",
+          "tableFrom": "dknotifiaction",
+          "tableTo": "user",
+          "columnsFrom": [
+            "owner_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "follow": {
+      "name": "follow",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "follower_id": {
+          "autoincrement": false,
+          "name": "follower_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "followed_id": {
+          "autoincrement": false,
+          "name": "followed_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "follow_id": {
+          "name": "follow_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_68344470AC24F853": {
+          "name": "IDX_68344470AC24F853",
+          "columns": [
+            "follower_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_68344470D956F010": {
+          "name": "IDX_68344470D956F010",
+          "columns": [
+            "followed_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_68344470AC24F853": {
+          "name": "FK_68344470AC24F853",
+          "tableFrom": "follow",
+          "tableTo": "user",
+          "columnsFrom": [
+            "follower_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_68344470D956F010": {
+          "name": "FK_68344470D956F010",
+          "tableFrom": "follow",
+          "tableTo": "user",
+          "columnsFrom": [
+            "followed_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "library_book": {
+      "name": "library_book",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "autoincrement": false,
+          "name": "owner_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "library_book_id": {
+          "name": "library_book_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_6D2A695C16A2B381": {
+          "name": "IDX_6D2A695C16A2B381",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_6D2A695C7E3C61F9": {
+          "name": "IDX_6D2A695C7E3C61F9",
+          "columns": [
+            "owner_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_6D2A695C16A2B381": {
+          "name": "FK_6D2A695C16A2B381",
+          "tableFrom": "library_book",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_6D2A695C7E3C61F9": {
+          "name": "FK_6D2A695C7E3C61F9",
+          "tableFrom": "library_book",
+          "tableTo": "user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "marketplace_settings": {
+      "name": "marketplace_settings",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "autoincrement": false,
+          "name": "active",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commission_rate": {
+          "autoincrement": false,
+          "name": "commission_rate",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_date": {
+          "autoincrement": false,
+          "name": "updated_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "marketplace_settings_id": {
+          "name": "marketplace_settings_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "message": {
+      "name": "message",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chat_id": {
+          "autoincrement": false,
+          "name": "chat_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "autoincrement": false,
+          "name": "message",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "receiver": {
+          "autoincrement": false,
+          "name": "receiver",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender": {
+          "autoincrement": false,
+          "name": "sender",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view": {
+          "autoincrement": false,
+          "name": "view",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view2": {
+          "autoincrement": false,
+          "name": "view2",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_user_id": {
+          "autoincrement": false,
+          "name": "sender_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receiver_user_id": {
+          "autoincrement": false,
+          "name": "receiver_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "referenced_book_id": {
+          "autoincrement": false,
+          "name": "referenced_book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "referenced_store_id": {
+          "autoincrement": false,
+          "name": "referenced_store_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "autoincrement": false,
+          "name": "type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attachment_snapshot": {
+          "autoincrement": false,
+          "name": "attachment_snapshot",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hidden_for_sender": {
+          "autoincrement": false,
+          "name": "hidden_for_sender",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "message_id": {
+          "name": "message_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_B6BD307F1A9A7125": {
+          "name": "IDX_B6BD307F1A9A7125",
+          "columns": [
+            "chat_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_B6BD307F2A98155E": {
+          "name": "IDX_B6BD307F2A98155E",
+          "columns": [
+            "sender_user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_B6BD307FDA57E237": {
+          "name": "IDX_B6BD307FDA57E237",
+          "columns": [
+            "receiver_user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_B6BD307F1684578C": {
+          "name": "IDX_B6BD307F1684578C",
+          "columns": [
+            "referenced_book_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_B6BD307FCE23F248": {
+          "name": "IDX_B6BD307FCE23F248",
+          "columns": [
+            "referenced_store_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_B6BD307F1684578C": {
+          "name": "FK_B6BD307F1684578C",
+          "tableFrom": "message",
+          "tableTo": "book",
+          "columnsFrom": [
+            "referenced_book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_B6BD307F1A9A7125": {
+          "name": "FK_B6BD307F1A9A7125",
+          "tableFrom": "message",
+          "tableTo": "chat",
+          "columnsFrom": [
+            "chat_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_B6BD307F2A98155E": {
+          "name": "FK_B6BD307F2A98155E",
+          "tableFrom": "message",
+          "tableTo": "user",
+          "columnsFrom": [
+            "sender_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_B6BD307FCE23F248": {
+          "name": "FK_B6BD307FCE23F248",
+          "tableFrom": "message",
+          "tableTo": "store",
+          "columnsFrom": [
+            "referenced_store_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_B6BD307FDA57E237": {
+          "name": "FK_B6BD307FDA57E237",
+          "tableFrom": "message",
+          "tableTo": "user",
+          "columnsFrom": [
+            "receiver_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "newsletter": {
+      "name": "newsletter",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mail": {
+          "autoincrement": false,
+          "name": "mail",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "newsletter_id": {
+          "name": "newsletter_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "notice": {
+      "name": "notice",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reported_user_id": {
+          "autoincrement": false,
+          "name": "reported_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reporter_user_id": {
+          "autoincrement": false,
+          "name": "reporter_user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "comment_id": {
+          "autoincrement": false,
+          "name": "comment_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "autoincrement": false,
+          "name": "type",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "autoincrement": false,
+          "name": "reason",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "autoincrement": false,
+          "name": "created_at",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_resolved": {
+          "autoincrement": false,
+          "name": "is_resolved",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "notice_id": {
+          "name": "notice_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_480D45C2E7566E": {
+          "name": "IDX_480D45C2E7566E",
+          "columns": [
+            "reported_user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_480D45C2DF3D6D95": {
+          "name": "IDX_480D45C2DF3D6D95",
+          "columns": [
+            "reporter_user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_480D45C2DF3D6D95": {
+          "name": "FK_480D45C2DF3D6D95",
+          "tableFrom": "notice",
+          "tableTo": "user",
+          "columnsFrom": [
+            "reporter_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_480D45C2E7566E": {
+          "name": "FK_480D45C2E7566E",
+          "tableFrom": "notice",
+          "tableTo": "user",
+          "columnsFrom": [
+            "reported_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "publisher": {
+      "name": "publisher",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "publisher_id": {
+          "name": "publisher_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_publisher_name": {
+          "name": "idx_publisher_name",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "read": {
+      "name": "read",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "autoincrement": false,
+          "name": "status",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "autoincrement": false,
+          "name": "year",
+          "type": "varchar(4)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "read_id": {
+          "name": "read_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_9857416716A2B381": {
+          "name": "IDX_9857416716A2B381",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_98574167A76ED395": {
+          "name": "IDX_98574167A76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_9857416716A2B381": {
+          "name": "FK_9857416716A2B381",
+          "tableFrom": "read",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_98574167A76ED395": {
+          "name": "FK_98574167A76ED395",
+          "tableFrom": "read",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "read_purpose": {
+      "name": "read_purpose",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "autoincrement": false,
+          "name": "owner_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "autoincrement": false,
+          "name": "year",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose_count": {
+          "autoincrement": false,
+          "name": "purpose_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "read_purpose_id": {
+          "name": "read_purpose_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_460D1677E3C61F9": {
+          "name": "IDX_460D1677E3C61F9",
+          "columns": [
+            "owner_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_460D1677E3C61F9": {
+          "name": "FK_460D1677E3C61F9",
+          "tableFrom": "read_purpose",
+          "tableTo": "user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "score": {
+      "name": "score",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner_id": {
+          "autoincrement": false,
+          "name": "owner_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "autoincrement": false,
+          "name": "target_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_type": {
+          "autoincrement": false,
+          "name": "target_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "autoincrement": false,
+          "name": "score",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "score_id": {
+          "name": "score_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_329937517E3C61F9": {
+          "name": "IDX_329937517E3C61F9",
+          "columns": [
+            "owner_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_329937517E3C61F9": {
+          "name": "FK_329937517E3C61F9",
+          "tableFrom": "score",
+          "tableTo": "user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "seller_payout_profile": {
+      "name": "seller_payout_profile",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "iban": {
+          "autoincrement": false,
+          "name": "iban",
+          "type": "varchar(34)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "identity_number": {
+          "autoincrement": false,
+          "name": "identity_number",
+          "type": "varchar(11)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_name": {
+          "autoincrement": false,
+          "name": "contact_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "autoincrement": false,
+          "name": "phone",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "autoincrement": false,
+          "name": "address",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "city": {
+          "autoincrement": false,
+          "name": "city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "iyzico_sub_merchant_key": {
+          "autoincrement": false,
+          "name": "iyzico_sub_merchant_key",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "autoincrement": false,
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_date": {
+          "autoincrement": false,
+          "name": "created_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_date": {
+          "autoincrement": false,
+          "name": "updated_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "seller_payout_profile_id": {
+          "name": "seller_payout_profile_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "FK_D650DE2A76ED395": {
+          "name": "FK_D650DE2A76ED395",
+          "tableFrom": "seller_payout_profile",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "UNIQ_D650DE2A76ED395": {
+          "name": "UNIQ_D650DE2A76ED395",
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "site_popup": {
+      "name": "site_popup",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "autoincrement": false,
+          "name": "active",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "autoincrement": false,
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "autoincrement": false,
+          "name": "content",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "autoincrement": false,
+          "name": "image",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "link": {
+          "autoincrement": false,
+          "name": "link",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "site_popup_id": {
+          "name": "site_popup_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_author": {
+      "name": "stg_author",
+      "columns": {
+        "key": {
+          "autoincrement": false,
+          "name": "key",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_author_key": {
+          "name": "stg_author_key",
+          "columns": [
+            "key"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_category_lookup": {
+      "name": "stg_category_lookup",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "autoincrement": false,
+          "name": "category_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_category_lookup_name": {
+          "name": "stg_category_lookup_name",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_distinct_category": {
+      "name": "stg_distinct_category",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_distinct_publisher": {
+      "name": "stg_distinct_publisher",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(490)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_distinct_publisher_name": {
+          "name": "stg_distinct_publisher_name",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_distinct_translator": {
+      "name": "stg_distinct_translator",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_distinct_writer": {
+      "name": "stg_distinct_writer",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {},
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_edition_cover": {
+      "name": "stg_edition_cover",
+      "columns": {
+        "edition_key": {
+          "autoincrement": false,
+          "name": "edition_key",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cover_id": {
+          "autoincrement": false,
+          "name": "cover_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_edition_cover_edition_key": {
+          "name": "stg_edition_cover_edition_key",
+          "columns": [
+            "edition_key"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_publisher_lookup": {
+      "name": "stg_publisher_lookup",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(490)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "publisher_id": {
+          "autoincrement": false,
+          "name": "publisher_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_publisher_lookup_name": {
+          "name": "stg_publisher_lookup_name",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_translator_lookup": {
+      "name": "stg_translator_lookup",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "translator_id": {
+          "autoincrement": false,
+          "name": "translator_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_translator_lookup_name": {
+          "name": "stg_translator_lookup_name",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_work_book": {
+      "name": "stg_work_book",
+      "columns": {
+        "work_key": {
+          "autoincrement": false,
+          "name": "work_key",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_work_book_work_key": {
+          "name": "stg_work_book_work_key",
+          "columns": [
+            "work_key"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_book_id": {
+          "name": "idx_book_id",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_work_cover": {
+      "name": "stg_work_cover",
+      "columns": {
+        "work_key": {
+          "autoincrement": false,
+          "name": "work_key",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cover_id": {
+          "autoincrement": false,
+          "name": "cover_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_work_cover_work_key": {
+          "name": "stg_work_cover_work_key",
+          "columns": [
+            "work_key"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "stg_writer_lookup": {
+      "name": "stg_writer_lookup",
+      "columns": {
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "writer_id": {
+          "autoincrement": false,
+          "name": "writer_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "stg_writer_lookup_name": {
+          "name": "stg_writer_lookup_name",
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "store": {
+      "name": "store",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "owner_id": {
+          "autoincrement": false,
+          "name": "owner_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "autoincrement": false,
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "autoincrement": false,
+          "name": "content",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "autoincrement": false,
+          "name": "state",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stock": {
+          "autoincrement": false,
+          "name": "stock",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shipment": {
+          "autoincrement": false,
+          "name": "shipment",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price": {
+          "autoincrement": false,
+          "name": "price",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location": {
+          "autoincrement": false,
+          "name": "location",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_date": {
+          "autoincrement": false,
+          "name": "created_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_notification_date": {
+          "autoincrement": false,
+          "name": "last_notification_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "autoincrement": false,
+          "name": "is_active",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "autoincrement": false,
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "listing_type": {
+          "autoincrement": false,
+          "name": "listing_type",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view_count": {
+          "autoincrement": false,
+          "name": "view_count",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "store_id": {
+          "name": "store_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_FF57587716A2B381": {
+          "name": "IDX_FF57587716A2B381",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_FF5758777E3C61F9": {
+          "name": "IDX_FF5758777E3C61F9",
+          "columns": [
+            "owner_id"
+          ],
+          "isUnique": false
+        },
+        "idx_store_isactive": {
+          "name": "idx_store_isactive",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false
+        },
+        "idx_store_listingtype": {
+          "name": "idx_store_listingtype",
+          "columns": [
+            "listing_type"
+          ],
+          "isUnique": false
+        },
+        "idx_store_viewcount": {
+          "name": "idx_store_viewcount",
+          "columns": [
+            "view_count"
+          ],
+          "isUnique": false
+        },
+        "idx_store_price": {
+          "name": "idx_store_price",
+          "columns": [
+            "price"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_FF57587716A2B381": {
+          "name": "FK_FF57587716A2B381",
+          "tableFrom": "store",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_FF5758777E3C61F9": {
+          "name": "FK_FF5758777E3C61F9",
+          "tableFrom": "store",
+          "tableTo": "user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "store_favorite": {
+      "name": "store_favorite",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "store_id": {
+          "autoincrement": false,
+          "name": "store_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_date": {
+          "autoincrement": false,
+          "name": "created_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "store_favorite_id": {
+          "name": "store_favorite_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_56B2F123A76ED395": {
+          "name": "IDX_56B2F123A76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_56B2F123B092A811": {
+          "name": "IDX_56B2F123B092A811",
+          "columns": [
+            "store_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_56B2F123A76ED395": {
+          "name": "FK_56B2F123A76ED395",
+          "tableFrom": "store_favorite",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_56B2F123B092A811": {
+          "name": "FK_56B2F123B092A811",
+          "tableFrom": "store_favorite",
+          "tableTo": "store",
+          "columnsFrom": [
+            "store_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "uniq_store_favorite_user_store": {
+          "name": "uniq_store_favorite_user_store",
+          "columns": [
+            "user_id",
+            "store_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "store_order": {
+      "name": "store_order",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "store_id": {
+          "autoincrement": false,
+          "name": "store_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyer_id": {
+          "autoincrement": false,
+          "name": "buyer_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seller_id": {
+          "autoincrement": false,
+          "name": "seller_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_kurus": {
+          "autoincrement": false,
+          "name": "amount_kurus",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commission_kurus": {
+          "autoincrement": false,
+          "name": "commission_kurus",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seller_payout_kurus": {
+          "autoincrement": false,
+          "name": "seller_payout_kurus",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "autoincrement": false,
+          "name": "currency",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "autoincrement": false,
+          "name": "status",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "iyzico_conversation_id": {
+          "autoincrement": false,
+          "name": "iyzico_conversation_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iyzico_payment_id": {
+          "autoincrement": false,
+          "name": "iyzico_payment_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iyzico_token": {
+          "autoincrement": false,
+          "name": "iyzico_token",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shipping_name": {
+          "autoincrement": false,
+          "name": "shipping_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shipping_phone": {
+          "autoincrement": false,
+          "name": "shipping_phone",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shipping_address": {
+          "autoincrement": false,
+          "name": "shipping_address",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shipping_city": {
+          "autoincrement": false,
+          "name": "shipping_city",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shipping_district": {
+          "autoincrement": false,
+          "name": "shipping_district",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shipping_zip": {
+          "autoincrement": false,
+          "name": "shipping_zip",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tracking_number": {
+          "autoincrement": false,
+          "name": "tracking_number",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_date": {
+          "autoincrement": false,
+          "name": "created_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_date": {
+          "autoincrement": false,
+          "name": "updated_date",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iyzico_payment_transaction_id": {
+          "autoincrement": false,
+          "name": "iyzico_payment_transaction_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "store_order_id": {
+          "name": "store_order_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_8917C581B092A811": {
+          "name": "IDX_8917C581B092A811",
+          "columns": [
+            "store_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_8917C5816C755722": {
+          "name": "IDX_8917C5816C755722",
+          "columns": [
+            "buyer_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_8917C5818DE820D9": {
+          "name": "IDX_8917C5818DE820D9",
+          "columns": [
+            "seller_id"
+          ],
+          "isUnique": false
+        },
+        "idx_storeorder_iyzicotoken": {
+          "name": "idx_storeorder_iyzicotoken",
+          "columns": [
+            "iyzico_token"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_8917C5816C755722": {
+          "name": "FK_8917C5816C755722",
+          "tableFrom": "store_order",
+          "tableTo": "user",
+          "columnsFrom": [
+            "buyer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_8917C5818DE820D9": {
+          "name": "FK_8917C5818DE820D9",
+          "tableFrom": "store_order",
+          "tableTo": "user",
+          "columnsFrom": [
+            "seller_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_8917C581B092A811": {
+          "name": "FK_8917C581B092A811",
+          "tableFrom": "store_order",
+          "tableTo": "store",
+          "columnsFrom": [
+            "store_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "store_picture": {
+      "name": "store_picture",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "advert_id": {
+          "autoincrement": false,
+          "name": "advert_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image_name": {
+          "autoincrement": false,
+          "name": "image_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "store_picture_id": {
+          "name": "store_picture_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_FD36E6ED07ECCB6": {
+          "name": "IDX_FD36E6ED07ECCB6",
+          "columns": [
+            "advert_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_FD36E6ED07ECCB6": {
+          "name": "FK_FD36E6ED07ECCB6",
+          "tableFrom": "store_picture",
+          "tableTo": "store",
+          "columnsFrom": [
+            "advert_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "sub_comment": {
+      "name": "sub_comment",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comment": {
+          "autoincrement": false,
+          "name": "comment",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_type": {
+          "autoincrement": false,
+          "name": "parent_type",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "autoincrement": false,
+          "name": "parent_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "sub_comment_id": {
+          "name": "sub_comment_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_EBAC0E98A76ED395": {
+          "name": "IDX_EBAC0E98A76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_EBAC0E98A76ED395": {
+          "name": "FK_EBAC0E98A76ED395",
+          "tableFrom": "sub_comment",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "translator": {
+      "name": "translator",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "birth_date": {
+          "autoincrement": false,
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "death_date": {
+          "autoincrement": false,
+          "name": "death_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "biyo": {
+          "autoincrement": false,
+          "name": "biyo",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "img": {
+          "autoincrement": false,
+          "name": "img",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view_count": {
+          "autoincrement": false,
+          "name": "view_count",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "autoincrement": false,
+          "name": "score",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "translator_id": {
+          "name": "translator_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_translator_name": {
+          "name": "idx_translator_name",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "translator_book": {
+      "name": "translator_book",
+      "columns": {
+        "translator_id": {
+          "autoincrement": false,
+          "name": "translator_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "translator_book_translator_id_book_id": {
+          "name": "translator_book_translator_id_book_id",
+          "columns": [
+            "translator_id",
+            "book_id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_E61B197D5370E40B": {
+          "name": "IDX_E61B197D5370E40B",
+          "columns": [
+            "translator_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_E61B197D16A2B381": {
+          "name": "IDX_E61B197D16A2B381",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_E61B197D16A2B381": {
+          "name": "FK_E61B197D16A2B381",
+          "tableFrom": "translator_book",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "FK_E61B197D5370E40B": {
+          "name": "FK_E61B197D5370E40B",
+          "tableFrom": "translator_book",
+          "tableTo": "translator",
+          "columnsFrom": [
+            "translator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "user": {
+      "name": "user",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "read_books_id": {
+          "autoincrement": false,
+          "name": "read_books_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "publisher_id": {
+          "autoincrement": false,
+          "name": "publisher_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "username": {
+          "autoincrement": false,
+          "name": "username",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "autoincrement": false,
+          "name": "password",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mail": {
+          "autoincrement": false,
+          "name": "mail",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "autoincrement": false,
+          "name": "token",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "privacy": {
+          "autoincrement": false,
+          "name": "privacy",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_type": {
+          "autoincrement": false,
+          "name": "user_type",
+          "type": "varchar(25)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_date": {
+          "autoincrement": false,
+          "name": "created_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sex": {
+          "autoincrement": false,
+          "name": "sex",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "surname": {
+          "autoincrement": false,
+          "name": "surname",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "living_city": {
+          "autoincrement": false,
+          "name": "living_city",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "job": {
+          "autoincrement": false,
+          "name": "job",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "edu": {
+          "autoincrement": false,
+          "name": "edu",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "biyo": {
+          "autoincrement": false,
+          "name": "biyo",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mail_auth": {
+          "autoincrement": false,
+          "name": "mail_auth",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "birth_place": {
+          "autoincrement": false,
+          "name": "birth_place",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "birth_date": {
+          "autoincrement": false,
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "image": {
+          "autoincrement": false,
+          "name": "image",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disable": {
+          "autoincrement": false,
+          "name": "disable",
+          "type": "tinyint(1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pending_code": {
+          "autoincrement": false,
+          "name": "pending_code",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_id": {
+          "name": "user_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_8D93D649996A8449": {
+          "name": "IDX_8D93D649996A8449",
+          "columns": [
+            "read_books_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_8D93D64940C86FCE": {
+          "name": "FK_8D93D64940C86FCE",
+          "tableFrom": "user",
+          "tableTo": "publisher",
+          "columnsFrom": [
+            "publisher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "FK_8D93D649996A8449": {
+          "name": "FK_8D93D649996A8449",
+          "tableFrom": "user",
+          "tableTo": "read",
+          "columnsFrom": [
+            "read_books_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {
+        "UNIQ_8D93D649F85E0677": {
+          "name": "UNIQ_8D93D649F85E0677",
+          "columns": [
+            "username"
+          ]
+        },
+        "UNIQ_8D93D6495126AC48": {
+          "name": "UNIQ_8D93D6495126AC48",
+          "columns": [
+            "mail"
+          ]
+        },
+        "UNIQ_8D93D6495F37A13B": {
+          "name": "UNIQ_8D93D6495F37A13B",
+          "columns": [
+            "token"
+          ]
+        },
+        "UNIQ_8D93D64940C86FCE": {
+          "name": "UNIQ_8D93D64940C86FCE",
+          "columns": [
+            "publisher_id"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "user_badges": {
+      "name": "user_badges",
+      "columns": {
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "badges_id": {
+          "autoincrement": false,
+          "name": "badges_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_badges_user_id_badges_id": {
+          "name": "user_badges_user_id_badges_id",
+          "columns": [
+            "user_id",
+            "badges_id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_1DA448A7A76ED395": {
+          "name": "IDX_1DA448A7A76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_1DA448A7538DA1D0": {
+          "name": "IDX_1DA448A7538DA1D0",
+          "columns": [
+            "badges_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_1DA448A7538DA1D0": {
+          "name": "FK_1DA448A7538DA1D0",
+          "tableFrom": "user_badges",
+          "tableTo": "badges",
+          "columnsFrom": [
+            "badges_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "FK_1DA448A7A76ED395": {
+          "name": "FK_1DA448A7A76ED395",
+          "tableFrom": "user_badges",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "user_book": {
+      "name": "user_book",
+      "columns": {
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_book_user_id_book_id": {
+          "name": "user_book_user_id_book_id",
+          "columns": [
+            "user_id",
+            "book_id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_B164EFF8A76ED395": {
+          "name": "IDX_B164EFF8A76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_B164EFF816A2B381": {
+          "name": "IDX_B164EFF816A2B381",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_B164EFF816A2B381": {
+          "name": "FK_B164EFF816A2B381",
+          "tableFrom": "user_book",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "FK_B164EFF8A76ED395": {
+          "name": "FK_B164EFF8A76ED395",
+          "tableFrom": "user_book",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "user_translator": {
+      "name": "user_translator",
+      "columns": {
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "translator_id": {
+          "autoincrement": false,
+          "name": "translator_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_translator_user_id_translator_id": {
+          "name": "user_translator_user_id_translator_id",
+          "columns": [
+            "user_id",
+            "translator_id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_FFAA2507A76ED395": {
+          "name": "IDX_FFAA2507A76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_FFAA25075370E40B": {
+          "name": "IDX_FFAA25075370E40B",
+          "columns": [
+            "translator_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_FFAA25075370E40B": {
+          "name": "FK_FFAA25075370E40B",
+          "tableFrom": "user_translator",
+          "tableTo": "translator",
+          "columnsFrom": [
+            "translator_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "FK_FFAA2507A76ED395": {
+          "name": "FK_FFAA2507A76ED395",
+          "tableFrom": "user_translator",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "user_writer": {
+      "name": "user_writer",
+      "columns": {
+        "user_id": {
+          "autoincrement": false,
+          "name": "user_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "writer_id": {
+          "autoincrement": false,
+          "name": "writer_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_writer_user_id_writer_id": {
+          "name": "user_writer_user_id_writer_id",
+          "columns": [
+            "user_id",
+            "writer_id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_F2F2C3BFA76ED395": {
+          "name": "IDX_F2F2C3BFA76ED395",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_F2F2C3BF1BC7E6B6": {
+          "name": "IDX_F2F2C3BF1BC7E6B6",
+          "columns": [
+            "writer_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_F2F2C3BF1BC7E6B6": {
+          "name": "FK_F2F2C3BF1BC7E6B6",
+          "tableFrom": "user_writer",
+          "tableTo": "writer",
+          "columnsFrom": [
+            "writer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "FK_F2F2C3BFA76ED395": {
+          "name": "FK_F2F2C3BFA76ED395",
+          "tableFrom": "user_writer",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "writer": {
+      "name": "writer",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "autoincrement": false,
+          "name": "name",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "autoincrement": false,
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "biyo": {
+          "autoincrement": false,
+          "name": "biyo",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "img": {
+          "autoincrement": false,
+          "name": "img",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "slug": {
+          "autoincrement": false,
+          "name": "slug",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view_count": {
+          "autoincrement": false,
+          "name": "view_count",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "autoincrement": false,
+          "name": "score",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "writer_id": {
+          "name": "writer_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {
+        "idx_writer_name": {
+          "name": "idx_writer_name",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        },
+        "idx_writer_viewcount": {
+          "name": "idx_writer_viewcount",
+          "columns": [
+            "view_count"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "writer_book": {
+      "name": "writer_book",
+      "columns": {
+        "writer_id": {
+          "autoincrement": false,
+          "name": "writer_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "autoincrement": false,
+          "name": "book_id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "compositePrimaryKeys": {
+        "writer_book_writer_id_book_id": {
+          "name": "writer_book_writer_id_book_id",
+          "columns": [
+            "writer_id",
+            "book_id"
+          ]
+        }
+      },
+      "indexes": {
+        "IDX_597EE0131BC7E6B6": {
+          "name": "IDX_597EE0131BC7E6B6",
+          "columns": [
+            "writer_id"
+          ],
+          "isUnique": false
+        },
+        "IDX_597EE01316A2B381": {
+          "name": "IDX_597EE01316A2B381",
+          "columns": [
+            "book_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "FK_597EE01316A2B381": {
+          "name": "FK_597EE01316A2B381",
+          "tableFrom": "writer_book",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "FK_597EE0131BC7E6B6": {
+          "name": "FK_597EE0131BC7E6B6",
+          "tableFrom": "writer_book",
+          "tableTo": "writer",
+          "columnsFrom": [
+            "writer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "youtube": {
+      "name": "youtube",
+      "columns": {
+        "id": {
+          "autoincrement": true,
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "autoincrement": false,
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "embeded_code": {
+          "autoincrement": false,
+          "name": "embeded_code",
+          "type": "longtext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "view": {
+          "autoincrement": false,
+          "name": "view",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "compositePrimaryKeys": {
+        "youtube_id": {
+          "name": "youtube_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}
