@@ -7,7 +7,10 @@ import { Separator } from "@/components/ui/separator";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
+import { ReadStatusControl } from "@/components/dklist/read-status-control";
 import { getBookBySlug } from "@/db/queries/book-detail";
+import { auth } from "@/auth";
+import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 
 export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
   return (
@@ -49,6 +52,13 @@ async function BookDetailContent({
 
   const tone = toneForId(detail.id);
   const writerNames = detail.writers.map((w) => w.name).join(", ") || "Yazar bilinmiyor";
+
+  const session = await auth();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  const [currentStatus, dropStats] = await Promise.all([
+    userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
+    getBookDropStats(detail.id),
+  ]);
 
   return (
     <>
@@ -142,8 +152,33 @@ async function BookDetailContent({
               </p>
             )}
 
+            <ReadStatusControl
+              bookId={detail.id}
+              signedIn={Boolean(userId)}
+              initialStatus={currentStatus}
+            />
+
+            {dropStats.droppedCount > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {dropStats.droppedCount} okur bu kitabı yarıda bıraktı
+                {dropStats.avgDropPercentage != null &&
+                  ` (ortalama %${dropStats.avgDropPercentage} noktasında)`}
+                {Object.keys(dropStats.reasonCounts).length > 0 && (
+                  <>
+                    {" — "}
+                    {Object.entries(dropStats.reasonCounts)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(
+                        ([reason, count]) =>
+                          `${DROP_REASON_LABELS[reason as keyof typeof DROP_REASON_LABELS]} (${count})`,
+                      )
+                      .join(", ")}
+                  </>
+                )}
+              </p>
+            )}
+
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button>Kitaplığıma Ekle</Button>
               <Button variant="outline">Askıya Bırak</Button>
               <Button variant="ghost">Şikayet Et</Button>
             </div>

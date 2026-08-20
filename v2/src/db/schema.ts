@@ -277,16 +277,26 @@ export const publisher = mysqlTable("publisher", {
 	primaryKey({ columns: [table.id], name: "publisher_id"}),
 ]);
 
+// Reading status - one current row per user+book (see
+// src/db/migrations/0002_read_status_dropped.sql for why the UNIQUE
+// constraint was added by hand). `status` stays free-text (matches the
+// existing varchar(50), no enum in the DB) - valid values enforced in
+// application code, see src/db/queries/reading-status.ts.
 export const read = mysqlTable("read", {
 	id: int().autoincrement().notNull(),
 	bookId: int("book_id").notNull().references(() => book.id),
 	userId: int("user_id").notNull().references((): AnyMySqlColumn => user.id),
 	status: varchar({ length: 50 }).notNull(),
+	// "yarıda bıraktım" (dropped) support, added 2026-08-21 - both null unless
+	// status is the dropped value.
+	dropReason: varchar("drop_reason", { length: 30 }),
+	dropPercentage: tinyint("drop_percentage", { unsigned: true }),
 	year: varchar({ length: 4 }).notNull(),
 },
 (table) => [
 	index("IDX_9857416716A2B381").on(table.bookId),
 	index("IDX_98574167A76ED395").on(table.userId),
+	unique("uniq_read_user_book").on(table.userId, table.bookId),
 	primaryKey({ columns: [table.id], name: "read_id"}),
 ]);
 

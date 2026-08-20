@@ -83,6 +83,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
+        // Auth.js sets token.sub to the id returned from authorize()
+        // automatically, but does NOT copy it onto session.user.id by
+        // default (only name/email/image are - id needs this explicit
+        // wire-up). Found via a real bug: every page checking
+        // session.user.id treated a logged-in user as signed out.
+        if (token.sub) session.user.id = token.sub;
         (session.user as typeof session.user & { userType?: string }).userType =
           token.userType as string | undefined;
         (session.user as typeof session.user & { mailAuth?: boolean }).mailAuth =
