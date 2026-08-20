@@ -17,6 +17,7 @@ export interface EditableProfile {
   biyo: string | null;
   edu: string | null;
   job: string | null;
+  image: string | null;
 }
 
 /** Deliberately uncached and keyed by id, not username - this backs the
@@ -34,6 +35,7 @@ export async function getEditableProfile(userId: number): Promise<EditableProfil
       biyo: user.biyo,
       edu: user.edu,
       job: user.job,
+      image: user.image,
     })
     .from(user)
     .where(eq(user.id, userId))

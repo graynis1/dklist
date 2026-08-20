@@ -4,8 +4,10 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { auth } from "@/auth";
 import { getEditableProfile } from "@/db/queries/profile";
+import { avatarUrl } from "@/db/queries/avatar";
 import { updateProfileAction } from "@/app/profil/[username]/actions";
 
 export default function EditProfilePage({ searchParams }: PageProps<"/profil/duzenle">) {
@@ -49,6 +51,25 @@ async function EditProfileContent({
       </CardHeader>
       <CardContent>
         <form action={updateProfileAction} className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <Avatar size="lg">
+              <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
+              <AvatarFallback>{profile.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="avatar" className="text-sm text-muted-foreground">
+                Profil fotoğrafı
+              </label>
+              <input
+                id="avatar"
+                name="avatar"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="text-sm"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <Input name="name" placeholder="İsim" defaultValue={profile.name} required />
             <Input name="surname" placeholder="Soyisim" defaultValue={profile.surname} required />

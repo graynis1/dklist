@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { avatarUrl } from "@/db/queries/avatar";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { ReadingGoalControl } from "@/components/dklist/reading-goal-control";
 import { auth } from "@/auth";
@@ -93,6 +94,7 @@ async function ProfileContent({
     <div className="mx-auto max-w-3xl px-6 py-16">
       <div className="mb-4 flex items-center gap-6">
         <Avatar className="size-20 text-xl">
+          <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col gap-2">

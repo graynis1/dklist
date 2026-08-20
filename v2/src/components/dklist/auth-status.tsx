@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { avatarUrl } from "@/db/queries/avatar";
 
 // Isolated in its own Suspense boundary: auth() reads cookies(), which is
 // genuinely per-request data - keeping it out of SiteHeader directly means the
@@ -43,6 +44,7 @@ async function AuthStatusContent() {
         className="flex items-center gap-2"
       >
         <Avatar className="size-8">
+          <AvatarImage src={avatarUrl(session.user.image ?? null) ?? undefined} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <span className="hidden text-sm font-medium sm:inline">

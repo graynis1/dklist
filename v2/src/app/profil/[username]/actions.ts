@@ -9,6 +9,7 @@ import {
   updateProfile,
   type ReadingGoal,
 } from "@/db/queries/profile";
+import { uploadAvatar } from "@/db/queries/avatar";
 
 export async function toggleFollowAction(
   targetUserId: number,
@@ -65,6 +66,11 @@ export async function updateProfileAction(formData: FormData) {
       job: String(formData.get("job") ?? ""),
       password: String(formData.get("password") ?? "") || undefined,
     });
+
+    const avatarFile = formData.get("avatar");
+    if (avatarFile instanceof File && avatarFile.size > 0) {
+      await uploadAvatar(Number(session.user.id), avatarFile);
+    }
   } catch (err) {
     redirect(`/profil/duzenle?error=${encodeURIComponent((err as Error).message)}`);
   }

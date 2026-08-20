@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# user-uploaded content (avatars etc.) - persistent local storage, not
+# committed, same as v1's own /uploads directory
+/uploads/
