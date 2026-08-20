@@ -3,7 +3,7 @@ import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
-import { user, follow, read, book, libraryBook, readPurpose } from "@/db/schema";
+import { user, follow, read, book, libraryBook, readPurpose, badges, userBadges } from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
 import { addNotification } from "@/db/queries/notifications";
 
@@ -136,6 +136,70 @@ export async function getFollowCounts(userId: number): Promise<FollowCounts> {
   return { followers: followers.n, following: following.n };
 }
 
+export interface FollowListItem {
+  id: number;
+  username: string;
+}
+
+/**
+ * v1's getProfile() returns full follower/following arrays (username+image),
+ * not just counts - v2's profile page only ever showed the counts. Capped at
+ * 100 since this is a profile-page list, not an export; a real "load more"
+ * would be the next step if a profile ever exceeds that in practice.
+ */
+export async function getFollowersList(userId: number, limit = 100): Promise<FollowListItem[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`followers-list:${userId}`);
+
+  return db
+    .select({ id: user.id, username: user.username })
+    .from(follow)
+    .innerJoin(user, eq(follow.followerId, user.id))
+    .where(eq(follow.followedId, userId))
+    .limit(limit);
+}
+
+export async function getFollowingList(userId: number, limit = 100): Promise<FollowListItem[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`following-list:${userId}`);
+
+  return db
+    .select({ id: user.id, username: user.username })
+    .from(follow)
+    .innerJoin(user, eq(follow.followedId, user.id))
+    .where(eq(follow.followerId, userId))
+    .limit(limit);
+}
+
+export interface UserBadge {
+  id: number;
+  name: string;
+  comment: string;
+}
+
+/**
+ * v1's ProfileController::getProfile() badges array. Read-only display only
+ * - badge *assignment* is a separate admin/automated concern (v1's own code
+ * has the badge-assignment logic elsewhere), not built here. Images
+ * (`badges.img`) aren't rendered - v2 has no generic image-serving path yet
+ * (only the book-cover proxy exists), same gap already noted for avatar
+ * upload - so this shows name/comment as a text pill with a tooltip instead
+ * of silently dropping the feature until that infrastructure exists.
+ */
+export async function getUserBadges(userId: number): Promise<UserBadge[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`user-badges:${userId}`);
+
+  return db
+    .select({ id: badges.id, name: badges.name, comment: badges.comment })
+    .from(userBadges)
+    .innerJoin(badges, eq(userBadges.badgesId, badges.id))
+    .where(eq(userBadges.userId, userId));
+}
+
 export async function isFollowing(followerId: number, followedId: number): Promise<boolean> {
   const [row] = await db
     .select({ id: follow.id })
@@ -178,6 +242,8 @@ export async function toggleFollow(followerId: number, followedId: number): Prom
 
   updateTag(`follow-counts:${followedId}`);
   updateTag(`follow-counts:${followerId}`);
+  updateTag(`followers-list:${followedId}`);
+  updateTag(`following-list:${followerId}`);
   return { following: !already };
 }
 

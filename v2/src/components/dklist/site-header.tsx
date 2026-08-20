@@ -4,8 +4,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
 import { NotificationBell } from "@/components/dklist/notification-bell";
 
+// "Yazarlar"/"Askıda Kitap"/"Bloglar" stay dead links deliberately - each
+// needs a page that doesn't exist yet (a writers-index/browse page for the
+// first, Phase 3/4 features for the other two), not a wrong destination.
 const NAV = [
-  { href: "#", label: "Keşfet" },
+  { href: "/ara", label: "Keşfet" },
   { href: "#", label: "Yazarlar" },
   { href: "#", label: "Askıda Kitap" },
   { href: "#", label: "Bloglar" },

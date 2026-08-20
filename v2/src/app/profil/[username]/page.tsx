@@ -15,6 +15,7 @@ import {
   getLibraryBooks,
   getCurrentReadingGoal,
   getPastReadingGoals,
+  getUserBadges,
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
 import { READ_STATUSES } from "@/lib/reading-status";
@@ -73,6 +74,7 @@ async function ProfileContent({
     pastGoals,
     likedWriters,
     likedTranslators,
+    userBadges,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -82,6 +84,7 @@ async function ProfileContent({
     getPastReadingGoals(profile.id),
     getLikedWriters(profile.id),
     getLikedTranslators(profile.id),
+    getUserBadges(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -97,15 +100,28 @@ async function ProfileContent({
             @{profile.username}
           </h1>
           <div className="flex gap-4 text-sm text-muted-foreground">
-            <span>
+            <Link href={`/profil/${profile.username}/takipciler`} className="hover:underline">
               <strong className="text-foreground">{counts.followers}</strong>{" "}
               takipçi
-            </span>
-            <span>
+            </Link>
+            <Link href={`/profil/${profile.username}/takip-edilenler`} className="hover:underline">
               <strong className="text-foreground">{counts.following}</strong>{" "}
               takip
-            </span>
+            </Link>
           </div>
+          {userBadges.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {userBadges.map((b) => (
+                <span
+                  key={b.id}
+                  title={b.comment}
+                  className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                >
+                  🏅 {b.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         {viewerId && !isOwnProfile && (
           <div className="ml-auto">
