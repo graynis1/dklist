@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { user, follow, read, book } from "@/db/schema";
+import { user, follow, read, book, libraryBook } from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
 
 export interface ProfileSummary {
@@ -100,4 +100,22 @@ export async function getBooksByStatus(
     (grouped[row.status] ??= []).push({ id: row.id, name: row.name, slug: row.slug });
   }
   return grouped as Record<ReadStatus, ProfileBookItem[]>;
+}
+
+export interface LibraryBookItem {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export async function getLibraryBooks(ownerId: number): Promise<LibraryBookItem[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`library-books:${ownerId}`);
+
+  return db
+    .select({ id: book.id, name: book.name, slug: book.slug })
+    .from(libraryBook)
+    .innerJoin(book, eq(libraryBook.bookId, book.id))
+    .where(eq(libraryBook.ownerId, ownerId));
 }

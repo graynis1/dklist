@@ -11,6 +11,7 @@ import {
   getFollowCounts,
   isFollowing,
   getBooksByStatus,
+  getLibraryBooks,
 } from "@/db/queries/profile";
 import { READ_STATUSES } from "@/lib/reading-status";
 
@@ -59,10 +60,11 @@ async function ProfileContent({
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
   const isOwnProfile = viewerId === profile.id;
 
-  const [counts, viewerFollows, booksByStatus] = await Promise.all([
+  const [counts, viewerFollows, booksByStatus, libraryBooks] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
     getBooksByStatus(profile.id),
+    getLibraryBooks(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -131,6 +133,31 @@ async function ProfileContent({
           <p className="text-sm text-muted-foreground">
             Henüz bir kitaba okuma durumu eklenmemiş.
           </p>
+        )}
+
+        {libraryBooks.length > 0 && (
+          <div>
+            {/* Deliberately its own section, not merged into the reading-status
+                groups above - ownership (kitaplığım) and reading status are
+                independent facts per the customer's explicit ask. */}
+            <div className="mb-3 flex items-center gap-2">
+              <SectionLabel>Kitaplığım</SectionLabel>
+              <span className="text-sm text-muted-foreground">
+                ({libraryBooks.length})
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {libraryBooks.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/kitap/${b.slug}`}
+                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+                >
+                  {b.name}
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
