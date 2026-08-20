@@ -129,6 +129,36 @@ export async function getLatestBooks(limit = 12): Promise<CategoryBookListItem[]
   return attachWriterNames(rows);
 }
 
+export interface TopBookItem extends CategoryBookListItem {
+  content: string | null;
+}
+
+/**
+ * v1's GeneralController::getTopItems()/getTopBooks() (top-3 by view count,
+ * feeds the homepage). The v2 homepage's "featured"/"picks" sections were
+ * still rendering placeholder demoBooks data - this is the real equivalent.
+ */
+export async function getTopBooks(limit = 5): Promise<TopBookItem[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("top-books");
+
+  const rows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      viewCount: book.viewCount,
+      content: book.content,
+    })
+    .from(book)
+    .orderBy(desc(book.viewCount))
+    .limit(limit);
+
+  return attachWriterNames(rows);
+}
+
 /** Batched (no N+1) writer-name lookup for a list of book ids - shared across
  * category/latest/publisher listing queries so each doesn't reimplement it. */
 export async function attachWriterNames<T extends { id: number }>(

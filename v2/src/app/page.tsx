@@ -5,9 +5,8 @@ import { Separator } from "@/components/ui/separator";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { HeroShelf } from "@/components/dklist/hero-shelf";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
-import { demoBooks } from "@/components/dklist/demo-books";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
-import { getLatestBooks, getTopCategories } from "@/db/queries/books";
+import { getLatestBooks, getTopCategories, getTopBooks } from "@/db/queries/books";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -50,6 +49,110 @@ async function CategoriesShelf() {
         </Link>
       ))}
     </div>
+  );
+}
+
+function FeaturedSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
+      <div className="mx-auto aspect-[2/3] w-full max-w-[280px] animate-pulse rounded-[0.35rem] bg-muted lg:mx-0" />
+      <div className="flex flex-col justify-center gap-4">
+        <div className="h-10 w-2/3 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-1/3 animate-pulse rounded bg-muted" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * v1's GeneralController::getTopItems()/getTopBooks() (top-3 by view count) -
+ * the homepage's "featured"/"picks" sections previously rendered placeholder
+ * demoBooks data regardless of what was actually in the catalog. `content`
+ * (the book's blurb/description column) stands in for the hand-written demo
+ * excerpt; there's no "genre" or curated "editor's pick" concept in v1 at
+ * all, so the badge now shows the book's rank by view count instead of
+ * inventing a category label that doesn't exist in the schema.
+ */
+async function FeaturedSection() {
+  const topBooks = await getTopBooks(5);
+
+  if (topBooks.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">Henüz kitap eklenmedi.</p>
+    );
+  }
+
+  const [featured, ...picks] = topBooks;
+  const writerNames = featured.writers.join(", ") || "Yazar bilinmiyor";
+
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
+        <Link href={`/kitap/${featured.slug}`} className="mx-auto w-full max-w-[280px] lg:mx-0">
+          <BookCover
+            title={featured.name}
+            author={writerNames}
+            tone={toneForId(featured.id)}
+            size="lg"
+            className="w-full"
+          />
+        </Link>
+        <div className="flex flex-col justify-center gap-4">
+          <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-medium tracking-wide text-secondary-foreground uppercase">
+            En Çok Görüntülenen
+          </span>
+          <Link href={`/kitap/${featured.slug}`}>
+            <h3 className="font-heading text-4xl font-medium tracking-tight hover:text-primary">
+              {featured.name}
+            </h3>
+          </Link>
+          <p className="text-lg text-muted-foreground">{writerNames}</p>
+          <div className="flex items-center gap-2 text-sm">
+            <StarRating value={featured.score} />
+            <span className="font-medium">{featured.score.toFixed(1)}</span>
+            <span className="text-muted-foreground">
+              · {featured.viewCount.toLocaleString("tr-TR")} görüntülenme
+            </span>
+          </div>
+          {featured.content && (
+            <p className="max-w-xl leading-relaxed text-muted-foreground line-clamp-3">
+              {featured.content}
+            </p>
+          )}
+          <div className="flex gap-3 pt-2">
+            <Link href={`/kitap/${featured.slug}`}>
+              <Button>İncelemeleri Oku</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {picks.length > 0 && (
+        <div className="mt-14 grid grid-cols-2 gap-6 sm:grid-cols-4">
+          {picks.map((book) => (
+            <Link key={book.id} href={`/kitap/${book.slug}`} className="flex flex-col gap-3">
+              <BookCover
+                title={book.name}
+                author={book.writers.join(", ") || "Yazar bilinmiyor"}
+                tone={toneForId(book.id)}
+                size="md"
+                className="w-full"
+              />
+              <div className="flex flex-col gap-0.5">
+                <p className="truncate text-sm font-medium">{book.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {book.writers.join(", ") || "Yazar bilinmiyor"}
+                </p>
+                <div className="flex items-center gap-1 text-xs">
+                  <StarRating value={book.score} />
+                  <span className="text-muted-foreground">{book.score.toFixed(1)}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -99,9 +202,6 @@ async function LatestBooksShelf() {
 }
 
 export default function Home() {
-  const [featured, ...rest] = demoBooks;
-  const picks = rest.slice(0, 4);
-
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
@@ -154,68 +254,15 @@ export default function Home() {
       {/* Featured */}
       <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
         <div className="mb-10 flex flex-col gap-2">
-          <SectionLabel>Bu Ay Öne Çıkan</SectionLabel>
+          <SectionLabel>Öne Çıkanlar</SectionLabel>
           <h2 className="font-heading text-3xl font-medium tracking-tight">
-            Editörün seçtiği kitap
+            En çok görüntülenen kitap
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
-          <BookCover
-            title={featured.title}
-            author={featured.author}
-            tone={featured.tone}
-            size="lg"
-            className="mx-auto w-full max-w-[280px] lg:mx-0"
-          />
-          <div className="flex flex-col justify-center gap-4">
-            <span className="w-fit rounded-full bg-secondary px-3 py-1 text-xs font-medium tracking-wide text-secondary-foreground uppercase">
-              {featured.genre}
-            </span>
-            <h3 className="font-heading text-4xl font-medium tracking-tight">
-              {featured.title}
-            </h3>
-            <p className="text-lg text-muted-foreground">{featured.author}</p>
-            <div className="flex items-center gap-2 text-sm">
-              <StarRating value={featured.rating} />
-              <span className="font-medium">{featured.rating}</span>
-              <span className="text-muted-foreground">
-                · {featured.ratingCount}
-              </span>
-            </div>
-            <p className="max-w-xl leading-relaxed text-muted-foreground">
-              {featured.excerpt}
-            </p>
-            <div className="flex gap-3 pt-2">
-              <Button>Kitaplığıma Ekle</Button>
-              <Button variant="outline">İncelemeleri Oku</Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-14 grid grid-cols-2 gap-6 sm:grid-cols-4">
-          {picks.map((book) => (
-            <div key={book.title} className="flex flex-col gap-3">
-              <BookCover
-                title={book.title}
-                author={book.author}
-                tone={book.tone}
-                size="md"
-                className="w-full"
-              />
-              <div className="flex flex-col gap-0.5">
-                <p className="truncate text-sm font-medium">{book.title}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {book.author}
-                </p>
-                <div className="flex items-center gap-1 text-xs">
-                  <StarRating value={book.rating} />
-                  <span className="text-muted-foreground">{book.rating}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Suspense fallback={<FeaturedSkeleton />}>
+          <FeaturedSection />
+        </Suspense>
       </section>
 
       {/* Stat band */}
