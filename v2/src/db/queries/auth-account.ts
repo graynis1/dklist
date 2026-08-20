@@ -4,6 +4,7 @@ import { eq, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { user } from "@/db/schema";
+import { isDirty } from "@/lib/dirty-controller";
 
 const TOKEN_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -59,6 +60,12 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
   }
   if (password.length < 6) {
     throw new Error("Şifre en az 6 karakter olmalıdır.");
+  }
+
+  for (const text of [name, surname, username, mail]) {
+    if (isDirty(text)) {
+      throw new Error("Hakaret içeren içerik ekleyemezsiniz.");
+    }
   }
 
   const [existing] = await db
