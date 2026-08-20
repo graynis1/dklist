@@ -2,20 +2,111 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { addCommentAction } from "@/app/kitap/[slug]/actions";
-import type { BookComment } from "@/db/queries/comments";
+import { addCommentAction, addReplyAction } from "@/app/kitap/[slug]/actions";
+import type { BookComment, CommentReply, SubCommentParentType } from "@/db/queries/comments";
+
+function ReplyForm({
+  onSubmit,
+  onCancel,
+}: {
+  onSubmit: (text: string) => void;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <form
+      action={() => {
+        if (text.trim().length < 2) return;
+        startTransition(() => onSubmit(text));
+        setText("");
+      }}
+      className="mt-2 flex flex-col gap-2"
+    >
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Yanıt yaz..."
+        required
+        minLength={2}
+        maxLength={2000}
+        rows={2}
+        className="w-full rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-ring"
+      />
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={isPending}>
+          Yanıtla
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          Vazgeç
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function ReplyItem({
+  reply,
+  canReply,
+  onReply,
+}: {
+  reply: CommentReply;
+  canReply: boolean;
+  onReply: (parentType: SubCommentParentType, parentId: number, text: string) => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+
+  return (
+    <li className="flex flex-col gap-1 border-l-2 border-border pl-3">
+      <div className="flex items-center gap-2 text-sm">
+        <span className="font-medium">@{reply.authorUsername}</span>
+      </div>
+      <p className="text-sm leading-relaxed">{reply.text}</p>
+      {canReply && (
+        <button
+          type="button"
+          onClick={() => setShowForm((s) => !s)}
+          className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+        >
+          Yanıtla
+        </button>
+      )}
+      {showForm && (
+        <ReplyForm
+          onCancel={() => setShowForm(false)}
+          onSubmit={(text) => {
+            onReply("subComment", reply.id, text);
+            setShowForm(false);
+          }}
+        />
+      )}
+      {reply.replies.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-3">
+          {reply.replies.map((nested) => (
+            <ReplyItem key={nested.id} reply={nested} canReply={false} onReply={onReply} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
 
 export function BookComments({
   bookId,
   signedIn,
   initialComments,
+  initialRepliesByComment,
 }: {
   bookId: number;
   signedIn: boolean;
   initialComments: BookComment[];
+  initialRepliesByComment: Record<number, CommentReply[]>;
 }) {
   const [comments, setComments] = useState(initialComments);
+  const [repliesByComment, setRepliesByComment] = useState(initialRepliesByComment);
   const [error, setError] = useState<string | null>(null);
+  const [replyFormFor, setReplyFormFor] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -26,12 +117,12 @@ export function BookComments({
       const result = await addCommentAction(bookId, text);
       if (result.status) {
         formRef.current?.reset();
-        // Optimistic prepend - the real list re-syncs from the server on the
-        // next navigation/reload; this just avoids the comment vanishing
-        // from view until then.
+        // Use the server-assigned id immediately (not a placeholder) - a
+        // reply posted against a still-fake id would insert with a parent_id
+        // that never matches any real comment, a bug caught via real testing.
         setComments((prev) => [
           {
-            id: -Date.now(),
+            id: result.commentId!,
             text,
             date: new Date().toISOString().slice(0, 10),
             authorUsername: "siz",
@@ -40,6 +131,35 @@ export function BookComments({
         ]);
       } else {
         setError(result.message ?? "Bir hata oluştu.");
+      }
+    });
+  }
+
+  function submitReply(commentId: number, parentType: SubCommentParentType, parentId: number, text: string) {
+    startTransition(async () => {
+      const result = await addReplyAction(parentType, parentId, text);
+      if (result.status) {
+        const node: CommentReply = {
+          id: result.replyId!,
+          text,
+          authorUsername: "siz",
+          parentType,
+          parentId,
+          replies: [],
+        };
+        setRepliesByComment((prev) => {
+          const next = { ...prev };
+          if (parentType === "comment") {
+            next[commentId] = [...(next[commentId] ?? []), node];
+          } else {
+            // nested reply to a level-1 reply - splice it into that reply's own list
+            next[commentId] = (next[commentId] ?? []).map((r) =>
+              r.id === parentId ? { ...r, replies: [...r.replies, node] } : r,
+            );
+          }
+          return next;
+        });
+        setReplyFormFor(null);
       }
     });
   }
@@ -82,15 +202,47 @@ export function BookComments({
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
-          {comments.map((c) => (
-            <li key={c.id} className="flex flex-col gap-1 border-b border-border pb-4">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-medium">@{c.authorUsername}</span>
-                <span className="text-muted-foreground">{c.date}</span>
-              </div>
-              <p className="text-sm leading-relaxed">{c.text}</p>
-            </li>
-          ))}
+          {comments.map((c) => {
+            const replies = repliesByComment[c.id] ?? [];
+            return (
+              <li key={c.id} className="flex flex-col gap-1 border-b border-border pb-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">@{c.authorUsername}</span>
+                  <span className="text-muted-foreground">{c.date}</span>
+                </div>
+                <p className="text-sm leading-relaxed">{c.text}</p>
+                {signedIn && (
+                  <button
+                    type="button"
+                    onClick={() => setReplyFormFor((cur) => (cur === c.id ? null : c.id))}
+                    className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    Yanıtla
+                  </button>
+                )}
+                {replyFormFor === c.id && (
+                  <ReplyForm
+                    onCancel={() => setReplyFormFor(null)}
+                    onSubmit={(text) => submitReply(c.id, "comment", c.id, text)}
+                  />
+                )}
+                {replies.length > 0 && (
+                  <ul className="mt-2 flex flex-col gap-3">
+                    {replies.map((reply) => (
+                      <ReplyItem
+                        key={reply.id}
+                        reply={reply}
+                        canReply={signedIn}
+                        onReply={(parentType, parentId, text) =>
+                          submitReply(c.id, parentType, parentId, text)
+                        }
+                      />
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

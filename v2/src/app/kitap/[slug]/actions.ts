@@ -8,7 +8,11 @@ import {
   type DropReason,
 } from "@/db/queries/reading-status";
 import { rateBook } from "@/db/queries/rating";
-import { addBookComment } from "@/db/queries/comments";
+import {
+  addBookComment,
+  addSubComment,
+  type SubCommentParentType,
+} from "@/db/queries/comments";
 import { toggleLibrary } from "@/db/queries/library";
 import { toggleBookLike } from "@/db/queries/likes";
 
@@ -72,15 +76,15 @@ export async function rateBookAction(
 export async function addCommentAction(
   bookId: number,
   text: string,
-): Promise<ActionResult> {
+): Promise<ActionResult & { commentId?: number }> {
   const session = await auth();
   if (!session?.user?.id) {
     return { status: false, message: "Giriş yapmalısınız." };
   }
 
   try {
-    await addBookComment(Number(session.user.id), bookId, text);
-    return { status: true };
+    const commentId = await addBookComment(Number(session.user.id), bookId, text);
+    return { status: true, commentId };
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
@@ -96,6 +100,24 @@ export async function toggleLibraryAction(
 
   const result = await toggleLibrary(Number(session.user.id), bookId);
   return { status: true, inLibrary: result.inLibrary };
+}
+
+export async function addReplyAction(
+  parentType: SubCommentParentType,
+  parentId: number,
+  text: string,
+): Promise<ActionResult & { replyId?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+
+  try {
+    const replyId = await addSubComment(Number(session.user.id), parentType, parentId, text);
+    return { status: true, replyId };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
 }
 
 export async function toggleLikeAction(
