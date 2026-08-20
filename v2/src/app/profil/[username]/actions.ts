@@ -1,7 +1,14 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { toggleFollow, setReadingGoal, getCurrentReadingGoal, type ReadingGoal } from "@/db/queries/profile";
+import {
+  toggleFollow,
+  setReadingGoal,
+  getCurrentReadingGoal,
+  updateProfile,
+  type ReadingGoal,
+} from "@/db/queries/profile";
 
 export async function toggleFollowAction(
   targetUserId: number,
@@ -35,4 +42,32 @@ export async function setReadingGoalAction(
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
+}
+
+export async function updateProfileAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/giris");
+  }
+
+  const username = session.user.name ?? "";
+
+  try {
+    await updateProfile(Number(session.user.id), {
+      name: String(formData.get("name") ?? ""),
+      surname: String(formData.get("surname") ?? ""),
+      sex: String(formData.get("sex") ?? ""),
+      birthDate: String(formData.get("birthDate") ?? ""),
+      birthPlace: String(formData.get("birthPlace") ?? ""),
+      livingCity: String(formData.get("livingCity") ?? ""),
+      biyo: String(formData.get("biyo") ?? ""),
+      edu: String(formData.get("edu") ?? ""),
+      job: String(formData.get("job") ?? ""),
+      password: String(formData.get("password") ?? "") || undefined,
+    });
+  } catch (err) {
+    redirect(`/profil/duzenle?error=${encodeURIComponent((err as Error).message)}`);
+  }
+
+  redirect(`/profil/${username}`);
 }

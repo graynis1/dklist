@@ -112,6 +112,14 @@ async function ProfileContent({
             <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} />
           </div>
         )}
+        {isOwnProfile && (
+          <Link
+            href="/profil/duzenle"
+            className="ml-auto text-sm text-muted-foreground underline hover:text-foreground"
+          >
+            Profili düzenle
+          </Link>
+        )}
       </div>
 
       {profile.biyo && (

@@ -1,9 +1,101 @@
 import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { user, follow, read, book, libraryBook, readPurpose } from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
+
+export interface EditableProfile {
+  name: string;
+  surname: string;
+  sex: string;
+  birthDate: string;
+  birthPlace: string | null;
+  livingCity: string | null;
+  biyo: string | null;
+  edu: string | null;
+  job: string | null;
+}
+
+/** Deliberately uncached and keyed by id, not username - this backs the
+ * owner's own edit form, always needs the fresh value, never the public
+ * profile's cached view. */
+export async function getEditableProfile(userId: number): Promise<EditableProfile | null> {
+  const [row] = await db
+    .select({
+      name: user.name,
+      surname: user.surname,
+      sex: user.sex,
+      birthDate: user.birthDate,
+      birthPlace: user.birthPlace,
+      livingCity: user.livingCity,
+      biyo: user.biyo,
+      edu: user.edu,
+      job: user.job,
+    })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  return row ?? null;
+}
+
+export interface UpdateProfileInput {
+  name: string;
+  surname: string;
+  sex: string;
+  birthDate: string;
+  birthPlace?: string;
+  livingCity?: string;
+  biyo?: string;
+  edu?: string;
+  job?: string;
+  password?: string;
+}
+
+/**
+ * v1's ProfileController::editProfile() - name/surname/sex/birthDate are
+ * required (matches v1's validation), the rest are optional free-text
+ * fields. Password is optional too: v1's own comment notes this used to
+ * force re-submitting the current password on every edit (bad UX, and
+ * required storing it in plaintext client-side) before being fixed to only
+ * update it when the user actually typed a new one - matched here from the
+ * start rather than reintroducing that already-fixed mistake.
+ */
+export async function updateProfile(userId: number, input: UpdateProfileInput): Promise<void> {
+  const { name, surname, sex, birthDate, birthPlace, livingCity, biyo, edu, job, password } = input;
+
+  if (!name.trim() || !surname.trim() || !sex.trim() || !birthDate.trim()) {
+    throw new Error("İsim, soyisim, cinsiyet ve doğum tarihi eksik olamaz.");
+  }
+
+  const values: Partial<typeof user.$inferInsert> = {
+    name: name.trim(),
+    surname: surname.trim(),
+    sex,
+    birthDate,
+    birthPlace: birthPlace?.trim() || null,
+    livingCity: livingCity?.trim() || null,
+    biyo: biyo?.trim() || null,
+    edu: edu?.trim() || null,
+    job: job?.trim() || null,
+  };
+
+  if (password) {
+    if (password.length < 6) {
+      throw new Error("Şifre en az 6 karakter olmalıdır.");
+    }
+    values.password = await bcrypt.hash(password, 10);
+  }
+
+  await db.update(user).set(values).where(eq(user.id, userId));
+  updateTag(`profile:${await getUsernameById(userId)}`);
+}
+
+async function getUsernameById(userId: number): Promise<string> {
+  const [row] = await db.select({ username: user.username }).from(user).where(eq(user.id, userId)).limit(1);
+  return row?.username ?? "";
+}
 
 export interface ProfileSummary {
   id: number;
