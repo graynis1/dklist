@@ -20,6 +20,7 @@ import { getUserBookRating } from "@/db/queries/rating";
 import { getBookComments, getRepliesForComments } from "@/db/queries/comments";
 import { isInLibrary } from "@/db/queries/library";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
+import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { addCommentAction, addReplyAction } from "./actions";
 
 const READER_STATUS_LABELS: Record<string, string> = {
@@ -92,8 +93,21 @@ async function BookDetailContent({
     getBookReaders(detail.id),
   ]);
 
-  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const quotes = await getBookComments(detail.id, "alinti");
+
+  const commentIds = comments.map((c) => c.id);
+  const [repliesByComment, commentLikes] = await Promise.all([
+    getRepliesForComments(commentIds),
+    getCommentLikeStates(userId, commentIds),
+  ]);
   const repliesByCommentObj = Object.fromEntries(repliesByComment);
+
+  const quoteIds = quotes.map((c) => c.id);
+  const [repliesByQuote, quoteLikes] = await Promise.all([
+    getRepliesForComments(quoteIds),
+    getCommentLikeStates(userId, quoteIds),
+  ]);
+  const repliesByQuoteObj = Object.fromEntries(repliesByQuote);
 
   return (
     <>
@@ -281,9 +295,29 @@ async function BookDetailContent({
           signedIn={Boolean(userId)}
           initialComments={comments}
           initialRepliesByComment={repliesByCommentObj}
-          addCommentAction={addCommentAction.bind(null, detail.id)}
+          commentLikes={commentLikes}
+          addCommentAction={addCommentAction.bind(null, detail.id, "yorum")}
           addReplyAction={addReplyAction}
           placeholder="Bu kitap hakkında ne düşünüyorsunuz?"
+        />
+      </section>
+
+      <Separator />
+
+      <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+        <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+          Alıntılar
+        </h2>
+        <EntityComments
+          signedIn={Boolean(userId)}
+          initialComments={quotes}
+          initialRepliesByComment={repliesByQuoteObj}
+          commentLikes={quoteLikes}
+          addCommentAction={addCommentAction.bind(null, detail.id, "alinti")}
+          addReplyAction={addReplyAction}
+          placeholder="Bu kitaptan bir alıntı paylaşın…"
+          submitLabel="Alıntı Yap"
+          emptyMessage="Henüz alıntı yok."
         />
       </section>
     </>

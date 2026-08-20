@@ -7,6 +7,7 @@ import {
   addEntityComment,
   addSubComment,
   type SubCommentParentType,
+  type CommentType,
 } from "@/db/queries/comments";
 
 export async function toggleWriterLikeAction(
@@ -41,6 +42,7 @@ export async function rateWriterAction(
 
 export async function addWriterCommentAction(
   writerId: number,
+  commentType: CommentType,
   text: string,
 ): Promise<{ status: boolean; message?: string; commentId?: number }> {
   const session = await auth();
@@ -49,7 +51,13 @@ export async function addWriterCommentAction(
   }
 
   try {
-    const commentId = await addEntityComment(Number(session.user.id), writerId, "writer", text);
+    const commentId = await addEntityComment(
+      Number(session.user.id),
+      writerId,
+      "writer",
+      text,
+      commentType,
+    );
     return { status: true, commentId };
   } catch (err) {
     return { status: false, message: (err as Error).message };

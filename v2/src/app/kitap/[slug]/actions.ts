@@ -12,6 +12,7 @@ import {
   addBookComment,
   addSubComment,
   type SubCommentParentType,
+  type CommentType,
 } from "@/db/queries/comments";
 import { toggleLibrary } from "@/db/queries/library";
 import { toggleBookLike } from "@/db/queries/likes";
@@ -75,6 +76,7 @@ export async function rateBookAction(
 
 export async function addCommentAction(
   bookId: number,
+  commentType: CommentType,
   text: string,
 ): Promise<ActionResult & { commentId?: number }> {
   const session = await auth();
@@ -83,7 +85,7 @@ export async function addCommentAction(
   }
 
   try {
-    const commentId = await addBookComment(Number(session.user.id), bookId, text);
+    const commentId = await addBookComment(Number(session.user.id), bookId, text, commentType);
     return { status: true, commentId };
   } catch (err) {
     return { status: false, message: (err as Error).message };

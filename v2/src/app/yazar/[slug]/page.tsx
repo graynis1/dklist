@@ -13,6 +13,7 @@ import { getWriterBySlug, getBooksByWriter } from "@/db/queries/writers";
 import { isWriterLiked, getWriterLikeCount } from "@/db/queries/likes";
 import { getUserWriterRating } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
+import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { auth } from "@/auth";
 import {
   toggleWriterLikeAction,
@@ -69,8 +70,21 @@ async function WriterContent({
     userId ? getUserWriterRating(userId, writer.id) : Promise.resolve(null),
     getEntityComments(writer.id, "writer"),
   ]);
-  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const quotes = await getEntityComments(writer.id, "writer", "alinti");
+
+  const commentIds = comments.map((c) => c.id);
+  const [repliesByComment, commentLikes] = await Promise.all([
+    getRepliesForComments(commentIds),
+    getCommentLikeStates(userId, commentIds),
+  ]);
   const repliesByCommentObj = Object.fromEntries(repliesByComment);
+
+  const quoteIds = quotes.map((c) => c.id);
+  const [repliesByQuote, quoteLikes] = await Promise.all([
+    getRepliesForComments(quoteIds),
+    getCommentLikeStates(userId, quoteIds),
+  ]);
+  const repliesByQuoteObj = Object.fromEntries(repliesByQuote);
   const initials = writer.name
     .split(" ")
     .map((part) => part[0])
@@ -168,9 +182,27 @@ async function WriterContent({
         signedIn={Boolean(userId)}
         initialComments={comments}
         initialRepliesByComment={repliesByCommentObj}
-        addCommentAction={addWriterCommentAction.bind(null, writer.id)}
+        commentLikes={commentLikes}
+        addCommentAction={addWriterCommentAction.bind(null, writer.id, "yorum")}
         addReplyAction={addWriterReplyAction}
         placeholder="Bu yazar hakkında ne düşünüyorsunuz?"
+      />
+
+      <Separator className="my-16" />
+
+      <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+        Alıntılar
+      </h2>
+      <EntityComments
+        signedIn={Boolean(userId)}
+        initialComments={quotes}
+        initialRepliesByComment={repliesByQuoteObj}
+        commentLikes={quoteLikes}
+        addCommentAction={addWriterCommentAction.bind(null, writer.id, "alinti")}
+        addReplyAction={addWriterReplyAction}
+        placeholder="Bu yazardan bir alıntı paylaşın…"
+        submitLabel="Alıntı Yap"
+        emptyMessage="Henüz alıntı yok."
       />
     </section>
   );

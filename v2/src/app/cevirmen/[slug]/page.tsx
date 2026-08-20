@@ -13,6 +13,7 @@ import { getTranslatorBySlug, getBooksByTranslator } from "@/db/queries/translat
 import { isTranslatorLiked, getTranslatorLikeCount } from "@/db/queries/likes";
 import { getUserTranslatorRating } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
+import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { auth } from "@/auth";
 import {
   toggleTranslatorLikeAction,
@@ -64,8 +65,21 @@ async function TranslatorContent({
     userId ? getUserTranslatorRating(userId, translator.id) : Promise.resolve(null),
     getEntityComments(translator.id, "translator"),
   ]);
-  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const quotes = await getEntityComments(translator.id, "translator", "alinti");
+
+  const commentIds = comments.map((c) => c.id);
+  const [repliesByComment, commentLikes] = await Promise.all([
+    getRepliesForComments(commentIds),
+    getCommentLikeStates(userId, commentIds),
+  ]);
   const repliesByCommentObj = Object.fromEntries(repliesByComment);
+
+  const quoteIds = quotes.map((c) => c.id);
+  const [repliesByQuote, quoteLikes] = await Promise.all([
+    getRepliesForComments(quoteIds),
+    getCommentLikeStates(userId, quoteIds),
+  ]);
+  const repliesByQuoteObj = Object.fromEntries(repliesByQuote);
   const initials = translator.name
     .split(" ")
     .map((part) => part[0])
@@ -161,9 +175,27 @@ async function TranslatorContent({
         signedIn={Boolean(userId)}
         initialComments={comments}
         initialRepliesByComment={repliesByCommentObj}
-        addCommentAction={addTranslatorCommentAction.bind(null, translator.id)}
+        commentLikes={commentLikes}
+        addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "yorum")}
         addReplyAction={addTranslatorReplyAction}
         placeholder="Bu çevirmen hakkında ne düşünüyorsunuz?"
+      />
+
+      <Separator className="my-16" />
+
+      <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+        Alıntılar
+      </h2>
+      <EntityComments
+        signedIn={Boolean(userId)}
+        initialComments={quotes}
+        initialRepliesByComment={repliesByQuoteObj}
+        commentLikes={quoteLikes}
+        addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "alinti")}
+        addReplyAction={addTranslatorReplyAction}
+        placeholder="Bu çevirmenden bir alıntı paylaşın…"
+        submitLabel="Alıntı Yap"
+        emptyMessage="Henüz alıntı yok."
       />
     </section>
   );

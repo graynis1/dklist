@@ -3,6 +3,43 @@
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import type { BookComment, CommentReply, SubCommentParentType } from "@/db/queries/comments";
+import type { CommentLikeState } from "@/db/queries/comment-likes";
+import { toggleCommentLikeAction } from "@/actions/comment-likes";
+
+function CommentLikeButton({
+  commentId,
+  signedIn,
+  initialState,
+}: {
+  commentId: number;
+  signedIn: boolean;
+  initialState: CommentLikeState;
+}) {
+  const [state, setState] = useState(initialState);
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <button
+      type="button"
+      disabled={!signedIn || isPending}
+      onClick={() =>
+        startTransition(async () => {
+          const result = await toggleCommentLikeAction(commentId);
+          if (result.status && result.liked !== undefined) {
+            setState((prev) => ({
+              liked: result.liked!,
+              count: prev.count + (result.liked ? 1 : -1),
+            }));
+          }
+        })
+      }
+      className="w-fit text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+    >
+      <span className={state.liked ? "text-primary" : ""}>{state.liked ? "♥" : "♡"}</span>{" "}
+      {state.count > 0 ? state.count : "Beğen"}
+    </button>
+  );
+}
 
 function ReplyForm({
   onSubmit,
@@ -103,13 +140,17 @@ export function EntityComments({
   signedIn,
   initialComments,
   initialRepliesByComment,
+  commentLikes,
   addCommentAction,
   addReplyAction,
   placeholder = "Ne düşünüyorsunuz?",
+  submitLabel = "Yorum Yap",
+  emptyMessage = "Henüz yorum yok.",
 }: {
   signedIn: boolean;
   initialComments: BookComment[];
   initialRepliesByComment: Record<number, CommentReply[]>;
+  commentLikes: Record<number, CommentLikeState>;
   addCommentAction: (text: string) => Promise<{ status: boolean; message?: string; commentId?: number }>;
   addReplyAction: (
     parentType: SubCommentParentType,
@@ -117,6 +158,8 @@ export function EntityComments({
     text: string,
   ) => Promise<{ status: boolean; message?: string; replyId?: number }>;
   placeholder?: string;
+  submitLabel?: string;
+  emptyMessage?: string;
 }) {
   const [comments, setComments] = useState(initialComments);
   const [repliesByComment, setRepliesByComment] = useState(initialRepliesByComment);
@@ -198,7 +241,7 @@ export function EntityComments({
           />
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={isPending} className="w-fit">
-            Yorum Yap
+            {submitLabel}
           </Button>
         </form>
       ) : (
@@ -212,7 +255,7 @@ export function EntityComments({
       )}
 
       {comments.length === 0 ? (
-        <p className="text-muted-foreground">Henüz yorum yok.</p>
+        <p className="text-muted-foreground">{emptyMessage}</p>
       ) : (
         <ul className="flex flex-col gap-4">
           {comments.map((c) => {
@@ -224,15 +267,22 @@ export function EntityComments({
                   <span className="text-muted-foreground">{c.date}</span>
                 </div>
                 <p className="text-sm leading-relaxed">{c.text}</p>
-                {signedIn && (
-                  <button
-                    type="button"
-                    onClick={() => setReplyFormFor((cur) => (cur === c.id ? null : c.id))}
-                    className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
-                  >
-                    Yanıtla
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  <CommentLikeButton
+                    commentId={c.id}
+                    signedIn={signedIn}
+                    initialState={commentLikes[c.id] ?? { count: 0, liked: false }}
+                  />
+                  {signedIn && (
+                    <button
+                      type="button"
+                      onClick={() => setReplyFormFor((cur) => (cur === c.id ? null : c.id))}
+                      className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      Yanıtla
+                    </button>
+                  )}
+                </div>
                 {replyFormFor === c.id && (
                   <ReplyForm
                     onCancel={() => setReplyFormFor(null)}
