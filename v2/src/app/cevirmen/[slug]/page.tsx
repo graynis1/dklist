@@ -6,10 +6,12 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EntityLikeButton } from "@/components/dklist/entity-like-button";
+import { RateEntityControl } from "@/components/dklist/rate-entity-control";
 import { getTranslatorBySlug, getBooksByTranslator } from "@/db/queries/translators";
 import { isTranslatorLiked, getTranslatorLikeCount } from "@/db/queries/likes";
+import { getUserTranslatorRating } from "@/db/queries/rating";
 import { auth } from "@/auth";
-import { toggleTranslatorLikeAction } from "./actions";
+import { toggleTranslatorLikeAction, rateTranslatorAction } from "./actions";
 
 export default function TranslatorPage({ params }: PageProps<"/cevirmen/[slug]">) {
   return (
@@ -47,10 +49,11 @@ async function TranslatorContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount] = await Promise.all([
+  const [books, liked, likeCount, userRating] = await Promise.all([
     getBooksByTranslator(translator.id),
     userId ? isTranslatorLiked(userId, translator.id) : Promise.resolve(false),
     getTranslatorLikeCount(translator.id),
+    userId ? getUserTranslatorRating(userId, translator.id) : Promise.resolve(null),
   ]);
   const initials = translator.name
     .split(" ")
@@ -87,6 +90,14 @@ async function TranslatorContent({
             toggleAction={toggleTranslatorLikeAction}
           />
         </div>
+      </div>
+
+      <div className="mb-10">
+        <RateEntityControl
+          signedIn={Boolean(userId)}
+          initialUserRating={userRating}
+          rateAction={rateTranslatorAction.bind(null, translator.id, translator.slug)}
+        />
       </div>
 
       {translator.biyo && (

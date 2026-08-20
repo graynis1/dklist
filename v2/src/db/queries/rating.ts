@@ -2,9 +2,11 @@ import "server-only";
 import { updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { score, book } from "@/db/schema";
+import { score, book, writer, translator } from "@/db/schema";
 
 const BOOK_TARGET_TYPE = "book";
+const WRITER_TARGET_TYPE = "writer";
+const TRANSLATOR_TARGET_TYPE = "translator";
 
 export async function getUserBookRating(
   userId: number,
@@ -70,5 +72,109 @@ export async function rateBook(
   updateTag(`book:${bookSlug}`);
   updateTag(`book-rating:${bookId}`);
 
+  return { newAverage };
+}
+
+/**
+ * v1's ScoreEnum::Writer/Translator - the same Score-table rating system as
+ * books, just against writer/translator rows instead. v1's WriterController::
+ * getWriter() always recomputes the average live from `score` rather than
+ * trusting the writer's own denormalized `score` column for the detail page
+ * response (only the paginated list view reads the stored column directly) -
+ * matched here: rateWriter/rateTranslator update the denormalized column for
+ * cheap list/sort reads, same as rateBook does for `book.score`.
+ */
+export async function getUserWriterRating(userId: number, writerId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ score: score.score })
+    .from(score)
+    .where(
+      and(eq(score.ownerId, userId), eq(score.targetId, writerId), eq(score.targetType, WRITER_TARGET_TYPE)),
+    )
+    .limit(1);
+  return row?.score ?? null;
+}
+
+export async function rateWriter(
+  userId: number,
+  writerId: number,
+  value: number,
+  writerSlug: string,
+): Promise<{ newAverage: number }> {
+  if (!Number.isInteger(value) || value < 1 || value > 5) {
+    throw new Error("Puan 1 ile 5 arasında bir tam sayı olmalıdır.");
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(score)
+      .values({ ownerId: userId, targetId: writerId, targetType: WRITER_TARGET_TYPE, score: value })
+      .onDuplicateKeyUpdate({ set: { score: value } });
+
+    const [{ avg }] = await tx
+      .select({ avg: sql<number>`avg(${score.score})` })
+      .from(score)
+      .where(and(eq(score.targetId, writerId), eq(score.targetType, WRITER_TARGET_TYPE)));
+
+    await tx.update(writer).set({ score: avg }).where(eq(writer.id, writerId));
+  });
+
+  const [{ avg: newAverage }] = await db
+    .select({ avg: sql<number>`avg(${score.score})` })
+    .from(score)
+    .where(and(eq(score.targetId, writerId), eq(score.targetType, WRITER_TARGET_TYPE)));
+
+  updateTag(`writer:${writerSlug}`);
+  return { newAverage };
+}
+
+export async function getUserTranslatorRating(
+  userId: number,
+  translatorId: number,
+): Promise<number | null> {
+  const [row] = await db
+    .select({ score: score.score })
+    .from(score)
+    .where(
+      and(
+        eq(score.ownerId, userId),
+        eq(score.targetId, translatorId),
+        eq(score.targetType, TRANSLATOR_TARGET_TYPE),
+      ),
+    )
+    .limit(1);
+  return row?.score ?? null;
+}
+
+export async function rateTranslator(
+  userId: number,
+  translatorId: number,
+  value: number,
+  translatorSlug: string,
+): Promise<{ newAverage: number }> {
+  if (!Number.isInteger(value) || value < 1 || value > 5) {
+    throw new Error("Puan 1 ile 5 arasında bir tam sayı olmalıdır.");
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(score)
+      .values({ ownerId: userId, targetId: translatorId, targetType: TRANSLATOR_TARGET_TYPE, score: value })
+      .onDuplicateKeyUpdate({ set: { score: value } });
+
+    const [{ avg }] = await tx
+      .select({ avg: sql<number>`avg(${score.score})` })
+      .from(score)
+      .where(and(eq(score.targetId, translatorId), eq(score.targetType, TRANSLATOR_TARGET_TYPE)));
+
+    await tx.update(translator).set({ score: avg }).where(eq(translator.id, translatorId));
+  });
+
+  const [{ avg: newAverage }] = await db
+    .select({ avg: sql<number>`avg(${score.score})` })
+    .from(score)
+    .where(and(eq(score.targetId, translatorId), eq(score.targetType, TRANSLATOR_TARGET_TYPE)));
+
+  updateTag(`translator:${translatorSlug}`);
   return { newAverage };
 }

@@ -44,3 +44,72 @@ export async function searchBooks(
 
   return attachWriterNames(rows);
 }
+
+export interface SearchResultEntity {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+/**
+ * v1's GeneralController::search() returns five categories (books, writers,
+ * translators, publishers, users), not just books - the header search box
+ * lost the other four in the initial v2 port. Same prefix-only LIKE pattern
+ * as searchBooks, for the same HDD-related reason.
+ */
+export async function searchWriters(term: string, limit = 5): Promise<SearchResultEntity[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`search-writers:${term}`);
+
+  const trimmed = term.trim();
+  if (trimmed.length < 2) return [];
+
+  return (await db.execute(sql`
+    SELECT id, name, slug FROM writer WHERE name LIKE ${trimmed + "%"} LIMIT ${limit}
+  `))[0] as unknown as SearchResultEntity[];
+}
+
+export async function searchTranslators(term: string, limit = 5): Promise<SearchResultEntity[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`search-translators:${term}`);
+
+  const trimmed = term.trim();
+  if (trimmed.length < 2) return [];
+
+  return (await db.execute(sql`
+    SELECT id, name, slug FROM translator WHERE name LIKE ${trimmed + "%"} LIMIT ${limit}
+  `))[0] as unknown as SearchResultEntity[];
+}
+
+export async function searchPublishers(term: string, limit = 5): Promise<SearchResultEntity[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`search-publishers:${term}`);
+
+  const trimmed = term.trim();
+  if (trimmed.length < 2) return [];
+
+  return (await db.execute(sql`
+    SELECT id, name, slug FROM publisher WHERE name LIKE ${trimmed + "%"} LIMIT ${limit}
+  `))[0] as unknown as SearchResultEntity[];
+}
+
+export interface SearchResultUser {
+  id: number;
+  username: string;
+}
+
+export async function searchUsers(term: string, limit = 5): Promise<SearchResultUser[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`search-users:${term}`);
+
+  const trimmed = term.trim();
+  if (trimmed.length < 2) return [];
+
+  return (await db.execute(sql`
+    SELECT id, username FROM user WHERE username LIKE ${trimmed + "%"} LIMIT ${limit}
+  `))[0] as unknown as SearchResultUser[];
+}

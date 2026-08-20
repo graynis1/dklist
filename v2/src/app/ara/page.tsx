@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
-import { searchBooks } from "@/db/queries/search";
+import { searchBooks, searchWriters, searchTranslators, searchPublishers, searchUsers } from "@/db/queries/search";
 
 export default function SearchPage({ searchParams }: PageProps<"/ara">) {
   return (
@@ -14,14 +14,14 @@ export default function SearchPage({ searchParams }: PageProps<"/ara">) {
         <div className="mb-8 flex flex-col gap-2">
           <SectionLabel>Ara</SectionLabel>
           <h1 className="font-heading text-3xl font-medium tracking-tight">
-            Kitap Ara
+            Ara
           </h1>
         </div>
 
         <form action="/ara" className="mb-10">
           <Input
             name="q"
-            placeholder="Kitap adı yazmaya başla…"
+            placeholder="Kitap, yazar, çevirmen, yayınevi veya kullanıcı ara…"
             className="h-12 text-base"
             autoFocus
           />
@@ -68,9 +68,17 @@ async function Results({
     );
   }
 
-  const results = await searchBooks(term);
+  const [books, writers, translators, publishers, users] = await Promise.all([
+    searchBooks(term),
+    searchWriters(term),
+    searchTranslators(term),
+    searchPublishers(term),
+    searchUsers(term),
+  ]);
 
-  if (results.length === 0) {
+  const totalCount = books.length + writers.length + translators.length + publishers.length + users.length;
+
+  if (totalCount === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         &ldquo;{term}&rdquo; için sonuç bulunamadı.
@@ -79,37 +87,107 @@ async function Results({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">
-        {results.length} sonuç
-      </p>
-      {results.map((book) => (
-        <Link
-          key={book.id}
-          href={`/kitap/${book.slug}`}
-          className="flex items-center gap-4 rounded-lg p-2 transition-colors hover:bg-accent"
-        >
-          <BookCover
-            title={book.name}
-            author={book.writers.join(", ")}
-            tone={toneForId(book.id)}
-            size="sm"
-            className="w-16 shrink-0"
-          />
-          <div className="flex flex-col gap-1">
-            <p className="font-medium">{book.name}</p>
-            <p className="text-sm text-muted-foreground">
-              {book.writers.join(", ") || "Yazar bilinmiyor"}
-            </p>
-            <div className="flex items-center gap-1 text-xs">
-              <StarRating value={book.score} />
-              <span className="text-muted-foreground">
-                {book.score.toFixed(1)}
-              </span>
-            </div>
+    <div className="flex flex-col gap-10">
+      {books.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <SectionLabel>Kitaplar</SectionLabel>
+          {books.map((book) => (
+            <Link
+              key={book.id}
+              href={`/kitap/${book.slug}`}
+              className="flex items-center gap-4 rounded-lg p-2 transition-colors hover:bg-accent"
+            >
+              <BookCover
+                title={book.name}
+                author={book.writers.join(", ")}
+                tone={toneForId(book.id)}
+                size="sm"
+                className="w-16 shrink-0"
+              />
+              <div className="flex flex-col gap-1">
+                <p className="font-medium">{book.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {book.writers.join(", ") || "Yazar bilinmiyor"}
+                </p>
+                <div className="flex items-center gap-1 text-xs">
+                  <StarRating value={book.score} />
+                  <span className="text-muted-foreground">
+                    {book.score.toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {writers.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionLabel>Yazarlar</SectionLabel>
+          <div className="flex flex-wrap gap-2">
+            {writers.map((w) => (
+              <Link
+                key={w.id}
+                href={`/yazar/${w.slug}`}
+                className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+              >
+                {w.name}
+              </Link>
+            ))}
           </div>
-        </Link>
-      ))}
+        </div>
+      )}
+
+      {translators.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionLabel>Çevirmenler</SectionLabel>
+          <div className="flex flex-wrap gap-2">
+            {translators.map((t) => (
+              <Link
+                key={t.id}
+                href={`/cevirmen/${t.slug}`}
+                className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+              >
+                {t.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {publishers.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionLabel>Yayınevleri</SectionLabel>
+          <div className="flex flex-wrap gap-2">
+            {publishers.map((p) => (
+              <Link
+                key={p.id}
+                href={`/yayinevi/${p.slug}`}
+                className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+              >
+                {p.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {users.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionLabel>Kullanıcılar</SectionLabel>
+          <div className="flex flex-wrap gap-2">
+            {users.map((u) => (
+              <Link
+                key={u.id}
+                href={`/profil/${u.username}`}
+                className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+              >
+                @{u.username}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

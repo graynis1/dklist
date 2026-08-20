@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { toggleWriterLike } from "@/db/queries/likes";
+import { rateWriter } from "@/db/queries/rating";
 
 export async function toggleWriterLikeAction(
   writerId: number,
@@ -13,4 +14,22 @@ export async function toggleWriterLikeAction(
 
   const result = await toggleWriterLike(Number(session.user.id), writerId);
   return { status: true, liked: result.liked };
+}
+
+export async function rateWriterAction(
+  writerId: number,
+  writerSlug: string,
+  value: number,
+): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+
+  try {
+    await rateWriter(Number(session.user.id), writerId, value, writerSlug);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
 }

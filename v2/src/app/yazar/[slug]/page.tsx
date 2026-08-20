@@ -6,10 +6,12 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EntityLikeButton } from "@/components/dklist/entity-like-button";
+import { RateEntityControl } from "@/components/dklist/rate-entity-control";
 import { getWriterBySlug, getBooksByWriter } from "@/db/queries/writers";
 import { isWriterLiked, getWriterLikeCount } from "@/db/queries/likes";
+import { getUserWriterRating } from "@/db/queries/rating";
 import { auth } from "@/auth";
-import { toggleWriterLikeAction } from "./actions";
+import { toggleWriterLikeAction, rateWriterAction } from "./actions";
 
 export default function WriterPage({ params }: PageProps<"/yazar/[slug]">) {
   return (
@@ -52,10 +54,11 @@ async function WriterContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount] = await Promise.all([
+  const [books, liked, likeCount, userRating] = await Promise.all([
     getBooksByWriter(writer.id),
     userId ? isWriterLiked(userId, writer.id) : Promise.resolve(false),
     getWriterLikeCount(writer.id),
+    userId ? getUserWriterRating(userId, writer.id) : Promise.resolve(null),
   ]);
   const initials = writer.name
     .split(" ")
@@ -92,6 +95,14 @@ async function WriterContent({
             toggleAction={toggleWriterLikeAction}
           />
         </div>
+      </div>
+
+      <div className="mb-10">
+        <RateEntityControl
+          signedIn={Boolean(userId)}
+          initialUserRating={userRating}
+          rateAction={rateWriterAction.bind(null, writer.id, writer.slug)}
+        />
       </div>
 
       {writer.biyo && (
