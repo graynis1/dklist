@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
@@ -65,6 +66,14 @@ export default function SignInPage({ searchParams }: PageProps<"/giris">) {
               <Button type="submit" className="w-full">
                 Giriş Yap
               </Button>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <Link href="/kayit-ol" className="hover:underline">
+                  Üye ol
+                </Link>
+                <Link href="/sifremi-unuttum" className="hover:underline">
+                  Şifremi unuttum
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>

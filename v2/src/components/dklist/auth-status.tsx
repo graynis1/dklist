@@ -29,7 +29,7 @@ async function AuthStatusContent() {
         >
           Giriş Yap
         </Button>
-        <Button>Üye Ol</Button>
+        <Button render={<Link href="/kayit-ol" />}>Üye Ol</Button>
       </>
     );
   }
