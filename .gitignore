@@ -20,6 +20,11 @@
 
 # SQL dumps - too large for git, import directly to the DB host instead
 *.sql
+# ...except v2's small, intentional, version-controlled schema snapshots/
+# migrations (introspection snapshot, hand-written ALTER TABLE files) - these
+# are source, not data dumps. Bit us twice (had to `git add -f`) before adding
+# this exception.
+!v2/**/*.sql
 
 # OS / editor
 .DS_Store
