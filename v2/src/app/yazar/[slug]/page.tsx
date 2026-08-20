@@ -7,11 +7,19 @@ import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EntityLikeButton } from "@/components/dklist/entity-like-button";
 import { RateEntityControl } from "@/components/dklist/rate-entity-control";
+import { EntityComments } from "@/components/dklist/entity-comments";
+import { Separator } from "@/components/ui/separator";
 import { getWriterBySlug, getBooksByWriter } from "@/db/queries/writers";
 import { isWriterLiked, getWriterLikeCount } from "@/db/queries/likes";
 import { getUserWriterRating } from "@/db/queries/rating";
+import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { auth } from "@/auth";
-import { toggleWriterLikeAction, rateWriterAction } from "./actions";
+import {
+  toggleWriterLikeAction,
+  rateWriterAction,
+  addWriterCommentAction,
+  addWriterReplyAction,
+} from "./actions";
 
 export default function WriterPage({ params }: PageProps<"/yazar/[slug]">) {
   return (
@@ -54,12 +62,15 @@ async function WriterContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount, userRating] = await Promise.all([
+  const [books, liked, likeCount, userRating, comments] = await Promise.all([
     getBooksByWriter(writer.id),
     userId ? isWriterLiked(userId, writer.id) : Promise.resolve(false),
     getWriterLikeCount(writer.id),
     userId ? getUserWriterRating(userId, writer.id) : Promise.resolve(null),
+    getEntityComments(writer.id, "writer"),
   ]);
+  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const repliesByCommentObj = Object.fromEntries(repliesByComment);
   const initials = writer.name
     .split(" ")
     .map((part) => part[0])
@@ -147,6 +158,20 @@ async function WriterContent({
           ))}
         </div>
       )}
+
+      <Separator className="my-16" />
+
+      <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+        Yorumlar
+      </h2>
+      <EntityComments
+        signedIn={Boolean(userId)}
+        initialComments={comments}
+        initialRepliesByComment={repliesByCommentObj}
+        addCommentAction={addWriterCommentAction.bind(null, writer.id)}
+        addReplyAction={addWriterReplyAction}
+        placeholder="Bu yazar hakkında ne düşünüyorsunuz?"
+      />
     </section>
   );
 }

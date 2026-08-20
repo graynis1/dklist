@@ -7,11 +7,19 @@ import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EntityLikeButton } from "@/components/dklist/entity-like-button";
 import { RateEntityControl } from "@/components/dklist/rate-entity-control";
+import { EntityComments } from "@/components/dklist/entity-comments";
+import { Separator } from "@/components/ui/separator";
 import { getTranslatorBySlug, getBooksByTranslator } from "@/db/queries/translators";
 import { isTranslatorLiked, getTranslatorLikeCount } from "@/db/queries/likes";
 import { getUserTranslatorRating } from "@/db/queries/rating";
+import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { auth } from "@/auth";
-import { toggleTranslatorLikeAction, rateTranslatorAction } from "./actions";
+import {
+  toggleTranslatorLikeAction,
+  rateTranslatorAction,
+  addTranslatorCommentAction,
+  addTranslatorReplyAction,
+} from "./actions";
 
 export default function TranslatorPage({ params }: PageProps<"/cevirmen/[slug]">) {
   return (
@@ -49,12 +57,15 @@ async function TranslatorContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount, userRating] = await Promise.all([
+  const [books, liked, likeCount, userRating, comments] = await Promise.all([
     getBooksByTranslator(translator.id),
     userId ? isTranslatorLiked(userId, translator.id) : Promise.resolve(false),
     getTranslatorLikeCount(translator.id),
     userId ? getUserTranslatorRating(userId, translator.id) : Promise.resolve(null),
+    getEntityComments(translator.id, "translator"),
   ]);
+  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const repliesByCommentObj = Object.fromEntries(repliesByComment);
   const initials = translator.name
     .split(" ")
     .map((part) => part[0])
@@ -140,6 +151,20 @@ async function TranslatorContent({
           ))}
         </div>
       )}
+
+      <Separator className="my-16" />
+
+      <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+        Yorumlar
+      </h2>
+      <EntityComments
+        signedIn={Boolean(userId)}
+        initialComments={comments}
+        initialRepliesByComment={repliesByCommentObj}
+        addCommentAction={addTranslatorCommentAction.bind(null, translator.id)}
+        addReplyAction={addTranslatorReplyAction}
+        placeholder="Bu çevirmen hakkında ne düşünüyorsunuz?"
+      />
     </section>
   );
 }

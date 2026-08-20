@@ -4,7 +4,9 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { comment, subComment, user } from "@/db/schema";
 
-const BOOK_TYPE = "book";
+// v1's CommentTypeEnum - comments live on book/writer/translator pages, all
+// through the same `comment` table (type + target_id columns).
+export type CommentTargetType = "book" | "writer" | "translator";
 
 // Customer's notes were explicit that "yorum yap" (write a review) and
 // "alıntı yap" (add a quote) should read as clearly separate things, not
@@ -20,13 +22,20 @@ export interface BookComment {
   authorUsername: string;
 }
 
-export async function getBookComments(
-  bookId: number,
+/**
+ * Generic across book/writer/translator - v1's WriterController::getWriter()
+ * nests comments/subComments on the writer page exactly like BookController::
+ * getBook() does on the book page (same Comment/SubComment entities, just a
+ * different `type`), so this isn't book-specific despite the historical name.
+ */
+export async function getEntityComments(
+  targetId: number,
+  targetType: CommentTargetType,
   commentType: CommentType = "yorum",
 ): Promise<BookComment[]> {
   "use cache";
   cacheLife("minutes");
-  cacheTag(`book-comments:${bookId}:${commentType}`);
+  cacheTag(`${targetType}-comments:${targetId}:${commentType}`);
 
   const rows = await db
     .select({
@@ -39,12 +48,12 @@ export async function getBookComments(
     .innerJoin(user, eq(comment.userId, user.id))
     .where(
       and(
-        eq(comment.targetId, bookId),
-        eq(comment.type, BOOK_TYPE),
+        eq(comment.targetId, targetId),
+        eq(comment.type, targetType),
         eq(comment.commentType, commentType),
-        // v1's getBook() filters out comments from disabled/banned users
-        // (checked per-comment in BookController.php) - ported here rather
-        // than left out, per the "don't skip v1 details" directive.
+        // v1's getBook()/getWriter() filter out comments from disabled/banned
+        // users (checked per-comment in the PHP) - ported here rather than
+        // left out, per the "don't skip v1 details" directive.
         eq(user.disable, 0),
       ),
     )
@@ -53,9 +62,10 @@ export async function getBookComments(
   return rows;
 }
 
-export async function addBookComment(
+export async function addEntityComment(
   userId: number,
-  bookId: number,
+  targetId: number,
+  targetType: CommentTargetType,
   text: string,
   commentType: CommentType = "yorum",
 ): Promise<number> {
@@ -71,13 +81,29 @@ export async function addBookComment(
     userId,
     comment: trimmed,
     commentType,
-    type: BOOK_TYPE,
-    targetId: bookId,
+    type: targetType,
+    targetId,
     date: new Date().toISOString().slice(0, 10),
   });
 
-  updateTag(`book-comments:${bookId}:${commentType}`);
+  updateTag(`${targetType}-comments:${targetId}:${commentType}`);
   return result.insertId;
+}
+
+export async function getBookComments(
+  bookId: number,
+  commentType: CommentType = "yorum",
+): Promise<BookComment[]> {
+  return getEntityComments(bookId, "book", commentType);
+}
+
+export async function addBookComment(
+  userId: number,
+  bookId: number,
+  text: string,
+  commentType: CommentType = "yorum",
+): Promise<number> {
+  return addEntityComment(userId, bookId, "book", text, commentType);
 }
 
 export type SubCommentParentType = "comment" | "subComment";

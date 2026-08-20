@@ -9,7 +9,7 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
 import { ReadStatusControl } from "@/components/dklist/read-status-control";
 import { RateBookControl } from "@/components/dklist/rate-book-control";
-import { BookComments } from "@/components/dklist/book-comments";
+import { EntityComments } from "@/components/dklist/entity-comments";
 import { LibraryToggle } from "@/components/dklist/library-toggle";
 import { LikeButton } from "@/components/dklist/like-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -17,9 +17,10 @@ import { getBookBySlug, getBookReaders } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating } from "@/db/queries/rating";
-import { getBookComments } from "@/db/queries/comments";
+import { getBookComments, getRepliesForComments } from "@/db/queries/comments";
 import { isInLibrary } from "@/db/queries/library";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
+import { addCommentAction, addReplyAction } from "./actions";
 
 const READER_STATUS_LABELS: Record<string, string> = {
   okudum: "okudu",
@@ -90,6 +91,9 @@ async function BookDetailContent({
     getBookLikeCount(detail.id),
     getBookReaders(detail.id),
   ]);
+
+  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const repliesByCommentObj = Object.fromEntries(repliesByComment);
 
   return (
     <>
@@ -273,10 +277,13 @@ async function BookDetailContent({
         <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
           Yorumlar
         </h2>
-        <BookComments
-          bookId={detail.id}
+        <EntityComments
           signedIn={Boolean(userId)}
           initialComments={comments}
+          initialRepliesByComment={repliesByCommentObj}
+          addCommentAction={addCommentAction.bind(null, detail.id)}
+          addReplyAction={addReplyAction}
+          placeholder="Bu kitap hakkında ne düşünüyorsunuz?"
         />
       </section>
     </>
