@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
+import { NotificationBell } from "@/components/dklist/notification-bell";
 
 const NAV = [
   { href: "#", label: "Keşfet" },
@@ -41,6 +42,7 @@ export function SiteHeader() {
               className="w-56 bg-secondary/60"
             />
           </form>
+          <NotificationBell />
           <ThemeToggle />
           <AuthStatus />
         </div>

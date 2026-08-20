@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { user, follow, read, book, libraryBook, readPurpose } from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
+import { addNotification } from "@/db/queries/notifications";
 
 export interface EditableProfile {
   name: string;
@@ -156,6 +157,23 @@ export async function toggleFollow(followerId: number, followedId: number): Prom
       .where(and(eq(follow.followerId, followerId), eq(follow.followedId, followedId)));
   } else {
     await db.insert(follow).values({ followerId, followedId });
+
+    // v1's ProfileController::followSwitcher() only notifies on a new
+    // follow, never on unfollow - matched here rather than notifying both
+    // directions.
+    const [follower] = await db
+      .select({ username: user.username })
+      .from(user)
+      .where(eq(user.id, followerId))
+      .limit(1);
+    if (follower) {
+      await addNotification(
+        followedId,
+        followerId,
+        `" ${follower.username} " sizi takip etmeye başladı`,
+        `"${follower.username}" started following you`,
+      );
+    }
   }
 
   updateTag(`follow-counts:${followedId}`);
