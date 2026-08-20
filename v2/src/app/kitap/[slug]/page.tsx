@@ -9,10 +9,12 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
 import { ReadStatusControl } from "@/components/dklist/read-status-control";
 import { RateBookControl } from "@/components/dklist/rate-book-control";
+import { BookComments } from "@/components/dklist/book-comments";
 import { getBookBySlug } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating } from "@/db/queries/rating";
+import { getBookComments } from "@/db/queries/comments";
 
 export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
   return (
@@ -57,10 +59,11 @@ async function BookDetailContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [currentStatus, dropStats, userRating] = await Promise.all([
+  const [currentStatus, dropStats, userRating, comments] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
     userId ? getUserBookRating(userId, detail.id) : Promise.resolve(null),
+    getBookComments(detail.id),
   ]);
 
   return (
@@ -202,9 +205,11 @@ async function BookDetailContent({
         <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
           Yorumlar
         </h2>
-        <p className="text-muted-foreground">
-          Henüz yorum yok — bu kitabı ilk değerlendiren sen ol.
-        </p>
+        <BookComments
+          bookId={detail.id}
+          signedIn={Boolean(userId)}
+          initialComments={comments}
+        />
       </section>
     </>
   );

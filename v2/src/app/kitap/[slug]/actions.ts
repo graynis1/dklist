@@ -8,6 +8,7 @@ import {
   type DropReason,
 } from "@/db/queries/reading-status";
 import { rateBook } from "@/db/queries/rating";
+import { addBookComment } from "@/db/queries/comments";
 
 export interface ActionResult {
   status: boolean;
@@ -61,6 +62,23 @@ export async function rateBookAction(
   try {
     const result = await rateBook(Number(session.user.id), bookId, value, bookSlug);
     return { status: true, newAverage: result.newAverage };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function addCommentAction(
+  bookId: number,
+  text: string,
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+
+  try {
+    await addBookComment(Number(session.user.id), bookId, text);
+    return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
