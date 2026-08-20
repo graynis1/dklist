@@ -34,10 +34,13 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <Input
-            placeholder="Kitap, yazar, yayınevi ara…"
-            className="hidden w-56 bg-secondary/60 lg:block"
-          />
+          <form action="/ara" className="hidden lg:block">
+            <Input
+              name="q"
+              placeholder="Kitap ara…"
+              className="w-56 bg-secondary/60"
+            />
+          </form>
           <ThemeToggle />
           <AuthStatus />
         </div>
