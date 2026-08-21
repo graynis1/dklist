@@ -335,6 +335,54 @@ export async function getSharedReadBooks(
   return rows;
 }
 
+export interface FollowSuggestion {
+  id: number;
+  username: string;
+  sharedBookCount: number;
+}
+
+/**
+ * Customer's ask: "reader-follow suggestions". Same overlap idea as
+ * getSharedReadBooks() but the other direction - instead of showing shared
+ * books with ONE known profile, this finds WHICH other users share the most
+ * "okudum" books with the viewer, excluding people already followed (and
+ * the viewer themselves), ranked by overlap size. Not cached - genuinely
+ * per-viewer, not a shared aggregate.
+ */
+export async function getFollowSuggestions(viewerId: number, limit = 6): Promise<FollowSuggestion[]> {
+  const viewerRead = alias(read, "viewer_read");
+  const otherRead = alias(read, "other_read");
+  const existingFollow = alias(follow, "existing_follow");
+
+  const rows = await db
+    .select({
+      id: user.id,
+      username: user.username,
+      sharedBookCount: sql<number>`count(*)`,
+    })
+    .from(viewerRead)
+    .innerJoin(otherRead, eq(viewerRead.bookId, otherRead.bookId))
+    .innerJoin(user, eq(otherRead.userId, user.id))
+    .leftJoin(
+      existingFollow,
+      and(eq(existingFollow.followerId, viewerId), eq(existingFollow.followedId, otherRead.userId)),
+    )
+    .where(
+      and(
+        eq(viewerRead.userId, viewerId),
+        eq(viewerRead.status, "okudum"),
+        eq(otherRead.status, "okudum"),
+        sql`${otherRead.userId} != ${viewerId}`,
+        sql`${existingFollow.id} IS NULL`,
+      ),
+    )
+    .groupBy(user.id, user.username)
+    .orderBy(sql`count(*) desc`)
+    .limit(limit);
+
+  return rows;
+}
+
 export interface LibraryBookItem {
   id: number;
   name: string;

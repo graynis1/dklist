@@ -7,13 +7,15 @@ import { HeroShelf } from "@/components/dklist/hero-shelf";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { getLatestBooks, getTopCategories, getTopBooks } from "@/db/queries/books";
-import { getTopReaders } from "@/db/queries/profile";
+import { getTopReaders, getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
 import { getRecentBookActivity } from "@/db/queries/activity";
 import { HashtagText } from "@/components/dklist/hashtag-text";
 import { currentISOWeek } from "@/lib/iso-week";
 import { connection } from "next/server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { auth } from "@/auth";
+import { FollowButton } from "@/components/dklist/follow-button";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -314,6 +316,69 @@ async function ActivityFeedShelf() {
   );
 }
 
+function FollowSuggestionsSkeleton() {
+  return (
+    <div className="flex flex-wrap gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-10 w-44 animate-pulse rounded-full bg-muted" />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Customer's ask: "reader-follow suggestions". Ranks other users by how
+ * many "okudum" books they share with the signed-in viewer, excluding
+ * people already followed - the same overlap idea as the profile page's
+ * shared-interest indicator, generalized to "who" instead of "how much with
+ * one specific person". Isolated in its own Suspense boundary since auth()
+ * reads cookies() (per-request), same reasoning as AuthStatus.
+ */
+async function FollowSuggestionsWidget() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Size uygun okuma arkadaşları önerileri için{" "}
+        <Link href="/giris" className="underline hover:text-foreground">
+          giriş yapın
+        </Link>
+        .
+      </p>
+    );
+  }
+
+  const suggestions = await getFollowSuggestions(Number(session.user.id));
+
+  if (suggestions.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Henüz öneri yok - birkaç kitabı &quot;okudum&quot; olarak işaretleyince burada benzer okuyucular görünecek.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {suggestions.map((s) => (
+        <div
+          key={s.id}
+          className="flex items-center gap-2 rounded-full border border-border py-1 pr-2 pl-1 text-sm"
+        >
+          <Link href={`/profil/${s.username}`} className="flex items-center gap-2 hover:underline">
+            <Avatar className="size-7 text-xs">
+              <AvatarFallback>{s.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            @{s.username}
+          </Link>
+          <span className="text-xs text-muted-foreground">{s.sharedBookCount} ortak kitap</span>
+          <FollowButton targetUserId={s.id} initialFollowing={false} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function LatestBooksSkeleton() {
   return (
     <div className="flex gap-5 overflow-hidden">
@@ -519,6 +584,23 @@ export default function Home() {
 
         <Suspense fallback={<ActivityFeedSkeleton />}>
           <ActivityFeedShelf />
+        </Suspense>
+      </section>
+
+      <Separator />
+
+      {/* Reader-follow suggestions - customer's ask, ranked by shared
+          "okudum" books with people not yet followed. */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex flex-col gap-2">
+          <SectionLabel>Keşfet</SectionLabel>
+          <h2 className="font-heading text-3xl font-medium tracking-tight">
+            Takip Edebileceğin Kişiler
+          </h2>
+        </div>
+
+        <Suspense fallback={<FollowSuggestionsSkeleton />}>
+          <FollowSuggestionsWidget />
         </Suspense>
       </section>
     </div>
