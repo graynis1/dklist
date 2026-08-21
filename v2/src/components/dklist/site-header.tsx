@@ -4,6 +4,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
 import { NotificationBell } from "@/components/dklist/notification-bell";
 import { MessageBell } from "@/components/dklist/message-bell";
+import { AdminNavLink } from "@/components/dklist/admin-nav-link";
 
 const NAV = [
   { href: "/ara", label: "Keşfet" },
@@ -37,6 +38,7 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          <AdminNavLink />
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
