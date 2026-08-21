@@ -8,6 +8,7 @@ import { avatarUrl } from "@/db/queries/avatar";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { ReportUserButton } from "@/components/dklist/report-user-button";
 import { ReadingGoalControl } from "@/components/dklist/reading-goal-control";
+import { ReadingScoreCard } from "@/components/dklist/reading-score-card";
 import { VerifiedToggleButton } from "@/components/dklist/verified-toggle-button";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
@@ -19,6 +20,7 @@ import {
   getLibraryBooks,
   getCurrentReadingGoal,
   getPastReadingGoals,
+  getReadingScoreStats,
   getUserBadges,
   getSharedReadBooks,
 } from "@/db/queries/profile";
@@ -87,6 +89,7 @@ async function ProfileContent({
     ownerBlogs,
     veteranTier,
     sharedReadBooks,
+    readingScoreStats,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -101,6 +104,7 @@ async function ProfileContent({
     getBlogsByOwner(profile.id, isOwnProfile),
     isRecentlyActive(profile.id),
     viewerId && !isOwnProfile ? getSharedReadBooks(viewerId, profile.id) : Promise.resolve([]),
+    isOwnProfile ? getReadingScoreStats(profile.id, String(new Date().getFullYear())) : Promise.resolve(null),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -218,6 +222,11 @@ async function ProfileContent({
               .map((g) => `${g.year}: ${g.readCount}/${g.targetCount}`)
               .join(", ")}
           </p>
+        )}
+        {isOwnProfile && readingScoreStats && readingScoreStats.booksRead > 0 && (
+          <div className="mt-2">
+            <ReadingScoreCard username={profile.username} stats={readingScoreStats} />
+          </div>
         )}
       </div>
 

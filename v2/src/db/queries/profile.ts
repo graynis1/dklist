@@ -1,10 +1,23 @@
 import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
-import { user, follow, read, book, libraryBook, readPurpose, badges, userBadges } from "@/db/schema";
+import {
+  user,
+  follow,
+  read,
+  book,
+  libraryBook,
+  readPurpose,
+  badges,
+  userBadges,
+  bookCategory,
+  category,
+  writerBook,
+  writer,
+} from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
 import { addNotification } from "@/db/queries/notifications";
 import { awardPoints, POINT_VALUES } from "@/db/queries/points";
@@ -492,6 +505,68 @@ export async function getPastReadingGoals(userId: number): Promise<PastReadingGo
     targetCount: p.targetCount,
     readCount: countByYear.get(p.year) ?? 0,
   }));
+}
+
+export interface ReadingScoreStats {
+  year: string;
+  booksRead: number;
+  totalPages: number;
+  topCategory: string | null;
+  topWriter: string | null;
+}
+
+/**
+ * "DKList Reading Score" (Spotify-Wrapped-for-books) - the customer's single
+ * most explicitly prioritized ask ("I'd invest the most here"). v1 already
+ * has a partial version (a Canvas-drawn share card for the yearly reading
+ * goal, see project_dklist_blog_revision_and_deferred_features memory) -
+ * this expands the underlying stats it draws from, not a from-scratch
+ * feature. Deliberately does NOT include "hours read" or "countries of
+ * authors read" or a day-level "reading streak" from the customer's fuller
+ * wishlist - `read` has no per-day timestamp (only a `year` column) and
+ * `writer` has no country column at all, so those three specific stats
+ * aren't honestly computable from the current schema without new columns;
+ * left out rather than faked, same as this session's other documented
+ * scope calls.
+ */
+export async function getReadingScoreStats(userId: number, year: string): Promise<ReadingScoreStats> {
+  const readRows = await db
+    .select({ bookId: read.bookId })
+    .from(read)
+    .where(and(eq(read.userId, userId), eq(read.status, "okudum"), eq(read.year, year)));
+
+  const bookIds = readRows.map((r) => r.bookId);
+  if (bookIds.length === 0) {
+    return { year, booksRead: 0, totalPages: 0, topCategory: null, topWriter: null };
+  }
+
+  const [pagesResult, topCategoryResult, topWriterResult] = await Promise.all([
+    db.select({ total: sql<number>`coalesce(sum(${book.pageNumber}), 0)` }).from(book).where(inArray(book.id, bookIds)),
+    db
+      .select({ name: category.category, n: sql<number>`count(*)` })
+      .from(bookCategory)
+      .innerJoin(category, eq(bookCategory.categoryId, category.id))
+      .where(inArray(bookCategory.bookId, bookIds))
+      .groupBy(category.id, category.category)
+      .orderBy(sql`count(*) desc`)
+      .limit(1),
+    db
+      .select({ name: writer.name, n: sql<number>`count(*)` })
+      .from(writerBook)
+      .innerJoin(writer, eq(writerBook.writerId, writer.id))
+      .where(inArray(writerBook.bookId, bookIds))
+      .groupBy(writer.id, writer.name)
+      .orderBy(sql`count(*) desc`)
+      .limit(1),
+  ]);
+
+  return {
+    year,
+    booksRead: bookIds.length,
+    totalPages: Number(pagesResult[0]?.total ?? 0),
+    topCategory: topCategoryResult[0]?.name ?? null,
+    topWriter: topWriterResult[0]?.name ?? null,
+  };
 }
 
 export interface TopReader {
