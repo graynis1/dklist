@@ -5,6 +5,35 @@ import { Button } from "@/components/ui/button";
 import type { BookComment, CommentReply, SubCommentParentType } from "@/db/queries/comments";
 import type { CommentLikeState } from "@/db/queries/comment-likes";
 import { toggleCommentLikeAction } from "@/actions/comment-likes";
+import { reportCommentAction } from "@/actions/notices";
+
+/** v1's CommentComponent `notice()` - a silent fire-and-forget report that
+ * just hides itself after sending, no confirmation modal (comment reports
+ * carry no reason, unlike the profile report-user flow). */
+function ReportCommentButton({ commentId, parentType }: { commentId: number; parentType: SubCommentParentType }) {
+  const [sent, setSent] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  if (sent) {
+    return <span className="text-xs text-muted-foreground">Bildirildi</span>;
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={isPending}
+      onClick={() =>
+        startTransition(async () => {
+          await reportCommentAction(commentId, parentType);
+          setSent(true);
+        })
+      }
+      className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
+    >
+      Şikayet Et
+    </button>
+  );
+}
 
 function CommentLikeButton({
   commentId,
@@ -99,15 +128,18 @@ function ReplyItem({
         <span className="font-medium">@{reply.authorUsername}</span>
       </div>
       <p className="text-sm leading-relaxed">{reply.text}</p>
-      {canReply && (
-        <button
-          type="button"
-          onClick={() => setShowForm((s) => !s)}
-          className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
-        >
-          Yanıtla
-        </button>
-      )}
+      <div className="flex items-center gap-3">
+        {canReply && (
+          <button
+            type="button"
+            onClick={() => setShowForm((s) => !s)}
+            className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+          >
+            Yanıtla
+          </button>
+        )}
+        <ReportCommentButton commentId={reply.id} parentType="subComment" />
+      </div>
       {showForm && (
         <ReplyForm
           onCancel={() => setShowForm(false)}
@@ -282,6 +314,7 @@ export function EntityComments({
                       Yanıtla
                     </button>
                   )}
+                  <ReportCommentButton commentId={c.id} parentType="comment" />
                 </div>
                 {replyFormFor === c.id && (
                   <ReplyForm

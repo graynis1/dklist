@@ -10,6 +10,7 @@ import {
   type ReadingGoal,
 } from "@/db/queries/profile";
 import { uploadAvatar } from "@/db/queries/avatar";
+import { reportUser } from "@/db/queries/notices";
 
 export async function toggleFollowAction(
   targetUserId: number,
@@ -43,6 +44,17 @@ export async function setReadingGoalAction(
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
+}
+
+export async function reportUserAction(
+  reportedUserId: number,
+  reason: string,
+): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  return reportUser(Number(session.user.id), reportedUserId, reason);
 }
 
 export async function updateProfileAction(formData: FormData) {

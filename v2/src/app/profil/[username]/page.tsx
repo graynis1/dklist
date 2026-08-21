@@ -6,6 +6,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { avatarUrl } from "@/db/queries/avatar";
 import { FollowButton } from "@/components/dklist/follow-button";
+import { ReportUserButton } from "@/components/dklist/report-user-button";
 import { ReadingGoalControl } from "@/components/dklist/reading-goal-control";
 import { auth } from "@/auth";
 import {
@@ -134,6 +135,7 @@ async function ProfileContent({
               Mesaj Yaz
             </Link>
             <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} />
+            <ReportUserButton targetUserId={profile.id} />
           </div>
         )}
         {isOwnProfile && (
