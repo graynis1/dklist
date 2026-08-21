@@ -1,0 +1,118 @@
+import { Suspense } from "react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { SiteHeader } from "@/components/dklist/site-header";
+import { SectionLabel } from "@/components/dklist/star-rating";
+import { StoreFavoriteButton } from "@/components/dklist/store-favorite-button";
+import { StoreOwnerActions } from "@/components/dklist/store-owner-actions";
+import { auth } from "@/auth";
+import {
+  getStoreBySlug,
+  isStoreFavorited,
+  getStoreFavoriteCount,
+  storeImageUrl,
+} from "@/db/queries/store";
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Mevcut",
+  completed: "Verildi",
+  cancelled: "İptal Edildi",
+};
+
+export default function StoreDetailPage({ params }: PageProps<"/askida-kitap/[slug]">) {
+  return (
+    <div className="flex-1 bg-background">
+      <SiteHeader />
+      <div className="mx-auto max-w-4xl px-6 py-16">
+        <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-muted" />}>
+          <StoreDetailContent params={params} />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
+async function StoreDetailContent({
+  params,
+}: {
+  params: PageProps<"/askida-kitap/[slug]">["params"];
+}) {
+  const { slug } = await params;
+  const item = await getStoreBySlug(slug);
+
+  if (!item) {
+    notFound();
+  }
+
+  const session = await auth();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  const isOwner = userId === item.ownerId;
+
+  const [favorited, favoriteCount] = await Promise.all([
+    userId ? isStoreFavorited(userId, item.id) : Promise.resolve(false),
+    getStoreFavoriteCount(item.id),
+  ]);
+
+  return (
+    <div className="grid grid-cols-1 gap-10 lg:grid-cols-[320px_1fr]">
+      <div className="flex flex-col gap-2">
+        {item.pictures.length === 0 ? (
+          <div className="aspect-[3/4] rounded-lg bg-muted" />
+        ) : (
+          item.pictures.map((pic) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={pic}
+              src={storeImageUrl(pic)!}
+              alt={item.title}
+              className="w-full rounded-lg object-cover"
+            />
+          ))
+        )}
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <SectionLabel>{STATUS_LABELS[item.status] ?? item.status}</SectionLabel>
+        <h1 className="font-heading text-3xl font-medium tracking-tight text-balance">
+          {item.title}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          <Link href={`/profil/${item.ownerUsername}`} className="hover:underline">
+            @{item.ownerUsername}
+          </Link>
+          {item.location ? ` · ${item.location}` : ""}
+        </p>
+
+        <p className="text-lg font-medium">
+          {item.listingType === "paid" && item.price ? `${item.price} TL` : "Ücretsiz"}
+        </p>
+
+        {item.book && (
+          <Link
+            href={`/kitap/${item.book.slug}`}
+            className="w-fit rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+          >
+            📖 {item.book.name}
+          </Link>
+        )}
+
+        <p className="leading-relaxed whitespace-pre-line text-foreground">{item.content}</p>
+
+        {item.shipment && (
+          <p className="text-sm text-muted-foreground">Kargo: {item.shipment}</p>
+        )}
+
+        {!isOwner && (
+          <StoreFavoriteButton
+            storeId={item.id}
+            signedIn={Boolean(userId)}
+            initialFavorited={favorited}
+            initialCount={favoriteCount}
+          />
+        )}
+
+        {isOwner && <StoreOwnerActions storeId={item.id} status={item.status} />}
+      </div>
+    </div>
+  );
+}
