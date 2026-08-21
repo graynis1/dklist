@@ -7,6 +7,7 @@ import type { CommentLikeState } from "@/db/queries/comment-likes";
 import { toggleCommentLikeAction } from "@/actions/comment-likes";
 import { reportCommentAction } from "@/actions/notices";
 import { ShareButton } from "@/components/dklist/share-button";
+import { HashtagText } from "@/components/dklist/hashtag-text";
 
 /** v1's CommentComponent `notice()` - a silent fire-and-forget report that
  * just hides itself after sending, no confirmation modal (comment reports
@@ -128,7 +129,7 @@ function ReplyItem({
       <div className="flex items-center gap-2 text-sm">
         <span className="font-medium">@{reply.authorUsername}</span>
       </div>
-      <p className="text-sm leading-relaxed">{reply.text}</p>
+      <p className="text-sm leading-relaxed"><HashtagText text={reply.text} /></p>
       <div className="flex items-center gap-3">
         {canReply && (
           <button
@@ -299,7 +300,7 @@ export function EntityComments({
                   <span className="font-medium">@{c.authorUsername}</span>
                   <span className="text-muted-foreground">{c.date}</span>
                 </div>
-                <p className="text-sm leading-relaxed">{c.text}</p>
+                <p className="text-sm leading-relaxed"><HashtagText text={c.text} /></p>
                 <div className="flex items-center gap-3">
                   <CommentLikeButton
                     commentId={c.id}

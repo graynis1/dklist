@@ -9,6 +9,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { getBlogBySlug } from "@/db/queries/blog";
 import { DeleteBlogButton } from "@/components/dklist/delete-blog-button";
 import { ShareButton } from "@/components/dklist/share-button";
+import { HashtagText } from "@/components/dklist/hashtag-text";
 
 const ELEVATED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
@@ -91,7 +92,7 @@ async function BlogDetailContent({
 
       {post.content && (
         <div className="mt-4 leading-relaxed whitespace-pre-line text-foreground">
-          {post.content}
+          <HashtagText text={post.content} />
         </div>
       )}
 

@@ -1,9 +1,11 @@
 import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { comment, subComment, user } from "@/db/schema";
 import { awardPoints, POINT_VALUES } from "@/db/queries/points";
+import { addNotification } from "@/db/queries/notifications";
+import { extractHashtagTags } from "@/lib/hashtag";
 
 // v1's CommentTypeEnum - comments live on book/writer/translator pages, all
 // through the same `comment` table (type + target_id columns).
@@ -63,6 +65,34 @@ export async function getEntityComments(
   return rows;
 }
 
+/**
+ * Customer's hashtag spec: writing "#username" in a comment/reply notifies
+ * that real user they were "tagged as a reader" - Facebook-style mention,
+ * layered on the plain color-coding `HashtagText` already renders. Only
+ * tags matching a real, non-self username fire anything.
+ */
+async function notifyHashtaggedReaders(text: string, taggerUserId: number): Promise<void> {
+  const tags = extractHashtagTags(text);
+  if (tags.length === 0) return;
+
+  const [tagger] = await db.select({ username: user.username }).from(user).where(eq(user.id, taggerUserId)).limit(1);
+  if (!tagger) return;
+
+  const matches = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(and(inArray(user.username, tags), ne(user.id, taggerUserId)));
+
+  for (const match of matches) {
+    await addNotification(
+      match.id,
+      taggerUserId,
+      `" ${tagger.username} " sizi bir okur olarak etiketledi.`,
+      `"${tagger.username}" tagged you as a reader.`,
+    );
+  }
+}
+
 export async function addEntityComment(
   userId: number,
   targetId: number,
@@ -89,6 +119,7 @@ export async function addEntityComment(
 
   updateTag(`${targetType}-comments:${targetId}:${commentType}`);
   await awardPoints(userId, POINT_VALUES.comment, "comment", `comment:${result.insertId}`);
+  await notifyHashtaggedReaders(trimmed, userId);
   return result.insertId;
 }
 
@@ -213,5 +244,6 @@ export async function addSubComment(
     parentType,
     parentId,
   });
+  await notifyHashtaggedReaders(trimmed, userId);
   return result.insertId;
 }
