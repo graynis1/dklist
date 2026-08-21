@@ -7,6 +7,8 @@ import { HeroShelf } from "@/components/dklist/hero-shelf";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { getLatestBooks, getTopCategories, getTopBooks } from "@/db/queries/books";
+import { getTopReaders } from "@/db/queries/profile";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -153,6 +155,47 @@ async function FeaturedSection() {
         </div>
       )}
     </>
+  );
+}
+
+function TopReadersSkeleton() {
+  return (
+    <div className="flex flex-wrap gap-3">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="h-9 w-24 animate-pulse rounded-full bg-muted" />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * v1's UserController::getTopUsers() - top readers by total `read` row
+ * count. No dedicated page in v1 for this either, just a widget - homepage
+ * is the natural spot, same as Kategoriler/Yeni Eklenenler.
+ */
+async function TopReadersShelf() {
+  const readers = await getTopReaders(12);
+
+  if (readers.length === 0) {
+    return <p className="text-sm text-muted-foreground">Henüz okuma kaydı yok.</p>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {readers.map((r) => (
+        <Link
+          key={r.id}
+          href={`/profil/${r.username}`}
+          className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm transition-colors hover:bg-accent"
+        >
+          <Avatar className="size-7 text-xs">
+            <AvatarFallback>{r.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          @{r.username}
+          <span className="text-xs text-muted-foreground">{r.readCount} kitap</span>
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -310,6 +353,22 @@ export default function Home() {
 
         <Suspense fallback={<LatestBooksSkeleton />}>
           <LatestBooksShelf />
+        </Suspense>
+      </section>
+
+      <Separator />
+
+      {/* Top readers */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex flex-col gap-2">
+          <SectionLabel>Topluluk</SectionLabel>
+          <h2 className="font-heading text-3xl font-medium tracking-tight">
+            En Aktif Okurlar
+          </h2>
+        </div>
+
+        <Suspense fallback={<TopReadersSkeleton />}>
+          <TopReadersShelf />
         </Suspense>
       </section>
 

@@ -390,3 +390,30 @@ export async function getPastReadingGoals(userId: number): Promise<PastReadingGo
     readCount: countByYear.get(p.year) ?? 0,
   }));
 }
+
+export interface TopReader {
+  id: number;
+  username: string;
+  readCount: number;
+}
+
+/**
+ * v1's UserController::getTopUsers() - top 20 by total `read` row count
+ * (any status, not just "okudum" - matches v1's unfiltered left-joined
+ * count exactly).
+ */
+export async function getTopReaders(limit = 20): Promise<TopReader[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("top-readers");
+
+  const rows = await db
+    .select({ id: user.id, username: user.username, readCount: sql<number>`count(${read.id})` })
+    .from(user)
+    .leftJoin(read, eq(read.userId, user.id))
+    .groupBy(user.id)
+    .orderBy(sql`count(${read.id}) desc`)
+    .limit(limit);
+
+  return rows.filter((r) => r.readCount > 0);
+}
