@@ -12,6 +12,7 @@ export interface BookDetail {
   score: number;
   viewCount: number;
   pageNumber: number;
+  workId: number | null;
   publisher: { id: number; name: string; slug: string } | null;
   writers: { id: number; name: string; slug: string }[];
   categories: { id: number; name: string; slug: string }[];
@@ -32,6 +33,7 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
       score: book.score,
       viewCount: book.viewCount,
       pageNumber: book.pageNumber,
+      workId: book.workId,
       publisherId: publisher.id,
       publisherName: publisher.name,
       publisherSlug: publisher.slug,
@@ -69,6 +71,7 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
     score: row.score,
     viewCount: Number(row.viewCount),
     pageNumber: row.pageNumber,
+    workId: row.workId,
     publisher: row.publisherId
       ? { id: row.publisherId, name: row.publisherName!, slug: row.publisherSlug! }
       : null,
@@ -76,6 +79,35 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
     categories: categoryRows,
     translators: translatorRows,
   };
+}
+
+export interface WorkPooledScore {
+  avgScore: number;
+  editionCount: number;
+}
+
+/**
+ * Customer's rating/edition-model spec: show BOTH "bu baskı puanı" (this
+ * edition's own score) and "ortak kitap puanı" (pooled across all editions/
+ * translations of the same work) side by side. Only meaningful once
+ * `work_id` is actually populated across editions - the real Phase 5
+ * fuzzy-matching backfill hasn't run against prod yet (needs the isbn index
+ * decision), so this returns null for any book still on its own island,
+ * which is every book on the real site today. Built now so the UI is ready
+ * the moment that backfill lands, rather than a follow-up feature later.
+ */
+export async function getWorkPooledScore(workId: number): Promise<WorkPooledScore | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`work-score:${workId}`);
+
+  const [row] = await db
+    .select({ avgScore: sql<number>`avg(${book.score})`, editionCount: sql<number>`count(*)` })
+    .from(book)
+    .where(eq(book.workId, workId));
+
+  if (!row || Number(row.editionCount) <= 1) return null;
+  return { avgScore: Number(row.avgScore), editionCount: Number(row.editionCount) };
 }
 
 export interface BookReader {

@@ -15,7 +15,7 @@ import { LikeButton } from "@/components/dklist/like-button";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { ShareButton } from "@/components/dklist/share-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank } from "@/db/queries/book-detail";
+import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating } from "@/db/queries/rating";
@@ -86,6 +86,7 @@ async function BookDetailContent({
     readers,
     readerCount,
     categoryRank,
+    workPooledScore,
   ] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
@@ -99,6 +100,7 @@ async function BookDetailContent({
     detail.categories.length > 0
       ? getBookCategoryRank(detail.id, detail.categories[0].id, detail.categories[0].name, detail.score)
       : Promise.resolve(null),
+    detail.workId ? getWorkPooledScore(detail.workId) : Promise.resolve(null),
   ]);
 
   const quotes = await getBookComments(detail.id, "alinti");
@@ -186,7 +188,15 @@ async function BookDetailContent({
 
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <StarRating value={detail.score} />
-              <span className="font-medium">{detail.score.toFixed(2)}/10</span>
+              <span className="font-medium">
+                {workPooledScore ? "Bu baskı " : ""}
+                {detail.score.toFixed(2)}/10
+              </span>
+              {workPooledScore && (
+                <span className="text-muted-foreground">
+                  · Ortak kitap puanı {workPooledScore.avgScore.toFixed(2)}/10 ({workPooledScore.editionCount} baskı)
+                </span>
+              )}
               <span className="text-muted-foreground">
                 · {detail.viewCount.toLocaleString("tr-TR")} görüntülenme
               </span>
