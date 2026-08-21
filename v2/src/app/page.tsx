@@ -9,6 +9,8 @@ import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { getLatestBooks, getTopCategories, getTopBooks } from "@/db/queries/books";
 import { getTopReaders } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
+import { getRecentBookActivity } from "@/db/queries/activity";
+import { HashtagText } from "@/components/dklist/hashtag-text";
 import { currentISOWeek } from "@/lib/iso-week";
 import { connection } from "next/server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -246,6 +248,72 @@ async function WeeklyLeaderWidget() {
   );
 }
 
+function ActivityFeedSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex gap-4">
+          <div className="h-24 w-16 shrink-0 animate-pulse rounded-[0.35rem] bg-muted" />
+          <div className="flex flex-1 flex-col gap-2 py-1">
+            <div className="h-4 w-1/3 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Customer's homepage spec: any comment/review/quote referencing a book
+ * should pull that book's cover thumbnail into the feed for visual variety,
+ * 1000kitap-style. Site's real "cover" is the typeset BookCover jacket
+ * (design system deliberately has no photographic covers), so that's what
+ * surfaces here rather than a `/kapak/[id]` photo.
+ */
+async function ActivityFeedShelf() {
+  const items = await getRecentBookActivity(8);
+
+  if (items.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">Henüz bir etkinlik yok.</p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {items.map((item) => (
+        <Link
+          key={item.id}
+          href={`/kitap/${item.bookSlug}`}
+          className="flex gap-4 rounded-lg p-2 -m-2 transition-colors hover:bg-accent"
+        >
+          <BookCover
+            title={item.bookName}
+            author={item.writers.join(", ") || "Yazar bilinmiyor"}
+            tone={toneForId(item.bookId)}
+            size="sm"
+            className="w-16 shrink-0"
+          />
+          <div className="flex flex-1 flex-col gap-1 py-1">
+            <p className="text-sm">
+              <span className="font-medium">@{item.username}</span>{" "}
+              <span className="text-muted-foreground">
+                {item.kind === "alinti" ? "bir alıntı paylaştı" : "bir yorum yazdı"} ·{" "}
+              </span>
+              <span className="font-medium">{item.bookName}</span>
+            </p>
+            <p className="text-sm text-muted-foreground italic">
+              <HashtagText text={item.excerpt} />
+            </p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function LatestBooksSkeleton() {
   return (
     <div className="flex gap-5 overflow-hidden">
@@ -434,6 +502,23 @@ export default function Home() {
 
         <Suspense fallback={<WeeklyLeaderSkeleton />}>
           <WeeklyLeaderWidget />
+        </Suspense>
+      </section>
+
+      <Separator />
+
+      {/* Recent activity feed - comments/quotes referencing a book pull that
+          book's cover thumbnail in, 1000kitap-style. */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex flex-col gap-2">
+          <SectionLabel>Akış</SectionLabel>
+          <h2 className="font-heading text-3xl font-medium tracking-tight">
+            Son Etkinlikler
+          </h2>
+        </div>
+
+        <Suspense fallback={<ActivityFeedSkeleton />}>
+          <ActivityFeedShelf />
         </Suspense>
       </section>
     </div>

@@ -118,6 +118,7 @@ export async function addEntityComment(
   });
 
   updateTag(`${targetType}-comments:${targetId}:${commentType}`);
+  if (targetType === "book") updateTag("recent-book-activity");
   await awardPoints(userId, POINT_VALUES.comment, "comment", `comment:${result.insertId}`);
   await notifyHashtaggedReaders(trimmed, userId);
   return result.insertId;
