@@ -9,6 +9,7 @@ import {
   deleteMessage,
   deleteChat,
   getMessages,
+  acceptMessageRequest,
   type MessageItem,
   type MessageType,
 } from "@/db/queries/messages";
@@ -91,6 +92,22 @@ export async function deleteChatAction(otherUsername: string): Promise<{ status:
       .limit(1);
     if (!target) return { status: false, message: "Kullanıcı bulunamadı." };
     await deleteChat(userId, target.id);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function acceptRequestAction(otherUsername: string): Promise<{ status: boolean; message?: string }> {
+  try {
+    const userId = await requireUserId();
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.username, otherUsername))
+      .limit(1);
+    if (!target) return { status: false, message: "Kullanıcı bulunamadı." };
+    await acceptMessageRequest(userId, target.id);
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };

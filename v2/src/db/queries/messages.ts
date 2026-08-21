@@ -1,8 +1,17 @@
 import "server-only";
 import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { chat, message, user, book, store, storePicture } from "@/db/schema";
+import { chat, message, user, book, store, storePicture, follow } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
+
+async function userFollows(followerId: number, followedId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ id: follow.id })
+    .from(follow)
+    .where(and(eq(follow.followerId, followerId), eq(follow.followedId, followedId)))
+    .limit(1);
+  return Boolean(row);
+}
 
 /**
  * Phase 3 chat/messaging - ported from MessageController.php/MessageService.php.
@@ -29,6 +38,7 @@ export async function getConversations(userId: number): Promise<ConversationItem
       id: chat.id,
       firstUserId: chat.firstUserId,
       secondUserId: chat.secondUserId,
+      isRequest: chat.isRequest,
       lastMessagePreview: chat.lastMessagePreview,
       lastMessageAt: chat.lastMessageAt,
       hiddenForFirstUser: chat.hiddenForFirstUser,
@@ -51,6 +61,10 @@ export async function getConversations(userId: number): Promise<ConversationItem
   for (const row of rows) {
     const isFirst = row.firstUserId === userId;
     if (isFirst ? row.hiddenForFirstUser : row.hiddenForSecondUser) continue;
+    // A pending message-request only sits outside the main inbox from the
+    // RECIPIENT's side - the sender always sees their own sent message here
+    // like any other conversation.
+    if (!isFirst && row.isRequest) continue;
 
     const [{ n: unreadCount }] = await db
       .select({ n: sql<number>`count(*)` })
@@ -69,6 +83,69 @@ export async function getConversations(userId: number): Promise<ConversationItem
   return conversations;
 }
 
+/**
+ * "Diğer mesajlar" (message requests) - customer's ask: a first message
+ * from someone you don't follow lands in a separate folder, Instagram-DM
+ * style. Only ever populated from the RECIPIENT's side of a pending chat.
+ */
+export async function getMessageRequests(userId: number): Promise<ConversationItem[]> {
+  const rows = await db
+    .select({
+      id: chat.id,
+      firstUserId: chat.firstUserId,
+      lastMessagePreview: chat.lastMessagePreview,
+      lastMessageAt: chat.lastMessageAt,
+      otherUsername: user.username,
+    })
+    .from(chat)
+    .innerJoin(user, eq(user.id, chat.firstUserId))
+    .where(and(eq(chat.secondUserId, userId), eq(chat.isRequest, 1), eq(chat.hiddenForSecondUser, 0)))
+    .orderBy(desc(chat.lastMessageAt), desc(chat.id));
+
+  const requests: ConversationItem[] = [];
+  for (const row of rows) {
+    const [{ n: unreadCount }] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(message)
+      .where(and(eq(message.chatId, row.id), eq(message.view2, 0)));
+
+    requests.push({
+      otherUserId: row.firstUserId,
+      otherUsername: row.otherUsername,
+      lastMessagePreview: row.lastMessagePreview,
+      lastMessageAt: row.lastMessageAt,
+      unreadCount,
+    });
+  }
+  return requests;
+}
+
+export async function getUnreadRequestCount(userId: number): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(message)
+    .innerJoin(chat, eq(message.chatId, chat.id))
+    .where(
+      and(
+        eq(chat.secondUserId, userId),
+        eq(chat.isRequest, 1),
+        eq(message.view2, 0),
+        eq(chat.hiddenForSecondUser, 0),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
+/** Explicitly accept a message request without necessarily replying yet -
+ * moves it into the main inbox. Replying also accepts it (see sendMessage). */
+export async function acceptMessageRequest(userId: number, otherUserId: number): Promise<void> {
+  const chatRow = await findChatBetween(userId, otherUserId);
+  if (!chatRow || chatRow.secondUserId !== userId) {
+    throw new Error("Mesaj isteği bulunamadı.");
+  }
+  await db.update(chat).set({ isRequest: 0 }).where(eq(chat.id, chatRow.id));
+}
+
 /** Matches v1's getUnviewedMessageCount() exactly: two single-COUNT queries
  * (as-first-user unread + as-second-user unread), excluding chats the user
  * has hidden on their own side - otherwise a deleted conversation's unread
@@ -80,11 +157,21 @@ export async function getUnreadMessageCount(userId: number): Promise<number> {
       .from(message)
       .innerJoin(chat, eq(message.chatId, chat.id))
       .where(and(eq(chat.firstUserId, userId), eq(message.view, 0), eq(chat.hiddenForFirstUser, 0))),
+    // Pending message requests deliberately don't count toward the main
+    // unread badge - matches the whole point of splitting them out, a
+    // stranger's message shouldn't read as urgent as a real conversation.
     db
       .select({ n: sql<number>`count(*)` })
       .from(message)
       .innerJoin(chat, eq(message.chatId, chat.id))
-      .where(and(eq(chat.secondUserId, userId), eq(message.view2, 0), eq(chat.hiddenForSecondUser, 0))),
+      .where(
+        and(
+          eq(chat.secondUserId, userId),
+          eq(message.view2, 0),
+          eq(chat.hiddenForSecondUser, 0),
+          eq(chat.isRequest, 0),
+        ),
+      ),
   ]);
   return asFirst[0].n + asSecond[0].n;
 }
@@ -290,9 +377,14 @@ export async function sendMessage(
 
   if (!chatRow) {
     isFirst = true;
+    // A first message from someone the recipient doesn't follow starts as a
+    // pending "request" (customer's "Diğer mesajlar" ask) - it only ever
+    // affects the RECIPIENT's inbox, the sender always sees it normally.
+    const receiverFollowsSender = await userFollows(receiverId, senderId);
     const [result] = await db.insert(chat).values({
       firstUserId: senderId,
       secondUserId: receiverId,
+      isRequest: receiverFollowsSender ? 0 : 1,
       hiddenForFirstUser: 0,
       hiddenForSecondUser: 0,
     });
@@ -300,6 +392,12 @@ export async function sendMessage(
     chatRow = inserted;
   } else {
     isFirst = chatRow.firstUserId === senderId;
+    // The recipient replying is treated as accepting the request, matching
+    // Instagram's own behavior - moves the whole thread into the main inbox.
+    if (!isFirst && chatRow.isRequest) {
+      await db.update(chat).set({ isRequest: 0 }).where(eq(chat.id, chatRow.id));
+      chatRow.isRequest = 0;
+    }
   }
 
   const now = new Date().toISOString().slice(0, 19).replace("T", " ");

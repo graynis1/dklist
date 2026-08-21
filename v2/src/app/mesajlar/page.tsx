@@ -6,8 +6,9 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageThread } from "@/components/dklist/message-thread";
 import { ConversationItem } from "@/components/dklist/conversation-item";
+import { MessageRequestItem } from "@/components/dklist/message-request-item";
 import { auth } from "@/auth";
-import { getConversations, getMessages } from "@/db/queries/messages";
+import { getConversations, getMessages, getMessageRequests } from "@/db/queries/messages";
 import { getProfileByUsername } from "@/db/queries/profile";
 import { avatarUrl } from "@/db/queries/avatar";
 
@@ -40,7 +41,10 @@ async function MessagesContent({
   const currentUserId = Number(session.user.id);
 
   const { user: selectedUsername } = await searchParams;
-  const conversations = await getConversations(currentUserId);
+  const [conversations, messageRequests] = await Promise.all([
+    getConversations(currentUserId),
+    getMessageRequests(currentUserId),
+  ]);
 
   const activeUsername =
     typeof selectedUsername === "string" ? selectedUsername : conversations[0]?.otherUsername;
@@ -70,6 +74,16 @@ async function MessagesContent({
               isActive={c.otherUsername === activeUsername}
             />
           ))
+        )}
+        {messageRequests.length > 0 && (
+          <div className="flex flex-col">
+            <p className="p-3 pb-1 text-xs font-medium text-muted-foreground">
+              Diğer Mesajlar ({messageRequests.length})
+            </p>
+            {messageRequests.map((r) => (
+              <MessageRequestItem key={r.otherUserId} request={r} />
+            ))}
+          </div>
         )}
       </div>
 

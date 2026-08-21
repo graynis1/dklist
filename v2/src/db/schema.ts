@@ -132,6 +132,9 @@ export const chat = mysqlTable("chat", {
 	id: int().autoincrement().notNull(),
 	firstUserId: int("first_user_id").notNull().references(() => user.id),
 	secondUserId: int("second_user_id").notNull().references(() => user.id),
+	// "Diğer mesajlar" (message requests) - set when the recipient doesn't
+	// follow the sender at chat-creation time, cleared once they reply.
+	isRequest: tinyint("is_request").notNull().default(0),
 	lastMessageAt: datetime("last_message_at", { mode: 'string'}),
 	lastMessagePreview: varchar("last_message_preview", { length: 140 }),
 	hiddenForFirstUser: tinyint("hidden_for_first_user").notNull(),
