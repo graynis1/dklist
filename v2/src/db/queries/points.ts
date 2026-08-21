@@ -25,6 +25,12 @@ export const POINT_VALUES = {
   libraryAdd: 1,
   blogPublished: 8,
   storeListing: 3,
+  // Customer's explicit ask ("sitede geçirdikleri vakit... mesaj almaları")
+  // for broader engagement sources - see resolveSystemSenderId-adjacent
+  // call sites for exactly where each fires and why it's spam-resistant.
+  dailyVisit: 2,
+  messageReceived: 2,
+  socialShare: 3,
 } as const;
 
 /**
@@ -128,6 +134,27 @@ export async function awardPoints(
   await checkMilestoneBadges(userId);
 }
 
+/** Once per calendar day per user - the honest version of "rewarding time
+ * on site" without needing real session/dwell-time tracking infra (which
+ * would mean a client-side beacon pinging every N seconds, a much heavier
+ * build for a fuzzier signal). A genuine visit while signed in is a fine,
+ * simple proxy; the reasonKey's date makes this naturally idempotent, no
+ * separate "already awarded today" check needed. */
+export async function awardDailyVisitPoints(userId: number): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  await awardPoints(userId, POINT_VALUES.dailyVisit, "daily_visit", `daily_visit:${userId}:${today}`);
+}
+
+/** Once per (user, entityKey, day) - not per click, so mashing the same
+ * share button repeatedly doesn't farm points. `entityKey` is caller-
+ * supplied (e.g. "book:123", "blog:45") and just needs to be stable per
+ * shared entity, matches the reasonKey pattern every other action here
+ * already uses. */
+export async function awardSharePoints(userId: number, entityKey: string): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  await awardPoints(userId, POINT_VALUES.socialShare, "social_share", `social_share:${userId}:${entityKey}:${today}`);
+}
+
 export async function getUserTotalPoints(userId: number): Promise<number> {
   const [row] = await db
     .select({ total: sql<number>`coalesce(sum(${pointTransaction.points}), 0)` })
@@ -196,6 +223,41 @@ export async function getWeeklyLeaderboard(
     .limit(limit);
 
   return rows.map((r) => ({ ...r, points: Number(r.points) }));
+}
+
+export interface UserWeeklyRank {
+  points: number;
+  rank: number;
+  totalRanked: number;
+}
+
+/** Where a specific user stands this week, even if they're outside
+ * whatever top-N slice the leaderboard page happens to be showing - lets
+ * "Bu hafta #47'sin" be shown to someone who isn't in the top 10/20, which
+ * the plain getWeeklyLeaderboard() list alone can't answer. */
+export async function getUserWeeklyRank(userId: number, yearWeek: string = currentISOWeek()): Promise<UserWeeklyRank | null> {
+  const { start, end } = getISOWeekRange(yearWeek);
+  const startStr = start.toISOString().slice(0, 19).replace("T", " ");
+  const endStr = end.toISOString().slice(0, 19).replace("T", " ");
+
+  const rows = await db.execute(sql`
+    SELECT user_id, points, ranked, total
+    FROM (
+      SELECT
+        pt.user_id AS user_id,
+        SUM(pt.points) AS points,
+        RANK() OVER (ORDER BY SUM(pt.points) DESC) AS ranked,
+        COUNT(*) OVER () AS total
+      FROM point_transaction pt
+      WHERE pt.created_at >= ${startStr} AND pt.created_at < ${endStr}
+      GROUP BY pt.user_id
+    ) ranked_totals
+    WHERE user_id = ${userId}
+  `);
+  const result = rows[0] as unknown as { user_id: number; points: number; ranked: number; total: number }[];
+  const row = result[0];
+  if (!row) return null;
+  return { points: Number(row.points), rank: Number(row.ranked), totalRanked: Number(row.total) };
 }
 
 export interface WeeklyWinnerRecord {

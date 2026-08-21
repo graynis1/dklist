@@ -3,6 +3,7 @@ import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { chat, message, user, book, store, storePicture, follow } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
+import { awardPoints, POINT_VALUES } from "@/db/queries/points";
 
 async function userFollows(followerId: number, followedId: number): Promise<boolean> {
   const [row] = await db
@@ -374,6 +375,7 @@ export async function sendMessage(
 
   let chatRow = await findChatBetween(senderId, receiverId);
   let isFirst: boolean;
+  const chatJustCreated = !chatRow;
 
   if (!chatRow) {
     isFirst = true;
@@ -436,6 +438,14 @@ export async function sendMessage(
       `Sana bir mesaj gönderdi: "${notifyText}"`,
       `Sent you a message: "${notifyText}"`,
     );
+  }
+
+  // Customer's ask: reward receiving messages too - scoped to genuinely
+  // NEW conversations (not every message) so a rapid back-and-forth chat
+  // doesn't farm points, matches the reasonKey-per-chat idempotency shape
+  // used everywhere else in the points system.
+  if (chatJustCreated) {
+    await awardPoints(receiverId, POINT_VALUES.messageReceived, "message_received", `message_received:${chatRow.id}`);
   }
 
   return { id: msgResult.insertId, text: trimmed, senderId, createdAt: now, type: effectiveType, attachment };

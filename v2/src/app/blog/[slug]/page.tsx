@@ -69,7 +69,7 @@ async function BlogDetailContent({
         {post.ownerUsername ? " · " : ""}
         {post.createdDate}
         <span className="ml-2 inline-block align-middle">
-          <ShareButton content={post.title} />
+          <ShareButton content={post.title} pointsKey={`blog:${post.id}`} />
         </span>
       </p>
 

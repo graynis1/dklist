@@ -238,7 +238,7 @@ async function BookDetailContent({
                 initialCount={likeCount}
               />
               {userId && <ShareAttachmentButton attachmentType="book" referencedId={detail.id} />}
-              <ShareButton content={detail.name} />
+              <ShareButton content={detail.name} pointsKey={`book:${detail.id}`} />
             </div>
 
             {detail.publisher && (

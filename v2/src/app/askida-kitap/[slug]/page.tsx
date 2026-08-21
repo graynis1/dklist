@@ -98,7 +98,7 @@ async function StoreDetailContent({
           </Link>
           {item.location ? ` · ${item.location}` : ""}
           <span className="ml-2 inline-block align-middle">
-            <ShareButton content={item.title} />
+            <ShareButton content={item.title} pointsKey={`store:${item.id}`} />
           </span>
         </p>
 

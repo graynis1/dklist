@@ -1,14 +1,21 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import Link from "next/link";
+import { auth } from "@/auth";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { avatarUrl } from "@/db/queries/avatar";
-import { getWeeklyLeaderboard, getPastWeeklyWinners, POINT_VALUES } from "@/db/queries/points";
+import { ShareButton } from "@/components/dklist/share-button";
+import {
+  getWeeklyLeaderboard,
+  getPastWeeklyWinners,
+  getUserWeeklyRank,
+  POINT_VALUES,
+} from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
 
-export default function LeaderboardPage() {
+export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablosu">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
@@ -26,6 +33,9 @@ export default function LeaderboardPage() {
           <span>Yorum yaz: +{POINT_VALUES.comment}</span>
           <span>Puan ver: +{POINT_VALUES.rating}</span>
           <span>Beğen: +{POINT_VALUES.like}</span>
+          <span>Paylaşım: +{POINT_VALUES.socialShare}</span>
+          <span>Mesaj al: +{POINT_VALUES.messageReceived}</span>
+          <span>Günlük ziyaret: +{POINT_VALUES.dailyVisit}</span>
         </div>
 
         {/* currentISOWeek() reads the real clock (new Date()), a genuinely
@@ -33,7 +43,7 @@ export default function LeaderboardPage() {
             every other dynamic-data section in this app, rather than
             blocking the whole page from being part of the static shell. */}
         <Suspense fallback={<LeaderboardSkeleton />}>
-          <LeaderboardContent />
+          <LeaderboardContent searchParams={searchParams} />
         </Suspense>
       </div>
     </div>
@@ -50,20 +60,62 @@ function LeaderboardSkeleton() {
   );
 }
 
-async function LeaderboardContent() {
+async function LeaderboardContent({
+  searchParams,
+}: {
+  searchParams: PageProps<"/puan-tablosu">["searchParams"];
+}) {
   // currentISOWeek() reads the real clock (new Date()) - Cache Components
   // needs an explicit dynamic-data marker before that's allowed during
   // prerendering, per Next's own suggested fix for this exact error.
   await connection();
   const week = currentISOWeek();
-  const [leaderboard, pastWinners] = await Promise.all([
-    getWeeklyLeaderboard(20, week),
+  const { limit: limitParam } = await searchParams;
+  const limit = limitParam === "10" ? 10 : 20;
+
+  const session = await auth();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+
+  const [leaderboard, pastWinners, myRank] = await Promise.all([
+    getWeeklyLeaderboard(limit, week),
     getPastWeeklyWinners(10),
+    userId ? getUserWeeklyRank(userId, week) : Promise.resolve(null),
   ]);
+
+  const iAmInVisibleList = userId !== null && leaderboard.some((e) => e.userId === userId);
 
   return (
     <>
-      <p className="mb-4 text-sm text-muted-foreground">Bu haftanın ({week}) en aktif okurları:</p>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Bu haftanın ({week}) en aktif okurları:</p>
+        <div className="flex gap-2 text-xs">
+          <Link
+            href="/puan-tablosu?limit=10"
+            className={`rounded-full px-2.5 py-1 ${limit === 10 ? "bg-primary text-primary-foreground" : "border border-border hover:bg-accent"}`}
+          >
+            Top 10
+          </Link>
+          <Link
+            href="/puan-tablosu?limit=20"
+            className={`rounded-full px-2.5 py-1 ${limit === 20 ? "bg-primary text-primary-foreground" : "border border-border hover:bg-accent"}`}
+          >
+            Top 20
+          </Link>
+        </div>
+      </div>
+
+      {myRank && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+          <span className="font-heading text-lg font-medium">#{myRank.rank}</span>
+          <p className="flex-1 text-sm">
+            Bu hafta <span className="font-medium">{myRank.points} puan</span> ile {myRank.totalRanked} kişi arasında {myRank.rank}. sıradasın.
+          </p>
+          <ShareButton
+            content={`DKList'te bu hafta ${myRank.rank}. sıradayım! (${myRank.points} puan) 📚`}
+            pointsKey={`weekly-rank:${week}`}
+          />
+        </div>
+      )}
 
       {leaderboard.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -74,7 +126,7 @@ async function LeaderboardContent() {
           {leaderboard.map((entry, i) => (
             <li
               key={entry.userId}
-              className="flex items-center gap-3 rounded-lg border border-border p-3"
+              className={`flex items-center gap-3 rounded-lg border p-3 ${entry.userId === userId ? "border-primary/50 bg-primary/5" : "border-border"}`}
             >
               <span className="w-6 text-center font-heading text-lg font-medium text-muted-foreground">
                 {i + 1}
@@ -90,6 +142,12 @@ async function LeaderboardContent() {
             </li>
           ))}
         </ol>
+      )}
+
+      {!iAmInVisibleList && myRank && (
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Listede görünmüyor musun? #{myRank.rank}. sıradasın, yukarıdaki kart senin.
+        </p>
       )}
 
       {pastWinners.length > 0 && (

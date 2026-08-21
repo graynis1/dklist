@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { awardSharePointsAction } from "@/actions/points";
 
 /**
  * v1's ShareComponent.js - a generic external social-share popover (Facebook/
@@ -14,15 +15,24 @@ import { useState } from "react";
  * SSR/window guard). `content` is the share text (Twitter's tweet text,
  * mobile-share-sheet title) - callers pass something meaningful (a book
  * title, a comment excerpt), matching what v1's callers each passed.
+ *
+ * `pointsKey`, when passed, awards the customer's requested "paylaşımlar da
+ * puan kazandırsın" points once per user/entity/day (fire-and-forget - a
+ * failed/blocked points call should never interrupt the actual share).
  */
-export function ShareButton({ content, url }: { content: string; url?: string }) {
+export function ShareButton({ content, url, pointsKey }: { content: string; url?: string; pointsKey?: string }) {
   const [open, setOpen] = useState(false);
 
   function resolveUrl() {
     return url ?? (typeof window !== "undefined" ? window.location.href : "");
   }
 
+  function trackShare() {
+    if (pointsKey) awardSharePointsAction(pointsKey).catch(() => {});
+  }
+
   function shareFacebook() {
+    trackShare();
     const shareUrl = resolveUrl();
     const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (isMobile && typeof navigator !== "undefined" && navigator.share) {
@@ -33,6 +43,7 @@ export function ShareButton({ content, url }: { content: string; url?: string })
   }
 
   function shareTwitter() {
+    trackShare();
     const shareUrl = resolveUrl();
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(content)}&url=${encodeURIComponent(shareUrl)}`,
@@ -41,10 +52,12 @@ export function ShareButton({ content, url }: { content: string; url?: string })
   }
 
   function shareLinkedin() {
+    trackShare();
     window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(resolveUrl())}`, "_blank");
   }
 
   function shareWhatsapp() {
+    trackShare();
     // Just the link, not link+text - WhatsApp already builds its own preview
     // card from the page's Open Graph tags, so adding the text again would
     // show the same content twice (once as a plain message, once under the

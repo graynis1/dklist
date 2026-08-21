@@ -211,14 +211,16 @@ function WeeklyLeaderSkeleton() {
   return <div className="h-16 w-full max-w-sm animate-pulse rounded-lg bg-muted" />;
 }
 
+const MEDALS = ["🥇", "🥈", "🥉"];
+
 async function WeeklyLeaderWidget() {
   // currentISOWeek() reads the real clock - needs an explicit dynamic-data
   // marker before that's allowed during prerendering (Cache Components).
   await connection();
   const week = currentISOWeek();
-  const [leader] = await getWeeklyLeaderboard(1, week);
+  const topThree = await getWeeklyLeaderboard(3, week);
 
-  if (!leader) {
+  if (topThree.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         Bu hafta henüz kimse puan kazanmadı -{" "}
@@ -231,22 +233,23 @@ async function WeeklyLeaderWidget() {
   }
 
   return (
-    <div className="flex max-w-sm items-center gap-4 rounded-lg border border-border p-4">
-      <Avatar className="size-12 text-lg">
-        <AvatarFallback>{leader.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col">
-        <Link href={`/profil/${leader.username}`} className="font-medium hover:underline">
-          @{leader.username}
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {topThree.map((entry, i) => (
+        <Link
+          key={entry.userId}
+          href={`/profil/${entry.username}`}
+          className="flex items-center gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
+        >
+          <span className="text-2xl">{MEDALS[i]}</span>
+          <Avatar className="size-10 text-sm">
+            <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col truncate">
+            <span className="truncate font-medium">@{entry.username}</span>
+            <span className="text-sm text-muted-foreground">{entry.points} puan</span>
+          </div>
         </Link>
-        <span className="text-sm text-muted-foreground">{leader.points} puan · bu hafta lider</span>
-      </div>
-      <Link
-        href="/puan-tablosu"
-        className="ml-auto text-sm text-muted-foreground underline hover:text-foreground"
-      >
-        Tabloyu Gör
-      </Link>
+      ))}
     </div>
   );
 }
@@ -625,15 +628,22 @@ export default function Home() {
 
       <Separator />
 
-      {/* Weekly points leader - real engagement bait for the gamification/
-          points system: every visitor sees who's currently winning the
-          week's free-book prize. */}
+      {/* Weekly points leaderboard - real engagement bait for the
+          gamification/points system: every visitor sees who's currently
+          winning the week's free-book prize. Customer's ask for a
+          dedicated "bu haftanın top 10/top 20" area - top 3 here, full
+          top 10/20 (with toggle) at /puan-tablosu. */}
       <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
-        <div className="mb-8 flex flex-col gap-2">
-          <SectionLabel>Etkileşim</SectionLabel>
-          <h2 className="font-heading text-3xl font-medium tracking-tight">
-            Bu Haftanın Lideri
-          </h2>
+        <div className="mb-8 flex items-center justify-between gap-2">
+          <div className="flex flex-col gap-2">
+            <SectionLabel>Etkileşim</SectionLabel>
+            <h2 className="font-heading text-3xl font-medium tracking-tight">
+              Bu Haftanın Liderleri
+            </h2>
+          </div>
+          <Link href="/puan-tablosu" className="text-sm text-muted-foreground underline hover:text-foreground">
+            Tüm Tabloyu Gör
+          </Link>
         </div>
 
         <Suspense fallback={<WeeklyLeaderSkeleton />}>
