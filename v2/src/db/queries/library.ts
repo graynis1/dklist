@@ -3,6 +3,7 @@ import { updateTag } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { libraryBook } from "@/db/schema";
+import { awardPoints, POINT_VALUES } from "@/db/queries/points";
 
 /**
  * "Kitaplığım" (ownership) - deliberately separate from reading status
@@ -32,6 +33,7 @@ export async function toggleLibrary(
       .where(and(eq(libraryBook.ownerId, ownerId), eq(libraryBook.bookId, bookId)));
   } else {
     await db.insert(libraryBook).values({ ownerId, bookId });
+    await awardPoints(ownerId, POINT_VALUES.libraryAdd, "library_add", `library:${bookId}`);
   }
   // isInLibrary itself is deliberately not cached (cheap indexed lookup read
   // right after this write), but the profile page's getLibraryBooks() IS

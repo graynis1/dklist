@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { user, follow, read, book, libraryBook, readPurpose, badges, userBadges } from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
 import { addNotification } from "@/db/queries/notifications";
+import { awardPoints, POINT_VALUES } from "@/db/queries/points";
 
 export interface EditableProfile {
   name: string;
@@ -240,6 +241,7 @@ export async function toggleFollow(followerId: number, followedId: number): Prom
         `"${follower.username}" started following you`,
       );
     }
+    await awardPoints(followerId, POINT_VALUES.follow, "follow", `follow:${followedId}`);
   }
 
   updateTag(`follow-counts:${followedId}`);

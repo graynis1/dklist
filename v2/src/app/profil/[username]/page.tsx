@@ -20,6 +20,7 @@ import {
   getUserBadges,
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
+import { getUserTotalPoints } from "@/db/queries/points";
 import { READ_STATUSES } from "@/lib/reading-status";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
@@ -77,6 +78,7 @@ async function ProfileContent({
     likedWriters,
     likedTranslators,
     userBadges,
+    totalPoints,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -87,6 +89,7 @@ async function ProfileContent({
     getLikedWriters(profile.id),
     getLikedTranslators(profile.id),
     getUserBadges(profile.id),
+    getUserTotalPoints(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -110,6 +113,9 @@ async function ProfileContent({
             <Link href={`/profil/${profile.username}/takip-edilenler`} className="hover:underline">
               <strong className="text-foreground">{counts.following}</strong>{" "}
               takip
+            </Link>
+            <Link href="/puan-tablosu" className="hover:underline">
+              <strong className="text-foreground">{totalPoints}</strong> puan
             </Link>
           </div>
           {userBadges.length > 0 && (

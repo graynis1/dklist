@@ -8,6 +8,9 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { getLatestBooks, getTopCategories, getTopBooks } from "@/db/queries/books";
 import { getTopReaders } from "@/db/queries/profile";
+import { getWeeklyLeaderboard } from "@/db/queries/points";
+import { currentISOWeek } from "@/lib/iso-week";
+import { connection } from "next/server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const STATS = [
@@ -199,6 +202,50 @@ async function TopReadersShelf() {
   );
 }
 
+function WeeklyLeaderSkeleton() {
+  return <div className="h-16 w-full max-w-sm animate-pulse rounded-lg bg-muted" />;
+}
+
+async function WeeklyLeaderWidget() {
+  // currentISOWeek() reads the real clock - needs an explicit dynamic-data
+  // marker before that's allowed during prerendering (Cache Components).
+  await connection();
+  const week = currentISOWeek();
+  const [leader] = await getWeeklyLeaderboard(1, week);
+
+  if (!leader) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Bu hafta henüz kimse puan kazanmadı -{" "}
+        <Link href="/puan-tablosu" className="underline hover:text-foreground">
+          ilk sen ol
+        </Link>
+        .
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex max-w-sm items-center gap-4 rounded-lg border border-border p-4">
+      <Avatar className="size-12 text-lg">
+        <AvatarFallback>{leader.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col">
+        <Link href={`/profil/${leader.username}`} className="font-medium hover:underline">
+          @{leader.username}
+        </Link>
+        <span className="text-sm text-muted-foreground">{leader.points} puan · bu hafta lider</span>
+      </div>
+      <Link
+        href="/puan-tablosu"
+        className="ml-auto text-sm text-muted-foreground underline hover:text-foreground"
+      >
+        Tabloyu Gör
+      </Link>
+    </div>
+  );
+}
+
 function LatestBooksSkeleton() {
   return (
     <div className="flex gap-5 overflow-hidden">
@@ -369,6 +416,24 @@ export default function Home() {
 
         <Suspense fallback={<TopReadersSkeleton />}>
           <TopReadersShelf />
+        </Suspense>
+      </section>
+
+      <Separator />
+
+      {/* Weekly points leader - real engagement bait for the gamification/
+          points system: every visitor sees who's currently winning the
+          week's free-book prize. */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex flex-col gap-2">
+          <SectionLabel>Etkileşim</SectionLabel>
+          <h2 className="font-heading text-3xl font-medium tracking-tight">
+            Bu Haftanın Lideri
+          </h2>
+        </div>
+
+        <Suspense fallback={<WeeklyLeaderSkeleton />}>
+          <WeeklyLeaderWidget />
         </Suspense>
       </section>
     </div>

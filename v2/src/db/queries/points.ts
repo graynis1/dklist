@@ -3,6 +3,7 @@ import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { pointTransaction, weeklyWinner, user, book } from "@/db/schema";
 import { currentISOWeek, getISOWeekRange } from "@/lib/iso-week";
+import { addNotification } from "@/db/queries/notifications";
 
 /**
  * Gamification/engagement points - a customer-requested new feature (v1 has
@@ -20,6 +21,10 @@ export const POINT_VALUES = {
   comment: 5,
   rating: 2,
   like: 1,
+  follow: 1,
+  libraryAdd: 1,
+  blogPublished: 8,
+  storeListing: 3,
 } as const;
 
 export async function awardPoints(
@@ -172,6 +177,26 @@ export async function recordWeeklyWinner(
     fulfilled: 0,
     createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
   });
+
+  // Congratulate the winner - modeled as a message "from the DKList team"
+  // (any real Admin account), since dknotifiaction.sender_user_id is a real
+  // FK with no NULL/system-sender concept in this schema (matches v1's own
+  // NotifyManager design, which always requires both parties).
+  const [admin] = await db.select({ id: user.id }).from(user).where(eq(user.userType, "Admin")).limit(1);
+  if (admin) {
+    let bookName: string | null = null;
+    if (prizeBookId) {
+      const [row] = await db.select({ name: book.name }).from(book).where(eq(book.id, prizeBookId)).limit(1);
+      bookName = row?.name ?? null;
+    }
+    const prizeText = bookName ? ` Hediyen: "${bookName}".` : "";
+    await addNotification(
+      userId,
+      admin.id,
+      `Tebrikler! ${yearWeek} haftasının en aktif okuru sensin (${points} puan).${prizeText}`,
+      `Congratulations! You're the top reader for week ${yearWeek} (${points} points).${prizeText}`,
+    );
+  }
 
   return { status: true };
 }
