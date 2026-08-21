@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { HeroShelf } from "@/components/dklist/hero-shelf";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
-import { getLatestBooks, getTopCategories, getTopBooks } from "@/db/queries/books";
+import { getLatestBooks, getTopCategories, getTopBooks, getRecommendedBooks } from "@/db/queries/books";
 import { getTopReaders, getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
 import { getRecentBookActivity } from "@/db/queries/activity";
@@ -379,6 +379,70 @@ async function FollowSuggestionsWidget() {
   );
 }
 
+function RecommendedBooksSkeleton() {
+  return (
+    <div className="flex gap-5 overflow-hidden">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="w-32 shrink-0">
+          <div className="aspect-[2/3] animate-pulse rounded-[0.35rem] bg-muted" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Customer's ask: "Book recommendations section (Netflix-style, based on
+ * past preference/history)". Plain collaborative filtering via
+ * getRecommendedBooks() (no AI/paid API - readers who share your "okudum"
+ * books, then whichever of THEIR books you haven't read yet). Signed-in
+ * only, own Suspense boundary same as the other auth()-reading widgets.
+ */
+async function RecommendedBooksShelf() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Size özel öneriler için{" "}
+        <Link href="/giris" className="underline hover:text-foreground">
+          giriş yapın
+        </Link>
+        .
+      </p>
+    );
+  }
+
+  const books = await getRecommendedBooks(Number(session.user.id), 8);
+
+  if (books.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Henüz öneri yok - birkaç kitabı &quot;okudum&quot; olarak işaretleyince size özel öneriler burada görünecek.
+      </p>
+    );
+  }
+
+  return (
+    <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {books.map((b) => (
+        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-32 shrink-0 flex-col gap-2">
+          <BookCover
+            title={b.name}
+            author={b.writers.join(", ") || "Yazar bilinmiyor"}
+            tone={toneForId(b.id)}
+            size="sm"
+            className="w-full"
+          />
+          <p className="truncate text-xs font-medium">{b.name}</p>
+          <p className="text-xs text-muted-foreground">
+            {b.readerOverlap} benzer okuyucu okudu
+          </p>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 function LatestBooksSkeleton() {
   return (
     <div className="flex gap-5 overflow-hidden">
@@ -601,6 +665,23 @@ export default function Home() {
 
         <Suspense fallback={<FollowSuggestionsSkeleton />}>
           <FollowSuggestionsWidget />
+        </Suspense>
+      </section>
+
+      <Separator />
+
+      {/* Personalized recommendations - collaborative filtering via shared
+          "okudum" overlap, no AI/paid API needed. */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex flex-col gap-2">
+          <SectionLabel>Senin İçin</SectionLabel>
+          <h2 className="font-heading text-3xl font-medium tracking-tight">
+            Sana Özel Öneriler
+          </h2>
+        </div>
+
+        <Suspense fallback={<RecommendedBooksSkeleton />}>
+          <RecommendedBooksShelf />
         </Suspense>
       </section>
     </div>

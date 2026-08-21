@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { sql, eq, inArray, desc, asc, and, or, like } from "drizzle-orm";
+import { sql, eq, inArray, desc, asc, and, or, like, isNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/db";
 import { category as categoryTable, writer, writerBook, book, read } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
@@ -127,6 +128,61 @@ export async function getLatestBooks(limit = 12): Promise<CategoryBookListItem[]
     .limit(limit);
 
   return attachWriterNames(rows);
+}
+
+export interface RecommendedBook extends CategoryBookListItem {
+  readerOverlap: number;
+}
+
+/**
+ * Customer's ask: "Book recommendations section (Netflix-style, based on
+ * past preference/history), not just static category browsing." Built as
+ * plain collaborative filtering (no AI/paid API needed, matching the
+ * standing no-paid-services constraint): find "neighbor" readers who share
+ * at least one "okudum" book with the viewer, then recommend whichever of
+ * THEIR "okudum" books the viewer hasn't read yet, ranked by how many
+ * neighbors read it. Same underlying overlap technique as
+ * getFollowSuggestions() (profile.ts), applied to books instead of people.
+ * Not cached - genuinely per-viewer.
+ */
+export async function getRecommendedBooks(viewerId: number, limit = 8): Promise<RecommendedBook[]> {
+  const viewerRead = alias(read, "viewer_read");
+  const neighborRead = alias(read, "neighbor_read");
+  const candidateRead = alias(read, "candidate_read");
+  const viewerHasCandidate = alias(read, "viewer_has_candidate");
+
+  const rows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      viewCount: book.viewCount,
+      readerOverlap: sql<number>`count(distinct ${neighborRead.userId})`,
+    })
+    .from(viewerRead)
+    .innerJoin(
+      neighborRead,
+      and(
+        eq(viewerRead.bookId, neighborRead.bookId),
+        eq(viewerRead.status, "okudum"),
+        eq(neighborRead.status, "okudum"),
+        sql`${neighborRead.userId} != ${viewerId}`,
+      ),
+    )
+    .innerJoin(candidateRead, and(eq(candidateRead.userId, neighborRead.userId), eq(candidateRead.status, "okudum")))
+    .innerJoin(book, eq(candidateRead.bookId, book.id))
+    .leftJoin(
+      viewerHasCandidate,
+      and(eq(viewerHasCandidate.userId, viewerId), eq(viewerHasCandidate.bookId, candidateRead.bookId)),
+    )
+    .where(and(eq(viewerRead.userId, viewerId), isNull(viewerHasCandidate.id)))
+    .groupBy(book.id, book.name, book.slug, book.score, book.viewCount)
+    .orderBy(sql`count(distinct ${neighborRead.userId}) desc`, desc(book.score))
+    .limit(limit);
+
+  const withWriters = await attachWriterNames(rows);
+  return withWriters as RecommendedBook[];
 }
 
 export interface TopBookItem extends CategoryBookListItem {
