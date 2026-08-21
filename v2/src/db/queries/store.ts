@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { store, storeFavorite, storePicture, user, book } from "@/db/schema";
 import { saveUploadedImage } from "@/lib/image-upload";
@@ -38,7 +38,66 @@ export interface StoreListItem {
   ownerUsername: string;
 }
 
-export async function getStoreList(limit = 40): Promise<StoreListItem[]> {
+export type StoreSortBy = "id" | "price" | "viewCount";
+export type StoreListingTypeFilter = "free" | "paid" | null;
+
+const SORT_COLUMN_MAP = {
+  id: store.id,
+  price: store.price,
+  viewCount: store.viewCount,
+} as const;
+
+export interface StoreListOptions {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  listingType?: StoreListingTypeFilter;
+  sortBy?: StoreSortBy;
+  orderBy?: "asc" | "desc";
+  /** Restricts to one seller - v1's "satıcının diğer ilanları" widget on the
+   * store detail page (`?ownerId=X&excludeId=currentStoreId`). */
+  ownerId?: number;
+  excludeId?: number;
+}
+
+/**
+ * v1's getAllStore() - real search (prefix match on title, matching v1's
+ * `LIKE 'search%'` exactly, not a substring match), listingType filter,
+ * sortBy/orderBy (v1's own comment notes these used to be silently ignored
+ * and always returned id DESC - now genuinely applied), pagination, and the
+ * ownerId/excludeId pair used to render "this seller's other listings".
+ */
+export async function getStoreList(
+  options: StoreListOptions = {},
+): Promise<{ items: StoreListItem[]; total: number; page: number; lastPage: number }> {
+  const {
+    page = 1,
+    pageSize = 40,
+    search = "",
+    listingType = null,
+    sortBy = "id",
+    orderBy = "desc",
+    ownerId,
+    excludeId,
+  } = options;
+  const safeSize = Math.min(100, Math.max(1, pageSize));
+  const trimmedSearch = search.trim();
+
+  const conditions = [eq(store.isActive, 1)];
+  if (trimmedSearch) conditions.push(like(store.title, `${trimmedSearch}%`));
+  if (listingType === "free" || listingType === "paid") conditions.push(eq(store.listingType, listingType));
+  if (ownerId) conditions.push(eq(store.ownerId, ownerId));
+  if (excludeId) conditions.push(sql`${store.id} != ${excludeId}`);
+  const whereClause = and(...conditions);
+
+  const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(store).where(whereClause);
+  const total = Number(countRow?.count ?? 0);
+  const lastPage = Math.max(1, Math.ceil(total / safeSize));
+  const effectivePage = Math.min(Math.max(1, page), lastPage);
+
+  const sortColumn = SORT_COLUMN_MAP[sortBy] ?? store.id;
+  const direction = orderBy === "asc" ? asc : desc;
+
   const rows = await db
     .select({
       id: store.id,
@@ -52,9 +111,12 @@ export async function getStoreList(limit = 40): Promise<StoreListItem[]> {
     })
     .from(store)
     .innerJoin(user, eq(store.ownerId, user.id))
-    .where(eq(store.isActive, 1))
-    .orderBy(desc(store.id))
-    .limit(limit);
+    .where(whereClause)
+    // Secondary id-desc tiebreaker whenever sorting by a non-id column,
+    // matching v1's own addOrderBy('store.id', 'DESC') fallback.
+    .orderBy(sortColumn === store.id ? direction(store.id) : direction(sortColumn), desc(store.id))
+    .limit(safeSize)
+    .offset((effectivePage - 1) * safeSize);
 
   const storeIds = rows.map((r) => r.id);
   const pictures = storeIds.length
@@ -69,10 +131,12 @@ export async function getStoreList(limit = 40): Promise<StoreListItem[]> {
     if (!firstImageByStore.has(p.advertId)) firstImageByStore.set(p.advertId, p.imageName);
   }
 
-  return rows.map((r) => ({
+  const items = rows.map((r) => ({
     ...r,
     image: firstImageByStore.get(r.id) ?? null,
   }));
+
+  return { items, total, page: effectivePage, lastPage };
 }
 
 export interface StoreDetail {

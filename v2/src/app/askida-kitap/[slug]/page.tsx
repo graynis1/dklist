@@ -11,6 +11,7 @@ import {
   getStoreBySlug,
   isStoreFavorited,
   getStoreFavoriteCount,
+  getStoreList,
   storeImageUrl,
 } from "@/db/queries/store";
 
@@ -49,12 +50,14 @@ async function StoreDetailContent({
   const userId = session?.user?.id ? Number(session.user.id) : null;
   const isOwner = userId === item.ownerId;
 
-  const [favorited, favoriteCount] = await Promise.all([
+  const [favorited, favoriteCount, otherListings] = await Promise.all([
     userId ? isStoreFavorited(userId, item.id) : Promise.resolve(false),
     getStoreFavoriteCount(item.id),
+    getStoreList({ ownerId: item.ownerId, excludeId: item.id, pageSize: 8 }),
   ]);
 
   return (
+    <div className="flex flex-col gap-12">
     <div className="grid grid-cols-1 gap-10 lg:grid-cols-[320px_1fr]">
       <div className="flex flex-col gap-2">
         {item.pictures.length === 0 ? (
@@ -115,6 +118,30 @@ async function StoreDetailContent({
 
         {isOwner && <StoreOwnerActions storeId={item.id} status={item.status} />}
       </div>
+    </div>
+
+      {otherListings.items.length > 0 && (
+        <div>
+          <SectionLabel>Satıcının Diğer İlanları</SectionLabel>
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {otherListings.items.map((other) => (
+              <Link
+                key={other.id}
+                href={`/askida-kitap/${other.slug}`}
+                className="flex flex-col gap-2 rounded-lg border border-border p-2 transition-colors hover:bg-accent"
+              >
+                <div className="aspect-[3/4] overflow-hidden rounded-md bg-muted">
+                  {storeImageUrl(other.image) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={storeImageUrl(other.image)!} alt={other.title} className="size-full object-cover" />
+                  )}
+                </div>
+                <p className="truncate px-1 pb-1 text-sm font-medium">{other.title}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

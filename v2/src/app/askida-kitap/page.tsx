@@ -3,7 +3,13 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Button } from "@/components/ui/button";
-import { getStoreList, storeImageUrl } from "@/db/queries/store";
+import { Input } from "@/components/ui/input";
+import {
+  getStoreList,
+  storeImageUrl,
+  type StoreListingTypeFilter,
+  type StoreSortBy,
+} from "@/db/queries/store";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Mevcut",
@@ -11,7 +17,13 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "İptal",
 };
 
-export default function StoreListPage() {
+const SORT_OPTIONS: { value: StoreSortBy; label: string }[] = [
+  { value: "id", label: "En Yeni" },
+  { value: "price", label: "Fiyat" },
+  { value: "viewCount", label: "Görüntülenme" },
+];
+
+export default function StoreListPage({ searchParams }: PageProps<"/askida-kitap">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
@@ -24,7 +36,7 @@ export default function StoreListPage() {
           <Button render={<Link href="/askida-kitap/yeni" />}>İlan Ver</Button>
         </div>
         <Suspense fallback={<StoreListSkeleton />}>
-          <StoreList />
+          <StoreList searchParams={searchParams} />
         </Suspense>
       </div>
     </div>
@@ -41,41 +53,108 @@ function StoreListSkeleton() {
   );
 }
 
-async function StoreList() {
-  const listings = await getStoreList();
+async function StoreList({
+  searchParams,
+}: {
+  searchParams: PageProps<"/askida-kitap">["searchParams"];
+}) {
+  const params = await searchParams;
+  const page = Number(params.page ?? "1") || 1;
+  const search = typeof params.search === "string" ? params.search : "";
+  const listingType: StoreListingTypeFilter =
+    params.listingType === "free" || params.listingType === "paid" ? params.listingType : null;
+  const sortBy: StoreSortBy =
+    params.sortBy === "price" || params.sortBy === "viewCount" ? params.sortBy : "id";
 
-  if (listings.length === 0) {
-    return <p className="text-muted-foreground">Henüz bir ilan yok - ilk ilanı sen ver.</p>;
-  }
+  const { items, total, lastPage } = await getStoreList({ page, pageSize: 40, search, listingType, sortBy });
+
+  const baseQuery: Record<string, string> = {};
+  if (search) baseQuery.search = search;
+  if (listingType) baseQuery.listingType = listingType;
+  if (sortBy !== "id") baseQuery.sortBy = sortBy;
+  const qs = (extra: Record<string, string>) =>
+    new URLSearchParams({ ...baseQuery, ...extra }).toString();
 
   return (
-    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-      {listings.map((item) => (
-        <Link
-          key={item.id}
-          href={`/askida-kitap/${item.slug}`}
-          className="flex flex-col gap-2 rounded-lg border border-border p-2 transition-colors hover:bg-accent"
+    <div>
+      <form action="/askida-kitap" className="mb-8 flex flex-wrap items-center gap-2">
+        <Input name="search" defaultValue={search} placeholder="İlan başlığında ara..." className="max-w-xs" />
+        <select
+          name="listingType"
+          defaultValue={listingType ?? ""}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
         >
-          <div className="aspect-[3/4] overflow-hidden rounded-md bg-muted">
-            {storeImageUrl(item.image) && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={storeImageUrl(item.image)!}
-                alt={item.title}
-                className="size-full object-cover"
-              />
-            )}
+          <option value="">Tümü</option>
+          <option value="free">Ücretsiz</option>
+          <option value="paid">Ücretli</option>
+        </select>
+        <select
+          name="sortBy"
+          defaultValue={sortBy}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <Button type="submit" variant="outline">
+          Filtrele
+        </Button>
+      </form>
+
+      {items.length === 0 ? (
+        <p className="text-muted-foreground">
+          {search || listingType ? "Bu filtreye uyan ilan yok." : "Henüz bir ilan yok - ilk ilanı sen ver."}
+        </p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+            {items.map((item) => (
+              <Link
+                key={item.id}
+                href={`/askida-kitap/${item.slug}`}
+                className="flex flex-col gap-2 rounded-lg border border-border p-2 transition-colors hover:bg-accent"
+              >
+                <div className="aspect-[3/4] overflow-hidden rounded-md bg-muted">
+                  {storeImageUrl(item.image) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={storeImageUrl(item.image)!}
+                      alt={item.title}
+                      className="size-full object-cover"
+                    />
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5 px-1 pb-1">
+                  <p className="truncate text-sm font-medium">{item.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.listingType === "paid" && item.price ? `${item.price} TL` : "Ücretsiz"} ·{" "}
+                    {STATUS_LABELS[item.status] ?? item.status}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">@{item.ownerUsername}</p>
+                </div>
+              </Link>
+            ))}
           </div>
-          <div className="flex flex-col gap-0.5 px-1 pb-1">
-            <p className="truncate text-sm font-medium">{item.title}</p>
-            <p className="text-xs text-muted-foreground">
-              {item.listingType === "paid" && item.price ? `${item.price} TL` : "Ücretsiz"} ·{" "}
-              {STATUS_LABELS[item.status] ?? item.status}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">@{item.ownerUsername}</p>
-          </div>
-        </Link>
-      ))}
+
+          {lastPage > 1 && (
+            <div className="mt-8 flex justify-center gap-2 text-sm">
+              {Array.from({ length: lastPage }, (_, i) => i + 1).map((p) => (
+                <Link
+                  key={p}
+                  href={`/askida-kitap?${qs({ page: String(p) })}`}
+                  className={`rounded-md px-2.5 py-1 ${p === page ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+                >
+                  {p}
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      {total > 0 && <p className="mt-2 text-xs text-muted-foreground">Toplam {total} ilan.</p>}
     </div>
   );
 }
