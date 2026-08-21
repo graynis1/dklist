@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { user, follow, read, book, libraryBook, readPurpose, badges, userBadges } from "@/db/schema";
@@ -280,6 +281,43 @@ export async function getBooksByStatus(
     (grouped[row.status] ??= []).push({ id: row.id, name: row.name, slug: row.slug });
   }
   return grouped as Record<ReadStatus, ProfileBookItem[]>;
+}
+
+/**
+ * Customer's ask: a "shared-interest indicator" when visiting another
+ * user's profile - commonly-read books between the viewer and the profile
+ * owner, 1000kitap-style. Both sides must have actually finished the book
+ * ("okudum") - a self-join on `read` rather than a new table, since this is
+ * a pure intersection query over data that already exists. Not cached
+ * (like other viewer-specific profile data) - it's a two-person
+ * intersection, not a shared aggregate worth caching per-owner.
+ */
+export async function getSharedReadBooks(
+  viewerId: number,
+  profileOwnerId: number,
+  limit = 8,
+): Promise<ProfileBookItem[]> {
+  if (viewerId === profileOwnerId) return [];
+
+  const viewerRead = alias(read, "viewer_read");
+  const ownerRead = alias(read, "owner_read");
+
+  const rows = await db
+    .select({ id: book.id, name: book.name, slug: book.slug })
+    .from(viewerRead)
+    .innerJoin(ownerRead, eq(viewerRead.bookId, ownerRead.bookId))
+    .innerJoin(book, eq(viewerRead.bookId, book.id))
+    .where(
+      and(
+        eq(viewerRead.userId, viewerId),
+        eq(viewerRead.status, "okudum"),
+        eq(ownerRead.userId, profileOwnerId),
+        eq(ownerRead.status, "okudum"),
+      ),
+    )
+    .limit(limit);
+
+  return rows;
 }
 
 export interface LibraryBookItem {

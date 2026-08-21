@@ -18,6 +18,7 @@ import {
   getCurrentReadingGoal,
   getPastReadingGoals,
   getUserBadges,
+  getSharedReadBooks,
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
 import { getUserTotalPoints, isRecentlyActive } from "@/db/queries/points";
@@ -82,6 +83,7 @@ async function ProfileContent({
     totalPoints,
     ownerBlogs,
     veteranTier,
+    sharedReadBooks,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -95,6 +97,7 @@ async function ProfileContent({
     getUserTotalPoints(profile.id),
     getBlogsByOwner(profile.id, isOwnProfile),
     isRecentlyActive(profile.id),
+    viewerId && !isOwnProfile ? getSharedReadBooks(viewerId, profile.id) : Promise.resolve([]),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -175,6 +178,20 @@ async function ProfileContent({
       {profile.biyo && (
         <p className="mb-6 max-w-xl leading-relaxed text-muted-foreground">
           {profile.biyo}
+        </p>
+      )}
+
+      {sharedReadBooks.length > 0 && (
+        <p className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          İkinizin de okuduğu {sharedReadBooks.length === 1 ? "kitap" : `${sharedReadBooks.length} kitap`}:{" "}
+          {sharedReadBooks.map((b, i) => (
+            <span key={b.id}>
+              <Link href={`/kitap/${b.slug}`} className="font-medium text-foreground hover:underline">
+                {b.name}
+              </Link>
+              {i < sharedReadBooks.length - 1 ? ", " : ""}
+            </span>
+          ))}
         </p>
       )}
 
