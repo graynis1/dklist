@@ -6,6 +6,9 @@ import { book, publisher, writer, writerBook, category, bookCategory, translator
 import { isDirty } from "@/lib/dirty-controller";
 import { AUTO_APPROVE_ROLES, type UserType } from "@/lib/permission";
 import { deleteBookCascade } from "@/db/queries/entity-delete-cascade";
+import { userWriter } from "@/db/schema";
+import { addNotification } from "@/db/queries/notifications";
+import { resolveSystemSenderId } from "@/db/queries/points";
 
 function slugify(input: string): string {
   // Turkish-character map must run BEFORE toLowerCase(), not after: JS's
@@ -155,9 +158,47 @@ export async function createBookSubmission(
   }
 
   updateTag("pending-book-submissions");
-  if (approved) updateTag("latest-books");
+  if (approved) {
+    updateTag("latest-books");
+    if (writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, name);
+  }
 
   return { id: bookId, slug, approved };
+}
+
+/** Customer wishlist item: users who liked a writer get told when that
+ * writer has a new book out, rather than having to keep re-checking the
+ * writer's page. Only fires once the book is actually live (approve=1) -
+ * called from both the auto-approve path above and approveBookSubmission
+ * below, never from a still-pending submission. */
+async function notifyWriterLikersOfNewBook(writerIds: number[], bookName: string): Promise<void> {
+  const likerRows = await db
+    .select({ userId: userWriter.userId, writerName: writer.name })
+    .from(userWriter)
+    .innerJoin(writer, eq(userWriter.writerId, writer.id))
+    .where(inArray(userWriter.writerId, writerIds));
+
+  if (likerRows.length === 0) return;
+
+  const senderId = await resolveSystemSenderId();
+  if (!senderId) return;
+
+  const writerNamesByUser = new Map<number, string[]>();
+  for (const row of likerRows) {
+    const list = writerNamesByUser.get(row.userId) ?? [];
+    list.push(row.writerName);
+    writerNamesByUser.set(row.userId, list);
+  }
+
+  for (const [userId, writerNames] of writerNamesByUser) {
+    const names = [...new Set(writerNames)].join(", ");
+    await addNotification(
+      userId,
+      senderId,
+      `Beğendiğin yazar ${names}'in yeni kitabı: "${bookName}".`,
+      `A writer you liked (${names}) has a new book: "${bookName}".`,
+    );
+  }
 }
 
 export interface PendingBookSubmission {
@@ -212,6 +253,11 @@ export async function approveBookSubmission(bookId: number): Promise<void> {
   await db.update(book).set({ approve: 1 }).where(eq(book.id, bookId));
   updateTag("pending-book-submissions");
   updateTag("latest-books");
+
+  const [bookRow] = await db.select({ name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
+  const writerRows = await db.select({ writerId: writerBook.writerId }).from(writerBook).where(eq(writerBook.bookId, bookId));
+  const writerIds = writerRows.map((r) => r.writerId);
+  if (bookRow && writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, bookRow.name);
 }
 
 /** Reject = delete outright - unlike blog's dual-version system, a rejected

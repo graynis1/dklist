@@ -106,7 +106,7 @@ export const POINT_MILESTONES = [
  * system-initiated notifications - dknotifiaction.sender_user_id is a real
  * NOT NULL FK with no NULL/system-sender concept in this schema (matches
  * v1's own NotifyManager design, which always requires both parties). */
-async function resolveSystemSenderId(): Promise<number | null> {
+export async function resolveSystemSenderId(): Promise<number | null> {
   const [admin] = await db.select({ id: user.id }).from(user).where(eq(user.userType, "Admin")).limit(1);
   return admin?.id ?? null;
 }
