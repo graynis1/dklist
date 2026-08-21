@@ -10,6 +10,7 @@ import {
   deleteChat,
   getMessages,
   type MessageItem,
+  type MessageType,
 } from "@/db/queries/messages";
 
 async function requireUserId(): Promise<number> {
@@ -23,6 +24,8 @@ async function requireUserId(): Promise<number> {
 export async function sendMessageAction(
   otherUsername: string,
   text: string,
+  attachmentType: MessageType = "text",
+  referencedId?: number,
 ): Promise<{ status: boolean; message?: string; sentId?: number }> {
   try {
     const userId = await requireUserId();
@@ -34,8 +37,35 @@ export async function sendMessageAction(
     if (!target) {
       return { status: false, message: "Kullanıcı bulunamadı." };
     }
-    const result = await sendMessage(userId, target.id, text);
+    const result = await sendMessage(userId, target.id, text, attachmentType, referencedId);
     return { status: true, sentId: result.id };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+/** Book/store "Paylaş" share button - creates the chat if needed and sends a
+ * single attachment message, matching v1's MessageTypeEnum::BookAttachment/
+ * StoreAttachment types (previously deferred since v2 had no marketplace to
+ * attach from; both book pages and Askıda Kitap listings exist now). */
+export async function shareAttachmentAction(
+  recipientUsername: string,
+  attachmentType: "book" | "store",
+  referencedId: number,
+): Promise<{ status: boolean; message?: string }> {
+  try {
+    const userId = await requireUserId();
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.username, recipientUsername.trim()))
+      .limit(1);
+    if (!target) {
+      return { status: false, message: "Böyle bir kullanıcı yok." };
+    }
+    const defaultText = attachmentType === "book" ? "Bu kitaba göz atar mısın?" : "Bu ilana göz atar mısın?";
+    await sendMessage(userId, target.id, defaultText, attachmentType, referencedId);
+    return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }

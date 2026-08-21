@@ -1,15 +1,11 @@
 import "server-only";
 import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { chat, message, user } from "@/db/schema";
+import { chat, message, user, book, store, storePicture } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
 
 /**
  * Phase 3 chat/messaging - ported from MessageController.php/MessageService.php.
- * Text messages only for now; v1's book/store attachment message types
- * (MessageTypeEnum::BookAttachment/StoreAttachment) are deliberately not
- * ported yet since v2 has no marketplace/store feature built to attach -
- * that's real Phase 3 marketplace scope, not something to fake here.
  *
  * Both `chat` and `message` model each conversation from a fixed
  * "firstUser"/"secondUser" perspective set once at creation (whoever sent
@@ -93,11 +89,23 @@ export async function getUnreadMessageCount(userId: number): Promise<number> {
   return asFirst[0].n + asSecond[0].n;
 }
 
+export type MessageType = "text" | "book" | "store";
+
+export interface MessageAttachment {
+  id: number;
+  title: string;
+  slug: string;
+  image: string | null;
+  price?: number | null;
+}
+
 export interface MessageItem {
   id: number;
   text: string;
   senderId: number;
   createdAt: string | null;
+  type: MessageType;
+  attachment: MessageAttachment | null;
 }
 
 export interface MessagesPage {
@@ -148,6 +156,8 @@ export async function getMessages(
       view: message.view,
       view2: message.view2,
       hiddenForSender: message.hiddenForSender,
+      type: message.type,
+      attachmentSnapshot: message.attachmentSnapshot,
     })
     .from(message)
     .where(
@@ -182,6 +192,8 @@ export async function getMessages(
       text: r.text,
       senderId: r.senderUserId ?? (isFirst ? currentUserId : otherUserId),
       createdAt: r.createdAt,
+      type: (r.type as MessageType) ?? "text",
+      attachment: r.attachmentSnapshot ? (JSON.parse(r.attachmentSnapshot) as MessageAttachment) : null,
     }))
     .reverse(); // oldest-first, matching v1's array_reverse($messages)
 
@@ -195,12 +207,64 @@ export interface SendMessageResult {
   text: string;
   senderId: number;
   createdAt: string | null;
+  type: MessageType;
+  attachment: MessageAttachment | null;
+}
+
+/**
+ * v1's MessageService::send() builds a denormalized JSON `attachmentSnapshot`
+ * at send-time (not a live join) - the attachment card in an old message
+ * still shows the book/store's name/image as they were when shared, even if
+ * the book gets merged/deleted or the listing is edited/removed later.
+ */
+async function buildAttachment(
+  type: MessageType,
+  referencedId: number,
+): Promise<{ snapshot: MessageAttachment; previewText: string } | null> {
+  if (type === "book") {
+    const [row] = await db
+      .select({ id: book.id, name: book.name, slug: book.slug })
+      .from(book)
+      .where(eq(book.id, referencedId))
+      .limit(1);
+    if (!row) return null;
+    return {
+      snapshot: { id: row.id, title: row.name, slug: row.slug, image: `/kapak/${row.id}` },
+      previewText: "📖 Kitap paylaştı",
+    };
+  }
+  if (type === "store") {
+    const [row] = await db
+      .select({ id: store.id, title: store.title, slug: store.slug, price: store.price })
+      .from(store)
+      .where(eq(store.id, referencedId))
+      .limit(1);
+    if (!row) return null;
+    const [pic] = await db
+      .select({ imageName: storePicture.imageName })
+      .from(storePicture)
+      .where(eq(storePicture.advertId, row.id))
+      .limit(1);
+    return {
+      snapshot: {
+        id: row.id,
+        title: row.title,
+        slug: row.slug,
+        price: row.price,
+        image: pic ? `/api/store-image/${pic.imageName}` : null,
+      },
+      previewText: "🏷️ İlan paylaştı",
+    };
+  }
+  return null;
 }
 
 export async function sendMessage(
   senderId: number,
   receiverId: number,
   text: string,
+  attachmentType: MessageType = "text",
+  referencedId?: number,
 ): Promise<SendMessageResult> {
   const trimmed = text.trim();
   if (!trimmed) {
@@ -209,6 +273,17 @@ export async function sendMessage(
   if (senderId === receiverId) {
     throw new Error("Kendine mesaj gönderemezsin.");
   }
+
+  let attachment: MessageAttachment | null = null;
+  let attachmentPreview: string | null = null;
+  if (attachmentType !== "text" && referencedId) {
+    const built = await buildAttachment(attachmentType, referencedId);
+    if (built) {
+      attachment = built.snapshot;
+      attachmentPreview = built.previewText;
+    }
+  }
+  const effectiveType: MessageType = attachment ? attachmentType : "text";
 
   let chatRow = await findChatBetween(senderId, receiverId);
   let isFirst: boolean;
@@ -228,7 +303,7 @@ export async function sendMessage(
   }
 
   const now = new Date().toISOString().slice(0, 19).replace("T", " ");
-  const preview = trimmed.slice(0, 140);
+  const preview = (attachmentPreview ?? trimmed).slice(0, 140);
 
   const [msgResult] = await db.insert(message).values({
     chatId: chatRow.id,
@@ -240,7 +315,10 @@ export async function sendMessage(
     view: isFirst ? 1 : 0,
     view2: isFirst ? 0 : 1,
     createdAt: now,
-    type: "text",
+    type: effectiveType,
+    attachmentSnapshot: attachment ? JSON.stringify(attachment) : null,
+    referencedBookId: effectiveType === "book" ? referencedId : null,
+    referencedStoreId: effectiveType === "store" ? referencedId : null,
     hiddenForSender: 0,
   });
 
@@ -262,7 +340,7 @@ export async function sendMessage(
     );
   }
 
-  return { id: msgResult.insertId, text: trimmed, senderId, createdAt: now };
+  return { id: msgResult.insertId, text: trimmed, senderId, createdAt: now, type: effectiveType, attachment };
 }
 
 export async function deleteMessage(userId: number, messageId: number): Promise<void> {

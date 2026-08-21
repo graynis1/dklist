@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { StoreFavoriteButton } from "@/components/dklist/store-favorite-button";
 import { StoreOwnerActions } from "@/components/dklist/store-owner-actions";
+import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { auth } from "@/auth";
 import {
   getStoreBySlug,
@@ -110,6 +111,7 @@ async function StoreDetailContent({
             initialCount={favoriteCount}
           />
         )}
+        {!isOwner && userId && <ShareAttachmentButton attachmentType="store" referencedId={item.id} />}
 
         {isOwner && <StoreOwnerActions storeId={item.id} status={item.status} />}
       </div>

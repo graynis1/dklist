@@ -63,7 +63,14 @@ export function MessageThread({
       if (result.status && result.sentId) {
         setMessages((prev) => [
           ...prev,
-          { id: result.sentId!, text: trimmed, senderId: currentUserId, createdAt: new Date().toISOString() },
+          {
+            id: result.sentId!,
+            text: trimmed,
+            senderId: currentUserId,
+            createdAt: new Date().toISOString(),
+            type: "text",
+            attachment: null,
+          },
         ]);
       }
     });
@@ -91,10 +98,22 @@ export function MessageThread({
                     </button>
                   )}
                   <span
-                    className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
+                    className={`flex max-w-[75%] flex-col gap-2 rounded-2xl px-3 py-2 text-sm ${
                       mine ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
                     }`}
                   >
+                    {m.attachment && (
+                      <a
+                        href={`/${m.type === "book" ? "kitap" : "askida-kitap"}/${m.attachment.slug}`}
+                        className="flex items-center gap-2 rounded-lg bg-background/20 p-1.5 hover:bg-background/30"
+                      >
+                        {m.attachment.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={m.attachment.image} alt="" className="size-10 rounded object-cover" />
+                        )}
+                        <span className="text-xs font-medium">{m.attachment.title}</span>
+                      </a>
+                    )}
                     {m.text}
                   </span>
                 </li>

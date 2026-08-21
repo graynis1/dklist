@@ -12,6 +12,7 @@ import { RateBookControl } from "@/components/dklist/rate-book-control";
 import { EntityComments } from "@/components/dklist/entity-comments";
 import { LibraryToggle } from "@/components/dklist/library-toggle";
 import { LikeButton } from "@/components/dklist/like-button";
+import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getBookBySlug, getBookReaders } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
@@ -202,6 +203,7 @@ async function BookDetailContent({
                 initialLiked={liked}
                 initialCount={likeCount}
               />
+              {userId && <ShareAttachmentButton attachmentType="book" referencedId={detail.id} />}
             </div>
 
             {detail.publisher && (
