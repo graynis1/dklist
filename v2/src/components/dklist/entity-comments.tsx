@@ -113,6 +113,45 @@ function ReplyForm({
   );
 }
 
+/** Facebook-style "share with a caption" - commentary is optional (a bare
+ * reshare with no added text is a valid, common case), so unlike ReplyForm
+ * there's no minLength on the textarea. */
+function ShareCommentForm({
+  onSubmit,
+  onCancel,
+}: {
+  onSubmit: (commentary: string) => void;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <form
+      action={() => startTransition(() => onSubmit(text))}
+      className="mt-2 flex flex-col gap-2 rounded-lg border border-border p-3"
+    >
+      <p className="text-xs text-muted-foreground">Kendi profilinize bir not ekleyerek paylaşın (opsiyonel).</p>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Bir şey ekleyin..."
+        maxLength={2000}
+        rows={2}
+        className="w-full rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-ring"
+      />
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={isPending}>
+          Paylaş
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          Vazgeç
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function ReplyItem({
   reply,
   canReply,
@@ -177,6 +216,7 @@ export function EntityComments({
   commentLikes,
   addCommentAction,
   addReplyAction,
+  shareCommentAction,
   placeholder = "Ne düşünüyorsunuz?",
   submitLabel = "Yorum Yap",
   emptyMessage = "Henüz yorum yok.",
@@ -191,6 +231,10 @@ export function EntityComments({
     parentId: number,
     text: string,
   ) => Promise<{ status: boolean; message?: string; replyId?: number }>;
+  shareCommentAction: (
+    originalCommentId: number,
+    commentary: string,
+  ) => Promise<{ status: boolean; message?: string; commentId?: number }>;
   placeholder?: string;
   submitLabel?: string;
   emptyMessage?: string;
@@ -199,8 +243,28 @@ export function EntityComments({
   const [repliesByComment, setRepliesByComment] = useState(initialRepliesByComment);
   const [error, setError] = useState<string | null>(null);
   const [replyFormFor, setReplyFormFor] = useState<number | null>(null);
+  const [shareFormFor, setShareFormFor] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+
+  function submitShare(original: BookComment, commentary: string) {
+    startTransition(async () => {
+      const result = await shareCommentAction(original.id, commentary);
+      if (result.status) {
+        setComments((prev) => [
+          {
+            id: result.commentId!,
+            text: commentary,
+            date: new Date().toISOString().slice(0, 10),
+            authorUsername: "siz",
+            sharedFrom: { authorUsername: original.authorUsername, text: original.text },
+          },
+          ...prev,
+        ]);
+        setShareFormFor(null);
+      }
+    });
+  }
 
   function submit(formData: FormData) {
     const text = String(formData.get("text") ?? "");
@@ -218,6 +282,7 @@ export function EntityComments({
             text,
             date: new Date().toISOString().slice(0, 10),
             authorUsername: "siz",
+            sharedFrom: null,
           },
           ...prev,
         ]);
@@ -300,7 +365,17 @@ export function EntityComments({
                   <span className="font-medium">@{c.authorUsername}</span>
                   <span className="text-muted-foreground">{c.date}</span>
                 </div>
-                <p className="text-sm leading-relaxed"><HashtagText text={c.text} /></p>
+                {c.sharedFrom && (
+                  <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                    <p className="text-xs text-muted-foreground">@{c.sharedFrom.authorUsername} yazmıştı:</p>
+                    <p className="mt-1 leading-relaxed italic">
+                      <HashtagText text={c.sharedFrom.text} />
+                    </p>
+                  </div>
+                )}
+                {c.text && (
+                  <p className="text-sm leading-relaxed"><HashtagText text={c.text} /></p>
+                )}
                 <div className="flex items-center gap-3">
                   <CommentLikeButton
                     commentId={c.id}
@@ -316,6 +391,15 @@ export function EntityComments({
                       Yanıtla
                     </button>
                   )}
+                  {signedIn && !c.sharedFrom && (
+                    <button
+                      type="button"
+                      onClick={() => setShareFormFor((cur) => (cur === c.id ? null : c.id))}
+                      className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                    >
+                      Paylaş
+                    </button>
+                  )}
                   <ReportCommentButton commentId={c.id} parentType="comment" />
                   <ShareButton content={c.text} />
                 </div>
@@ -323,6 +407,12 @@ export function EntityComments({
                   <ReplyForm
                     onCancel={() => setReplyFormFor(null)}
                     onSubmit={(text) => submitReply(c.id, "comment", c.id, text)}
+                  />
+                )}
+                {shareFormFor === c.id && (
+                  <ShareCommentForm
+                    onCancel={() => setShareFormFor(null)}
+                    onSubmit={(commentary) => submitShare(c, commentary)}
                   />
                 )}
                 {replies.length > 0 && (

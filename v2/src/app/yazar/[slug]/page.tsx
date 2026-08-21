@@ -20,6 +20,7 @@ import {
   rateWriterAction,
   addWriterCommentAction,
   addWriterReplyAction,
+  shareWriterCommentAction,
 } from "./actions";
 
 export default function WriterPage({ params }: PageProps<"/yazar/[slug]">) {
@@ -185,6 +186,7 @@ async function WriterContent({
         commentLikes={commentLikes}
         addCommentAction={addWriterCommentAction.bind(null, writer.id, "yorum")}
         addReplyAction={addWriterReplyAction}
+        shareCommentAction={shareWriterCommentAction}
         placeholder="Bu yazar hakkında ne düşünüyorsunuz?"
       />
 
@@ -200,6 +202,7 @@ async function WriterContent({
         commentLikes={quoteLikes}
         addCommentAction={addWriterCommentAction.bind(null, writer.id, "alinti")}
         addReplyAction={addWriterReplyAction}
+        shareCommentAction={shareWriterCommentAction}
         placeholder="Bu yazardan bir alıntı paylaşın…"
         submitLabel="Alıntı Yap"
         emptyMessage="Henüz alıntı yok."

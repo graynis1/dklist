@@ -11,6 +11,7 @@ import { rateBook } from "@/db/queries/rating";
 import {
   addBookComment,
   addSubComment,
+  shareEntityComment,
   type SubCommentParentType,
   type CommentType,
 } from "@/db/queries/comments";
@@ -86,6 +87,23 @@ export async function addCommentAction(
 
   try {
     const commentId = await addBookComment(Number(session.user.id), bookId, text, commentType);
+    return { status: true, commentId };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function shareCommentAction(
+  originalCommentId: number,
+  commentary: string,
+): Promise<ActionResult & { commentId?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+
+  try {
+    const commentId = await shareEntityComment(Number(session.user.id), originalCommentId, "book", commentary);
     return { status: true, commentId };
   } catch (err) {
     return { status: false, message: (err as Error).message };

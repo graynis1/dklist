@@ -18,11 +18,17 @@ export type CommentTargetType = "book" | "writer" | "translator";
 // in this pass; "alinti" (quote) reuses the same table/shape, a fast-follow.
 export type CommentType = "yorum" | "alinti";
 
+export interface SharedFromInfo {
+  authorUsername: string;
+  text: string;
+}
+
 export interface BookComment {
   id: number;
   text: string;
   date: string;
   authorUsername: string;
+  sharedFrom: SharedFromInfo | null;
 }
 
 /**
@@ -46,6 +52,7 @@ export async function getEntityComments(
       text: comment.comment,
       date: comment.date,
       authorUsername: user.username,
+      sharedFromCommentId: comment.sharedFromCommentId,
     })
     .from(comment)
     .innerJoin(user, eq(comment.userId, user.id))
@@ -62,7 +69,14 @@ export async function getEntityComments(
     )
     .orderBy(desc(comment.id));
 
-  return rows;
+  const sharedFromById = await getSharedFromInfo(
+    rows.map((r) => r.sharedFromCommentId).filter((id): id is number => id !== null),
+  );
+
+  return rows.map(({ sharedFromCommentId, ...r }) => ({
+    ...r,
+    sharedFrom: sharedFromCommentId !== null ? (sharedFromById.get(sharedFromCommentId) ?? null) : null,
+  }));
 }
 
 /**
@@ -91,6 +105,83 @@ async function notifyHashtaggedReaders(text: string, taggerUserId: number): Prom
       `"${tagger.username}" tagged you as a reader.`,
     );
   }
+}
+
+async function getSharedFromInfo(commentIds: number[]): Promise<Map<number, SharedFromInfo>> {
+  if (commentIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({ id: comment.id, text: comment.comment, authorUsername: user.username })
+    .from(comment)
+    .innerJoin(user, eq(comment.userId, user.id))
+    .where(inArray(comment.id, commentIds));
+
+  return new Map(rows.map((r) => [r.id, { authorUsername: r.authorUsername, text: r.text }]));
+}
+
+/**
+ * Customer's "share another user's review/quote to your own feed with your
+ * own commentary" (Facebook share-with-caption style). Reuses the comment
+ * table rather than a new "repost" entity - a share IS a new comment/quote,
+ * same target and yorum/alıntı type as the original, just one that also
+ * points back at what it was shared from. Commentary can be empty (a bare
+ * share with no caption, same as Facebook allows) - the quoted original is
+ * the content either way.
+ */
+export async function shareEntityComment(
+  userId: number,
+  originalCommentId: number,
+  targetType: CommentTargetType,
+  commentary: string,
+): Promise<number> {
+  const trimmed = commentary.trim();
+  if (trimmed.length > 2000) {
+    throw new Error("Yorum en fazla 2000 karakter olabilir.");
+  }
+
+  const [original] = await db
+    .select({
+      targetId: comment.targetId,
+      type: comment.type,
+      commentType: comment.commentType,
+      userId: comment.userId,
+    })
+    .from(comment)
+    .where(eq(comment.id, originalCommentId))
+    .limit(1);
+
+  if (!original || original.type !== targetType) {
+    throw new Error("Paylaşılacak gönderi bulunamadı.");
+  }
+
+  const [result] = await db.insert(comment).values({
+    userId,
+    comment: trimmed,
+    commentType: original.commentType,
+    type: targetType,
+    targetId: original.targetId,
+    sharedFromCommentId: originalCommentId,
+    date: new Date().toISOString().slice(0, 10),
+  });
+
+  updateTag(`${targetType}-comments:${original.targetId}:${original.commentType}`);
+  if (targetType === "book") updateTag("recent-book-activity");
+  await awardPoints(userId, POINT_VALUES.comment, "comment", `comment:${result.insertId}`);
+  if (trimmed) await notifyHashtaggedReaders(trimmed, userId);
+
+  if (original.userId !== userId) {
+    const [sharer] = await db.select({ username: user.username }).from(user).where(eq(user.id, userId)).limit(1);
+    if (sharer) {
+      await addNotification(
+        original.userId,
+        userId,
+        `" ${sharer.username} " gönderinizi kendi profiline paylaştı.`,
+        `"${sharer.username}" shared your post.`,
+      );
+    }
+  }
+
+  return result.insertId;
 }
 
 export async function addEntityComment(

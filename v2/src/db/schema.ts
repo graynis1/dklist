@@ -150,6 +150,9 @@ export const comment = mysqlTable("comment", {
 	commentType: varchar("comment_type", { length: 20 }).notNull(),
 	type: varchar({ length: 20 }).notNull(),
 	targetId: bigint("target_id", { mode: "number" }).notNull(),
+	// Which comment this one was reshared from (customer's "share a review
+	// with your own commentary" feature) - null for every ordinary comment.
+	sharedFromCommentId: int("shared_from_comment_id"),
 	// you can use { mode: 'date' }, if you want to have Date as type for this column
 	date: date({ mode: 'string' }).notNull(),
 	lang: varchar({ length: 50 }),

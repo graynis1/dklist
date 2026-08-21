@@ -23,7 +23,7 @@ import { getBookComments, getRepliesForComments } from "@/db/queries/comments";
 import { isInLibrary } from "@/db/queries/library";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
-import { addCommentAction, addReplyAction } from "./actions";
+import { addCommentAction, addReplyAction, shareCommentAction } from "./actions";
 
 const READER_STATUS_LABELS: Record<string, string> = {
   okudum: "okudu",
@@ -302,6 +302,7 @@ async function BookDetailContent({
           commentLikes={commentLikes}
           addCommentAction={addCommentAction.bind(null, detail.id, "yorum")}
           addReplyAction={addReplyAction}
+          shareCommentAction={shareCommentAction}
           placeholder="Bu kitap hakkında ne düşünüyorsunuz?"
         />
       </section>
@@ -319,6 +320,7 @@ async function BookDetailContent({
           commentLikes={quoteLikes}
           addCommentAction={addCommentAction.bind(null, detail.id, "alinti")}
           addReplyAction={addReplyAction}
+          shareCommentAction={shareCommentAction}
           placeholder="Bu kitaptan bir alıntı paylaşın…"
           submitLabel="Alıntı Yap"
           emptyMessage="Henüz alıntı yok."

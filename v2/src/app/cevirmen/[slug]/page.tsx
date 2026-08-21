@@ -20,6 +20,7 @@ import {
   rateTranslatorAction,
   addTranslatorCommentAction,
   addTranslatorReplyAction,
+  shareTranslatorCommentAction,
 } from "./actions";
 
 export default function TranslatorPage({ params }: PageProps<"/cevirmen/[slug]">) {
@@ -178,6 +179,7 @@ async function TranslatorContent({
         commentLikes={commentLikes}
         addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "yorum")}
         addReplyAction={addTranslatorReplyAction}
+        shareCommentAction={shareTranslatorCommentAction}
         placeholder="Bu çevirmen hakkında ne düşünüyorsunuz?"
       />
 
@@ -193,6 +195,7 @@ async function TranslatorContent({
         commentLikes={quoteLikes}
         addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "alinti")}
         addReplyAction={addTranslatorReplyAction}
+        shareCommentAction={shareTranslatorCommentAction}
         placeholder="Bu çevirmenden bir alıntı paylaşın…"
         submitLabel="Alıntı Yap"
         emptyMessage="Henüz alıntı yok."

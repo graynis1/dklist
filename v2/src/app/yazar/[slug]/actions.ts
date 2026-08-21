@@ -6,6 +6,7 @@ import { rateWriter } from "@/db/queries/rating";
 import {
   addEntityComment,
   addSubComment,
+  shareEntityComment,
   type SubCommentParentType,
   type CommentType,
 } from "@/db/queries/comments";
@@ -58,6 +59,23 @@ export async function addWriterCommentAction(
       text,
       commentType,
     );
+    return { status: true, commentId };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function shareWriterCommentAction(
+  originalCommentId: number,
+  commentary: string,
+): Promise<{ status: boolean; message?: string; commentId?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+
+  try {
+    const commentId = await shareEntityComment(Number(session.user.id), originalCommentId, "writer", commentary);
     return { status: true, commentId };
   } catch (err) {
     return { status: false, message: (err as Error).message };
