@@ -17,6 +17,7 @@ import { ShareButton } from "@/components/dklist/share-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { JsonLd } from "@/components/dklist/json-ld";
 import { ReportBookErrorButton } from "@/components/dklist/report-book-error-button";
+import { AddToListButton } from "@/components/dklist/add-to-list-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
@@ -317,6 +318,7 @@ async function BookDetailContent({
               <Button variant="outline" render={<Link href="/askida-kitap/yeni" />}>
                 Askıya Bırak
               </Button>
+              <AddToListButton bookId={detail.id} signedIn={Boolean(userId)} />
               {userId && <ReportBookErrorButton bookId={detail.id} />}
             </div>
 

@@ -658,6 +658,33 @@ export const pointRedemption = mysqlTable("point_redemption", {
 	unique("uniq_point_redemption_user_reward").on(table.userId, table.rewardId),
 ]);
 
+export const readingList = mysqlTable("reading_list", {
+	id: int().autoincrement().notNull(),
+	ownerId: int("owner_id").notNull().references(() => user.id),
+	title: varchar({ length: 150 }).notNull(),
+	slug: varchar({ length: 180 }).notNull(),
+	description: varchar({ length: 500 }),
+	isPublic: tinyint("is_public").notNull().default(1),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "reading_list_id" }),
+	index("idx_reading_list_owner").on(table.ownerId),
+	unique("uniq_reading_list_slug").on(table.slug),
+]);
+
+export const readingListBook = mysqlTable("reading_list_book", {
+	id: int().autoincrement().notNull(),
+	listId: int("list_id").notNull().references(() => readingList.id),
+	bookId: int("book_id").notNull().references(() => book.id),
+	sortOrder: int("sort_order").notNull().default(0),
+	addedAt: datetime("added_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "reading_list_book_id" }),
+	unique("uniq_reading_list_book").on(table.listId, table.bookId),
+]);
+
 export const yazarhanePost = mysqlTable("yazarhane_post", {
 	id: int().autoincrement().notNull(),
 	userId: int("user_id").notNull().references(() => user.id),
