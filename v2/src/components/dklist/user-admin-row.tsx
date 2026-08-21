@@ -7,8 +7,12 @@ import { ROLE_LABELS, USER_TYPES, type UserType } from "@/lib/roles";
 import {
   updateUserRoleAction,
   toggleUserDisabledAction,
+  updateUserPublisherAction,
+  updateUserWriterAction,
   deleteUserAccountAction,
 } from "@/app/admin/kullanicilar/actions";
+import { searchPublishersAction, searchWritersAction } from "@/app/kitap/yeni/actions";
+import { EntityLinkControl } from "@/components/dklist/entity-link-control";
 import type { UserAdminListItem } from "@/db/queries/user-admin";
 
 const ASSIGNABLE_ROLES = Object.values(USER_TYPES).filter((t) => t !== USER_TYPES.SuperAdmin) as UserType[];
@@ -64,10 +68,25 @@ export function UserAdminRow({
           {user.username}
           {user.disabled && <span className="ml-2 rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Devre dışı</span>}
         </p>
-        <p className="text-xs text-muted-foreground">
-          {user.mail}
-          {user.publisherName && <> · {user.publisherName}</>}
-        </p>
+        <p className="text-xs text-muted-foreground">{user.mail}</p>
+        {user.userType === USER_TYPES.Yayinevi && canMutate && (
+          <EntityLinkControl
+            label="Yayınevi"
+            currentId={user.publisherId}
+            currentName={user.publisherName}
+            searchAction={searchPublishersAction}
+            linkAction={(id) => updateUserPublisherAction(user.id, id)}
+          />
+        )}
+        {user.userType === USER_TYPES.Yazar && canMutate && (
+          <EntityLinkControl
+            label="Yazar"
+            currentId={user.writerId}
+            currentName={user.writerName}
+            searchAction={searchWritersAction}
+            linkAction={(id) => updateUserWriterAction(user.id, id)}
+          />
+        )}
         {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
 

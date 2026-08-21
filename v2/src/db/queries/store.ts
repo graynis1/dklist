@@ -40,6 +40,23 @@ export interface StoreListItem {
   location: string | null;
   image: string | null;
   ownerUsername: string;
+  ownerIsPremium: boolean;
+}
+
+/**
+ * Premium privilege (maintainer's own judgment call on the customer's
+ * unscoped "özel durumlara insiyatif" ask, see PLAN.md): a premium seller's
+ * Askıda Kitap listings sort first, ahead of the chosen sortBy/orderBy -
+ * same shape as the existing id-desc tiebreaker below, just a higher-
+ * priority tiebreak. Recomputed per-query (EXISTS on premium_purchase),
+ * not a denormalized flag, matching every other "is this user premium"
+ * check in this app (see isUserPremium() in premium.ts).
+ */
+function ownerIsPremiumExpr() {
+  return sql<number>`EXISTS (
+    SELECT 1 FROM premium_purchase pp
+    WHERE pp.user_id = ${store.ownerId} AND pp.status = 'active' AND pp.expires_at > NOW()
+  )`;
 }
 
 export type StoreSortBy = "id" | "price" | "viewCount";
@@ -112,13 +129,15 @@ export async function getStoreList(
       status: store.status,
       location: store.location,
       ownerUsername: user.username,
+      ownerIsPremium: ownerIsPremiumExpr(),
     })
     .from(store)
     .innerJoin(user, eq(store.ownerId, user.id))
     .where(whereClause)
-    // Secondary id-desc tiebreaker whenever sorting by a non-id column,
-    // matching v1's own addOrderBy('store.id', 'DESC') fallback.
-    .orderBy(sortColumn === store.id ? direction(store.id) : direction(sortColumn), desc(store.id))
+    // Premium sellers' listings sort first, then the requested sort, then
+    // an id-desc tiebreaker whenever sorting by a non-id column (matching
+    // v1's own addOrderBy('store.id', 'DESC') fallback).
+    .orderBy(desc(ownerIsPremiumExpr()), sortColumn === store.id ? direction(store.id) : direction(sortColumn), desc(store.id))
     .limit(safeSize)
     .offset((effectivePage - 1) * safeSize);
 
@@ -137,6 +156,7 @@ export async function getStoreList(
 
   const items = rows.map((r) => ({
     ...r,
+    ownerIsPremium: Boolean(Number(r.ownerIsPremium)),
     image: firstImageByStore.get(r.id) ?? null,
   }));
 

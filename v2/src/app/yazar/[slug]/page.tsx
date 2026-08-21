@@ -14,6 +14,7 @@ import { isWriterLiked, getWriterLikeCount } from "@/db/queries/likes";
 import { getUserWriterRating } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
+import { getAuthorMemberForWriter } from "@/db/queries/yazarhane";
 import { auth } from "@/auth";
 import {
   toggleWriterLikeAction,
@@ -64,12 +65,13 @@ async function WriterContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount, userRating, comments] = await Promise.all([
+  const [books, liked, likeCount, userRating, comments, authorMember] = await Promise.all([
     getBooksByWriter(writer.id),
     userId ? isWriterLiked(userId, writer.id) : Promise.resolve(false),
     getWriterLikeCount(writer.id),
     userId ? getUserWriterRating(userId, writer.id) : Promise.resolve(null),
     getEntityComments(writer.id, "writer"),
+    getAuthorMemberForWriter(writer.id),
   ]);
   const quotes = await getEntityComments(writer.id, "writer", "alinti");
 
@@ -132,9 +134,18 @@ async function WriterContent({
       </div>
 
       {writer.biyo && (
-        <p className="mb-10 max-w-2xl leading-relaxed text-muted-foreground">
+        <p className="mb-6 max-w-2xl leading-relaxed text-muted-foreground">
           {writer.biyo}
         </p>
+      )}
+
+      {authorMember && (
+        <Link
+          href={`/yazarhane/${authorMember.username}`}
+          className="mb-10 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/15"
+        >
+          ✎ Bu yazar DKList Yazarhanesi&apos;nde - ziyaret et →
+        </Link>
       )}
 
       <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">

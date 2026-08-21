@@ -14,6 +14,7 @@ import { LibraryToggle } from "@/components/dklist/library-toggle";
 import { LikeButton } from "@/components/dklist/like-button";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { ShareButton } from "@/components/dklist/share-button";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
@@ -307,6 +308,12 @@ async function BookDetailContent({
           </div>
         </div>
       </section>
+
+      <div className="py-4">
+        <Suspense fallback={null}>
+          <AdSlot placement="book-page" contentLanguage={detail.lang} />
+        </Suspense>
+      </div>
 
       {(workEditions.sameLanguage.length > 0 || Object.keys(workEditions.otherLanguages).length > 0) && (
         <>

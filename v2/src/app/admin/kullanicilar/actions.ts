@@ -4,6 +4,7 @@ import { requireRole, USER_TYPES } from "@/lib/permission";
 import { updateUserRole, toggleUserDisabled, updateUserPublisher } from "@/db/queries/user-admin";
 import { deleteUserAccount } from "@/db/queries/user-delete";
 import { logAdminAction } from "@/db/queries/admin-log";
+import { linkUserToWriter } from "@/db/queries/yazarhane";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 // v1's real deleteUserAdmin() passes an EMPTY permission allow-list -
@@ -42,6 +43,17 @@ export async function updateUserPublisherAction(userId: number, publisherId: num
     const actor = await requireRole(ADMIN_ONLY);
     await updateUserPublisher(userId, publisherId);
     await logAdminAction(actor.id, "user:publisher-link", "user", userId, `publisher=${publisherId ?? "none"}`);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
+  }
+}
+
+export async function updateUserWriterAction(userId: number, writerId: number | null): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    await linkUserToWriter(userId, writerId);
+    await logAdminAction(actor.id, "user:writer-link", "user", userId, `writer=${writerId ?? "none"}`);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };

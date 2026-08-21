@@ -19,6 +19,7 @@ const FIELDS: { key: PointSettingKey; label: string }[] = [
   { key: "dailyVisit", label: "Günlük ziyaret" },
   { key: "messageReceived", label: "Mesaj alma (yeni konuşma)" },
   { key: "socialShare", label: "Sosyal medya paylaşımı" },
+  { key: "authorPost", label: "Yazarhane paylaşımı" },
 ];
 
 const CAP_FIELDS: { key: PointSettingKey; label: string }[] = [

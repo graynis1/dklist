@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, inArray, like, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { user, publisher, badges, userBadges } from "@/db/schema";
+import { user, publisher, writer, badges, userBadges } from "@/db/schema";
 import { isProtectedFromRoleChange, USER_TYPES, type UserType } from "@/lib/permission";
 
 export interface UserAdminListItem {
@@ -10,7 +10,10 @@ export interface UserAdminListItem {
   mail: string;
   userType: string;
   disabled: boolean;
+  publisherId: number | null;
   publisherName: string | null;
+  writerId: number | null;
+  writerName: string | null;
 }
 
 /**
@@ -33,16 +36,17 @@ export async function getUserAdminList(page = 1, pageSize = 20, search = ""): Pr
   const safePage = Math.min(Math.max(1, page), lastPage);
 
   const rows = await db
-    .select({ id: user.id, username: user.username, mail: user.mail, userType: user.userType, disable: user.disable, publisherName: publisher.name })
+    .select({ id: user.id, username: user.username, mail: user.mail, userType: user.userType, disable: user.disable, publisherId: user.publisherId, publisherName: publisher.name, writerId: user.writerId, writerName: writer.name })
     .from(user)
     .leftJoin(publisher, eq(user.publisherId, publisher.id))
+    .leftJoin(writer, eq(user.writerId, writer.id))
     .where(whereClause)
     .orderBy(user.id)
     .limit(safeSize)
     .offset((safePage - 1) * safeSize);
 
   return {
-    items: rows.map((r) => ({ id: r.id, username: r.username, mail: r.mail, userType: r.userType, disabled: r.disable === 1, publisherName: r.publisherName })),
+    items: rows.map((r) => ({ id: r.id, username: r.username, mail: r.mail, userType: r.userType, disabled: r.disable === 1, publisherId: r.publisherId, publisherName: r.publisherName, writerId: r.writerId, writerName: r.writerName })),
     total,
     page: safePage,
     lastPage,

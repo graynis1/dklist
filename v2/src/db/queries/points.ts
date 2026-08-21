@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { pointTransaction, weeklyWinner, user, book, badges, userBadges, pointSetting } from "@/db/schema";
 import { currentISOWeek, getISOWeekRange } from "@/lib/iso-week";
 import { addNotification } from "@/db/queries/notifications";
+import { isUserPremium } from "@/db/queries/premium";
 
 /**
  * Gamification/engagement points - a customer-requested new feature (v1 has
@@ -31,6 +32,9 @@ export const POINT_VALUES = {
   dailyVisit: 2,
   messageReceived: 2,
   socialShare: 3,
+  // Yazarhane post (see yazarhane.ts) - same tier as blogPublished, both
+  // being real editorial-ish content contributions.
+  authorPost: 8,
 } as const;
 
 /**
@@ -191,6 +195,13 @@ export async function awardPoints(
  * the comment, submitting the rating) always still succeeds; this only
  * gates whether it ALSO earns points. Counts by `reason`, not `reasonKey`,
  * since reasonKey is unique per row by design (comment:<id>).
+ *
+ * Premium privilege (maintainer's own judgment call on the customer's
+ * unscoped "özel durumlara insiyatif" ask, see PLAN.md): Premium members
+ * skip the daily cap entirely. It's a real, meaningful perk for genuinely
+ * active members (the cap only ever bites someone posting a lot in one
+ * day) and costs nothing to grant - the spam risk the cap guards against
+ * is paid-membership-gated by definition, not free-to-abuse.
  */
 export async function awardPointsWithDailyCap(
   userId: number,
@@ -199,6 +210,11 @@ export async function awardPointsWithDailyCap(
   reasonKey: string,
   dailyCap: number,
 ): Promise<void> {
+  if (await isUserPremium(userId)) {
+    await awardPoints(userId, points, reason, reasonKey);
+    return;
+  }
+
   const [row] = await db
     .select({ count: sql<number>`count(*)` })
     .from(pointTransaction)

@@ -6,11 +6,12 @@ import { advertisementImageUrl } from "@/lib/image-urls";
  * for the placement, otherwise a simple image (optionally linked). Reads
  * auth() itself, so callers should wrap it in its own <Suspense> boundary
  * the same way AuthStatus/AdminNavLink do, to keep the rest of the page
- * prerenderable. */
-export async function AdSlot({ placement }: { placement: string }) {
+ * prerenderable. `contentLanguage` (e.g. a book's `lang`) enables content-
+ * language ad targeting - see getActiveAd()'s doc comment. */
+export async function AdSlot({ placement, contentLanguage }: { placement: string; contentLanguage?: string }) {
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const ad = await getActiveAd(placement, userId);
+  const ad = await getActiveAd(placement, userId, contentLanguage);
   if (!ad) return null;
 
   const image = (

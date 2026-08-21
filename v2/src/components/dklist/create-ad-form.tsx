@@ -29,6 +29,7 @@ export function CreateAdForm() {
     <form ref={formRef} action={submit} className="mb-6 flex flex-col gap-3 rounded-lg border border-border p-4">
       <h2 className="font-heading text-lg font-medium">Yeni Reklam Ekle</h2>
       <Input name="placement" placeholder="Yerleşim (örn: homepage-banner)" required />
+      <Input name="language" placeholder="Dil hedefleme (opsiyonel, örn: tr, en - boş = tüm diller)" />
       <Input name="linkUrl" placeholder="Bağlantı URL'si (opsiyonel)" />
       <Input type="number" name="sortOrder" placeholder="Sıra (küçük önce gösterilir)" defaultValue={0} />
       <input type="file" name="image" accept="image/png,image/jpeg,image/webp" required className="text-sm" />

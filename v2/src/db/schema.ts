@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, bigint, int, index, foreignKey, longtext, date, smallint, double, datetime, unique, tinyint } from "drizzle-orm/mysql-core"
+import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, bigint, int, index, foreignKey, longtext, date, smallint, double, datetime, unique, tinyint, text } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
 export const mergeBulkProgress = mysqlTable("_merge_bulk_progress", {
@@ -587,6 +587,9 @@ export const user = mysqlTable("user", {
 	id: int().autoincrement().notNull(),
 	readBooksId: int("read_books_id").references((): AnyMySqlColumn => read.id),
 	publisherId: int("publisher_id").references(() => publisher.id),
+	// Yazarhane - links a real "Yazar" member account to their actual
+	// catalog writer record, same 1:1 shape as publisherId above.
+	writerId: int("writer_id").references(() => writer.id),
 	username: varchar({ length: 50 }).notNull(),
 	password: varchar({ length: 255 }).notNull(),
 	mail: varchar({ length: 50 }).notNull(),
@@ -620,6 +623,19 @@ export const user = mysqlTable("user", {
 	unique("UNIQ_8D93D6495126AC48").on(table.mail),
 	unique("UNIQ_8D93D6495F37A13B").on(table.token),
 	unique("UNIQ_8D93D64940C86FCE").on(table.publisherId),
+	unique("UNIQ_user_writer_id").on(table.writerId),
+]);
+
+export const yazarhanePost = mysqlTable("yazarhane_post", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id),
+	title: varchar({ length: 255 }).notNull(),
+	content: text().notNull(),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "yazarhane_post_id" }),
+	index("idx_yazarhane_post_user").on(table.userId),
 ]);
 
 export const userBadges = mysqlTable("user_badges", {
@@ -800,6 +816,7 @@ export const premiumPurchase = mysqlTable("premium_purchase", {
 export const advertisement = mysqlTable("advertisement", {
 	id: int().autoincrement().notNull(),
 	placement: varchar({ length: 50 }).notNull(),
+	language: varchar({ length: 10 }),
 	image: varchar({ length: 255 }).notNull(),
 	linkUrl: varchar("link_url", { length: 500 }),
 	active: tinyint().notNull(),

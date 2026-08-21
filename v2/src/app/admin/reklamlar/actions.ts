@@ -11,13 +11,15 @@ export async function createAdAction(formData: FormData): Promise<{ status: bool
     const actor = await requireRole(ADMIN_ONLY);
     const image = formData.get("image");
     const placement = String(formData.get("placement") ?? "");
+    const language = String(formData.get("language") ?? "");
     await createAd({
       placement,
+      language,
       image: image instanceof File ? image : new File([], ""),
       linkUrl: String(formData.get("linkUrl") ?? ""),
       sortOrder: Number(formData.get("sortOrder") ?? 0),
     });
-    await logAdminAction(actor.id, "ad:create", "advertisement", undefined, placement);
+    await logAdminAction(actor.id, "ad:create", "advertisement", undefined, `${placement}${language ? ` (${language})` : ""}`);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Eklenemedi." };

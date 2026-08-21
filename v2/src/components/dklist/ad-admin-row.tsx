@@ -31,7 +31,7 @@ export function AdAdminRow({ ad }: { ad: AdAdminListItem }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={advertisementImageUrl(ad.image)} alt="" className="h-16 w-28 rounded-md border border-border object-cover" />
       <div className="flex-1">
-        <p className="font-medium">{ad.placement}</p>
+        <p className="font-medium">{ad.placement} {ad.language && <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-normal uppercase text-secondary-foreground">{ad.language}</span>}</p>
         <p className="text-xs text-muted-foreground">{ad.linkUrl || "Bağlantı yok"} · sıra: {ad.sortOrder}</p>
       </div>
       <span className={`rounded-full px-3 py-1 text-xs font-medium ${ad.active ? "bg-emerald-100 text-emerald-800" : "bg-muted text-muted-foreground"}`}>

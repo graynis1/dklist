@@ -29,6 +29,7 @@ import { getUserTotalPoints, isRecentlyActive } from "@/db/queries/points";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
 import { getTotalReadingMinutes } from "@/db/queries/reading-status";
+import { isUserPremium } from "@/db/queries/premium";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
   okudum: "Okudum",
@@ -92,6 +93,7 @@ async function ProfileContent({
     sharedReadBooks,
     readingScoreStats,
     totalReadingMinutes,
+    isPremium,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -108,6 +110,7 @@ async function ProfileContent({
     viewerId && !isOwnProfile ? getSharedReadBooks(viewerId, profile.id) : Promise.resolve([]),
     isOwnProfile ? getReadingScoreStats(profile.id, String(new Date().getFullYear())) : Promise.resolve(null),
     getTotalReadingMinutes(profile.id),
+    isUserPremium(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -128,6 +131,14 @@ async function ProfileContent({
                 className="inline-flex size-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white"
               >
                 ✓
+              </span>
+            )}
+            {isPremium && (
+              <span
+                title="DKList Premium üye"
+                className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-2 py-0.5 text-xs font-medium text-white"
+              >
+                ★ Premium
               </span>
             )}
           </h1>
