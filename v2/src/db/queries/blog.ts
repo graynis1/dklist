@@ -2,7 +2,7 @@ import "server-only";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
-import { desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { blog, user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
@@ -37,14 +37,46 @@ export interface BlogListItem {
 
 /**
  * v1's BlogController::getAll() (public-facing branch, not the admin-panel
- * one): approved-only, and skips posts whose owner is unverified or
- * disabled - the admin listing sees everything, but this is the public
- * /bloglar page's equivalent.
+ * one): approved-only, search (title/preview/content) + pagination like the
+ * real public BloglarSayfasi.js page has (a real search box + page numbers,
+ * not just an infinite top-N list), and skips posts whose owner is
+ * unverified or disabled - the admin listing sees everything, but this is
+ * the public /bloglar page's equivalent. `total`/`lastPage` are computed the
+ * same way v1's own `filteredCount` is - from the approved+search filter
+ * only, not accounting for the disabled-owner skip applied after the query -
+ * so, like v1, a page can legitimately render fewer rows than its own page
+ * size when some owners get filtered out; that's v1's real behavior, not a
+ * bug introduced here.
  */
-export async function getBlogList(limit = 20): Promise<BlogListItem[]> {
+export async function getBlogList(
+  page = 1,
+  pageSize = 10,
+  search = "",
+): Promise<{ items: BlogListItem[]; total: number; page: number; lastPage: number }> {
   "use cache";
   cacheLife("minutes");
+  // One shared tag across every page/search variant (rather than a tag per
+  // combination) - simpler, and a write invalidating the whole blog-list
+  // cache universe is a fine tradeoff against tracking every variant tag.
   cacheTag("blog-list");
+
+  const safeSize = Math.min(100, Math.max(1, pageSize));
+  const trimmedSearch = search.trim();
+  const whereClause = trimmedSearch
+    ? and(
+        eq(blog.approved, 1),
+        or(
+          like(blog.title, `%${trimmedSearch}%`),
+          like(blog.preview, `%${trimmedSearch}%`),
+          like(blog.content, `%${trimmedSearch}%`),
+        ),
+      )
+    : eq(blog.approved, 1);
+
+  const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(blog).where(whereClause);
+  const total = Number(countRow?.count ?? 0);
+  const lastPage = Math.max(1, Math.ceil(total / safeSize));
+  const effectivePage = Math.min(Math.max(1, page), lastPage);
 
   const rows = await db
     .select({
@@ -60,13 +92,13 @@ export async function getBlogList(limit = 20): Promise<BlogListItem[]> {
     })
     .from(blog)
     .leftJoin(user, eq(blog.ownerId, user.id))
-    .where(eq(blog.approved, 1))
+    .where(whereClause)
     .orderBy(desc(blog.id))
-    .limit(limit * 2); // over-fetch since some rows get filtered below, matching v1's continue-based skip
+    .limit(safeSize)
+    .offset((effectivePage - 1) * safeSize);
 
-  return rows
+  const items = rows
     .filter((r) => !r.ownerUsername || (r.ownerMailAuth && !r.ownerDisable))
-    .slice(0, limit)
     .map((r) => ({
       id: r.id,
       title: r.title,
@@ -76,6 +108,8 @@ export async function getBlogList(limit = 20): Promise<BlogListItem[]> {
       ownerUsername: r.ownerUsername,
       img: blogImageUrl(r.image),
     }));
+
+  return { items, total, page: effectivePage, lastPage };
 }
 
 export interface BlogDetail {
