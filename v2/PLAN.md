@@ -331,7 +331,11 @@ No existing automated test suite to extend. Verification is manual/operational, 
 
 ## Open items pending the customer/site owner (non-blocking)
 
-- "Yazarhane" — exact scope undefined.
-- Premium membership "özel durumlara insiyatif" — which special cases beyond ad-free.
-- Ad country/language targeting mechanism.
-- AI features' LLM hosting approach, given the no-paid-services constraint.
+- AI features' LLM hosting approach, given the no-paid-services constraint. (The only item still genuinely open - the other three below were resolved by the maintainer's own explicit instruction, not left pending.)
+
+**All three items below were RESOLVED (2026-08-21, committed `5272623`)** per the maintainer's explicit instruction to build them out with my own judgment rather than wait indefinitely on a customer answer:
+- ~~"Yazarhane" — exact scope undefined.~~ Built as a real author-member (userType='Yazar') content hub, optionally linked 1:1 to their catalog `writer` record (migration 0014: `user.writer_id` + `yazarhane_post`). `/yazarhane` index + `/yazarhane/[username]` hub, posts earn points, writer catalog page links to the linked member's hub.
+- ~~Premium membership "özel durumlara insiyatif" — which special cases beyond ad-free.~~ Chose 3 concrete privileges: no daily point-earning cap, featured/priority Askıda Kitap listings with an "Öne Çıkan" badge, a visual Premium badge on the profile (next to, not replacing, the verified checkmark).
+- ~~Ad country/language targeting mechanism.~~ Built as CONTENT-language targeting (migration 0013: `advertisement.language`), not visitor-GEO (which would need a paid IP-geolocation service) - an ad can target a language or stay universal (NULL); wired into a new book-page ad slot using the book's own `lang`.
+
+Also found and fixed a real pre-existing gap while wiring the writer-link admin control: `updateUserPublisherAction` already existed but had no UI anywhere calling it - built one shared `EntityLinkControl` and fixed both the publisher-link and new writer-link gaps at once.
