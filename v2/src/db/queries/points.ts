@@ -3,6 +3,7 @@ import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { pointTransaction, weeklyWinner, user, book, badges, userBadges, pointSetting } from "@/db/schema";
 import { currentISOWeek, getISOWeekRange } from "@/lib/iso-week";
+import { isDuplicateKeyError } from "@/lib/db-errors";
 import { addNotification } from "@/db/queries/notifications";
 import { isUserPremium } from "@/db/queries/premium";
 
@@ -140,8 +141,7 @@ async function checkMilestoneBadges(userId: number): Promise<void> {
     try {
       await db.insert(userBadges).values({ userId, badgesId: badgeId });
     } catch (err) {
-      const message = (err as Error).message ?? "";
-      if (!message.includes("PRIMARY") && !message.includes("Duplicate entry")) throw err;
+      if (!isDuplicateKeyError(err)) throw err;
       continue; // already has this badge - not a new award, no notification
     }
 
@@ -177,8 +177,7 @@ export async function awardPoints(
     // Duplicate reasonKey for this user = already awarded for this exact
     // action instance (e.g. toggling "okudum" off then back on for the same
     // book) - silently a no-op, not an error the caller needs to see.
-    const message = (err as Error).message ?? "";
-    if (!message.includes("uq_point_transaction_user_reason_key") && !message.includes("Duplicate entry")) {
+    if (!isDuplicateKeyError(err, "uq_point_transaction_user_reason_key")) {
       throw err;
     }
     return; // not a new award - no new points earned, so no milestone re-check needed

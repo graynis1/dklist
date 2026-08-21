@@ -2,6 +2,7 @@ import "server-only";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { readingList, readingListBook, book, user, writerBook, writer } from "@/db/schema";
+import { isDuplicateKeyError } from "@/lib/db-errors";
 
 /**
  * Kürasyonlu okuma listeleri (Letterboxd "Lists" style) - fifth item from
@@ -96,8 +97,7 @@ export async function addBookToList(listId: number, ownerId: number, bookId: num
   try {
     await db.insert(readingListBook).values({ listId, bookId, sortOrder: nextSort, addedAt: nowSql() });
   } catch (err) {
-    const message = (err as Error).message ?? "";
-    if (message.includes("uniq_reading_list_book") || message.includes("Duplicate entry")) return; // already in the list, not an error
+    if (isDuplicateKeyError(err, "uniq_reading_list_book")) return; // already in the list, not an error
     throw err;
   }
 }

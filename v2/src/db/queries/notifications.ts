@@ -3,6 +3,7 @@ import { updateTag } from "next/cache";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { dknotifiaction, user } from "@/db/schema";
+import { publishUserEvent } from "@/lib/event-bus";
 
 /**
  * v1's NotifyManager::addNotification() (the actual user-facing notification
@@ -44,6 +45,7 @@ export async function addNotification(
 
   updateTag(`notifications:${ownerUserId}`);
   updateTag(`unread-notifications:${ownerUserId}`);
+  publishUserEvent(ownerUserId, "notification");
 }
 
 export interface NotificationItem {

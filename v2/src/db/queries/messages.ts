@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { chat, message, user, book, store, storePicture, follow } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { publishUserEvent } from "@/lib/event-bus";
 
 async function userFollows(followerId: number, followedId: number): Promise<boolean> {
   const [row] = await db
@@ -447,6 +448,8 @@ export async function sendMessage(
   if (chatJustCreated) {
     await awardPoints(receiverId, (await getPointSettings()).messageReceived, "message_received", `message_received:${chatRow.id}`);
   }
+
+  publishUserEvent(receiverId, "message");
 
   return { id: msgResult.insertId, text: trimmed, senderId, createdAt: now, type: effectiveType, attachment };
 }

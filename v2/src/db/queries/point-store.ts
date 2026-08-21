@@ -3,6 +3,7 @@ import { asc, eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { pointReward, pointRedemption, user } from "@/db/schema";
 import { getUserTotalPoints, awardPoints } from "@/db/queries/points";
+import { isDuplicateKeyError } from "@/lib/db-errors";
 
 function nowSql(): string {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -63,8 +64,7 @@ export async function redeemReward(userId: number, rewardId: number): Promise<{ 
   try {
     await db.insert(pointRedemption).values({ userId, rewardId, redeemedAt: nowSql() });
   } catch (err) {
-    const message = (err as Error).message ?? "";
-    if (message.includes("uniq_point_redemption_user_reward") || message.includes("Duplicate entry")) {
+    if (isDuplicateKeyError(err, "uniq_point_redemption_user_reward")) {
       return { status: false, message: "Bu ödülü zaten aldınız." };
     }
     throw err;
