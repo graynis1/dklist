@@ -54,6 +54,9 @@ async function EditProfileContent({
       <Link href="/profil/engellenenler" className="text-sm text-muted-foreground hover:underline">
         Engellenen Kullanıcılar →
       </Link>
+      <a href="/api/veri-indir" className="text-sm text-muted-foreground hover:underline">
+        Verilerimi İndir (KVKK) →
+      </a>
       <Card>
       <CardHeader>
         <CardTitle className="font-heading text-2xl">Profili Düzenle</CardTitle>
