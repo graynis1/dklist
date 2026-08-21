@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { mergeWorks } from "@/db/queries/merge";
 import { requireRole, hasRole, USER_TYPES } from "@/lib/permission";
+import { logAdminAction } from "@/db/queries/admin-log";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +21,9 @@ const MERGE_ALLOWED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
 async function merge(formData: FormData) {
   "use server";
+  let actor: { id: number };
   try {
-    await requireRole(MERGE_ALLOWED_ROLES);
+    actor = await requireRole(MERGE_ALLOWED_ROLES);
   } catch (err) {
     redirect(`/admin/merge?error=${encodeURIComponent((err as Error).message)}`);
   }
@@ -29,6 +31,9 @@ async function merge(formData: FormData) {
   const duplicateId = Number(formData.get("duplicateWorkId"));
   const canonicalId = Number(formData.get("canonicalWorkId"));
   const result = await mergeWorks(duplicateId, canonicalId);
+  if (result.status) {
+    await logAdminAction(actor.id, "work:merge", "work", canonicalId, `absorbed work ${duplicateId} (${result.reassignedBooks} books)`);
+  }
   redirect(
     result.status
       ? `/admin/merge?ok=1&reassigned=${result.reassignedBooks}`

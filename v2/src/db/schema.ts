@@ -734,6 +734,21 @@ export const pointSetting = mysqlTable("point_setting", {
 	primaryKey({ columns: [table.settingKey], name: "point_setting_setting_key" }),
 ]);
 
+export const adminActionLog = mysqlTable("admin_action_log", {
+	id: int().autoincrement().notNull(),
+	actorUserId: int("actor_user_id").notNull(),
+	action: varchar({ length: 50 }).notNull(),
+	targetType: varchar("target_type", { length: 50 }),
+	targetId: varchar("target_id", { length: 100 }),
+	detail: varchar({ length: 500 }),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "admin_action_log_id" }),
+	index("idx_admin_action_log_actor").on(table.actorUserId),
+	index("idx_admin_action_log_created").on(table.createdAt),
+]);
+
 export const youtube = mysqlTable("youtube", {
 	id: int().autoincrement().notNull(),
 	title: varchar({ length: 255 }).notNull(),

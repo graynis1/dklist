@@ -9,6 +9,7 @@ import {
   deleteBlogPost,
   setBlogApproval,
 } from "@/db/queries/blog";
+import { logAdminAction } from "@/db/queries/admin-log";
 
 // v1's own comment on this permission set: Mod/Admin couldn't originally
 // post either, which is why the admin panel's Blog table had no way to add
@@ -83,10 +84,15 @@ export async function approveBlogAction(
   blogId: number,
   approve: boolean,
 ): Promise<{ status: boolean; message?: string }> {
+  let actor;
   try {
-    await requireRole(BLOG_APPROVE_ROLES);
+    actor = await requireRole(BLOG_APPROVE_ROLES);
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
-  return setBlogApproval(blogId, approve);
+  const result = await setBlogApproval(blogId, approve);
+  if (result.status) {
+    await logAdminAction(actor.id, approve ? "blog:approve" : "blog:reject", "blog", blogId);
+  }
+  return result;
 }

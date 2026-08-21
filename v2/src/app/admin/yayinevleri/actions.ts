@@ -2,13 +2,16 @@
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import { createPublisher, updatePublisherName, deletePublisher } from "@/db/queries/publisher-admin";
+import { logAdminAction } from "@/db/queries/admin-log";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 
 export async function createPublisherAction(formData: FormData): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(ADMIN_ONLY);
-    await createPublisher(String(formData.get("name") ?? ""));
+    const actor = await requireRole(ADMIN_ONLY);
+    const name = String(formData.get("name") ?? "");
+    await createPublisher(name);
+    await logAdminAction(actor.id, "publisher:create", "publisher", undefined, name);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Yayınevi eklenemedi." };
@@ -17,8 +20,9 @@ export async function createPublisherAction(formData: FormData): Promise<{ statu
 
 export async function updatePublisherNameAction(publisherId: number, newName: string): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(ADMIN_ONLY);
+    const actor = await requireRole(ADMIN_ONLY);
     await updatePublisherName(publisherId, newName);
+    await logAdminAction(actor.id, "publisher:update", "publisher", publisherId, newName);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
@@ -34,8 +38,9 @@ export async function updatePublisherNameAction(publisherId: number, newName: st
  */
 export async function deletePublisherAction(publisherId: number): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(ADMIN_ONLY);
+    const actor = await requireRole(ADMIN_ONLY);
     await deletePublisher(publisherId);
+    await logAdminAction(actor.id, "publisher:delete", "publisher", publisherId, "cascades to its books");
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Silinemedi." };

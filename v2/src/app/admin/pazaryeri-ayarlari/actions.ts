@@ -2,12 +2,13 @@
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import { updateMarketplaceSettings } from "@/db/queries/marketplace-settings";
+import { logAdminAction } from "@/db/queries/admin-log";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 
 export async function updateMarketplaceSettingsAction(formData: FormData): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(ADMIN_ONLY);
+    const actor = await requireRole(ADMIN_ONLY);
     const active = formData.get("active") === "on";
     const commissionRate = Number(formData.get("commissionRate") ?? 5);
     const iyzicoApiKey = String(formData.get("iyzicoApiKey") ?? "").trim();
@@ -24,6 +25,7 @@ export async function updateMarketplaceSettingsAction(formData: FormData): Promi
       iyzicoSecretKey: iyzicoSecretKey ? iyzicoSecretKey : undefined,
       iyzicoBaseUrl: iyzicoBaseUrl || undefined,
     });
+    await logAdminAction(actor.id, "settings:marketplace-update", "marketplace_settings", undefined, `active=${active}`);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };

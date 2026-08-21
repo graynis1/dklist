@@ -3,6 +3,7 @@
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import { updateUserRole, toggleUserDisabled, updateUserPublisher } from "@/db/queries/user-admin";
 import { deleteUserAccount } from "@/db/queries/user-delete";
+import { logAdminAction } from "@/db/queries/admin-log";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 // v1's real deleteUserAdmin() passes an EMPTY permission allow-list -
@@ -16,8 +17,9 @@ const SUPERADMIN_ONLY: (typeof USER_TYPES)[keyof typeof USER_TYPES][] = [];
 
 export async function updateUserRoleAction(userId: number, newUserType: string): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(ADMIN_ONLY);
+    const actor = await requireRole(ADMIN_ONLY);
     await updateUserRole(userId, newUserType);
+    await logAdminAction(actor.id, "user:role-change", "user", userId, `-> ${newUserType}`);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
@@ -26,8 +28,9 @@ export async function updateUserRoleAction(userId: number, newUserType: string):
 
 export async function toggleUserDisabledAction(userId: number): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(ADMIN_ONLY);
+    const actor = await requireRole(ADMIN_ONLY);
     await toggleUserDisabled(userId);
+    await logAdminAction(actor.id, "user:disable-toggle", "user", userId);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
@@ -36,8 +39,9 @@ export async function toggleUserDisabledAction(userId: number): Promise<{ status
 
 export async function updateUserPublisherAction(userId: number, publisherId: number | null): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(ADMIN_ONLY);
+    const actor = await requireRole(ADMIN_ONLY);
     await updateUserPublisher(userId, publisherId);
+    await logAdminAction(actor.id, "user:publisher-link", "user", userId, `publisher=${publisherId ?? "none"}`);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
@@ -46,8 +50,9 @@ export async function updateUserPublisherAction(userId: number, publisherId: num
 
 export async function deleteUserAccountAction(userId: number): Promise<{ status: boolean; message?: string }> {
   try {
-    await requireRole(SUPERADMIN_ONLY);
+    const actor = await requireRole(SUPERADMIN_ONLY);
     await deleteUserAccount(userId);
+    await logAdminAction(actor.id, "user:delete-account", "user", userId);
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Silinemedi." };
