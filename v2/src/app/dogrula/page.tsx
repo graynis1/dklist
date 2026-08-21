@@ -35,10 +35,14 @@ async function VerifyForm({
   return (
     <form action={verifyMailAction} className="flex flex-col gap-4">
       <input type="hidden" name="userId" value={typeof userId === "string" ? userId : ""} />
-      {devCode && (
+      {devCode ? (
         <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
-          E-posta gönderimi henüz bağlanmadı - geliştirme modunda doğrulama
+          E-posta gönderimi yapılandırılmamış - geliştirme modunda doğrulama
           kodunuz: <strong>{devCode}</strong>
+        </p>
+      ) : (
+        <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
+          Doğrulama kodu e-posta adresinize gönderildi.
         </p>
       )}
       <Input name="code" placeholder="Doğrulama kodu" required maxLength={5} />

@@ -31,13 +31,13 @@ async function ResetForm({
 }: {
   searchParams: PageProps<"/sifre-sifirla">["searchParams"];
 }) {
-  const { userId, devCode, newPassword, error } = await searchParams;
+  const { userId, devCode, newPassword, mailSent, error } = await searchParams;
 
   if (typeof newPassword === "string") {
     return (
       <div className="flex flex-col gap-4">
         <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
-          E-posta gönderimi henüz bağlanmadı - geliştirme modunda yeni
+          E-posta gönderimi yapılandırılmamış - geliştirme modunda yeni
           şifreniz: <strong>{newPassword}</strong>
           <br />
           Bu şifreyi bir daha göremeyeceksiniz, giriş yaptıktan sonra
@@ -50,13 +50,30 @@ async function ResetForm({
     );
   }
 
+  if (mailSent === "1") {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
+          Yeni şifreniz e-posta adresinize gönderildi.
+        </p>
+        <Button render={<Link href="/giris" />} className="w-full">
+          Giriş Yap
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form action={confirmPasswordResetAction} className="flex flex-col gap-4">
       <input type="hidden" name="userId" value={typeof userId === "string" ? userId : ""} />
-      {devCode && (
+      {devCode ? (
         <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
-          E-posta gönderimi henüz bağlanmadı - geliştirme modunda sıfırlama
+          E-posta gönderimi yapılandırılmamış - geliştirme modunda sıfırlama
           kodunuz: <strong>{devCode}</strong>
+        </p>
+      ) : (
+        <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
+          Sıfırlama kodu e-posta adresinize gönderildi.
         </p>
       )}
       <Input name="code" placeholder="Sıfırlama kodu" required maxLength={5} />

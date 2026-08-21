@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
+import { isMailConfigured, sendVerificationEmail, sendPasswordResetEmail, sendNewPasswordEmail } from "@/lib/mailer";
 
 const TOKEN_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -35,6 +36,7 @@ export interface RegisterInput {
 export interface RegisterResult {
   userId: number;
   verificationCode: string;
+  mailSent: boolean;
 }
 
 /**
@@ -43,14 +45,12 @@ export interface RegisterResult {
  * name/surname/username/mail is NOT ported here - a real but lower-priority
  * gap, noted rather than silently skipped (see PLAN.md).
  *
- * v1 emails the verification code via MyMailer/Brevo SMTP; v2 has no mail
- * transport wired up yet (the real Brevo credentials are a production
- * secret documented in the maintainer's local memory, not something to pull
- * into this dev session unasked). Real email delivery is deliberately
- * deferred - the code is returned here instead so registration is still
- * fully testable end-to-end, and login itself (see auth.ts) does not gate on
- * mailAuth the way v1's bearer-token flow did, so this doesn't block real
- * usage in the meantime.
+ * v1 emails the verification code via MyMailer/Brevo SMTP - v2 now does too
+ * (src/lib/mailer.ts, same Brevo account). `mailSent` tells the caller
+ * whether to show the code on-screen as a fallback (isMailConfigured()
+ * false - e.g. a fresh clone with no .env.local) so registration stays fully
+ * testable without mail. Login itself (see auth.ts) still doesn't gate on
+ * mailAuth the way v1's bearer-token flow did.
  */
 export async function registerUser(input: RegisterInput): Promise<RegisterResult> {
   const { name, surname, username, mail, birthDate, password, sex } = input;
@@ -101,7 +101,12 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
     pendingCode: verificationCode,
   });
 
-  return { userId: result.insertId, verificationCode };
+  const mailSent = isMailConfigured();
+  if (mailSent) {
+    await sendVerificationEmail(mail, username, verificationCode);
+  }
+
+  return { userId: result.insertId, verificationCode, mailSent };
 }
 
 export async function verifyMailCode(userId: number, code: string): Promise<void> {
@@ -121,14 +126,15 @@ export async function verifyMailCode(userId: number, code: string): Promise<void
 export interface ResetPasswordRequestResult {
   userId: number;
   resetCode: string;
+  mailSent: boolean;
 }
 
 /** v1's resetPasswordRequest() accepts either a username or an email as the
  * target - matched here via the same OR lookup, then generates a reset
- * code. Same "real email deferred" note as registerUser() above applies. */
+ * code and emails it via the same Brevo transport as registerUser(). */
 export async function requestPasswordReset(target: string): Promise<ResetPasswordRequestResult> {
   const [row] = await db
-    .select({ id: user.id })
+    .select({ id: user.id, username: user.username, mail: user.mail })
     .from(user)
     .where(or(eq(user.username, target), eq(user.mail, target)))
     .limit(1);
@@ -140,20 +146,28 @@ export async function requestPasswordReset(target: string): Promise<ResetPasswor
   const resetCode = generateToken(5);
   await db.update(user).set({ pendingCode: resetCode }).where(eq(user.id, row.id));
 
-  return { userId: row.id, resetCode };
+  const mailSent = isMailConfigured();
+  if (mailSent) {
+    await sendPasswordResetEmail(row.mail, row.username, resetCode);
+  }
+
+  return { userId: row.id, resetCode, mailSent };
+}
+
+export interface ConfirmPasswordResetResult {
+  newPassword: string;
+  mailSent: boolean;
 }
 
 /**
  * v1's resetPassword() generates a random NEW password and emails it to the
  * user (rather than letting them pick one) - an unusual but deliberate v1
- * design, matched here. Since real email is deferred (see registerUser()),
- * the new plaintext password is returned directly instead so the reset flow
- * is still fully usable - shown once to the user, never logged or stored in
- * plaintext.
+ * design, matched here, now including the real email send. `mailSent` tells
+ * the caller whether to also show the password on-screen as a fallback.
  */
-export async function confirmPasswordReset(userId: number, code: string): Promise<string> {
+export async function confirmPasswordReset(userId: number, code: string): Promise<ConfirmPasswordResetResult> {
   const [row] = await db
-    .select({ pendingCode: user.pendingCode })
+    .select({ pendingCode: user.pendingCode, username: user.username, mail: user.mail })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
@@ -173,5 +187,10 @@ export async function confirmPasswordReset(userId: number, code: string): Promis
     })
     .where(eq(user.id, userId));
 
-  return newPassword;
+  const mailSent = isMailConfigured();
+  if (mailSent) {
+    await sendNewPasswordEmail(row.mail, row.username, newPassword);
+  }
+
+  return { newPassword, mailSent };
 }
