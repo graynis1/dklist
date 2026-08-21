@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user } from "@/db/schema";
 
@@ -102,4 +102,57 @@ export async function getBookReaders(bookId: number, limit = 12): Promise<BookRe
     .innerJoin(user, eq(read.userId, user.id))
     .where(eq(read.bookId, bookId))
     .limit(limit);
+}
+
+/** Total distinct readers (any status), for the "X okur" stat - 1000kitap
+ * style book-level statistics the customer asked for. Cheap and indexed
+ * (read.book_id already has IDX_9857416716A2B381), unlike the rank query
+ * below which is a deliberate, bounded exception to this project's usual
+ * "avoid COUNT(*) on huge tables" caution. */
+export async function getBookReaderCount(bookId: number): Promise<number> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`book-readers:${bookId}`);
+
+  const [row] = await db.select({ n: sql<number>`count(*)` }).from(read).where(eq(read.bookId, bookId));
+  return Number(row?.n ?? 0);
+}
+
+export interface BookCategoryRank {
+  categoryName: string;
+  rank: number;
+  totalInCategory: number;
+}
+
+/**
+ * "Rank vs similar books" (customer's ask, 1000kitap-style) - rank by score
+ * within the book's first listed category. A real, deliberate exception to
+ * this project's usual "avoid COUNT(*) on huge tables" rule (book has
+ * ~98.5M rows on prod) - `book_category` is indexed on `category_id`
+ * already, and this is the same category-scoped aggregate shape
+ * `getTopCategories()` already accepts across ALL categories at once, just
+ * narrowed to one. Genuinely large categories could still make this slow on
+ * prod - worth revisiting with a real EXPLAIN against prod data before this
+ * ships, same caution applied to every other hot-path query this session.
+ */
+export async function getBookCategoryRank(
+  bookId: number,
+  categoryId: number,
+  categoryName: string,
+  score: number,
+): Promise<BookCategoryRank> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`book-rank:${bookId}`);
+
+  const [[higher], [total]] = await Promise.all([
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(bookCategory)
+      .innerJoin(book, eq(bookCategory.bookId, book.id))
+      .where(and(eq(bookCategory.categoryId, categoryId), gt(book.score, score))),
+    db.select({ n: sql<number>`count(*)` }).from(bookCategory).where(eq(bookCategory.categoryId, categoryId)),
+  ]);
+
+  return { categoryName, rank: Number(higher?.n ?? 0) + 1, totalInCategory: Number(total?.n ?? 0) };
 }

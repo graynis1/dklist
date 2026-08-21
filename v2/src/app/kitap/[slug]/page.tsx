@@ -15,7 +15,7 @@ import { LikeButton } from "@/components/dklist/like-button";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { ShareButton } from "@/components/dklist/share-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getBookBySlug, getBookReaders } from "@/db/queries/book-detail";
+import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating } from "@/db/queries/rating";
@@ -84,6 +84,8 @@ async function BookDetailContent({
     liked,
     likeCount,
     readers,
+    readerCount,
+    categoryRank,
   ] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
@@ -93,6 +95,10 @@ async function BookDetailContent({
     userId ? isBookLiked(userId, detail.id) : Promise.resolve(false),
     getBookLikeCount(detail.id),
     getBookReaders(detail.id),
+    getBookReaderCount(detail.id),
+    detail.categories.length > 0
+      ? getBookCategoryRank(detail.id, detail.categories[0].id, detail.categories[0].name, detail.score)
+      : Promise.resolve(null),
   ]);
 
   const quotes = await getBookComments(detail.id, "alinti");
@@ -187,6 +193,16 @@ async function BookDetailContent({
               {detail.pageNumber > 0 && (
                 <span className="text-muted-foreground">
                   · {detail.pageNumber} sayfa
+                </span>
+              )}
+              {readerCount > 0 && (
+                <span className="text-muted-foreground">
+                  · {readerCount.toLocaleString("tr-TR")} okur
+                </span>
+              )}
+              {categoryRank && categoryRank.totalInCategory > 1 && (
+                <span className="text-muted-foreground">
+                  · {categoryRank.categoryName} kategorisinde {categoryRank.rank}. sırada ({categoryRank.totalInCategory.toLocaleString("tr-TR")} kitap arasında)
                 </span>
               )}
             </div>
