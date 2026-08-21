@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageThread } from "@/components/dklist/message-thread";
+import { ConversationItem } from "@/components/dklist/conversation-item";
 import { auth } from "@/auth";
 import { getConversations, getMessages } from "@/db/queries/messages";
 import { getProfileByUsername } from "@/db/queries/profile";
@@ -63,28 +64,11 @@ async function MessagesContent({
           <p className="p-4 text-sm text-muted-foreground">Henüz bir konuşman yok.</p>
         ) : (
           conversations.map((c) => (
-            <Link
+            <ConversationItem
               key={c.otherUserId}
-              href={`/mesajlar?user=${c.otherUsername}`}
-              className={`flex items-center gap-3 p-3 transition-colors hover:bg-accent ${
-                c.otherUsername === activeUsername ? "bg-accent" : ""
-              }`}
-            >
-              <Avatar className="size-9 text-sm">
-                <AvatarFallback>{c.otherUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-sm font-medium">@{c.otherUsername}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {c.lastMessagePreview ?? ""}
-                </span>
-              </div>
-              {c.unreadCount > 0 && (
-                <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                  {c.unreadCount > 9 ? "9+" : c.unreadCount}
-                </span>
-              )}
-            </Link>
+              conversation={c}
+              isActive={c.otherUsername === activeUsername}
+            />
           ))
         )}
       </div>

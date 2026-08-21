@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { sendMessageAction, fetchThreadAction } from "@/app/mesajlar/actions";
+import { sendMessageAction, fetchThreadAction, deleteMessageAction } from "@/app/mesajlar/actions";
 import type { MessageItem } from "@/db/queries/messages";
 
 /**
@@ -47,6 +47,13 @@ export function MessageThread({
     return () => clearInterval(interval);
   }, [otherUsername]);
 
+  function removeMessage(id: number) {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+    startTransition(async () => {
+      await deleteMessageAction(id);
+    });
+  }
+
   function submit() {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -72,7 +79,17 @@ export function MessageThread({
             {messages.map((m) => {
               const mine = m.senderId === currentUserId;
               return (
-                <li key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <li key={m.id} className={`group flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
+                  {mine && (
+                    <button
+                      type="button"
+                      onClick={() => removeMessage(m.id)}
+                      className="text-xs text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                      aria-label="Mesajı sil"
+                    >
+                      ✕
+                    </button>
+                  )}
                   <span
                     className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
                       mine ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
