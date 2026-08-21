@@ -38,6 +38,7 @@ const ADMIN_TOOLS: { href: string; label: string; description: string; roles: Us
   { href: "/admin/aktivite-gunlugu", label: "Aktivite Günlüğü", description: "Mod/Kütüphaneci/Admin yetkili işlemlerin denetim kaydı, kişi başına sayım", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
   { href: "/admin/puan-magazasi", label: "Puan Mağazası", description: "Kullanıcıların puan harcayarak alabileceği profil çerçeveleri", roles: [USER_TYPES.Admin] },
   { href: "/admin/ayin-kitabi", label: "Ayın Kitabı", description: "Topluluk okuma etkinliği için ayın kitabını belirle", roles: [USER_TYPES.Admin] },
+  { href: "/admin/haftalik-ozet", label: "Haftalık E-posta Özeti", description: "Kullanıcılara haftalık puan/bildirim özeti e-postası gönder", roles: [USER_TYPES.Admin] },
 ];
 
 export default function AdminIndexPage() {

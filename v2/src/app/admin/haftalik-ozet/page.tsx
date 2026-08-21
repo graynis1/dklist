@@ -1,0 +1,39 @@
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { hasRole, USER_TYPES } from "@/lib/permission";
+import { SiteHeader } from "@/components/dklist/site-header";
+import { SectionLabel } from "@/components/dklist/star-rating";
+import { SendDigestButton } from "@/components/dklist/send-digest-button";
+
+const ADMIN_ONLY = [USER_TYPES.Admin];
+
+export default function AdminWeeklyDigestPage() {
+  return (
+    <div className="flex-1 bg-background">
+      <SiteHeader />
+      <Suspense fallback={<div className="mx-auto max-w-lg px-6 py-16" />}>
+        <AdminWeeklyDigestContent />
+      </Suspense>
+    </div>
+  );
+}
+
+async function AdminWeeklyDigestContent() {
+  const session = await auth();
+  if (!session?.user) redirect("/giris");
+  if (!hasRole(session.user.userType, ADMIN_ONLY)) redirect("/");
+
+  return (
+    <div className="mx-auto max-w-lg px-6 py-16">
+      <div className="mb-8 flex flex-col gap-2">
+        <SectionLabel>Yönetim</SectionLabel>
+        <h1 className="font-heading text-3xl font-medium tracking-tight">Haftalık E-posta Özeti</h1>
+        <p className="text-sm text-muted-foreground">
+          Her kullanıcıya bu haftaki puan/sıralama, okunmamış bildirim sayısı ve ayın kitabını içeren bir özet e-postası gönder. Raporlanacak hiçbir şeyi olmayan kullanıcılar atlanır. Gerçek üretimde bu, bir VPS crontab&apos;ının <code>/api/cron/weekly-digest</code> uç noktasını haftalık tetiklemesiyle otomatik çalışır - bu buton manuel/test amaçlıdır.
+        </p>
+      </div>
+      <SendDigestButton />
+    </div>
+  );
+}
