@@ -41,6 +41,9 @@ async function AdminUsersContent({
 
   const { items, total, lastPage } = await getUserAdminList(page, 20, search);
   const canMutate = hasRole(session.user.userType, [USER_TYPES.Admin]);
+  // hasRole(type, []) is only ever true for SuperAdmin - matches v1's real
+  // deleteUserAdmin() gate (an empty allow-list) exactly.
+  const canDelete = hasRole(session.user.userType, []);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -67,7 +70,7 @@ async function AdminUsersContent({
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((u) => (
-            <UserAdminRow key={u.id} user={u} canMutate={canMutate} />
+            <UserAdminRow key={u.id} user={u} canMutate={canMutate} canDelete={canDelete} />
           ))}
         </ul>
       )}

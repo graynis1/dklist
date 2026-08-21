@@ -7,12 +7,24 @@ import { ROLE_LABELS, USER_TYPES, type UserType } from "@/lib/roles";
 import {
   updateUserRoleAction,
   toggleUserDisabledAction,
+  deleteUserAccountAction,
 } from "@/app/admin/kullanicilar/actions";
 import type { UserAdminListItem } from "@/db/queries/user-admin";
 
 const ASSIGNABLE_ROLES = Object.values(USER_TYPES).filter((t) => t !== USER_TYPES.SuperAdmin) as UserType[];
 
-export function UserAdminRow({ user, canMutate = true }: { user: UserAdminListItem; canMutate?: boolean }) {
+export function UserAdminRow({
+  user,
+  canMutate = true,
+  canDelete = false,
+}: {
+  user: UserAdminListItem;
+  canMutate?: boolean;
+  /** Full account deletion is SuperAdmin-only (matches v1's real
+   * deleteUserAdmin() gate exactly) - stricter than canMutate, which
+   * covers role/disable/publisher changes an ordinary Admin can do. */
+  canDelete?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +43,16 @@ export function UserAdminRow({ user, canMutate = true }: { user: UserAdminListIt
     startTransition(async () => {
       const result = await toggleUserDisabledAction(user.id);
       if (!result.status) setError(result.message ?? "Güncellenemedi.");
+      else router.refresh();
+    });
+  }
+
+  function deleteAccount() {
+    if (!window.confirm(`${user.username} hesabını kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteUserAccountAction(user.id);
+      if (!result.status) setError(result.message ?? "Silinemedi.");
       else router.refresh();
     });
   }
@@ -71,6 +93,12 @@ export function UserAdminRow({ user, canMutate = true }: { user: UserAdminListIt
       <Button variant="outline" size="sm" disabled={isPending || !canMutate} onClick={toggleDisabled}>
         {user.disabled ? "Aktif Et" : "Devre Dışı Bırak"}
       </Button>
+
+      {canDelete && (
+        <Button variant="ghost" size="sm" className="text-destructive" disabled={isPending} onClick={deleteAccount}>
+          Hesabı Sil
+        </Button>
+      )}
     </li>
   );
 }
