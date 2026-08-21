@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/dklist/site-footer";
 import { MobileBottomNav } from "@/components/dklist/mobile-bottom-nav";
 import { SitePopupModal } from "@/components/dklist/site-popup-modal";
 import { DailyVisitTracker } from "@/components/dklist/daily-visit-tracker";
+import { PwaRegister } from "@/components/dklist/pwa-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <MobileBottomNav />
           <SitePopupModal />
           <DailyVisitTracker />
+          <PwaRegister />
         </ThemeProvider>
       </body>
     </html>
