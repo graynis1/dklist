@@ -27,7 +27,7 @@ import {
   getSharedReadBooks,
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
-import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap } from "@/db/queries/points";
+import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap, getUserActivityStreak } from "@/db/queries/points";
 import { ActivityHeatmap } from "@/components/dklist/activity-heatmap";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
@@ -99,6 +99,7 @@ async function ProfileContent({
     isPremium,
     activityHeatmap,
     viewerHasBlocked,
+    activityStreak,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -118,6 +119,7 @@ async function ProfileContent({
     isUserPremium(profile.id),
     getUserActivityHeatmap(profile.id),
     viewerId && !isOwnProfile ? isBlockedByMe(viewerId, profile.id) : Promise.resolve(false),
+    getUserActivityStreak(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -255,6 +257,11 @@ async function ProfileContent({
         <>
       {activityHeatmap.length > 0 && (
         <div className="mb-6">
+          {activityStreak > 0 && (
+            <p className="mb-2 text-sm font-medium">
+              🔥 {activityStreak} gün üst üste aktif
+            </p>
+          )}
           <ActivityHeatmap days={activityHeatmap} />
         </div>
       )}

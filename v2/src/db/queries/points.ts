@@ -322,6 +322,47 @@ export async function getUserActivityHeatmap(userId: number, days = 365): Promis
   return rows.map((r) => ({ date: r.date, count: Number(r.count) }));
 }
 
+/**
+ * Current consecutive-day activity streak, reusing the same
+ * point_transaction-as-activity-proxy reasoning as the heatmap above (no
+ * new tracking infra). Duolingo-style one-day grace: if today has no
+ * activity yet, the streak isn't shown as broken until yesterday is also
+ * empty - otherwise every streak would read as "reset" for any user who
+ * simply hasn't done anything yet today.
+ *
+ * "Today" is read from MySQL's own CURDATE() rather than JS's `new Date()`
+ * - the same class of bug already found and fixed once this session (the
+ * 2FA code expiry check): the app server's local timezone and MySQL's
+ * session timezone aren't guaranteed to agree, and getUserActivityHeatmap's
+ * dates are computed by MySQL's `DATE()`, so "today" must come from the
+ * same authority or a real off-by-one-day mismatch appears right at
+ * midnight in whichever timezone differs. The cursor is then only ever
+ * manipulated via UTC-safe Date methods on a fixed calendar date (never a
+ * live "now" instant), purely for day-arithmetic, not as a clock reading.
+ */
+export async function getUserActivityStreak(userId: number): Promise<number> {
+  const [days, todayResult] = await Promise.all([
+    getUserActivityHeatmap(userId, 400),
+    db.execute(sql`SELECT CURDATE() AS today`),
+  ]);
+  const activeDates = new Set(days.filter((d) => d.count > 0).map((d) => d.date));
+  const today = ((todayResult[0] as unknown as { today: string }[])[0]).today;
+
+  const cursor = new Date(`${today}T00:00:00Z`);
+  const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
+
+  if (!activeDates.has(toDateStr(cursor))) {
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  let streak = 0;
+  while (activeDates.has(toDateStr(cursor))) {
+    streak++;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return streak;
+}
+
 export interface LeaderboardEntry {
   userId: number;
   username: string;
