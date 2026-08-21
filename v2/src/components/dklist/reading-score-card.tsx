@@ -50,9 +50,13 @@ export function ReadingScoreCard({ username, stats }: { username: string; stats:
     ctx.lineTo(SIZE - 70, 210);
     ctx.stroke();
 
+    const hours = Math.floor(stats.totalMinutes / 60);
+    const mins = stats.totalMinutes % 60;
+
     const rows: [string, string][] = [
       ["Okunan Kitap", String(stats.booksRead)],
       ["Toplam Sayfa", stats.totalPages.toLocaleString("tr-TR")],
+      ...(stats.totalMinutes > 0 ? ([["Okuma Süresi", `${hours} sa ${mins} dk`]] as [string, string][]) : []),
       ["En Çok Okunan Kategori", stats.topCategory ?? "—"],
       ["En Çok Okunan Yazar", stats.topWriter ?? "—"],
     ];

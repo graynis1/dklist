@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import {
   setReadStatus,
   clearReadStatus,
+  addReadingMinutes,
   type ReadStatus,
   type DropReason,
 } from "@/db/queries/reading-status";
@@ -55,6 +56,23 @@ export async function clearReadStatusAction(bookId: number): Promise<ActionResul
   }
   await clearReadStatus(Number(session.user.id), bookId);
   return { status: true };
+}
+
+export async function addReadingMinutesAction(
+  bookId: number,
+  minutes: number,
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+
+  try {
+    await addReadingMinutes(Number(session.user.id), bookId, minutes);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
 }
 
 export async function rateBookAction(

@@ -68,6 +68,40 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   }
 }
 
+/**
+ * Customer's "general reading-time tracking also wanted" (tacked onto the
+ * dropped-status ask, easy to miss - caught on a second, closer pass of the
+ * requirements). No session/timer infra exists or is planned - a manual
+ * "log N minutes" entry is the honest minimal version, cumulative on the
+ * existing `read` row. Creates an "okuyorum" row if none exists yet
+ * (logging time implies active reading), otherwise just adds to whatever
+ * status/year is already there rather than overwriting it.
+ */
+export async function addReadingMinutes(userId: number, bookId: number, minutes: number): Promise<void> {
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+    throw new Error("Dakika 1 ile 1440 arasında olmalıdır.");
+  }
+
+  const year = String(new Date().getFullYear());
+  await db
+    .insert(read)
+    .values({ userId, bookId, status: "okuyorum", year, minutesRead: minutes })
+    .onDuplicateKeyUpdate({ set: { minutesRead: sql`${read.minutesRead} + ${minutes}` } });
+
+  updateTag(`profile-books:${userId}`);
+  updateTag(`reading-minutes:${userId}`);
+}
+
+/** Lifetime (or single-year) total, for the profile page and the DKList
+ * Reading Score card's "Okuma Süresi" stat. */
+export async function getTotalReadingMinutes(userId: number, year?: string): Promise<number> {
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum(${read.minutesRead}), 0)` })
+    .from(read)
+    .where(year ? and(eq(read.userId, userId), eq(read.year, year)) : eq(read.userId, userId));
+  return Number(row?.total ?? 0);
+}
+
 export async function clearReadStatus(userId: number, bookId: number): Promise<void> {
   await db.delete(read).where(and(eq(read.userId, userId), eq(read.bookId, bookId)));
   updateTag(`book-drop-stats:${bookId}`);

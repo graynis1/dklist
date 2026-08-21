@@ -28,6 +28,7 @@ import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
 import { getUserTotalPoints, isRecentlyActive } from "@/db/queries/points";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
+import { getTotalReadingMinutes } from "@/db/queries/reading-status";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
   okudum: "Okudum",
@@ -90,6 +91,7 @@ async function ProfileContent({
     veteranTier,
     sharedReadBooks,
     readingScoreStats,
+    totalReadingMinutes,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -105,6 +107,7 @@ async function ProfileContent({
     isRecentlyActive(profile.id),
     viewerId && !isOwnProfile ? getSharedReadBooks(viewerId, profile.id) : Promise.resolve([]),
     isOwnProfile ? getReadingScoreStats(profile.id, String(new Date().getFullYear())) : Promise.resolve(null),
+    getTotalReadingMinutes(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -140,6 +143,14 @@ async function ProfileContent({
             <Link href="/puan-tablosu" className="hover:underline">
               <strong className="text-foreground">{totalPoints}</strong> puan
             </Link>
+            {totalReadingMinutes > 0 && (
+              <span>
+                <strong className="text-foreground">
+                  {Math.floor(totalReadingMinutes / 60)} sa {totalReadingMinutes % 60} dk
+                </strong>{" "}
+                okuma süresi
+              </span>
+            )}
           </div>
           {(userBadges.length > 0 || veteranTier) && (
             <div className="flex flex-wrap gap-1.5">
@@ -223,7 +234,7 @@ async function ProfileContent({
               .join(", ")}
           </p>
         )}
-        {isOwnProfile && readingScoreStats && readingScoreStats.booksRead > 0 && (
+        {isOwnProfile && readingScoreStats && (readingScoreStats.booksRead > 0 || readingScoreStats.totalMinutes > 0) && (
           <div className="mt-2">
             <ReadingScoreCard username={profile.username} stats={readingScoreStats} />
           </div>

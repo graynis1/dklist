@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   setReadStatusAction,
   clearReadStatusAction,
+  addReadingMinutesAction,
 } from "@/app/kitap/[slug]/actions";
 import {
   READ_STATUSES,
@@ -38,7 +39,21 @@ export function ReadStatusControl({
   const [showDropForm, setShowDropForm] = useState(false);
   const [dropReason, setDropReason] = useState<DropReason>(DROP_REASONS[0]);
   const [dropPercentage, setDropPercentage] = useState(35);
+  const [minutesInput, setMinutesInput] = useState("30");
+  const [minutesLogged, setMinutesLogged] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function logMinutes() {
+    const minutes = Number(minutesInput);
+    if (!Number.isInteger(minutes) || minutes < 1) return;
+    startTransition(async () => {
+      const result = await addReadingMinutesAction(bookId, minutes);
+      if (result.status) {
+        setMinutesLogged(minutes);
+        if (!current) setCurrent({ status: "okuyorum", dropReason: null, dropPercentage: null });
+      }
+    });
+  }
 
   if (!signedIn) {
     return (
@@ -104,6 +119,25 @@ export function ReadStatusControl({
           <Button size="sm" variant="ghost" disabled={isPending} onClick={clear}>
             Kaldır
           </Button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-muted-foreground">Okuma süresi ekle:</span>
+        <Input
+          type="number"
+          min={1}
+          max={1440}
+          value={minutesInput}
+          onChange={(e) => setMinutesInput(e.target.value)}
+          className="w-20"
+        />
+        <span className="text-muted-foreground">dakika</span>
+        <Button size="sm" variant="outline" disabled={isPending} onClick={logMinutes}>
+          Ekle
+        </Button>
+        {minutesLogged !== null && (
+          <span className="text-xs text-muted-foreground">{minutesLogged} dk eklendi ✓</span>
         )}
       </div>
 

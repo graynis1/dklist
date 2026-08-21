@@ -511,6 +511,7 @@ export interface ReadingScoreStats {
   year: string;
   booksRead: number;
   totalPages: number;
+  totalMinutes: number;
   topCategory: string | null;
   topWriter: string | null;
 }
@@ -521,23 +522,24 @@ export interface ReadingScoreStats {
  * has a partial version (a Canvas-drawn share card for the yearly reading
  * goal, see project_dklist_blog_revision_and_deferred_features memory) -
  * this expands the underlying stats it draws from, not a from-scratch
- * feature. Deliberately does NOT include "hours read" or "countries of
- * authors read" or a day-level "reading streak" from the customer's fuller
- * wishlist - `read` has no per-day timestamp (only a `year` column) and
- * `writer` has no country column at all, so those three specific stats
- * aren't honestly computable from the current schema without new columns;
- * left out rather than faked, same as this session's other documented
- * scope calls.
+ * feature. "Hours read" was originally left out as not honestly computable -
+ * now sourced from `read.minutesRead` (the customer's separately-stated
+ * "general reading-time tracking also wanted", manually logged per book) -
+ * still deliberately excludes "countries of authors read" and a day-level
+ * "reading streak": `writer` has no country column at all, and reading-time
+ * is logged cumulatively per book, not per calendar day, so a real streak
+ * still isn't computable without further schema/UX changes.
  */
 export async function getReadingScoreStats(userId: number, year: string): Promise<ReadingScoreStats> {
   const readRows = await db
-    .select({ bookId: read.bookId })
+    .select({ bookId: read.bookId, status: read.status, minutesRead: read.minutesRead })
     .from(read)
-    .where(and(eq(read.userId, userId), eq(read.status, "okudum"), eq(read.year, year)));
+    .where(and(eq(read.userId, userId), eq(read.year, year)));
 
-  const bookIds = readRows.map((r) => r.bookId);
+  const totalMinutes = readRows.reduce((sum, r) => sum + r.minutesRead, 0);
+  const bookIds = readRows.filter((r) => r.status === "okudum").map((r) => r.bookId);
   if (bookIds.length === 0) {
-    return { year, booksRead: 0, totalPages: 0, topCategory: null, topWriter: null };
+    return { year, booksRead: 0, totalPages: 0, totalMinutes, topCategory: null, topWriter: null };
   }
 
   const [pagesResult, topCategoryResult, topWriterResult] = await Promise.all([
@@ -564,6 +566,7 @@ export async function getReadingScoreStats(userId: number, year: string): Promis
     year,
     booksRead: bookIds.length,
     totalPages: Number(pagesResult[0]?.total ?? 0),
+    totalMinutes,
     topCategory: topCategoryResult[0]?.name ?? null,
     topWriter: topWriterResult[0]?.name ?? null,
   };

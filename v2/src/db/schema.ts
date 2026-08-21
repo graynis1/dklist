@@ -297,6 +297,10 @@ export const read = mysqlTable("read", {
 	// status is the dropped value.
 	dropReason: varchar("drop_reason", { length: 30 }),
 	dropPercentage: tinyint("drop_percentage", { unsigned: true }),
+	// Customer's "general reading-time tracking also wanted" - manually
+	// logged, cumulative minutes spent on this book (no session/timer infra
+	// exists or is planned).
+	minutesRead: int("minutes_read").notNull().default(0),
 	year: varchar({ length: 4 }).notNull(),
 },
 (table) => [
