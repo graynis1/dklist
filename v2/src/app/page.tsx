@@ -9,6 +9,7 @@ import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { getLatestBooks, getTopCategories, getTopBooks, getRecommendedBooks } from "@/db/queries/books";
 import { getTopReaders, getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
+import { getCurrentBookOfMonth } from "@/db/queries/book-of-month";
 import { getRecentBookActivity } from "@/db/queries/activity";
 import { HashtagText } from "@/components/dklist/hashtag-text";
 import { currentISOWeek } from "@/lib/iso-week";
@@ -251,6 +252,33 @@ async function WeeklyLeaderWidget() {
         </Link>
       ))}
     </div>
+  );
+}
+
+async function BookOfMonthWidget() {
+  const current = await getCurrentBookOfMonth();
+  if (!current) {
+    return <p className="text-sm text-muted-foreground">Şu anda belirlenmiş bir ayın kitabı yok.</p>;
+  }
+
+  return (
+    <Link
+      href={`/kitap/${current.bookSlug}`}
+      className="flex max-w-lg items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10"
+    >
+      <BookCover
+        title={current.bookName}
+        author={current.writers.join(", ") || "Yazar bilinmiyor"}
+        tone={toneForId(current.bookId)}
+        size="sm"
+        className="w-16 shrink-0"
+      />
+      <div>
+        <p className="text-xs font-medium text-primary">{current.periodLabel.toUpperCase()}</p>
+        <p className="font-medium">{current.bookName}</p>
+        <p className="text-sm text-muted-foreground">{current.participantCount} kişi katılıyor</p>
+      </div>
+    </Link>
   );
 }
 
@@ -648,6 +676,28 @@ export default function Home() {
 
         <Suspense fallback={<WeeklyLeaderSkeleton />}>
           <WeeklyLeaderWidget />
+        </Suspense>
+      </section>
+
+      <Separator />
+
+      {/* "Ayın Kitabı" - community-read pick, sixth item from the "what else
+          could be added" brainstorm list. */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex items-center justify-between gap-2">
+          <div className="flex flex-col gap-2">
+            <SectionLabel>Topluluk</SectionLabel>
+            <h2 className="font-heading text-3xl font-medium tracking-tight">
+              Ayın Kitabı
+            </h2>
+          </div>
+          <Link href="/ayin-kitabi" className="text-sm text-muted-foreground underline hover:text-foreground">
+            Tümünü Gör
+          </Link>
+        </div>
+
+        <Suspense fallback={<WeeklyLeaderSkeleton />}>
+          <BookOfMonthWidget />
         </Suspense>
       </section>
 

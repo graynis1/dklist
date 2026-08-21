@@ -685,6 +685,30 @@ export const readingListBook = mysqlTable("reading_list_book", {
 	unique("uniq_reading_list_book").on(table.listId, table.bookId),
 ]);
 
+export const bookOfMonth = mysqlTable("book_of_month", {
+	id: int().autoincrement().notNull(),
+	bookId: int("book_id").notNull().references(() => book.id),
+	periodLabel: varchar("period_label", { length: 50 }).notNull(),
+	startsAt: date("starts_at", { mode: 'string' }).notNull(),
+	active: tinyint().notNull().default(1),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "book_of_month_id" }),
+	index("idx_book_of_month_active").on(table.active),
+]);
+
+export const bookOfMonthParticipant = mysqlTable("book_of_month_participant", {
+	id: int().autoincrement().notNull(),
+	bookOfMonthId: int("book_of_month_id").notNull().references(() => bookOfMonth.id),
+	userId: int("user_id").notNull().references(() => user.id),
+	joinedAt: datetime("joined_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "book_of_month_participant_id" }),
+	unique("uniq_bom_participant").on(table.bookOfMonthId, table.userId),
+]);
+
 export const yazarhanePost = mysqlTable("yazarhane_post", {
 	id: int().autoincrement().notNull(),
 	userId: int("user_id").notNull().references(() => user.id),
