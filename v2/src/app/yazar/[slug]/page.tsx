@@ -201,6 +201,7 @@ async function WriterContent({
       </h2>
       <EntityComments
         signedIn={Boolean(userId)}
+        viewerId={userId ?? undefined}
         initialComments={comments}
         initialRepliesByComment={repliesByCommentObj}
         commentLikes={commentLikes}
@@ -217,6 +218,7 @@ async function WriterContent({
       </h2>
       <EntityComments
         signedIn={Boolean(userId)}
+        viewerId={userId ?? undefined}
         initialComments={quotes}
         initialRepliesByComment={repliesByQuoteObj}
         commentLikes={quoteLikes}

@@ -6,6 +6,7 @@ import type { BookComment, CommentReply, SubCommentParentType } from "@/db/queri
 import type { CommentLikeState } from "@/db/queries/comment-likes";
 import { toggleCommentLikeAction } from "@/actions/comment-likes";
 import { reportCommentAction } from "@/actions/notices";
+import { updateCommentAction, deleteCommentAction, updateSubCommentAction, deleteSubCommentAction } from "@/actions/comment-edit";
 import { ShareButton } from "@/components/dklist/share-button";
 import { HashtagText } from "@/components/dklist/hashtag-text";
 import { QuoteCard } from "@/components/dklist/quote-card";
@@ -153,25 +154,87 @@ function ShareCommentForm({
   );
 }
 
+/** Inline edit textarea shared by both comments and replies - swaps in
+ * for the plain text display when the author chooses to edit. */
+function EditForm({
+  initialText,
+  onCancel,
+  onSubmit,
+}: {
+  initialText: string;
+  onCancel: () => void;
+  onSubmit: (text: string) => void;
+}) {
+  const [text, setText] = useState(initialText);
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <form
+      action={() => {
+        if (text.trim().length < 2) return;
+        startTransition(() => onSubmit(text));
+      }}
+      className="flex flex-col gap-2"
+    >
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        required
+        minLength={2}
+        maxLength={2000}
+        rows={2}
+        className="w-full rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-ring"
+      />
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={isPending}>
+          Kaydet
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+          Vazgeç
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function ReplyItem({
   reply,
   canReply,
+  viewerId,
   onReply,
+  onEdit,
+  onDelete,
 }: {
   reply: CommentReply;
   canReply: boolean;
+  viewerId?: number;
   onReply: (parentType: SubCommentParentType, parentId: number, text: string) => void;
+  onEdit: (replyId: number, text: string) => void;
+  onDelete: (replyId: number) => void;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const isOwn = viewerId !== undefined && reply.authorUserId === viewerId;
 
   return (
     <li className="flex flex-col gap-1 border-l-2 border-border pl-3">
       <div className="flex items-center gap-2 text-sm">
         <span className="font-medium">@{reply.authorUsername}</span>
       </div>
-      <p className="text-sm leading-relaxed"><HashtagText text={reply.text} /></p>
+      {editing ? (
+        <EditForm
+          initialText={reply.text}
+          onCancel={() => setEditing(false)}
+          onSubmit={(text) => {
+            onEdit(reply.id, text);
+            setEditing(false);
+          }}
+        />
+      ) : (
+        <p className="text-sm leading-relaxed"><HashtagText text={reply.text} /></p>
+      )}
       <div className="flex items-center gap-3">
-        {canReply && (
+        {canReply && !editing && (
           <button
             type="button"
             onClick={() => setShowForm((s) => !s)}
@@ -180,7 +243,28 @@ function ReplyItem({
             Yanıtla
           </button>
         )}
-        <ReportCommentButton commentId={reply.id} parentType="subComment" />
+        {isOwn && !editing ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
+              Düzenle
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Bu yanıtı silmek istediğinizden emin misiniz?")) onDelete(reply.id);
+              }}
+              className="w-fit text-xs text-muted-foreground hover:text-destructive hover:underline"
+            >
+              Sil
+            </button>
+          </>
+        ) : (
+          !editing && <ReportCommentButton commentId={reply.id} parentType="subComment" />
+        )}
       </div>
       {showForm && (
         <ReplyForm
@@ -194,7 +278,7 @@ function ReplyItem({
       {reply.replies.length > 0 && (
         <ul className="mt-2 flex flex-col gap-3">
           {reply.replies.map((nested) => (
-            <ReplyItem key={nested.id} reply={nested} canReply={false} onReply={onReply} />
+            <ReplyItem key={nested.id} reply={nested} canReply={false} viewerId={viewerId} onReply={onReply} onEdit={onEdit} onDelete={onDelete} />
           ))}
         </ul>
       )}
@@ -212,6 +296,7 @@ function ReplyItem({
  */
 export function EntityComments({
   signedIn,
+  viewerId,
   initialComments,
   initialRepliesByComment,
   commentLikes,
@@ -224,6 +309,10 @@ export function EntityComments({
   quoteCardSource,
 }: {
   signedIn: boolean;
+  /** The signed-in viewer's own user id, used only to decide whether to
+   * show "Düzenle"/"Sil" on a given comment/reply - undefined when
+   * signed out (no edit/delete controls render at all). */
+  viewerId?: number;
   initialComments: BookComment[];
   initialRepliesByComment: Record<number, CommentReply[]>;
   commentLikes: Record<number, CommentLikeState>;
@@ -251,8 +340,77 @@ export function EntityComments({
   const [error, setError] = useState<string | null>(null);
   const [replyFormFor, setReplyFormFor] = useState<number | null>(null);
   const [shareFormFor, setShareFormFor] = useState<number | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+
+  function submitEditComment(commentId: number, text: string) {
+    startTransition(async () => {
+      const result = await updateCommentAction(commentId, text);
+      if (result.status) {
+        setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, text } : c)));
+        setEditingCommentId(null);
+      } else {
+        setError(result.message ?? "Düzenlenemedi.");
+      }
+    });
+  }
+
+  function submitDeleteComment(commentId: number) {
+    startTransition(async () => {
+      const result = await deleteCommentAction(commentId);
+      if (result.status) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+        setRepliesByComment((prev) => {
+          const next = { ...prev };
+          delete next[commentId];
+          return next;
+        });
+      } else {
+        setError(result.message ?? "Silinemedi.");
+      }
+    });
+  }
+
+  function editReplyInTree(replies: CommentReply[], replyId: number, text: string): CommentReply[] {
+    return replies.map((r) =>
+      r.id === replyId ? { ...r, text } : { ...r, replies: editReplyInTree(r.replies, replyId, text) },
+    );
+  }
+
+  function deleteReplyFromTree(replies: CommentReply[], replyId: number): CommentReply[] {
+    return replies
+      .filter((r) => r.id !== replyId)
+      .map((r) => ({ ...r, replies: deleteReplyFromTree(r.replies, replyId) }));
+  }
+
+  function submitEditReply(commentId: number, replyId: number, text: string) {
+    startTransition(async () => {
+      const result = await updateSubCommentAction(replyId, text);
+      if (result.status) {
+        setRepliesByComment((prev) => ({
+          ...prev,
+          [commentId]: editReplyInTree(prev[commentId] ?? [], replyId, text),
+        }));
+      } else {
+        setError(result.message ?? "Düzenlenemedi.");
+      }
+    });
+  }
+
+  function submitDeleteReply(commentId: number, replyId: number) {
+    startTransition(async () => {
+      const result = await deleteSubCommentAction(replyId);
+      if (result.status) {
+        setRepliesByComment((prev) => ({
+          ...prev,
+          [commentId]: deleteReplyFromTree(prev[commentId] ?? [], replyId),
+        }));
+      } else {
+        setError(result.message ?? "Silinemedi.");
+      }
+    });
+  }
 
   function submitShare(original: BookComment, commentary: string) {
     startTransition(async () => {
@@ -264,6 +422,7 @@ export function EntityComments({
             text: commentary,
             date: new Date().toISOString().slice(0, 10),
             authorUsername: "siz",
+            authorUserId: viewerId ?? -1,
             sharedFrom: { authorUsername: original.authorUsername, text: original.text },
           },
           ...prev,
@@ -289,6 +448,7 @@ export function EntityComments({
             text,
             date: new Date().toISOString().slice(0, 10),
             authorUsername: "siz",
+            authorUserId: viewerId ?? -1,
             sharedFrom: null,
           },
           ...prev,
@@ -307,6 +467,7 @@ export function EntityComments({
           id: result.replyId!,
           text,
           authorUsername: "siz",
+          authorUserId: viewerId ?? -1,
           parentType,
           parentId,
           replies: [],
@@ -366,6 +527,8 @@ export function EntityComments({
         <ul className="flex flex-col gap-4">
           {comments.map((c) => {
             const replies = repliesByComment[c.id] ?? [];
+            const isOwn = viewerId !== undefined && c.authorUserId === viewerId;
+            const isEditing = editingCommentId === c.id;
             return (
               <li key={c.id} className="flex flex-col gap-1 border-b border-border pb-4">
                 <div className="flex items-center gap-2 text-sm">
@@ -380,37 +543,66 @@ export function EntityComments({
                     </p>
                   </div>
                 )}
-                {c.text && (
-                  <p className="text-sm leading-relaxed"><HashtagText text={c.text} /></p>
-                )}
-                <div className="flex items-center gap-3">
-                  <CommentLikeButton
-                    commentId={c.id}
-                    signedIn={signedIn}
-                    initialState={commentLikes[c.id] ?? { count: 0, liked: false }}
+                {isEditing ? (
+                  <EditForm
+                    initialText={c.text}
+                    onCancel={() => setEditingCommentId(null)}
+                    onSubmit={(text) => submitEditComment(c.id, text)}
                   />
-                  {signedIn && (
-                    <button
-                      type="button"
-                      onClick={() => setReplyFormFor((cur) => (cur === c.id ? null : c.id))}
-                      className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
-                    >
-                      Yanıtla
-                    </button>
-                  )}
-                  {signedIn && !c.sharedFrom && (
-                    <button
-                      type="button"
-                      onClick={() => setShareFormFor((cur) => (cur === c.id ? null : c.id))}
-                      className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
-                    >
-                      Paylaş
-                    </button>
-                  )}
-                  <ReportCommentButton commentId={c.id} parentType="comment" />
-                  <ShareButton content={c.text} />
-                </div>
-                {quoteCardSource && <QuoteCard quoteText={c.text} sourceName={quoteCardSource} />}
+                ) : (
+                  c.text && <p className="text-sm leading-relaxed"><HashtagText text={c.text} /></p>
+                )}
+                {!isEditing && (
+                  <div className="flex items-center gap-3">
+                    <CommentLikeButton
+                      commentId={c.id}
+                      signedIn={signedIn}
+                      initialState={commentLikes[c.id] ?? { count: 0, liked: false }}
+                    />
+                    {signedIn && (
+                      <button
+                        type="button"
+                        onClick={() => setReplyFormFor((cur) => (cur === c.id ? null : c.id))}
+                        className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        Yanıtla
+                      </button>
+                    )}
+                    {signedIn && !c.sharedFrom && (
+                      <button
+                        type="button"
+                        onClick={() => setShareFormFor((cur) => (cur === c.id ? null : c.id))}
+                        className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        Paylaş
+                      </button>
+                    )}
+                    {isOwn ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setEditingCommentId(c.id)}
+                          className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
+                        >
+                          Düzenle
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm("Bu yorumu silmek istediğinizden emin misiniz?")) submitDeleteComment(c.id);
+                          }}
+                          className="w-fit text-xs text-muted-foreground hover:text-destructive hover:underline"
+                        >
+                          Sil
+                        </button>
+                      </>
+                    ) : (
+                      <ReportCommentButton commentId={c.id} parentType="comment" />
+                    )}
+                    <ShareButton content={c.text} />
+                  </div>
+                )}
+                {quoteCardSource && !isEditing && <QuoteCard quoteText={c.text} sourceName={quoteCardSource} />}
                 {replyFormFor === c.id && (
                   <ReplyForm
                     onCancel={() => setReplyFormFor(null)}
@@ -430,9 +622,12 @@ export function EntityComments({
                         key={reply.id}
                         reply={reply}
                         canReply={signedIn}
+                        viewerId={viewerId}
                         onReply={(parentType, parentId, text) =>
                           submitReply(c.id, parentType, parentId, text)
                         }
+                        onEdit={(replyId, text) => submitEditReply(c.id, replyId, text)}
+                        onDelete={(replyId) => submitDeleteReply(c.id, replyId)}
                       />
                     ))}
                   </ul>

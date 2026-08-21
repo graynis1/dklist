@@ -174,6 +174,7 @@ async function TranslatorContent({
       </h2>
       <EntityComments
         signedIn={Boolean(userId)}
+        viewerId={userId ?? undefined}
         initialComments={comments}
         initialRepliesByComment={repliesByCommentObj}
         commentLikes={commentLikes}
@@ -190,6 +191,7 @@ async function TranslatorContent({
       </h2>
       <EntityComments
         signedIn={Boolean(userId)}
+        viewerId={userId ?? undefined}
         initialComments={quotes}
         initialRepliesByComment={repliesByQuoteObj}
         commentLikes={quoteLikes}

@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { comment, subComment, user } from "@/db/schema";
+import { comment, subComment, user, commentLike } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
 import { autoFlagComment } from "@/db/queries/notices";
@@ -30,6 +30,7 @@ export interface BookComment {
   text: string;
   date: string;
   authorUsername: string;
+  authorUserId: number;
   sharedFrom: SharedFromInfo | null;
 }
 
@@ -54,6 +55,7 @@ export async function getEntityComments(
       text: comment.comment,
       date: comment.date,
       authorUsername: user.username,
+      authorUserId: user.id,
       sharedFromCommentId: comment.sharedFromCommentId,
     })
     .from(comment)
@@ -249,6 +251,7 @@ export interface CommentReply {
   id: number;
   text: string;
   authorUsername: string;
+  authorUserId: number;
   parentType: SubCommentParentType;
   parentId: number;
   replies: CommentReply[];
@@ -273,6 +276,7 @@ export async function getRepliesForComments(
       id: subComment.id,
       text: subComment.comment,
       authorUsername: user.username,
+      authorUserId: user.id,
       parentId: subComment.parentId,
     })
     .from(subComment)
@@ -294,6 +298,7 @@ export async function getRepliesForComments(
           id: subComment.id,
           text: subComment.comment,
           authorUsername: user.username,
+          authorUserId: user.id,
           parentId: subComment.parentId,
         })
         .from(subComment)
@@ -354,4 +359,86 @@ export async function addSubComment(
   // "subComment" - so this is always the subComment case for flagging.
   await autoFlagComment(result.insertId, "subComment", findFlaggedWords(trimmed));
   return result.insertId;
+}
+
+/**
+ * Yorum düzenleme/silme (edit/delete your own comment) - a real gap: v2
+ * had zero self-service edit or delete for comments/quotes/replies, only
+ * the admin/mod report-then-moderate path. Re-runs the same auto-flag
+ * check on an edit (a genuinely bad edit deserves the same protection a
+ * new post gets).
+ */
+export async function updateComment(userId: number, commentId: number, newText: string): Promise<void> {
+  const trimmed = newText.trim();
+  if (trimmed.length < 2) throw new Error("Yorum en az 2 karakter olmalıdır.");
+  if (trimmed.length > 2000) throw new Error("Yorum en fazla 2000 karakter olabilir.");
+
+  const [row] = await db
+    .select({ userId: comment.userId, targetId: comment.targetId, type: comment.type, commentType: comment.commentType })
+    .from(comment)
+    .where(eq(comment.id, commentId))
+    .limit(1);
+  if (!row) throw new Error("Yorum bulunamadı.");
+  if (row.userId !== userId) throw new Error("Bu yorumu düzenleme yetkiniz yok.");
+
+  await db.update(comment).set({ comment: trimmed }).where(eq(comment.id, commentId));
+  updateTag(`${row.type}-comments:${row.targetId}:${row.commentType}`);
+  if (row.type === "book") updateTag("recent-book-activity");
+  await autoFlagComment(commentId, "comment", findFlaggedWords(trimmed));
+}
+
+/**
+ * Cascades manually (no DB-level CASCADE on these FKs, matching this
+ * project's established convention): comment_like has a real FK so it
+ * must go first, and both reply levels (no FK, but an orphaned reply to a
+ * deleted comment makes no sense to keep - deleted outright, same
+ * reasoning as deleteUserAccount's cascade choices).
+ */
+export async function deleteComment(userId: number, commentId: number): Promise<void> {
+  const [row] = await db
+    .select({ userId: comment.userId, targetId: comment.targetId, type: comment.type, commentType: comment.commentType })
+    .from(comment)
+    .where(eq(comment.id, commentId))
+    .limit(1);
+  if (!row) throw new Error("Yorum bulunamadı.");
+  if (row.userId !== userId) throw new Error("Bu yorumu silme yetkiniz yok.");
+
+  await db.delete(commentLike).where(eq(commentLike.commentId, commentId));
+
+  const level1 = await db
+    .select({ id: subComment.id })
+    .from(subComment)
+    .where(and(eq(subComment.parentType, "comment"), eq(subComment.parentId, commentId)));
+  const level1Ids = level1.map((r) => r.id);
+  if (level1Ids.length > 0) {
+    await db.delete(subComment).where(and(eq(subComment.parentType, "subComment"), inArray(subComment.parentId, level1Ids)));
+  }
+  await db.delete(subComment).where(and(eq(subComment.parentType, "comment"), eq(subComment.parentId, commentId)));
+  await db.delete(comment).where(eq(comment.id, commentId));
+
+  updateTag(`${row.type}-comments:${row.targetId}:${row.commentType}`);
+  if (row.type === "book") updateTag("recent-book-activity");
+}
+
+export async function updateSubComment(userId: number, subCommentId: number, newText: string): Promise<void> {
+  const trimmed = newText.trim();
+  if (trimmed.length < 2) throw new Error("Yanıt en az 2 karakter olmalıdır.");
+  if (trimmed.length > 2000) throw new Error("Yanıt en fazla 2000 karakter olabilir.");
+
+  const [row] = await db.select({ userId: subComment.userId }).from(subComment).where(eq(subComment.id, subCommentId)).limit(1);
+  if (!row) throw new Error("Yanıt bulunamadı.");
+  if (row.userId !== userId) throw new Error("Bu yanıtı düzenleme yetkiniz yok.");
+
+  await db.update(subComment).set({ comment: trimmed }).where(eq(subComment.id, subCommentId));
+  await autoFlagComment(subCommentId, "subComment", findFlaggedWords(trimmed));
+}
+
+export async function deleteSubComment(userId: number, subCommentId: number): Promise<void> {
+  const [row] = await db.select({ userId: subComment.userId }).from(subComment).where(eq(subComment.id, subCommentId)).limit(1);
+  if (!row) throw new Error("Yanıt bulunamadı.");
+  if (row.userId !== userId) throw new Error("Bu yanıtı silme yetkiniz yok.");
+
+  // Its own children (level-2 replies, if this was a level-1 reply).
+  await db.delete(subComment).where(and(eq(subComment.parentType, "subComment"), eq(subComment.parentId, subCommentId)));
+  await db.delete(subComment).where(eq(subComment.id, subCommentId));
 }
