@@ -1,9 +1,10 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { store, storeFavorite, storePicture, user, book } from "@/db/schema";
+import { store, storeFavorite, storePicture, user, book, read } from "@/db/schema";
 import { saveUploadedImage } from "@/lib/image-upload";
-import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { awardPoints, getPointSettings, resolveSystemSenderId } from "@/db/queries/points";
+import { addNotification } from "@/db/queries/notifications";
 
 /**
  * Askıda Kitap (Phase 3 marketplace) - ported from StoreController.php.
@@ -333,7 +334,40 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
 
   await awardPoints(ownerId, (await getPointSettings()).storeListing, "store_listing", `store_listing:${storeId}`);
 
+  if (input.bookId) await notifyWishlistersOfNewListing(input.bookId, ownerId);
+
   return slug;
+}
+
+/** Customer wishlist-adjacent idea: a user who has a book marked "okuyacağım"
+ * (want to read) gets told the moment a secondhand copy is listed, instead
+ * of having to keep re-checking the book's page. Only fires for listings
+ * actually linked to a catalog book (input.bookId) - free-text listings
+ * with no bookId have nothing to match against. Notifies with the book's
+ * own name, not the seller's free-text listing title. */
+async function notifyWishlistersOfNewListing(bookId: number, listingOwnerId: number): Promise<void> {
+  const wishlisters = await db
+    .select({ userId: read.userId })
+    .from(read)
+    .where(and(eq(read.bookId, bookId), eq(read.status, "okuyacagim")));
+
+  if (wishlisters.length === 0) return;
+
+  const [bookRow] = await db.select({ name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
+  if (!bookRow) return;
+
+  const senderId = await resolveSystemSenderId();
+  if (!senderId) return;
+
+  for (const { userId } of wishlisters) {
+    if (userId === listingOwnerId) continue;
+    await addNotification(
+      userId,
+      senderId,
+      `Okuma listendeki "${bookRow.name}" için yeni bir ikinci el ilan var.`,
+      `A secondhand listing appeared for "${bookRow.name}", a book on your want-to-read list.`,
+    );
+  }
 }
 
 export interface BookStoreListing {
