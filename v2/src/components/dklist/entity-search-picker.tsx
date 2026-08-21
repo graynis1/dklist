@@ -19,16 +19,21 @@ export function EntitySearchPicker({
   placeholder = "Ara...",
   multi = false,
   searchAction,
+  initialSelected = [],
 }: {
   name: string;
   label: string;
   placeholder?: string;
   multi?: boolean;
   searchAction: (query: string) => Promise<Option[]>;
+  /** Pre-populates the picker when editing something that already has a
+   * value (e.g. an existing book's writers/categories) - plain create forms
+   * just omit this and start empty as before. */
+  initialSelected?: Option[];
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Option[]>([]);
-  const [selected, setSelected] = useState<Option[]>([]);
+  const [selected, setSelected] = useState<Option[]>(initialSelected);
   const [, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

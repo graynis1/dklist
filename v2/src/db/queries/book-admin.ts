@@ -1,10 +1,11 @@
 import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { AUTO_APPROVE_ROLES, type UserType } from "@/lib/permission";
+import { deleteBookCascade } from "@/db/queries/entity-delete-cascade";
 
 function slugify(input: string): string {
   // Turkish-character map must run BEFORE toLowerCase(), not after: JS's
@@ -222,4 +223,209 @@ export async function rejectBookSubmission(bookId: number): Promise<void> {
   await db.delete(translatorBook).where(eq(translatorBook.bookId, bookId));
   await db.delete(book).where(and(eq(book.id, bookId), eq(book.approve, 0)));
   updateTag("pending-book-submissions");
+}
+
+export interface BookAdminListItem {
+  id: number;
+  name: string;
+  orgName: string;
+  lang: string;
+  publisherName: string;
+  approve: number;
+}
+
+/**
+ * Direct "Kitaplar" admin management list - ports v1's real
+ * BookController::getAll() (the Admin-only management endpoint, NOT
+ * getAllBooksForClient()/the /kitap/yeni submission flow). Same perf
+ * choices already established elsewhere in this file's sibling queries:
+ * prefix-only LIKE (this table's real B-tree indexes can't serve a
+ * leading-wildcard/LOWER() scan at ~98.5M rows) and an InnoDB row-count
+ * estimate instead of COUNT(*) when unfiltered.
+ */
+export async function getBookAdminList(
+  page = 1,
+  pageSize = 20,
+  search = "",
+): Promise<{ items: BookAdminListItem[]; total: number; page: number; lastPage: number }> {
+  const safeSize = Math.min(100, Math.max(1, pageSize));
+  const trimmedSearch = search.trim();
+  const whereClause = trimmedSearch
+    ? or(like(book.name, `${trimmedSearch}%`), like(book.orgName, `${trimmedSearch}%`))
+    : undefined;
+
+  let total: number;
+  if (!trimmedSearch) {
+    const rows = (await db.execute(
+      sql`SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'book'`,
+    ))[0] as unknown as { TABLE_ROWS: number }[];
+    total = Number(rows[0]?.TABLE_ROWS ?? 0);
+  } else {
+    const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(book).where(whereClause);
+    total = Number(countRow?.count ?? 0);
+  }
+
+  const lastPage = Math.max(1, Math.ceil(total / safeSize));
+  const safePage = Math.min(Math.max(1, page), lastPage);
+
+  const items = await db
+    .select({ id: book.id, name: book.name, orgName: book.orgName, lang: book.lang, publisherName: publisher.name, approve: book.approve })
+    .from(book)
+    .innerJoin(publisher, eq(book.publisherId, publisher.id))
+    .where(whereClause)
+    .orderBy(book.approve, desc(book.id))
+    .limit(safeSize)
+    .offset((safePage - 1) * safeSize);
+
+  return { items, total, page: safePage, lastPage };
+}
+
+export interface BookAdminDetail {
+  id: number;
+  name: string;
+  orgName: string;
+  lang: string;
+  content: string | null;
+  format: string | null;
+  isbn: string | null;
+  pageNumber: number;
+  date: string | null;
+  approve: number;
+  publisherId: number;
+  publisherName: string;
+  writers: { id: number; name: string }[];
+  translators: { id: number; name: string }[];
+  categories: { id: number; name: string }[];
+}
+
+export async function getBookAdminDetail(bookId: number): Promise<BookAdminDetail | null> {
+  const [row] = await db
+    .select({
+      id: book.id, name: book.name, orgName: book.orgName, lang: book.lang, content: book.content,
+      format: book.format, isbn: book.isbn, pageNumber: book.pageNumber, date: book.date, approve: book.approve,
+      publisherId: book.publisherId, publisherName: publisher.name,
+    })
+    .from(book)
+    .innerJoin(publisher, eq(book.publisherId, publisher.id))
+    .where(eq(book.id, bookId))
+    .limit(1);
+  if (!row) return null;
+
+  const writerRows = await db.select({ id: writer.id, name: writer.name }).from(writerBook)
+    .innerJoin(writer, eq(writerBook.writerId, writer.id)).where(eq(writerBook.bookId, bookId));
+  const translatorRows = await db.select({ id: translator.id, name: translator.name }).from(translatorBook)
+    .innerJoin(translator, eq(translatorBook.translatorId, translator.id)).where(eq(translatorBook.bookId, bookId));
+  const categoryRows = await db.select({ id: category.id, name: category.category }).from(bookCategory)
+    .innerJoin(category, eq(bookCategory.categoryId, category.id)).where(eq(bookCategory.bookId, bookId));
+
+  return { ...row, writers: writerRows, translators: translatorRows, categories: categoryRows };
+}
+
+/** The "edition group" a book belongs to - itself if it's the original work,
+ * or itself + every sibling edition if it has (or is) a parent. Writer/
+ * category edits apply across the whole group (matches v1's real update()
+ * exactly - both fields conceptually belong to the original work, not each
+ * translated edition), translator edits apply to just the one book. */
+async function getEditionGroupIds(bookId: number): Promise<number[]> {
+  const [row] = await db.select({ originalBookId: book.originalBookId }).from(book).where(eq(book.id, bookId)).limit(1);
+  if (!row) return [bookId];
+  const rootId = row.originalBookId ?? bookId;
+  const children = await db.select({ id: book.id }).from(book).where(eq(book.originalBookId, rootId));
+  return [rootId, ...children.map((c) => c.id)].filter((id, i, arr) => arr.indexOf(id) === i);
+}
+
+export type BookAdminUpdateMode =
+  | "name" | "content" | "lang" | "pageNumber" | "format" | "isbn" | "date" | "approve"
+  | "writer" | "translator" | "category";
+
+export async function updateBookAdminField(
+  bookId: number,
+  mode: BookAdminUpdateMode,
+  value: string | number[],
+): Promise<void> {
+  const [existing] = await db.select({ id: book.id, publisherId: book.publisherId }).from(book).where(eq(book.id, bookId)).limit(1);
+  if (!existing) throw new Error("Kitap bulunamadı.");
+
+  if (mode === "writer" || mode === "category") {
+    const ids = Array.isArray(value) ? value : [];
+    const groupIds = await getEditionGroupIds(bookId);
+    if (mode === "writer") {
+      await db.delete(writerBook).where(inArray(writerBook.bookId, groupIds));
+      if (ids.length > 0) {
+        const rows = groupIds.flatMap((gid) => ids.map((writerId) => ({ writerId, bookId: gid })));
+        await db.insert(writerBook).values(rows);
+      }
+    } else {
+      await db.delete(bookCategory).where(inArray(bookCategory.bookId, groupIds));
+      if (ids.length > 0) {
+        const rows = groupIds.flatMap((gid) => ids.map((categoryId) => ({ categoryId, bookId: gid })));
+        await db.insert(bookCategory).values(rows);
+      }
+    }
+    return;
+  }
+
+  if (mode === "translator") {
+    const ids = Array.isArray(value) ? value : [];
+    await db.delete(translatorBook).where(eq(translatorBook.bookId, bookId));
+    if (ids.length > 0) {
+      await db.insert(translatorBook).values(ids.map((translatorId) => ({ translatorId, bookId })));
+    }
+    return;
+  }
+
+  const text = typeof value === "string" ? value.trim() : "";
+  if ((mode === "name" || mode === "lang") && !text) throw new Error("Bu alan boş bırakılamaz.");
+  if (isDirty(text)) throw new Error("Hakaret içeren içerik ekleyemezsiniz.");
+
+  switch (mode) {
+    case "name": {
+      const [publisherRow] = await db.select({ name: publisher.name }).from(publisher).where(eq(publisher.id, existing.publisherId)).limit(1);
+      const slug = `${slugify(publisherRow?.name ?? "")}-${slugify(text)}`.slice(0, 250);
+      await db.update(book).set({ name: text, slug }).where(eq(book.id, bookId));
+      break;
+    }
+    case "content":
+      await db.update(book).set({ content: text || null }).where(eq(book.id, bookId));
+      break;
+    case "lang":
+      await db.update(book).set({ lang: text }).where(eq(book.id, bookId));
+      break;
+    case "pageNumber": {
+      const pageNumber = Number(text);
+      if (!Number.isInteger(pageNumber) || pageNumber <= 0) throw new Error("Geçerli bir sayfa sayısı giriniz.");
+      await db.update(book).set({ pageNumber }).where(eq(book.id, bookId));
+      break;
+    }
+    case "format":
+      await db.update(book).set({ format: text || null }).where(eq(book.id, bookId));
+      break;
+    case "isbn":
+      await db.update(book).set({ isbn: text || null }).where(eq(book.id, bookId));
+      break;
+    case "date":
+      await db.update(book).set({ date: text || null }).where(eq(book.id, bookId));
+      break;
+    case "approve":
+      await db.update(book).set({ approve: text === "1" ? 1 : 0 }).where(eq(book.id, bookId));
+      updateTag("pending-book-submissions");
+      updateTag("latest-books");
+      break;
+  }
+}
+
+export async function deleteBookAdmin(bookId: number): Promise<void> {
+  await deleteBookCascade(bookId);
+}
+
+export async function deleteBooksAdmin(bookIds: number[]): Promise<{ success: number; fail: number }> {
+  let success = 0;
+  for (const id of bookIds) {
+    const [existing] = await db.select({ id: book.id }).from(book).where(eq(book.id, id)).limit(1);
+    if (existing) {
+      await deleteBookCascade(id);
+      success++;
+    }
+  }
+  return { success, fail: bookIds.length - success };
 }
