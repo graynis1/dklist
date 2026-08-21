@@ -1,9 +1,15 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
+import { hasRole, USER_TYPES } from "@/lib/permission";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { getBlogBySlug } from "@/db/queries/blog";
+import { DeleteBlogButton } from "@/components/dklist/delete-blog-button";
+
+const ELEVATED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
 export default function BlogDetailPage({ params }: PageProps<"/blog/[slug]">) {
   return (
@@ -40,6 +46,12 @@ async function BlogDetailContent({
     notFound();
   }
 
+  const session = await auth();
+  const viewerId = session?.user?.id ? Number(session.user.id) : null;
+  const isOwner = viewerId !== null && post.ownerId === viewerId;
+  const isElevated = hasRole(session?.user?.userType, ELEVATED_ROLES);
+  const canManage = isOwner || isElevated;
+
   return (
     <article className="flex flex-col gap-4">
       <SectionLabel>Blog</SectionLabel>
@@ -55,9 +67,36 @@ async function BlogDetailContent({
         {post.ownerUsername ? " · " : ""}
         {post.createdDate}
       </p>
+
+      {isOwner && !post.approved && (
+        <p className="rounded-md bg-secondary p-3 text-sm text-secondary-foreground">
+          Bu yazı henüz onaylanmadı, sadece siz ve moderatörler görebiliyor.
+        </p>
+      )}
+      {isOwner && post.hasPendingRevision && (
+        <p className="rounded-md bg-secondary p-3 text-sm text-secondary-foreground">
+          Onay bekleyen bir değişikliğiniz var - onaylanana kadar aşağıdaki (yayındaki) sürüm görünmeye devam edecek.
+        </p>
+      )}
+
+      {post.img && (
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+          <Image src={post.img} alt={post.title} fill className="object-cover" unoptimized />
+        </div>
+      )}
+
       {post.content && (
         <div className="mt-4 leading-relaxed whitespace-pre-line text-foreground">
           {post.content}
+        </div>
+      )}
+
+      {canManage && (
+        <div className="mt-6 flex gap-3 border-t border-border pt-4 text-sm">
+          <Link href={`/blog/${slug}/duzenle`} className="underline hover:text-foreground">
+            Düzenle
+          </Link>
+          <DeleteBlogButton blogId={post.id} />
         </div>
       )}
     </article>

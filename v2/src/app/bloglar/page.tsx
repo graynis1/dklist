@@ -1,23 +1,42 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { auth } from "@/auth";
+import { hasRole, USER_TYPES } from "@/lib/permission";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { getBlogList } from "@/db/queries/blog";
+
+const BLOG_AUTHOR_ROLES = [USER_TYPES.Blogger, USER_TYPES.Mod, USER_TYPES.Admin];
 
 export default function BlogListPage() {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
       <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="mb-10 flex flex-col gap-2">
-          <SectionLabel>Topluluk</SectionLabel>
-          <h1 className="font-heading text-3xl font-medium tracking-tight">Bloglar</h1>
+        <div className="mb-10 flex items-center justify-between gap-2">
+          <div className="flex flex-col gap-2">
+            <SectionLabel>Topluluk</SectionLabel>
+            <h1 className="font-heading text-3xl font-medium tracking-tight">Bloglar</h1>
+          </div>
+          <Suspense fallback={null}>
+            <NewPostLink />
+          </Suspense>
         </div>
         <Suspense fallback={<BlogListSkeleton />}>
           <BlogList />
         </Suspense>
       </div>
     </div>
+  );
+}
+
+async function NewPostLink() {
+  const session = await auth();
+  if (!hasRole(session?.user?.userType, BLOG_AUTHOR_ROLES)) return null;
+  return (
+    <Link href="/blog/yeni" className="text-sm underline hover:text-foreground">
+      Yeni Yazı
+    </Link>
   );
 }
 
