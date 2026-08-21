@@ -22,7 +22,10 @@ export async function AdSlot({ placement, contentLanguage }: { placement: string
   return (
     <div className="mx-auto max-w-3xl px-6">
       {ad.linkUrl ? (
-        <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer sponsored">
+        // Routes through /api/ad-click so the advertiser-facing stats page
+        // (getAdAdminList's impressions/clicks) counts real clicks, not
+        // just impressions.
+        <a href={`/api/ad-click/${ad.id}`} target="_blank" rel="noopener noreferrer sponsored">
           {image}
         </a>
       ) : (

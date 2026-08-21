@@ -54,7 +54,23 @@ export async function getActiveAd(
     .orderBy(contentLanguage ? asc(sql`${advertisement.language} IS NULL`) : asc(advertisement.sortOrder), asc(advertisement.sortOrder))
     .limit(1);
 
+  if (row) {
+    // Fire-and-forget - an impression miscount is not worth blocking or
+    // slowing down the actual page render for.
+    db.update(advertisement).set({ impressions: sql`${advertisement.impressions} + 1` }).where(eq(advertisement.id, row.id)).catch(() => {});
+  }
+
   return row ?? null;
+}
+
+/** /api/ad-click/[id] - increments the click counter then the caller
+ * redirects to the ad's real linkUrl. Returns null if the ad doesn't exist
+ * or has no link (nothing to redirect to). */
+export async function recordAdClick(adId: number): Promise<string | null> {
+  const [row] = await db.select({ linkUrl: advertisement.linkUrl }).from(advertisement).where(eq(advertisement.id, adId)).limit(1);
+  if (!row?.linkUrl) return null;
+  await db.update(advertisement).set({ clicks: sql`${advertisement.clicks} + 1` }).where(eq(advertisement.id, adId));
+  return row.linkUrl;
 }
 
 export interface AdAdminListItem {
@@ -65,11 +81,13 @@ export interface AdAdminListItem {
   linkUrl: string | null;
   active: boolean;
   sortOrder: number;
+  impressions: number;
+  clicks: number;
 }
 
 export async function getAdAdminList(): Promise<AdAdminListItem[]> {
   const rows = await db.select().from(advertisement).orderBy(asc(advertisement.placement), asc(advertisement.sortOrder));
-  return rows.map((r) => ({ id: r.id, placement: r.placement, language: r.language, image: r.image, linkUrl: r.linkUrl, active: r.active === 1, sortOrder: r.sortOrder }));
+  return rows.map((r) => ({ id: r.id, placement: r.placement, language: r.language, image: r.image, linkUrl: r.linkUrl, active: r.active === 1, sortOrder: r.sortOrder, impressions: r.impressions, clicks: r.clicks }));
 }
 
 export interface CreateAdInput {

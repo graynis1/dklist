@@ -33,6 +33,10 @@ export function AdAdminRow({ ad }: { ad: AdAdminListItem }) {
       <div className="flex-1">
         <p className="font-medium">{ad.placement} {ad.language && <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-normal uppercase text-secondary-foreground">{ad.language}</span>}</p>
         <p className="text-xs text-muted-foreground">{ad.linkUrl || "Bağlantı yok"} · sıra: {ad.sortOrder}</p>
+        <p className="text-xs text-muted-foreground">
+          {ad.impressions.toLocaleString("tr-TR")} gösterim · {ad.clicks.toLocaleString("tr-TR")} tıklama
+          {ad.impressions > 0 && ` · %${((ad.clicks / ad.impressions) * 100).toFixed(2)} CTR`}
+        </p>
       </div>
       <span className={`rounded-full px-3 py-1 text-xs font-medium ${ad.active ? "bg-emerald-100 text-emerald-800" : "bg-muted text-muted-foreground"}`}>
         {ad.active ? "Aktif" : "Pasif"}

@@ -822,6 +822,11 @@ export const advertisement = mysqlTable("advertisement", {
 	active: tinyint().notNull(),
 	sortOrder: int("sort_order").notNull(),
 	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+	// Advertiser-facing stats - customer's own explicit ask, denormalized
+	// counters (this ad count is tiny; exact per-event history isn't the
+	// ask, just reach/performance totals).
+	impressions: int().notNull().default(0),
+	clicks: int().notNull().default(0),
 },
 (table) => [
 	index("idx_advertisement_placement").on(table.placement, table.active),
