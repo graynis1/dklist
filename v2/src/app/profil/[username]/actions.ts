@@ -13,6 +13,7 @@ import {
 } from "@/db/queries/profile";
 import { uploadAvatar } from "@/db/queries/avatar";
 import { reportUser } from "@/db/queries/notices";
+import { blockUser, unblockUser, isBlockedByMe } from "@/db/queries/blocks";
 import { requireRole, USER_TYPES } from "@/lib/permission";
 
 export async function toggleFollowAction(
@@ -71,6 +72,24 @@ export async function toggleVerifiedAction(
 
   const verified = await toggleVerified(targetUserId);
   return { status: true, verified };
+}
+
+export async function toggleBlockAction(targetUserId: number): Promise<{ status: boolean; message?: string; blocked?: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+
+  const myId = Number(session.user.id);
+  try {
+    const already = await isBlockedByMe(myId, targetUserId);
+    if (already) {
+      await unblockUser(myId, targetUserId);
+      return { status: true, blocked: false };
+    }
+    await blockUser(myId, targetUserId);
+    return { status: true, blocked: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
 }
 
 export async function setTwoFactorEnabledAction(enabled: boolean): Promise<{ status: boolean; message?: string }> {

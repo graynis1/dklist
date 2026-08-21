@@ -19,6 +19,7 @@ import {
   writer,
 } from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
+import { isBlockedEitherWay } from "@/db/queries/blocks";
 import { addNotification } from "@/db/queries/notifications";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 
@@ -255,6 +256,10 @@ export async function toggleFollow(followerId: number, followedId: number): Prom
   }
 
   const already = await isFollowing(followerId, followedId);
+  if (!already && (await isBlockedEitherWay(followerId, followedId))) {
+    throw new Error("Bu kullanıcıyı takip edemezsiniz.");
+  }
+
   if (already) {
     await db
       .delete(follow)

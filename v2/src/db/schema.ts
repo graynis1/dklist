@@ -202,6 +202,17 @@ export const follow = mysqlTable("follow", {
 	primaryKey({ columns: [table.id], name: "follow_id"}),
 ]);
 
+export const userBlock = mysqlTable("user_block", {
+	id: int().autoincrement().notNull(),
+	blockerId: int("blocker_id").notNull().references(() => user.id),
+	blockedId: int("blocked_id").notNull().references(() => user.id),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "user_block_id" }),
+	unique("uniq_user_block").on(table.blockerId, table.blockedId),
+]);
+
 export const libraryBook = mysqlTable("library_book", {
 	id: int().autoincrement().notNull(),
 	bookId: int("book_id").notNull().references(() => book.id),

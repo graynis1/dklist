@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,9 @@ async function EditProfileContent({
   return (
     <div className="flex flex-col gap-6">
       <TwoFactorToggle initialEnabled={profile.twoFactorEnabled} />
+      <Link href="/profil/engellenenler" className="text-sm text-muted-foreground hover:underline">
+        Engellenen Kullanıcılar →
+      </Link>
       <Card>
       <CardHeader>
         <CardTitle className="font-heading text-2xl">Profili Düzenle</CardTitle>

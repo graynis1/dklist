@@ -5,6 +5,7 @@ import { chat, message, user, book, store, storePicture, follow } from "@/db/sch
 import { addNotification } from "@/db/queries/notifications";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 import { publishUserEvent } from "@/lib/event-bus";
+import { isBlockedEitherWay } from "@/db/queries/blocks";
 
 async function userFollows(followerId: number, followedId: number): Promise<boolean> {
   const [row] = await db
@@ -361,6 +362,9 @@ export async function sendMessage(
   }
   if (senderId === receiverId) {
     throw new Error("Kendine mesaj gönderemezsin.");
+  }
+  if (await isBlockedEitherWay(senderId, receiverId)) {
+    throw new Error("Bu kullanıcıya mesaj gönderemezsiniz.");
   }
 
   let attachment: MessageAttachment | null = null;

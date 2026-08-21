@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { avatarUrl } from "@/db/queries/avatar";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { ReportUserButton } from "@/components/dklist/report-user-button";
+import { BlockUserButton } from "@/components/dklist/block-user-button";
+import { isBlockedByMe } from "@/db/queries/blocks";
 import { ReadingGoalControl } from "@/components/dklist/reading-goal-control";
 import { ReadingScoreCard } from "@/components/dklist/reading-score-card";
 import { VerifiedToggleButton } from "@/components/dklist/verified-toggle-button";
@@ -96,6 +98,7 @@ async function ProfileContent({
     totalReadingMinutes,
     isPremium,
     activityHeatmap,
+    viewerHasBlocked,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -114,6 +117,7 @@ async function ProfileContent({
     getTotalReadingMinutes(profile.id),
     isUserPremium(profile.id),
     getUserActivityHeatmap(profile.id),
+    viewerId && !isOwnProfile ? isBlockedByMe(viewerId, profile.id) : Promise.resolve(false),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -207,6 +211,7 @@ async function ProfileContent({
             </Link>
             <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} />
             <ReportUserButton targetUserId={profile.id} />
+            <BlockUserButton targetUserId={profile.id} initialBlocked={viewerHasBlocked} />
             {viewerIsAdmin && (
               <VerifiedToggleButton targetUserId={profile.id} initialVerified={profile.verified} />
             )}
