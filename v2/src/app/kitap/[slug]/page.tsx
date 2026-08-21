@@ -23,6 +23,7 @@ import { getBookComments, getRepliesForComments } from "@/db/queries/comments";
 import { isInLibrary } from "@/db/queries/library";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
+import { getActiveStoreListingsForBook } from "@/db/queries/store";
 import { addCommentAction, addReplyAction, shareCommentAction } from "./actions";
 
 const READER_STATUS_LABELS: Record<string, string> = {
@@ -87,6 +88,7 @@ async function BookDetailContent({
     readerCount,
     categoryRank,
     workPooledScore,
+    storeListings,
   ] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
@@ -101,6 +103,7 @@ async function BookDetailContent({
       ? getBookCategoryRank(detail.id, detail.categories[0].id, detail.categories[0].name, detail.score)
       : Promise.resolve(null),
     detail.workId ? getWorkPooledScore(detail.workId) : Promise.resolve(null),
+    getActiveStoreListingsForBook(detail.id),
   ]);
 
   const quotes = await getBookComments(detail.id, "alinti");
@@ -281,6 +284,22 @@ async function BookDetailContent({
               <Button variant="outline">Askıya Bırak</Button>
               <Button variant="ghost">Şikayet Et</Button>
             </div>
+
+            {storeListings.length > 0 && (
+              <div className="mt-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                <p className="mb-1 font-medium">İkinci El Bulundu</p>
+                <ul className="flex flex-col gap-1">
+                  {storeListings.map((s) => (
+                    <li key={s.slug}>
+                      <Link href={`/askida-kitap/${s.slug}`} className="text-primary hover:underline">
+                        {s.title}
+                      </Link>{" "}
+                      <span className="text-muted-foreground">— @{s.ownerUsername}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </section>

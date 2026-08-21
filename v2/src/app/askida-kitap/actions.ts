@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { createStore, toggleStoreFavorite, deleteStore, updateStoreStatus } from "@/db/queries/store";
+import { getBookList } from "@/db/queries/books";
 
 export async function createStoreAction(formData: FormData) {
   const session = await auth();
@@ -11,6 +12,7 @@ export async function createStoreAction(formData: FormData) {
   }
 
   const images = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
+  const bookIdRaw = String(formData.get("bookId") ?? "").trim();
 
   let slug: string;
   try {
@@ -20,6 +22,7 @@ export async function createStoreAction(formData: FormData) {
       location: String(formData.get("location") ?? ""),
       shipment: String(formData.get("shipment") ?? ""),
       state: String(formData.get("state") ?? ""),
+      bookId: bookIdRaw ? Number(bookIdRaw) : undefined,
       images,
     });
   } catch (err) {
@@ -27,6 +30,22 @@ export async function createStoreAction(formData: FormData) {
   }
 
   redirect(`/askida-kitap/${slug}`);
+}
+
+/**
+ * Customer's marketplace ask: "when posting to the shelf by selecting an
+ * existing catalog book, auto-pull that book's official cover" - the first
+ * step of that is letting the poster actually find/select a catalog book at
+ * all, which the create form never offered (store.bookId existed in the
+ * schema/query layer already, just never set by anything).
+ */
+export async function searchBooksForLinkAction(
+  query: string,
+): Promise<{ id: number; name: string; slug: string; writers: string[] }[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+  const { items } = await getBookList(1, 6, trimmed);
+  return items.map((b) => ({ id: b.id, name: b.name, slug: b.slug, writers: b.writers }));
 }
 
 export async function toggleStoreFavoriteAction(

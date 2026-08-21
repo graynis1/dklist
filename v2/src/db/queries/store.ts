@@ -300,6 +300,38 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
   return slug;
 }
 
+export interface BookStoreListing {
+  slug: string;
+  title: string;
+  price: number | null;
+  ownerUsername: string;
+}
+
+/**
+ * Customer's marketplace ask: "every regular book page should surface
+ * marketplace links for THAT specific book if secondhand/shelf copies
+ * exist" - `store.bookId` already existed in the schema but nothing ever
+ * set it (the create form never offered linking a listing to a catalog
+ * book until now), so this returns nothing for any listing created before
+ * today. Only active, non-completed/cancelled listings.
+ */
+export async function getActiveStoreListingsForBook(bookId: number, limit = 3): Promise<BookStoreListing[]> {
+  const rows = await db
+    .select({
+      slug: store.slug,
+      title: store.title,
+      price: store.price,
+      ownerUsername: user.username,
+    })
+    .from(store)
+    .innerJoin(user, eq(store.ownerId, user.id))
+    .where(and(eq(store.bookId, bookId), eq(store.isActive, 1), eq(store.status, "active")))
+    .orderBy(desc(store.createdDate))
+    .limit(limit);
+
+  return rows;
+}
+
 export async function deleteStore(userId: number, storeId: number): Promise<void> {
   const [row] = await db.select({ ownerId: store.ownerId }).from(store).where(eq(store.id, storeId)).limit(1);
   if (!row) throw new Error("Böyle bir ilan yok.");

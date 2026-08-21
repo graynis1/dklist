@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/auth";
 import { createStoreAction } from "../actions";
+import { BookLinkPicker } from "@/components/dklist/book-link-picker";
 
 export default function NewStorePage({ searchParams }: PageProps<"/askida-kitap/yeni">) {
   return (
@@ -51,9 +52,10 @@ async function NewStoreContent({
           />
           <Input name="location" placeholder="Konum (şehir)" />
           <Input name="shipment" placeholder="Kargo bilgisi" />
+          <BookLinkPicker />
           <div className="flex flex-col gap-1">
             <label htmlFor="images" className="text-sm text-muted-foreground">
-              Fotoğraflar (en az 1)
+              Fotoğraflar (gerçek kopyanın fotoğrafı, en az 1)
             </label>
             <input
               id="images"
