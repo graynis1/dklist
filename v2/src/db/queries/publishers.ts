@@ -47,8 +47,15 @@ export async function getPublisherList(
   search = "",
 ): Promise<{ items: PublisherListItem[]; total: number; page: number; lastPage: number }> {
   const safeSize = Math.min(100, Math.max(1, pageSize));
-  const trimmedSearch = search.trim().toLowerCase();
-  const whereClause = trimmedSearch ? like(sql`LOWER(${publisher.name})`, `%${trimmedSearch}%`) : undefined;
+  const trimmedSearch = search.trim();
+  // Both sides go through MySQL's own LOWER(), not JS's - a Turkish capital
+  // İ (U+0130) lowercases to a different string in JS ("i" + a combining
+  // dot, U+0307) than in MySQL (plain "i"), so JS-side lowercasing here
+  // silently broke every search containing İ (a genuine bug, caught via
+  // real testing - "İletişim" never matched "İletişim Yayınları").
+  const whereClause = trimmedSearch
+    ? like(sql`LOWER(${publisher.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    : undefined;
 
   let total: number;
   if (!trimmedSearch) {

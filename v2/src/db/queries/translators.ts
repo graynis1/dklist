@@ -55,8 +55,11 @@ export async function getTranslatorList(
   search = "",
 ): Promise<{ items: TranslatorListItem[]; total: number; page: number; lastPage: number }> {
   const safeSize = Math.min(100, Math.max(1, pageSize));
-  const trimmedSearch = search.trim().toLowerCase();
-  const whereClause = like(sql`LOWER(${translator.name})`, `%${trimmedSearch}%`);
+  const trimmedSearch = search.trim();
+  // Both sides go through MySQL's own LOWER(), not JS's - see publishers.ts's
+  // getPublisherList for why (Turkish İ lowercases differently in JS vs
+  // MySQL, a real bug caught via testing).
+  const whereClause = like(sql`LOWER(${translator.name})`, sql`LOWER(${`%${trimmedSearch}%`})`);
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(translator).where(whereClause);
   const total = Number(countRow?.count ?? 0);

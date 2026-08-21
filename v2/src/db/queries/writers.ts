@@ -70,8 +70,13 @@ export async function getWriterList(
   search = "",
 ): Promise<{ items: WriterListItem[]; total: number; page: number; lastPage: number }> {
   const safeSize = Math.min(100, Math.max(1, pageSize));
-  const trimmedSearch = search.trim().toLowerCase();
-  const whereClause = trimmedSearch ? like(sql`LOWER(${writer.name})`, `%${trimmedSearch}%`) : undefined;
+  const trimmedSearch = search.trim();
+  // Both sides go through MySQL's own LOWER(), not JS's - see publishers.ts's
+  // getPublisherList for why (Turkish İ lowercases differently in JS vs
+  // MySQL, a real bug caught via testing).
+  const whereClause = trimmedSearch
+    ? like(sql`LOWER(${writer.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    : undefined;
 
   let total: number;
   if (!trimmedSearch) {

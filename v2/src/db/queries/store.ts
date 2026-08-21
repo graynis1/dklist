@@ -19,10 +19,13 @@ import { awardPoints, POINT_VALUES } from "@/db/queries/points";
  */
 
 function slugify(input: string): string {
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i" };
+  // Turkish-character map runs BEFORE toLowerCase() - see book-admin.ts's
+  // slugify() for why (JS's toLowerCase() turns İ into "i" + a combining
+  // dot, not the plain "i" this map expects, a real bug caught via testing).
+  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
   return input
+    .replace(/[çğıöşüİÇĞÖŞÜ]/g, (c) => map[c] ?? c)
     .toLowerCase()
-    .replace(/[çğıöşüİ]/g, (c) => map[c] ?? c)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
