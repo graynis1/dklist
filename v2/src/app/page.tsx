@@ -7,6 +7,7 @@ import { HeroShelf } from "@/components/dklist/hero-shelf";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { getLatestBooks, getTopCategories, getTopBooks, getRecommendedBooks } from "@/db/queries/books";
+import { getTrendingBooks } from "@/db/queries/activity";
 import { getTopReaders, getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
 import { getCurrentBookOfMonth } from "@/db/queries/book-of-month";
@@ -520,6 +521,40 @@ async function LatestBooksShelf() {
   );
 }
 
+async function TrendingBooksShelf() {
+  const books = await getTrendingBooks(12);
+
+  if (books.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Bu hafta henüz yeterince yorum yapılmadı.
+      </p>
+    );
+  }
+
+  return (
+    <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {books.map((book) => (
+        <Link
+          key={book.id}
+          href={`/kitap/${book.slug}`}
+          className="flex w-32 shrink-0 flex-col gap-2"
+        >
+          <BookCover
+            title={book.name}
+            author={book.writers.join(", ") || "Yazar bilinmiyor"}
+            tone={toneForId(book.id)}
+            size="sm"
+            className="w-full"
+          />
+          <p className="truncate text-xs font-medium">{book.name}</p>
+          <p className="text-xs text-muted-foreground">{book.recentCommentCount} yorum bu hafta</p>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <div className="flex-1 bg-background">
@@ -635,6 +670,24 @@ export default function Home() {
 
         <Suspense fallback={<LatestBooksSkeleton />}>
           <LatestBooksShelf />
+        </Suspense>
+      </section>
+
+      <Separator />
+
+      {/* "Trend Kitaplar" - a new discovery widget, most-discussed-this-week. */}
+      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <SectionLabel>Keşfet</SectionLabel>
+            <h2 className="font-heading text-3xl font-medium tracking-tight">
+              Trend Kitaplar
+            </h2>
+          </div>
+        </div>
+
+        <Suspense fallback={<LatestBooksSkeleton />}>
+          <TrendingBooksShelf />
         </Suspense>
       </section>
 

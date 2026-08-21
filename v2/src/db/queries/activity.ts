@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, comment, user } from "@/db/schema";
 import { attachWriterNames } from "@/db/queries/books";
@@ -58,4 +58,50 @@ export async function getRecentBookActivity(limit = 10): Promise<BookActivityIte
     excerpt: r.text.length > 140 ? `${r.text.slice(0, 140)}...` : r.text,
     writers: writersByBookId.get(r.bookId) ?? [],
   }));
+}
+
+export interface TrendingBookItem {
+  id: number;
+  name: string;
+  slug: string;
+  score: number;
+  recentCommentCount: number;
+  writers: string[];
+}
+
+/**
+ * "Trend Kitaplar" - a new discovery widget, a third item past the
+ * original brainstorm list. Deliberately comment-count-only, not blended
+ * with ratings: `comment.date` is a real DATE column, but `score` has no
+ * timestamp at all in the frozen prod schema (the same constraint
+ * getRecentBookActivity() above already documents) - there's no genuine
+ * "this week" window to rank a rating by, so mixing the two would either
+ * fake a signal or silently ignore half the intended input. "Most
+ * discussed in the last N days" is a real, honest trending signal on its
+ * own.
+ */
+export async function getTrendingBooks(limit = 10, days = 7): Promise<TrendingBookItem[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("trending-books");
+
+  const rows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      recentCommentCount: sql<number>`count(*)`,
+    })
+    .from(comment)
+    .innerJoin(book, eq(comment.targetId, book.id))
+    .where(and(eq(comment.type, "book"), sql`${comment.date} >= DATE_SUB(CURDATE(), INTERVAL ${days} DAY)`))
+    .groupBy(book.id, book.name, book.slug, book.score)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+
+  const withWriters = await attachWriterNames(rows.map((r) => ({ ...r, id: r.id })));
+  const writersByBookId = new Map(withWriters.map((w) => [w.id, w.writers]));
+
+  return rows.map((r) => ({ ...r, recentCommentCount: Number(r.recentCommentCount), writers: writersByBookId.get(r.id) ?? [] }));
 }
