@@ -254,6 +254,13 @@ export interface CreateStoreInput {
   state?: string;
   bookId?: number;
   images: File[];
+  /** Paid listings need marketplace.active to be checked by the caller
+   * first (this function trusts the caller already gated it, same as v1's
+   * controller does its own check before ever constructing the entity) -
+   * price/stock are required together when listingType is "paid". */
+  listingType?: "free" | "paid";
+  price?: number;
+  stock?: number;
 }
 
 export async function createStore(ownerId: number, input: CreateStoreInput): Promise<string> {
@@ -264,6 +271,12 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
   }
   if (input.images.length === 0) {
     throw new Error("En az bir fotoğraf eklemelisiniz.");
+  }
+
+  const listingType = input.listingType === "paid" ? "paid" : "free";
+  if (listingType === "paid") {
+    if (!input.price || input.price <= 0) throw new Error("Ücretli ilan için geçerli bir fiyat girmelisiniz.");
+    if (!input.stock || input.stock <= 0) throw new Error("Ücretli ilan için geçerli bir stok adedi girmelisiniz.");
   }
 
   const [ownerRow] = await db.select({ username: user.username }).from(user).where(eq(user.id, ownerId)).limit(1);
@@ -279,9 +292,9 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
     shipment: input.shipment?.trim() || null,
     state: input.state?.trim() || null,
     bookId: input.bookId ?? null,
-    stock: 1,
-    price: null,
-    listingType: "free",
+    stock: listingType === "paid" ? input.stock! : 1,
+    price: listingType === "paid" ? input.price! : null,
+    listingType,
     status: "active",
     isActive: 1,
     createdDate: now,

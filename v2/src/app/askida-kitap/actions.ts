@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { createStore, toggleStoreFavorite, deleteStore, updateStoreStatus } from "@/db/queries/store";
 import { getBookList } from "@/db/queries/books";
+import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
 
 export async function createStoreAction(formData: FormData) {
   const session = await auth();
@@ -13,9 +14,15 @@ export async function createStoreAction(formData: FormData) {
 
   const images = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
   const bookIdRaw = String(formData.get("bookId") ?? "").trim();
+  const listingType = String(formData.get("listingType") ?? "free") === "paid" ? "paid" : "free";
 
   let slug: string;
   try {
+    if (listingType === "paid") {
+      const marketplace = await getMarketplaceStatus();
+      if (!marketplace.active) throw new Error("Ücretli ilan özelliği şu anda kapalı.");
+    }
+
     slug = await createStore(Number(session.user.id), {
       title: String(formData.get("title") ?? ""),
       content: String(formData.get("content") ?? ""),
@@ -24,6 +31,9 @@ export async function createStoreAction(formData: FormData) {
       state: String(formData.get("state") ?? ""),
       bookId: bookIdRaw ? Number(bookIdRaw) : undefined,
       images,
+      listingType,
+      price: listingType === "paid" ? Number(formData.get("price") ?? 0) : undefined,
+      stock: listingType === "paid" ? Number(formData.get("stock") ?? 0) : undefined,
     });
   } catch (err) {
     redirect(`/askida-kitap/yeni?error=${encodeURIComponent((err as Error).message)}`);

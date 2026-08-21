@@ -217,6 +217,12 @@ export const marketplaceSettings = mysqlTable("marketplace_settings", {
 	id: int().autoincrement().notNull(),
 	active: tinyint().notNull(),
 	commissionRate: double("commission_rate").notNull(),
+	// Added by hand 2026-08-21, see src/db/migrations/0009_iyzico_marketplace.sql -
+	// v1 read these from static env vars only; the maintainer explicitly asked
+	// for admin-panel entry that takes effect immediately, no redeploy.
+	iyzicoApiKey: varchar("iyzico_api_key", { length: 255 }),
+	iyzicoSecretKey: varchar("iyzico_secret_key", { length: 255 }),
+	iyzicoBaseUrl: varchar("iyzico_base_url", { length: 255 }).notNull(),
 	updatedDate: datetime("updated_date", { mode: 'string'}),
 },
 (table) => [

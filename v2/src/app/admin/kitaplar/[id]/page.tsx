@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
@@ -8,7 +9,18 @@ import { BookAdminEditForm } from "@/components/dklist/book-admin-edit-form";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 
-export default async function AdminBookEditPage({ params }: PageProps<"/admin/kitaplar/[id]">) {
+export default function AdminBookEditPage({ params }: PageProps<"/admin/kitaplar/[id]">) {
+  return (
+    <div className="flex-1 bg-background">
+      <SiteHeader />
+      <Suspense fallback={<div className="mx-auto max-w-2xl px-6 py-16" />}>
+        <AdminBookEditContent params={params} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function AdminBookEditContent({ params }: { params: PageProps<"/admin/kitaplar/[id]">["params"] }) {
   const session = await auth();
   if (!session?.user) redirect("/giris");
   if (!hasRole(session.user.userType, ADMIN_ONLY)) redirect("/");
@@ -18,15 +30,12 @@ export default async function AdminBookEditPage({ params }: PageProps<"/admin/ki
   if (!book) notFound();
 
   return (
-    <div className="flex-1 bg-background">
-      <SiteHeader />
-      <div className="mx-auto max-w-2xl px-6 py-16">
-        <div className="mb-8 flex flex-col gap-2">
-          <SectionLabel>Yönetim</SectionLabel>
-          <h1 className="font-heading text-3xl font-medium tracking-tight">{book.name}</h1>
-        </div>
-        <BookAdminEditForm book={book} />
+    <div className="mx-auto max-w-2xl px-6 py-16">
+      <div className="mb-8 flex flex-col gap-2">
+        <SectionLabel>Yönetim</SectionLabel>
+        <h1 className="font-heading text-3xl font-medium tracking-tight">{book.name}</h1>
       </div>
+      <BookAdminEditForm book={book} />
     </div>
   );
 }

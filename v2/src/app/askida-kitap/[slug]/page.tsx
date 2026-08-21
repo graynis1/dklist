@@ -15,6 +15,8 @@ import {
   getStoreList,
   storeImageUrl,
 } from "@/db/queries/store";
+import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
+import { Button } from "@/components/ui/button";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Mevcut",
@@ -51,11 +53,20 @@ async function StoreDetailContent({
   const userId = session?.user?.id ? Number(session.user.id) : null;
   const isOwner = userId === item.ownerId;
 
-  const [favorited, favoriteCount, otherListings] = await Promise.all([
+  const [favorited, favoriteCount, otherListings, marketplace] = await Promise.all([
     userId ? isStoreFavorited(userId, item.id) : Promise.resolve(false),
     getStoreFavoriteCount(item.id),
     getStoreList({ ownerId: item.ownerId, excludeId: item.id, pageSize: 8 }),
+    getMarketplaceStatus(),
   ]);
+
+  const canBuy =
+    marketplace.active &&
+    item.listingType === "paid" &&
+    Boolean(item.price) &&
+    item.status === "active" &&
+    (item.stock === null || item.stock > 0) &&
+    !isOwner;
 
   return (
     <div className="flex flex-col gap-12">
@@ -108,6 +119,12 @@ async function StoreDetailContent({
 
         {item.shipment && (
           <p className="text-sm text-muted-foreground">Kargo: {item.shipment}</p>
+        )}
+
+        {canBuy && (
+          <Button render={<Link href={`/askida-kitap/${item.slug}/satin-al`} />} className="w-fit">
+            Satın Al
+          </Button>
         )}
 
         {!isOwner && (

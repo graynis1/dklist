@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -28,9 +29,22 @@ const ADMIN_TOOLS: { href: string; label: string; description: string; roles: Us
   { href: "/admin/merge", label: "Kitap Birleştirme", description: "Yinelenen baskı kayıtlarını tek işte birleştir", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
   { href: "/admin/bulten", label: "Bülten", description: "Bülten aboneleri listesi", roles: [USER_TYPES.Admin] },
   { href: "/admin/haftalik-kazanan", label: "Haftalık Kazanan", description: "Haftalık puan lideri ödülünü kaydet/teslim et", roles: [USER_TYPES.Admin] },
+  { href: "/admin/pazaryeri-ayarlari", label: "Pazaryeri Ayarları", description: "iyzico API anahtarları, ücretli satın alma aç/kapa, komisyon oranı", roles: [USER_TYPES.Admin] },
+  { href: "/admin/siparisler", label: "Siparişler", description: "Tüm ücretli Askıda Kitap siparişlerini görüntüle", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
 ];
 
-export default async function AdminIndexPage() {
+export default function AdminIndexPage() {
+  return (
+    <div className="flex-1 bg-background">
+      <SiteHeader />
+      <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
+        <AdminIndexContent />
+      </Suspense>
+    </div>
+  );
+}
+
+async function AdminIndexContent() {
   const session = await auth();
   if (!session?.user) redirect("/giris");
 
@@ -39,28 +53,25 @@ export default async function AdminIndexPage() {
   if (visibleTools.length === 0) redirect("/");
 
   return (
-    <div className="flex-1 bg-background">
-      <SiteHeader />
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="mb-8 flex flex-col gap-2">
-          <SectionLabel>Yönetim</SectionLabel>
-          <h1 className="font-heading text-3xl font-medium tracking-tight">Yönetim Paneli</h1>
-        </div>
-
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {visibleTools.map((tool) => (
-            <li key={tool.href}>
-              <Link
-                href={tool.href}
-                className="flex h-full flex-col gap-1 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
-              >
-                <span className="font-medium">{tool.label}</span>
-                <span className="text-sm text-muted-foreground">{tool.description}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+    <div className="mx-auto max-w-3xl px-6 py-16">
+      <div className="mb-8 flex flex-col gap-2">
+        <SectionLabel>Yönetim</SectionLabel>
+        <h1 className="font-heading text-3xl font-medium tracking-tight">Yönetim Paneli</h1>
       </div>
+
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {visibleTools.map((tool) => (
+          <li key={tool.href}>
+            <Link
+              href={tool.href}
+              className="flex h-full flex-col gap-1 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
+            >
+              <span className="font-medium">{tool.label}</span>
+              <span className="text-sm text-muted-foreground">{tool.description}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

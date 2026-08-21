@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/auth";
 import { createStoreAction } from "../actions";
 import { BookLinkPicker } from "@/components/dklist/book-link-picker";
+import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
+import { PaidListingFields } from "@/components/dklist/paid-listing-fields";
 
 export default function NewStorePage({ searchParams }: PageProps<"/askida-kitap/yeni">) {
   return (
@@ -31,6 +33,7 @@ async function NewStoreContent({
     redirect("/giris");
   }
   const { error } = await searchParams;
+  const marketplace = await getMarketplaceStatus();
 
   return (
     <Card>
@@ -38,9 +41,6 @@ async function NewStoreContent({
         <CardTitle className="font-heading text-2xl">Askıda Kitap İlanı Ver</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Ücretli ilan alanı yok - v1'de bile bu MarketplaceSettings admin
-            anahtarına bağlı ve Iyzico checkout'una ihtiyaç duyuyor, ikisi de
-            v2'de henüz yok. Sadece ücretsiz (askıya bırakma) akışı. */}
         <form action={createStoreAction} className="flex flex-col gap-4">
           <Input name="title" placeholder="İlan başlığı" required />
           <textarea
@@ -53,6 +53,7 @@ async function NewStoreContent({
           <Input name="location" placeholder="Konum (şehir)" />
           <Input name="shipment" placeholder="Kargo bilgisi" />
           <BookLinkPicker />
+          {marketplace.active && <PaidListingFields />}
           <div className="flex flex-col gap-1">
             <label htmlFor="images" className="text-sm text-muted-foreground">
               Fotoğraflar (gerçek kopyanın fotoğrafı, en az 1)
