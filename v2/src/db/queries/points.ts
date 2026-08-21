@@ -289,6 +289,40 @@ export async function isRecentlyActive(userId: number): Promise<boolean> {
   return Number(row?.total ?? 0) >= VETERAN_TIER_THRESHOLD_POINTS;
 }
 
+export interface ActivityHeatmapDay {
+  date: string;
+  count: number;
+}
+
+/**
+ * Okuma ısı haritası (GitHub-contributions-style calendar) - tenth item
+ * from the "what else could be added" brainstorm list. The `read` table
+ * has no per-day timestamp at all (only a `year` varchar, a scope limit
+ * already documented against the Reading Score card's own "hours read"
+ * gap) - point_transaction.created_at is the only genuinely per-day
+ * timestamped signal tied to a user's reading-adjacent activity (earning
+ * points from okudum/comment/rating/etc. IS engaging with the book
+ * domain), so it's reused here as the activity proxy rather than adding
+ * new tracking infrastructure just for this.
+ */
+export async function getUserActivityHeatmap(userId: number, days = 365): Promise<ActivityHeatmapDay[]> {
+  const rows = await db
+    .select({
+      date: sql<string>`DATE(${pointTransaction.createdAt})`,
+      count: sql<number>`count(*)`,
+    })
+    .from(pointTransaction)
+    .where(
+      and(
+        eq(pointTransaction.userId, userId),
+        sql`${pointTransaction.createdAt} >= DATE_SUB(CURDATE(), INTERVAL ${days} DAY)`,
+      ),
+    )
+    .groupBy(sql`DATE(${pointTransaction.createdAt})`);
+
+  return rows.map((r) => ({ date: r.date, count: Number(r.count) }));
+}
+
 export interface LeaderboardEntry {
   userId: number;
   username: string;

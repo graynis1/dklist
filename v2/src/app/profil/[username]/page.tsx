@@ -25,7 +25,8 @@ import {
   getSharedReadBooks,
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
-import { getUserTotalPoints, isRecentlyActive } from "@/db/queries/points";
+import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap } from "@/db/queries/points";
+import { ActivityHeatmap } from "@/components/dklist/activity-heatmap";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
 import { getTotalReadingMinutes } from "@/db/queries/reading-status";
@@ -94,6 +95,7 @@ async function ProfileContent({
     readingScoreStats,
     totalReadingMinutes,
     isPremium,
+    activityHeatmap,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -111,6 +113,7 @@ async function ProfileContent({
     isOwnProfile ? getReadingScoreStats(profile.id, String(new Date().getFullYear())) : Promise.resolve(null),
     getTotalReadingMinutes(profile.id),
     isUserPremium(profile.id),
+    getUserActivityHeatmap(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -223,6 +226,12 @@ async function ProfileContent({
           </div>
         )}
       </div>
+
+      {activityHeatmap.length > 0 && (
+        <div className="mb-6">
+          <ActivityHeatmap days={activityHeatmap} />
+        </div>
+      )}
 
       {profile.biyo && (
         <p className="mb-6 max-w-xl leading-relaxed text-muted-foreground">
