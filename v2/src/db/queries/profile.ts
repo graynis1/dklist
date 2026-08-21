@@ -209,16 +209,17 @@ export interface UserBadge {
   id: number;
   name: string;
   comment: string;
+  img: string;
 }
 
 /**
  * v1's ProfileController::getProfile() badges array. Read-only display only
  * - badge *assignment* is a separate admin/automated concern (v1's own code
- * has the badge-assignment logic elsewhere), not built here. Images
- * (`badges.img`) aren't rendered - v2 has no generic image-serving path yet
- * (only the book-cover proxy exists), same gap already noted for avatar
- * upload - so this shows name/comment as a text pill with a tooltip instead
- * of silently dropping the feature until that infrastructure exists.
+ * has the badge-assignment logic elsewhere), not built here. Now includes
+ * the real image (served via /api/badge-image/[filename], see
+ * badge-admin.ts's admin CRUD) - milestone badges auto-created by
+ * points.ts still have an empty `img` (no upload step in that code path),
+ * so the profile page falls back to a text pill for those specifically.
  */
 export async function getUserBadges(userId: number): Promise<UserBadge[]> {
   "use cache";
@@ -226,7 +227,7 @@ export async function getUserBadges(userId: number): Promise<UserBadge[]> {
   cacheTag(`user-badges:${userId}`);
 
   return db
-    .select({ id: badges.id, name: badges.name, comment: badges.comment })
+    .select({ id: badges.id, name: badges.name, comment: badges.comment, img: badges.img })
     .from(userBadges)
     .innerJoin(badges, eq(userBadges.badgesId, badges.id))
     .where(eq(userBadges.userId, userId));

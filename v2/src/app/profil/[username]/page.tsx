@@ -166,9 +166,15 @@ async function ProfileContent({
                 <span
                   key={b.id}
                   title={b.comment}
-                  className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                  className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
                 >
-                  🏅 {b.name}
+                  {b.img ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={`/api/badge-image/${b.img}`} alt="" className="size-4 rounded-full object-cover" />
+                  ) : (
+                    "🏅"
+                  )}{" "}
+                  {b.name}
                 </span>
               ))}
             </div>
