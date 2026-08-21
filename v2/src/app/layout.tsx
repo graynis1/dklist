@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteFooter } from "@/components/dklist/site-footer";
 import { MobileBottomNav } from "@/components/dklist/mobile-bottom-nav";
+import { SitePopupModal } from "@/components/dklist/site-popup-modal";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <SiteFooter />
           <MobileBottomNav />
+          <SitePopupModal />
         </ThemeProvider>
       </body>
     </html>
