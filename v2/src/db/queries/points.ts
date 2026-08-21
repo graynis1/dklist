@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { pointTransaction, weeklyWinner, user, book } from "@/db/schema";
+import { pointTransaction, weeklyWinner, user, book, badges, userBadges } from "@/db/schema";
 import { currentISOWeek, getISOWeekRange } from "@/lib/iso-week";
 import { addNotification } from "@/db/queries/notifications";
 
@@ -27,6 +27,79 @@ export const POINT_VALUES = {
   storeListing: 3,
 } as const;
 
+/**
+ * Activity-based milestone badges - a natural extension of the points
+ * system, and a real gap PLAN.md's Phase 6 already anticipated ("Badges-by-
+ * activity, replacing v1's static badge assignment"): v1's own `badges`/
+ * `user_badges` tables have no write path anywhere in the real codebase at
+ * all, assignment there is purely manual/one-off. These thresholds/names are
+ * a fresh design, not a port.
+ */
+export const POINT_MILESTONES = [
+  { threshold: 25, name: "Aktif Okur", nameUs: "Active Reader", comment: "25 puana ulaştı", commentUs: "Reached 25 points" },
+  { threshold: 100, name: "Kitap Kurdu", nameUs: "Bookworm", comment: "100 puana ulaştı", commentUs: "Reached 100 points" },
+  { threshold: 250, name: "DKList Gönüllüsü", nameUs: "DKList Devotee", comment: "250 puana ulaştı", commentUs: "Reached 250 points" },
+  { threshold: 500, name: "DKList Efsanesi", nameUs: "DKList Legend", comment: "500 puana ulaştı", commentUs: "Reached 500 points" },
+] as const;
+
+/** A real Admin-type account, used as the "from the DKList team" sender for
+ * system-initiated notifications - dknotifiaction.sender_user_id is a real
+ * NOT NULL FK with no NULL/system-sender concept in this schema (matches
+ * v1's own NotifyManager design, which always requires both parties). */
+async function resolveSystemSenderId(): Promise<number | null> {
+  const [admin] = await db.select({ id: user.id }).from(user).where(eq(user.userType, "Admin")).limit(1);
+  return admin?.id ?? null;
+}
+
+async function findOrCreateMilestoneBadge(def: (typeof POINT_MILESTONES)[number]): Promise<number> {
+  const [existing] = await db.select({ id: badges.id }).from(badges).where(eq(badges.name, def.name)).limit(1);
+  if (existing) return existing.id;
+
+  const [result] = await db.insert(badges).values({
+    comment: def.comment,
+    commentUs: def.commentUs,
+    img: "",
+    name: def.name,
+    nameUs: def.nameUs,
+  });
+  return result.insertId;
+}
+
+/** Checks the user's current lifetime total against every milestone and
+ * awards any newly-crossed one. Idempotent via `user_badges`' own composite
+ * PRIMARY KEY(user_id, badges_id) - a duplicate insert just fails silently,
+ * same pattern as point_transaction's UNIQUE(user_id, reason_key). */
+async function checkMilestoneBadges(userId: number): Promise<void> {
+  const total = await getUserTotalPoints(userId);
+  const crossed = POINT_MILESTONES.filter((m) => total >= m.threshold);
+  if (crossed.length === 0) return;
+
+  let senderId: number | null | undefined;
+
+  for (const milestone of crossed) {
+    const badgeId = await findOrCreateMilestoneBadge(milestone);
+    try {
+      await db.insert(userBadges).values({ userId, badgesId: badgeId });
+    } catch (err) {
+      const message = (err as Error).message ?? "";
+      if (!message.includes("PRIMARY") && !message.includes("Duplicate entry")) throw err;
+      continue; // already has this badge - not a new award, no notification
+    }
+
+    // Only reached on a genuinely new badge (the insert above didn't throw).
+    // Resolved lazily and only once, since most calls award zero new badges.
+    if (senderId === undefined) senderId = await resolveSystemSenderId();
+    if (senderId) {
+      await addNotification(
+        userId,
+        senderId,
+        `Yeni rozet kazandın: "${milestone.name}" (${milestone.comment}).`,
+        `New badge earned: "${milestone.nameUs}" (${milestone.commentUs}).`,
+      );
+    }
+  }
+}
+
 export async function awardPoints(
   userId: number,
   points: number,
@@ -49,7 +122,10 @@ export async function awardPoints(
     if (!message.includes("uq_point_transaction_user_reason_key") && !message.includes("Duplicate entry")) {
       throw err;
     }
+    return; // not a new award - no new points earned, so no milestone re-check needed
   }
+
+  await checkMilestoneBadges(userId);
 }
 
 export async function getUserTotalPoints(userId: number): Promise<number> {
@@ -178,12 +254,9 @@ export async function recordWeeklyWinner(
     createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
   });
 
-  // Congratulate the winner - modeled as a message "from the DKList team"
-  // (any real Admin account), since dknotifiaction.sender_user_id is a real
-  // FK with no NULL/system-sender concept in this schema (matches v1's own
-  // NotifyManager design, which always requires both parties).
-  const [admin] = await db.select({ id: user.id }).from(user).where(eq(user.userType, "Admin")).limit(1);
-  if (admin) {
+  // Congratulate the winner - modeled as a message "from the DKList team".
+  const senderId = await resolveSystemSenderId();
+  if (senderId) {
     let bookName: string | null = null;
     if (prizeBookId) {
       const [row] = await db.select({ name: book.name }).from(book).where(eq(book.id, prizeBookId)).limit(1);
@@ -192,7 +265,7 @@ export async function recordWeeklyWinner(
     const prizeText = bookName ? ` Hediyen: "${bookName}".` : "";
     await addNotification(
       userId,
-      admin.id,
+      senderId,
       `Tebrikler! ${yearWeek} haftasının en aktif okuru sensin (${points} puan).${prizeText}`,
       `Congratulations! You're the top reader for week ${yearWeek} (${points} points).${prizeText}`,
     );
