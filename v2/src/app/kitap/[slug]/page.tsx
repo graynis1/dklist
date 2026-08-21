@@ -15,7 +15,7 @@ import { LikeButton } from "@/components/dklist/like-button";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { ShareButton } from "@/components/dklist/share-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore } from "@/db/queries/book-detail";
+import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating } from "@/db/queries/rating";
@@ -89,6 +89,7 @@ async function BookDetailContent({
     categoryRank,
     workPooledScore,
     storeListings,
+    workEditions,
   ] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
@@ -104,6 +105,9 @@ async function BookDetailContent({
       : Promise.resolve(null),
     detail.workId ? getWorkPooledScore(detail.workId) : Promise.resolve(null),
     getActiveStoreListingsForBook(detail.id),
+    detail.workId
+      ? getWorkEditions(detail.workId, detail.id, detail.lang)
+      : Promise.resolve({ sameLanguage: [], otherLanguages: {} }),
   ]);
 
   const quotes = await getBookComments(detail.id, "alinti");
@@ -303,6 +307,46 @@ async function BookDetailContent({
           </div>
         </div>
       </section>
+
+      {(workEditions.sameLanguage.length > 0 || Object.keys(workEditions.otherLanguages).length > 0) && (
+        <>
+          <Separator />
+          <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+            <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+              Diğer Baskılar
+            </h2>
+            {workEditions.sameLanguage.length > 0 && (
+              <ul className="mb-4 flex flex-col gap-1">
+                {workEditions.sameLanguage.map((e) => (
+                  <li key={e.id}>
+                    <Link href={`/kitap/${e.slug}`} className="text-primary hover:underline">
+                      {e.name}
+                    </Link>{" "}
+                    <span className="text-sm text-muted-foreground">{e.score.toFixed(1)}/10</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {Object.entries(workEditions.otherLanguages).map(([lang, editions]) => (
+              <details key={lang} className="mb-2">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+                  {lang.toUpperCase()} baskılar ({editions.length})
+                </summary>
+                <ul className="mt-2 flex flex-col gap-1 pl-4">
+                  {editions.map((e) => (
+                    <li key={e.id}>
+                      <Link href={`/kitap/${e.slug}`} className="text-primary hover:underline">
+                        {e.name}
+                      </Link>{" "}
+                      <span className="text-sm text-muted-foreground">{e.score.toFixed(1)}/10</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </section>
+        </>
+      )}
 
       {readers.length > 0 && (
         <>

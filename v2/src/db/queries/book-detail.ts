@@ -13,6 +13,7 @@ export interface BookDetail {
   viewCount: number;
   pageNumber: number;
   workId: number | null;
+  lang: string;
   publisher: { id: number; name: string; slug: string } | null;
   writers: { id: number; name: string; slug: string }[];
   categories: { id: number; name: string; slug: string }[];
@@ -34,6 +35,7 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
       viewCount: book.viewCount,
       pageNumber: book.pageNumber,
       workId: book.workId,
+      lang: book.lang,
       publisherId: publisher.id,
       publisherName: publisher.name,
       publisherSlug: publisher.slug,
@@ -72,6 +74,7 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
     viewCount: Number(row.viewCount),
     pageNumber: row.pageNumber,
     workId: row.workId,
+    lang: row.lang,
     publisher: row.publisherId
       ? { id: row.publisherId, name: row.publisherName!, slug: row.publisherSlug! }
       : null,
@@ -108,6 +111,51 @@ export async function getWorkPooledScore(workId: number): Promise<WorkPooledScor
 
   if (!row || Number(row.editionCount) <= 1) return null;
   return { avgScore: Number(row.avgScore), editionCount: Number(row.editionCount) };
+}
+
+export interface WorkEdition {
+  id: number;
+  name: string;
+  slug: string;
+  lang: string;
+  score: number;
+}
+
+export interface WorkEditionGroups {
+  sameLanguage: WorkEdition[];
+  otherLanguages: Record<string, WorkEdition[]>;
+}
+
+/**
+ * Customer's rating/edition-model spec: editions listed under a book page
+ * should group by language, the browsing-language's editions shown first/
+ * expanded, other languages collapsed. Same low-visibility-until-Phase-5-
+ * backfill caveat as getWorkPooledScore() - returns empty groups for every
+ * real book today since work_id groupings aren't populated on prod yet.
+ */
+export async function getWorkEditions(workId: number, excludeBookId: number, currentLang: string): Promise<WorkEditionGroups> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`work-editions:${workId}`);
+
+  const rows = await db
+    .select({ id: book.id, name: book.name, slug: book.slug, lang: book.lang, score: book.score })
+    .from(book)
+    .where(eq(book.workId, workId));
+
+  const sameLanguage: WorkEdition[] = [];
+  const otherLanguages: Record<string, WorkEdition[]> = {};
+
+  for (const row of rows) {
+    if (row.id === excludeBookId) continue;
+    if (row.lang === currentLang) {
+      sameLanguage.push(row);
+    } else {
+      (otherLanguages[row.lang] ??= []).push(row);
+    }
+  }
+
+  return { sameLanguage, otherLanguages };
 }
 
 export interface BookReader {
