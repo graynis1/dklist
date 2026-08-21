@@ -731,3 +731,55 @@ export const youtube = mysqlTable("youtube", {
 (table) => [
 	primaryKey({ columns: [table.id], name: "youtube_id"}),
 ]);
+
+// Phase 8 (Monetization) - customer-requested, not a v1 port. See
+// migration 0010_monetization.sql. Single-row admin config (same
+// singleton-table pattern as marketplace_settings) for premium membership
+// pricing/duration.
+export const premiumSettings = mysqlTable("premium_settings", {
+	id: int().autoincrement().notNull(),
+	active: tinyint().notNull(),
+	priceKurus: int("price_kurus").notNull(),
+	durationDays: int("duration_days").notNull(),
+	updatedDate: datetime("updated_date", { mode: 'string' }),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "premium_settings_id" }),
+]);
+
+// One purchase per row (not a single "is premium" flag on user) so a
+// renewal history exists and expiresAt can be computed as
+// MAX(expires_at) across all of a user's paid purchases.
+export const premiumPurchase = mysqlTable("premium_purchase", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id),
+	amountKurus: int("amount_kurus").notNull(),
+	durationDays: int("duration_days").notNull(),
+	status: varchar({ length: 20 }).notNull(),
+	startsAt: datetime("starts_at", { mode: 'string' }),
+	expiresAt: datetime("expires_at", { mode: 'string' }),
+	iyzicoConversationId: varchar("iyzico_conversation_id", { length: 255 }),
+	iyzicoToken: varchar("iyzico_token", { length: 255 }),
+	iyzicoPaymentId: varchar("iyzico_payment_id", { length: 255 }),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+	updatedDate: datetime("updated_date", { mode: 'string' }),
+},
+(table) => [
+	index("idx_premium_purchase_user").on(table.userId),
+	index("idx_premium_purchase_token").on(table.iyzicoToken),
+	primaryKey({ columns: [table.id], name: "premium_purchase_id" }),
+]);
+
+export const advertisement = mysqlTable("advertisement", {
+	id: int().autoincrement().notNull(),
+	placement: varchar({ length: 50 }).notNull(),
+	image: varchar({ length: 255 }).notNull(),
+	linkUrl: varchar("link_url", { length: 500 }),
+	active: tinyint().notNull(),
+	sortOrder: int("sort_order").notNull(),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	index("idx_advertisement_placement").on(table.placement, table.active),
+	primaryKey({ columns: [table.id], name: "advertisement_id" }),
+]);

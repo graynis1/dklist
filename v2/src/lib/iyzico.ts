@@ -209,6 +209,81 @@ export async function createCheckoutForm(config: IyzicoConfig, input: CreateChec
   };
 }
 
+export interface CreateDirectCheckoutFormInput {
+  conversationId: string;
+  priceTl: number;
+  basketId: string;
+  itemName: string;
+  callbackUrl: string;
+  buyerIp: string;
+  buyerId: number;
+  buyerUsername: string;
+  buyerMail: string | null;
+}
+
+/**
+ * A platform-revenue checkout (premium membership) - unlike
+ * createCheckoutForm() above, this has no subMerchantKey/subMerchantPrice
+ * at all, so the full amount stays on the platform's own iyzico account
+ * (standard non-marketplace usage). Deliberately reuses whatever address
+ * the buyer's account has on file rather than asking for shipping details
+ * a digital-only purchase doesn't need.
+ */
+export async function createDirectCheckoutForm(config: IyzicoConfig, input: CreateDirectCheckoutFormInput): Promise<CheckoutFormInitializeResult> {
+  const iyzipay = client(config);
+  const priceStr = input.priceTl.toFixed(2);
+
+  const result = await call((cb) =>
+    iyzipay.checkoutFormInitialize.create(
+      {
+        locale: Iyzipay.LOCALE.TR,
+        conversationId: input.conversationId,
+        price: priceStr,
+        paidPrice: priceStr,
+        currency: Iyzipay.CURRENCY.TRY,
+        basketId: input.basketId,
+        paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
+        callbackUrl: input.callbackUrl,
+        enabledInstallments: [1],
+        buyer: {
+          id: `buyer-${input.buyerId}`,
+          name: input.buyerUsername,
+          surname: "-",
+          email: input.buyerMail || "noreply@dklist.com",
+          identityNumber: "11111111111",
+          gsmNumber: "5000000000",
+          registrationAddress: "-",
+          city: "Istanbul",
+          country: "Turkey",
+          ip: input.buyerIp || "85.34.78.112",
+        },
+        shippingAddress: { contactName: input.buyerUsername, city: "Istanbul", country: "Turkey", address: "-", zipCode: "00000" },
+        billingAddress: { contactName: input.buyerUsername, city: "Istanbul", country: "Turkey", address: "-", zipCode: "00000" },
+        basketItems: [
+          {
+            id: input.basketId,
+            name: input.itemName.slice(0, 100),
+            category1: "Üyelik",
+            itemType: Iyzipay.BASKET_ITEM_TYPE.VIRTUAL,
+            price: priceStr,
+          },
+        ],
+      },
+      cb,
+    ),
+  );
+
+  const token = result.token as string | undefined;
+  if (result.status !== "success" || !token) {
+    throw new Error(result.errorMessage || "Ödeme başlatılamadı");
+  }
+  return {
+    token,
+    paymentPageUrl: result.paymentPageUrl as string | undefined,
+    checkoutFormContent: result.checkoutFormContent as string | undefined,
+  };
+}
+
 export interface RetrieveCheckoutFormResult {
   status: string;
   paymentStatus?: string;

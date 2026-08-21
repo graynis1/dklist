@@ -31,6 +31,8 @@ const ADMIN_TOOLS: { href: string; label: string; description: string; roles: Us
   { href: "/admin/haftalik-kazanan", label: "Haftalık Kazanan", description: "Haftalık puan lideri ödülünü kaydet/teslim et", roles: [USER_TYPES.Admin] },
   { href: "/admin/pazaryeri-ayarlari", label: "Pazaryeri Ayarları", description: "iyzico API anahtarları, ücretli satın alma aç/kapa, komisyon oranı", roles: [USER_TYPES.Admin] },
   { href: "/admin/siparisler", label: "Siparişler", description: "Tüm ücretli Askıda Kitap siparişlerini görüntüle", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
+  { href: "/admin/premium-ayarlari", label: "Premium Ayarları", description: "Premium üyelik fiyatı, süresi ve satışını aç/kapa", roles: [USER_TYPES.Admin] },
+  { href: "/admin/reklamlar", label: "Reklamlar", description: "Premium olmayan kullanıcılara gösterilen reklam alanları", roles: [USER_TYPES.Admin] },
 ];
 
 export default function AdminIndexPage() {

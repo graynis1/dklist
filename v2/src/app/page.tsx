@@ -16,6 +16,7 @@ import { connection } from "next/server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { auth } from "@/auth";
 import { FollowButton } from "@/components/dklist/follow-button";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -537,6 +538,12 @@ export default function Home() {
       </section>
 
       <Separator />
+
+      <div className="py-8">
+        <Suspense fallback={null}>
+          <AdSlot placement="homepage-banner" />
+        </Suspense>
+      </div>
 
       {/* Featured */}
       <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
