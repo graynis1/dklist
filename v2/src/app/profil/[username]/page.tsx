@@ -137,12 +137,17 @@ async function ProfileContent({
           </div>
         )}
         {isOwnProfile && (
-          <Link
-            href="/profil/duzenle"
-            className="ml-auto text-sm text-muted-foreground underline hover:text-foreground"
-          >
-            Profili düzenle
-          </Link>
+          <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
+            <Link href="/ilanlarim" className="underline hover:text-foreground">
+              İlanlarım
+            </Link>
+            <Link href="/favorilerim" className="underline hover:text-foreground">
+              Favorilerim
+            </Link>
+            <Link href="/profil/duzenle" className="underline hover:text-foreground">
+              Profili düzenle
+            </Link>
+          </div>
         )}
       </div>
 

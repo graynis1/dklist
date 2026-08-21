@@ -283,6 +283,61 @@ export async function getMyStores(userId: number): Promise<MyStoreItem[]> {
     .orderBy(desc(store.id));
 }
 
+export interface FavoriteStoreItem {
+  id: number;
+  title: string;
+  slug: string;
+  price: number | null;
+  listingType: string;
+  location: string | null;
+  image: string | null;
+}
+
+/**
+ * v1's StoreController::getFavorites() - notably filters out listings the
+ * owner has since made inactive (sold/cancelled), so a stale favorite
+ * doesn't keep showing a dead listing forever. Matched here.
+ */
+export async function getMyFavoriteStores(userId: number): Promise<FavoriteStoreItem[]> {
+  const rows = await db
+    .select({
+      id: store.id,
+      title: store.title,
+      slug: store.slug,
+      price: store.price,
+      listingType: store.listingType,
+      location: store.location,
+      isActive: store.isActive,
+    })
+    .from(storeFavorite)
+    .innerJoin(store, eq(storeFavorite.storeId, store.id))
+    .where(eq(storeFavorite.userId, userId))
+    .orderBy(desc(storeFavorite.id));
+
+  const active = rows.filter((r) => r.isActive);
+  const storeIds = active.map((r) => r.id);
+  const pictures = storeIds.length
+    ? await db
+        .select({ advertId: storePicture.advertId, imageName: storePicture.imageName })
+        .from(storePicture)
+        .where(inArray(storePicture.advertId, storeIds))
+    : [];
+  const firstImageByStore = new Map<number, string>();
+  for (const p of pictures) {
+    if (!firstImageByStore.has(p.advertId)) firstImageByStore.set(p.advertId, p.imageName);
+  }
+
+  return active.map((r) => ({
+    id: r.id,
+    title: r.title,
+    slug: r.slug,
+    price: r.price,
+    listingType: r.listingType,
+    location: r.location,
+    image: firstImageByStore.get(r.id) ?? null,
+  }));
+}
+
 export function storeImageUrl(imageName: string | null): string | null {
   return imageName ? `/api/store-image/${imageName}` : null;
 }
