@@ -223,6 +223,9 @@ async function ProfileContent({
             <Link href="/profil/duzenle" className="underline hover:text-foreground">
               Profili düzenle
             </Link>
+            <Link href="/ice-aktar" className="underline hover:text-foreground">
+              Goodreads&apos;ten İçe Aktar
+            </Link>
           </div>
         )}
       </div>
