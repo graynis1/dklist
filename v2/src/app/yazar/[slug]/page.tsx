@@ -226,6 +226,7 @@ async function WriterContent({
         placeholder="Bu yazardan bir alıntı paylaşın…"
         submitLabel="Alıntı Yap"
         emptyMessage="Henüz alıntı yok."
+        quoteCardSource={writer.name}
       />
     </section>
   );

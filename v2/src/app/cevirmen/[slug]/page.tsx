@@ -199,6 +199,7 @@ async function TranslatorContent({
         placeholder="Bu çevirmenden bir alıntı paylaşın…"
         submitLabel="Alıntı Yap"
         emptyMessage="Henüz alıntı yok."
+        quoteCardSource={translator.name}
       />
     </section>
   );

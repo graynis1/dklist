@@ -450,6 +450,7 @@ async function BookDetailContent({
           placeholder="Bu kitaptan bir alıntı paylaşın…"
           submitLabel="Alıntı Yap"
           emptyMessage="Henüz alıntı yok."
+          quoteCardSource={detail.name}
         />
       </section>
     </>

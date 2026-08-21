@@ -8,6 +8,7 @@ import { toggleCommentLikeAction } from "@/actions/comment-likes";
 import { reportCommentAction } from "@/actions/notices";
 import { ShareButton } from "@/components/dklist/share-button";
 import { HashtagText } from "@/components/dklist/hashtag-text";
+import { QuoteCard } from "@/components/dklist/quote-card";
 
 /** v1's CommentComponent `notice()` - a silent fire-and-forget report that
  * just hides itself after sending, no confirmation modal (comment reports
@@ -220,6 +221,7 @@ export function EntityComments({
   placeholder = "Ne düşünüyorsunuz?",
   submitLabel = "Yorum Yap",
   emptyMessage = "Henüz yorum yok.",
+  quoteCardSource,
 }: {
   signedIn: boolean;
   initialComments: BookComment[];
@@ -238,6 +240,11 @@ export function EntityComments({
   placeholder?: string;
   submitLabel?: string;
   emptyMessage?: string;
+  /** Renders a per-entry "Görsel Kart Oluştur" (quote-image) button when
+   * set - only meaningful for a quotes ("alıntı") section, so callers pass
+   * this (the book/writer/translator's own display name) only on that
+   * instance, not the plain-comments one. */
+  quoteCardSource?: string;
 }) {
   const [comments, setComments] = useState(initialComments);
   const [repliesByComment, setRepliesByComment] = useState(initialRepliesByComment);
@@ -403,6 +410,7 @@ export function EntityComments({
                   <ReportCommentButton commentId={c.id} parentType="comment" />
                   <ShareButton content={c.text} />
                 </div>
+                {quoteCardSource && <QuoteCard quoteText={c.text} sourceName={quoteCardSource} />}
                 {replyFormFor === c.id && (
                   <ReplyForm
                     onCancel={() => setReplyFormFor(null)}
