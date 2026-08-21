@@ -139,6 +139,8 @@ Not yet done in Phase 3: marketplace/Askıda Kitap + Iyzico (needs real payment 
 
 **Phase 4 — Admin roles, permissions, blog.** Full role hierarchy (Kurucu — un-revocable, Admin, Yazar üye, Yayınevi üye, Kütüphaneci/Moderatör with data-entry+approval rights but no site-settings access, Member), audit log for elevated-permission actions, blog with revision-approval flow. Book-entry approval workflow.
 
+**`BlogController` checked (2026-08-21)**: confirmed writing a blog post genuinely needs Phase 4's role hierarchy - `add()` requires `UserTypeEnum::Blogger`/`Mod`/`Admin`, a role v2 has no concept of yet, so post-authoring stays correctly deferred. But `getAll()`/`get($slug)` (public listing + detail, approved-only) don't need any role check at all - same shape as the book/writer/category browse pages already built. This is a legitimate "simpler than expected" slice worth building now: a read-only `/bloglar` + `/blog/[slug]` pair, no posting/editing UI. Not yet built - next natural piece of work.
+
 **→ Recommended cutover candidate: end of Phase 4** (not a fixed rule — confirm with the maintainer when reached).
 
 **Phase 5 — Duplicate-detection bulk population.** Classical fuzzy matching, not AI-dependent: (1) ISBN exact match, (2) normalized-title match, (3) title+author fuzzy similarity (Levenshtein/Jaro-Winkler/trigram, ~95% threshold), (4) optional AI review for residual ambiguous cases only, (5) manual admin approval panel. The `work_id` backfill across 98.5M rows must be batched/resumable/idempotent — same shape of long-running IO-heavy write that killed the FULLTEXT attempts twice on this hardware.
