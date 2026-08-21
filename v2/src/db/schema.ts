@@ -621,6 +621,11 @@ export const user = mysqlTable("user", {
 	// Point-store redeemable cosmetic (avatar ring color/style) - null means
 	// no frame equipped, even if the user owns one or more via redemption.
 	profileFrame: varchar("profile_frame", { length: 30 }),
+	// Self-service email-based 2FA - separate from pending_code/mail_auth
+	// (a different lifecycle: email verification/password reset).
+	twoFactorEnabled: tinyint("two_factor_enabled").notNull().default(0),
+	twoFactorCode: varchar("two_factor_code", { length: 10 }),
+	twoFactorCodeExpires: datetime("two_factor_code_expires", { mode: 'string' }),
 },
 (table) => [
 	index("IDX_8D93D649996A8449").on(table.readBooksId),

@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { getEditableProfile } from "@/db/queries/profile";
 import { avatarUrl } from "@/db/queries/avatar";
 import { updateProfileAction } from "@/app/profil/[username]/actions";
+import { TwoFactorToggle } from "@/components/dklist/two-factor-toggle";
 
 export default function EditProfilePage({ searchParams }: PageProps<"/profil/duzenle">) {
   return (
@@ -45,7 +46,9 @@ async function EditProfileContent({
   }
 
   return (
-    <Card>
+    <div className="flex flex-col gap-6">
+      <TwoFactorToggle initialEnabled={profile.twoFactorEnabled} />
+      <Card>
       <CardHeader>
         <CardTitle className="font-heading text-2xl">Profili Düzenle</CardTitle>
       </CardHeader>
@@ -136,5 +139,6 @@ async function EditProfileContent({
         </form>
       </CardContent>
     </Card>
+    </div>
   );
 }

@@ -63,6 +63,17 @@ export async function sendPasswordResetEmail(mail: string, username: string, cod
   );
 }
 
+export async function sendTwoFactorCodeEmail(mail: string, username: string, code: string): Promise<void> {
+  await sendMail(
+    mail,
+    "DKList - Giriş Doğrulama Kodu",
+    `<p>Merhaba ${username},</p>
+     <p>Giriş yapmak için aşağıdaki kodu kullanın (10 dakika geçerlidir):</p>
+     <p style="font-size:20px;font-weight:bold;letter-spacing:2px;">${code}</p>
+     <p>Bu girişi siz yapmadıysanız şifrenizi hemen değiştirin.</p>`,
+  );
+}
+
 export async function sendNewPasswordEmail(mail: string, username: string, newPassword: string): Promise<void> {
   await sendMail(
     mail,

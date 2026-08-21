@@ -33,6 +33,7 @@ export interface EditableProfile {
   edu: string | null;
   job: string | null;
   image: string | null;
+  twoFactorEnabled: boolean;
 }
 
 /** Deliberately uncached and keyed by id, not username - this backs the
@@ -51,11 +52,16 @@ export async function getEditableProfile(userId: number): Promise<EditableProfil
       edu: user.edu,
       job: user.job,
       image: user.image,
+      twoFactorEnabled: user.twoFactorEnabled,
     })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
-  return row ?? null;
+  return row ? { ...row, twoFactorEnabled: row.twoFactorEnabled === 1 } : null;
+}
+
+export async function setTwoFactorEnabled(userId: number, enabled: boolean): Promise<void> {
+  await db.update(user).set({ twoFactorEnabled: enabled ? 1 : 0 }).where(eq(user.id, userId));
 }
 
 export interface UpdateProfileInput {

@@ -1,9 +1,28 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { user as userTable } from "@/db/schema";
+import { isMailConfigured, sendTwoFactorCodeEmail } from "@/lib/mailer";
+
+/**
+ * Thrown by authorize() when a password check succeeds but the account
+ * has 2FA enabled and no code was submitted yet - the client-side login
+ * form (src/app/giris/page.tsx) checks this specific `code` to reveal the
+ * code-entry step, rather than showing a generic "wrong credentials"
+ * error. `code` ends up in the CredentialsSignin instance's own `code`
+ * property (Auth.js's documented mechanism for this) - safe to expose
+ * since it never distinguishes *why* a login failed, only that a second
+ * step is needed after a password that already checked out.
+ */
+export class TwoFactorRequiredError extends CredentialsSignin {
+  code = "two_factor_required";
+}
+
+function generateSixDigitCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Auth.js only auto-trusts the request Host header on Vercel (env-detected).
@@ -22,10 +41,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         username: {},
         password: {},
+        code: {},
       },
       async authorize(credentials) {
         const username = credentials?.username as string | undefined;
         const password = credentials?.password as string | undefined;
+        const code = (credentials?.code as string | undefined)?.trim() || undefined;
         if (!username || !password) return null;
 
         const [row] = await db
@@ -59,6 +80,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!passwordOk) return null;
         if (row.disable) return null;
+
+        // 2FA gate - only reached once username+password already checked
+        // out. Fails open (skips the challenge) if mail isn't configured
+        // (e.g. a fresh clone with no .env.local) rather than locking the
+        // user out of an account they can't complete a mailed-code
+        // challenge for.
+        if (row.twoFactorEnabled && isMailConfigured()) {
+          if (!code) {
+            const otp = generateSixDigitCode();
+            // Computed and compared entirely in SQL (NOW() + INTERVAL /
+            // NOW() on the read side below) rather than round-tripped
+            // through JS Date parsing - a real bug caught via testing:
+            // MySQL DATETIME has no timezone, but new Date() on a space-
+            // separated "YYYY-MM-DD HH:MM:SS" string (no "T"/"Z") parses
+            // as LOCAL time while toISOString() produces UTC, silently
+            // shifting the comparison by the server's UTC offset and
+            // making a freshly-generated code appear already expired.
+            await db.update(userTable).set({ twoFactorCode: otp, twoFactorCodeExpires: sql`NOW() + INTERVAL 10 MINUTE` }).where(eq(userTable.id, row.id));
+            await sendTwoFactorCodeEmail(row.mail, row.username, otp);
+            throw new TwoFactorRequiredError();
+          }
+
+          const [validRow] = await db
+            .select({ id: userTable.id })
+            .from(userTable)
+            .where(sql`${userTable.id} = ${row.id} AND ${userTable.twoFactorCode} = ${code} AND ${userTable.twoFactorCodeExpires} > NOW()`);
+          if (!validRow) return null;
+
+          // Consume the code so it can never be replayed.
+          await db.update(userTable).set({ twoFactorCode: null, twoFactorCodeExpires: null }).where(eq(userTable.id, row.id));
+        }
 
         return {
           id: String(row.id),

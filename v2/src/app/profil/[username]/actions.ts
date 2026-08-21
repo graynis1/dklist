@@ -8,6 +8,7 @@ import {
   getCurrentReadingGoal,
   updateProfile,
   toggleVerified,
+  setTwoFactorEnabled,
   type ReadingGoal,
 } from "@/db/queries/profile";
 import { uploadAvatar } from "@/db/queries/avatar";
@@ -70,6 +71,13 @@ export async function toggleVerifiedAction(
 
   const verified = await toggleVerified(targetUserId);
   return { status: true, verified };
+}
+
+export async function setTwoFactorEnabledAction(enabled: boolean): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+  await setTwoFactorEnabled(Number(session.user.id), enabled);
+  return { status: true };
 }
 
 export async function updateProfileAction(formData: FormData) {
