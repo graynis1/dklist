@@ -371,15 +371,6 @@ export default function Home() {
           <TopReadersShelf />
         </Suspense>
       </section>
-
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-10 text-sm text-muted-foreground sm:flex-row">
-          <span className="font-heading text-lg font-semibold tracking-tight italic text-foreground">
-            DKList
-          </span>
-          <p>DK List — Kitap Severlerin Buluştuğu Adres</p>
-        </div>
-      </footer>
     </div>
   );
 }
