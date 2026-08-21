@@ -113,6 +113,35 @@ export async function getBlogList(
   return { items, total, page: effectivePage, lastPage };
 }
 
+export interface OwnerBlogItem {
+  id: number;
+  title: string;
+  slug: string;
+  approved: boolean;
+}
+
+/**
+ * v1's profile page shows a "Bloglari" section - the profile owner's own
+ * posts, visible to anyone viewing that profile (confirmed by reading
+ * BlogsContainer.js, which reads straight off the shared profile response,
+ * not gated on isOwnProfile). A viewer who isn't the owner only sees
+ * approved posts; the owner also sees their own not-yet-approved drafts,
+ * matching the same isOwner-sees-more pattern already used for reading
+ * status/pending-revision banners elsewhere in this app.
+ */
+export async function getBlogsByOwner(ownerId: number, includeUnapproved: boolean): Promise<OwnerBlogItem[]> {
+  const whereClause = includeUnapproved ? eq(blog.ownerId, ownerId) : and(eq(blog.ownerId, ownerId), eq(blog.approved, 1));
+
+  const rows = await db
+    .select({ id: blog.id, title: blog.title, slug: blog.slug, approved: blog.approved })
+    .from(blog)
+    .where(whereClause)
+    .orderBy(desc(blog.id))
+    .limit(50);
+
+  return rows.map((r) => ({ ...r, approved: Boolean(r.approved) }));
+}
+
 export interface BlogDetail {
   id: number;
   title: string;

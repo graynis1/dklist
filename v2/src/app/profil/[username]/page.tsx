@@ -21,6 +21,7 @@ import {
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
 import { getUserTotalPoints } from "@/db/queries/points";
+import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
@@ -79,6 +80,7 @@ async function ProfileContent({
     likedTranslators,
     userBadges,
     totalPoints,
+    ownerBlogs,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -90,6 +92,7 @@ async function ProfileContent({
     getLikedTranslators(profile.id),
     getUserBadges(profile.id),
     getUserTotalPoints(profile.id),
+    getBlogsByOwner(profile.id, isOwnProfile),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -268,6 +271,27 @@ async function ProfileContent({
                   className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
                 >
                   {t.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {ownerBlogs.length > 0 && (
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <SectionLabel>Blog Yazıları</SectionLabel>
+              <span className="text-sm text-muted-foreground">({ownerBlogs.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ownerBlogs.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/blog/${b.slug}`}
+                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+                >
+                  {b.title}
+                  {!b.approved && " (onay bekliyor)"}
                 </Link>
               ))}
             </div>
