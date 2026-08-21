@@ -76,8 +76,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.userType = (user as { userType?: string }).userType;
-        token.mailAuth = (user as { mailAuth?: boolean }).mailAuth;
+        token.userType = user.userType;
+        token.mailAuth = user.mailAuth;
       }
       return token;
     },
@@ -89,10 +89,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // wire-up). Found via a real bug: every page checking
         // session.user.id treated a logged-in user as signed out.
         if (token.sub) session.user.id = token.sub;
-        (session.user as typeof session.user & { userType?: string }).userType =
-          token.userType as string | undefined;
-        (session.user as typeof session.user & { mailAuth?: boolean }).mailAuth =
-          token.mailAuth as boolean | undefined;
+        session.user.userType = token.userType as string | undefined;
+        session.user.mailAuth = token.mailAuth as boolean | undefined;
       }
       return session;
     },

@@ -2,18 +2,30 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { mergeWorks } from "@/db/queries/merge";
+import { requireRole, hasRole, USER_TYPES } from "@/lib/permission";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionLabel } from "@/components/dklist/star-rating";
 
-// Minimal manual-merge tool per PLAN.md's Phase 1 - gated on "is signed in"
-// only for now, NOT a real role check. Phase 4 builds the actual admin role
-// hierarchy (Kurucu/Admin/Kütüphaneci/Moderatör); this page must be revisited
-// then to gate on the real role instead of just a session existing.
+// First real Phase 4 permission check - previously gated on "is signed in"
+// only, not any actual role, and (worse) the Server Action itself had no
+// check at all: Server Actions are their own reachable endpoint independent
+// of how the referencing page renders, so page-only gating never actually
+// protected the mutation. Both the page and the action now go through
+// requireRole(), matching v1's Admin-only gate on its destructive data-merge
+// endpoints (e.g. WriterController::delete).
+const MERGE_ALLOWED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
+
 async function merge(formData: FormData) {
   "use server";
+  try {
+    await requireRole(MERGE_ALLOWED_ROLES);
+  } catch (err) {
+    redirect(`/admin/merge?error=${encodeURIComponent((err as Error).message)}`);
+  }
+
   const duplicateId = Number(formData.get("duplicateWorkId"));
   const canonicalId = Number(formData.get("canonicalWorkId"));
   const result = await mergeWorks(duplicateId, canonicalId);
@@ -45,6 +57,9 @@ async function AdminMergeContent({
   const session = await auth();
   if (!session?.user) {
     redirect("/giris");
+  }
+  if (!hasRole(session.user.userType, MERGE_ALLOWED_ROLES)) {
+    redirect("/");
   }
 
   const { ok, reassigned, error } = await searchParams;
