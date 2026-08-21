@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 
 /**
- * Generic 1-5 star picker for any rateable entity (writer/translator) -
- * same interaction as RateBookControl, parameterized over a server action
- * instead of duplicated per entity type.
+ * Generic 1-10 star picker for any rateable entity (writer/translator),
+ * matching v1's real `<Rate count={10}>` - same interaction as
+ * RateBookControl, parameterized over a server action instead of duplicated
+ * per entity type.
  */
 export function RateEntityControl({
   signedIn,
@@ -44,7 +45,7 @@ export function RateEntityControl({
         onMouseLeave={() => setHovered(null)}
         aria-disabled={isPending}
       >
-        {[1, 2, 3, 4, 5].map((n) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
           <button
             key={n}
             type="button"
@@ -60,7 +61,7 @@ export function RateEntityControl({
           </button>
         ))}
       </div>
-      {rating && <span className="text-xs text-muted-foreground">({rating}/5)</span>}
+      {rating && <span className="text-xs text-muted-foreground">({rating}/10)</span>}
     </div>
   );
 }

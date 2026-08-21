@@ -28,7 +28,7 @@ export async function getUserBookRating(
 }
 
 /**
- * Upserts the caller's 1-5 rating for a book (UNIQUE(owner_id, target_id,
+ * Upserts the caller's 1-10 rating for a book (UNIQUE(owner_id, target_id,
  * target_type) from migration 0003 makes this a real upsert, not a pile of
  * duplicate votes), then recomputes `book.score` as the mean of all votes
  * for that book. `book.score` is a materialized/cached aggregate, same
@@ -47,8 +47,8 @@ export async function rateBook(
   // the revalidateTag/updateTag one earlier in this session.
   bookSlug: string,
 ): Promise<{ newAverage: number }> {
-  if (!Number.isInteger(value) || value < 1 || value > 5) {
-    throw new Error("Puan 1 ile 5 arasında bir tam sayı olmalıdır.");
+  if (!Number.isInteger(value) || value < 1 || value > 10) {
+    throw new Error("Puan 1 ile 10 arasında bir tam sayı olmalıdır.");
   }
 
   await db.transaction(async (tx) => {
@@ -103,8 +103,8 @@ export async function rateWriter(
   value: number,
   writerSlug: string,
 ): Promise<{ newAverage: number }> {
-  if (!Number.isInteger(value) || value < 1 || value > 5) {
-    throw new Error("Puan 1 ile 5 arasında bir tam sayı olmalıdır.");
+  if (!Number.isInteger(value) || value < 1 || value > 10) {
+    throw new Error("Puan 1 ile 10 arasında bir tam sayı olmalıdır.");
   }
 
   await db.transaction(async (tx) => {
@@ -155,8 +155,8 @@ export async function rateTranslator(
   value: number,
   translatorSlug: string,
 ): Promise<{ newAverage: number }> {
-  if (!Number.isInteger(value) || value < 1 || value > 5) {
-    throw new Error("Puan 1 ile 5 arasında bir tam sayı olmalıdır.");
+  if (!Number.isInteger(value) || value < 1 || value > 10) {
+    throw new Error("Puan 1 ile 10 arasında bir tam sayı olmalıdır.");
   }
 
   await db.transaction(async (tx) => {

@@ -180,7 +180,7 @@ async function BookDetailContent({
 
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <StarRating value={detail.score} />
-              <span className="font-medium">{detail.score.toFixed(2)}</span>
+              <span className="font-medium">{detail.score.toFixed(2)}/10</span>
               <span className="text-muted-foreground">
                 · {detail.viewCount.toLocaleString("tr-TR")} görüntülenme
               </span>

@@ -100,7 +100,7 @@ async function TranslatorContent({
           </h1>
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={translator.score} />
-            <span className="font-medium">{translator.score.toFixed(2)}</span>
+            <span className="font-medium">{translator.score.toFixed(2)}/10</span>
             <span className="text-muted-foreground">
               · {books.length} çeviri
             </span>
@@ -157,7 +157,7 @@ async function TranslatorContent({
                 <div className="flex items-center gap-1 text-xs">
                   <StarRating value={book.score} />
                   <span className="text-muted-foreground">
-                    {book.score.toFixed(1)}
+                    {book.score.toFixed(1)}/10
                   </span>
                 </div>
               </div>

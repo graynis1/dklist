@@ -11,9 +11,10 @@ interface RateBookControlProps {
 }
 
 /**
- * Interactive 1-5 star picker - distinct from the read-only <StarRating>
- * used everywhere else to *display* an average. Optimistic: shows the click
- * immediately, reverts on failure.
+ * Interactive 1-10 star picker, matching v1's real `<Rate count={10}>` -
+ * distinct from the read-only <StarRating> used everywhere else to *display*
+ * an average (which shows the same 0-10 score compressed onto 5 glyphs).
+ * Optimistic: shows the click immediately, reverts on failure.
  */
 export function RateBookControl({
   bookId,
@@ -46,7 +47,7 @@ export function RateBookControl({
         onMouseLeave={() => setHovered(null)}
         aria-disabled={isPending}
       >
-        {[1, 2, 3, 4, 5].map((n) => (
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
           <button
             key={n}
             type="button"
@@ -62,7 +63,7 @@ export function RateBookControl({
           </button>
         ))}
       </div>
-      {rating && <span className="text-xs text-muted-foreground">({rating}/5)</span>}
+      {rating && <span className="text-xs text-muted-foreground">({rating}/10)</span>}
     </div>
   );
 }
