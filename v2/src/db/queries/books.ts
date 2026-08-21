@@ -1,8 +1,8 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { sql, eq, inArray, desc } from "drizzle-orm";
+import { sql, eq, inArray, desc, asc, and, or, like } from "drizzle-orm";
 import { db } from "@/db";
-import { category as categoryTable, writer, writerBook, book } from "@/db/schema";
+import { category as categoryTable, writer, writerBook, book, read } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
 
 export interface CategoryBookListItem {
@@ -157,6 +157,113 @@ export async function getTopBooks(limit = 5): Promise<TopBookItem[]> {
     .limit(limit);
 
   return attachWriterNames(rows);
+}
+
+export type BookSortBy = "viewCount" | "score" | "name";
+
+export interface BookListItem {
+  id: number;
+  name: string;
+  slug: string;
+  score: number;
+  viewCount: number;
+  writers: string[];
+}
+
+/**
+ * v1's BookController::getAllBooksForClient() (the real client-facing `/books`
+ * route behind `KitaplarSayfasi.js`) - the general, unfiltered "Tüm Kitaplar"
+ * browse. v1's category/publisher filtering on this same endpoint
+ * (`optionID`/`optionType`) is already covered here by the dedicated
+ * getBooksByCategory()/getBooksByPublisher() embedded in their own detail
+ * pages, so deliberately not duplicated - this covers the genuinely uncovered
+ * part: a general catalog browse, plus v1's "sadece okuduklarım" read-status
+ * filter (`readQuery`), which doesn't exist anywhere else in v2's book
+ * browsing.
+ *
+ * Ports v1's own real perf choices, not simplified versions of them: prefix-
+ * only search on name/orgName (idx_book_name/idx_book_orgname are plain
+ * B-tree indexes - a leading-wildcard or LOWER()-wrapped search can't use
+ * them, and FULLTEXT repeatedly failed to finish building on this hardware),
+ * and the InnoDB TABLE_ROWS estimate instead of COUNT(*) when there's no
+ * search/read filter at all - a real COUNT(*) over the ~98.5M-row book table
+ * is exactly the class of full-scan that's already burned this project twice.
+ */
+export async function getBookList(
+  page = 1,
+  pageSize = 40,
+  search = "",
+  sortBy: BookSortBy = "viewCount",
+  orderBy: "asc" | "desc" = "desc",
+  onlyReadByUserId?: number,
+): Promise<{ items: BookListItem[]; total: number; page: number; lastPage: number }> {
+  const safeSize = Math.min(100, Math.max(1, pageSize));
+  const trimmedSearch = search.trim();
+
+  const sortColumn = sortBy === "score" ? book.score : sortBy === "name" ? book.name : book.viewCount;
+  const direction = orderBy === "asc" ? asc : desc;
+
+  const searchCondition = trimmedSearch
+    ? or(like(book.name, `${trimmedSearch}%`), like(book.orgName, `${trimmedSearch}%`))
+    : undefined;
+
+  let total: number;
+  let items: BookListItem[];
+
+  if (onlyReadByUserId) {
+    // Read-status filter needs a join, so it always runs a real COUNT/query
+    // over the (much smaller) per-user joined set - matches v1's own
+    // getAllBooksForClient(), which only takes the InnoDB-estimate shortcut
+    // when neither search nor readQuery is active.
+    const whereClause = searchCondition
+      ? and(eq(read.userId, onlyReadByUserId), eq(read.status, "okudum"), searchCondition)
+      : and(eq(read.userId, onlyReadByUserId), eq(read.status, "okudum"));
+
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(book)
+      .innerJoin(read, eq(read.bookId, book.id))
+      .where(whereClause);
+    total = Number(countRow?.count ?? 0);
+    const lastPage = Math.max(1, Math.ceil(total / safeSize));
+    const effectivePage = Math.min(Math.max(1, page), lastPage);
+
+    const rows = await db
+      .select({ id: book.id, name: book.name, slug: book.slug, score: book.score, viewCount: book.viewCount })
+      .from(book)
+      .innerJoin(read, eq(read.bookId, book.id))
+      .where(whereClause)
+      .orderBy(direction(sortColumn))
+      .limit(safeSize)
+      .offset((effectivePage - 1) * safeSize);
+
+    items = await attachWriterNames(rows);
+    return { items, total, page: effectivePage, lastPage };
+  }
+
+  if (!trimmedSearch) {
+    const rows = (await db.execute(
+      sql`SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'book'`,
+    ))[0] as unknown as { TABLE_ROWS: number }[];
+    total = Number(rows[0]?.TABLE_ROWS ?? 0);
+  } else {
+    const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(book).where(searchCondition);
+    total = Number(countRow?.count ?? 0);
+  }
+
+  const lastPage = Math.max(1, Math.ceil(total / safeSize));
+  const effectivePage = Math.min(Math.max(1, page), lastPage);
+
+  const rows = await db
+    .select({ id: book.id, name: book.name, slug: book.slug, score: book.score, viewCount: book.viewCount })
+    .from(book)
+    .where(searchCondition)
+    .orderBy(direction(sortColumn))
+    .limit(safeSize)
+    .offset((effectivePage - 1) * safeSize);
+
+  items = await attachWriterNames(rows);
+  return { items, total, page: effectivePage, lastPage };
 }
 
 /** Batched (no N+1) writer-name lookup for a list of book ids - shared across

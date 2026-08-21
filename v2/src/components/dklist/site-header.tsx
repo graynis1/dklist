@@ -7,6 +7,7 @@ import { MessageBell } from "@/components/dklist/message-bell";
 
 const NAV = [
   { href: "/ara", label: "Keşfet" },
+  { href: "/kitaplar", label: "Kitaplar" },
   { href: "/yazarlar", label: "Yazarlar" },
   { href: "/cevirmenler", label: "Çevirmenler" },
   { href: "/yayinevleri", label: "Yayınevleri" },
