@@ -40,7 +40,7 @@ async function NewStoreContent({
         {/* Ücretli ilan alanı yok - v1'de bile bu MarketplaceSettings admin
             anahtarına bağlı ve Iyzico checkout'una ihtiyaç duyuyor, ikisi de
             v2'de henüz yok. Sadece ücretsiz (askıya bırakma) akışı. */}
-        <form action={createStoreAction} encType="multipart/form-data" className="flex flex-col gap-4">
+        <form action={createStoreAction} className="flex flex-col gap-4">
           <Input name="title" placeholder="İlan başlığı" required />
           <textarea
             name="content"
