@@ -35,6 +35,7 @@ export interface EditableProfile {
   job: string | null;
   image: string | null;
   twoFactorEnabled: boolean;
+  privacy: boolean;
 }
 
 /** Deliberately uncached and keyed by id, not username - this backs the
@@ -54,15 +55,24 @@ export async function getEditableProfile(userId: number): Promise<EditableProfil
       job: user.job,
       image: user.image,
       twoFactorEnabled: user.twoFactorEnabled,
+      privacy: user.privacy,
     })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
-  return row ? { ...row, twoFactorEnabled: row.twoFactorEnabled === 1 } : null;
+  return row ? { ...row, twoFactorEnabled: row.twoFactorEnabled === 1, privacy: row.privacy === 1 } : null;
 }
 
 export async function setTwoFactorEnabled(userId: number, enabled: boolean): Promise<void> {
   await db.update(user).set({ twoFactorEnabled: enabled ? 1 : 0 }).where(eq(user.id, userId));
+}
+
+/** Gizlilik ayarı (private profile) - real behavior wired onto the
+ * existing `user.privacy` column, see ProfileSummary's doc comment for
+ * why this reuses an already-frozen column instead of a new migration. */
+export async function setProfilePrivacy(userId: number, isPrivate: boolean): Promise<void> {
+  await db.update(user).set({ privacy: isPrivate ? 1 : 0 }).where(eq(user.id, userId));
+  updateTag(`profile:${await getUsernameById(userId)}`);
 }
 
 export interface UpdateProfileInput {
@@ -129,6 +139,13 @@ export interface ProfileSummary {
   image: string | null;
   verified: boolean;
   profileFrame: string | null;
+  /** Reuses the real (pre-existing, frozen-schema) `user.privacy` column -
+   * present since the original v1 introspection but never actually read
+   * anywhere in either codebase (confirmed via grep against v1's own PHP
+   * source: only a getter/setter, no controller ever branches on it).
+   * Wired up here for real: true hides reading-status/library/badges/
+   * activity from non-followers. */
+  privacy: boolean;
 }
 
 export async function getProfileByUsername(username: string): Promise<ProfileSummary | null> {
@@ -137,12 +154,12 @@ export async function getProfileByUsername(username: string): Promise<ProfileSum
   cacheTag(`profile:${username}`);
 
   const [row] = await db
-    .select({ id: user.id, username: user.username, biyo: user.biyo, image: user.image, verified: user.verified, profileFrame: user.profileFrame })
+    .select({ id: user.id, username: user.username, biyo: user.biyo, image: user.image, verified: user.verified, profileFrame: user.profileFrame, privacy: user.privacy })
     .from(user)
     .where(eq(user.username, username))
     .limit(1);
 
-  return row ? { ...row, verified: Boolean(row.verified) } : null;
+  return row ? { ...row, verified: Boolean(row.verified), privacy: Boolean(row.privacy) } : null;
 }
 
 /** Admin-only "official profile" toggle - customer's verified-account

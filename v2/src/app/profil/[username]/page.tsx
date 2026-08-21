@@ -121,6 +121,12 @@ async function ProfileContent({
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
+  // Gizlilik ayarı (real behavior on the pre-existing user.privacy column) -
+  // owner and existing followers always see everything; a private profile
+  // hides activity/reading-status/library/badges from anyone else, same
+  // as the header's own follower/following counts staying visible either
+  // way (Instagram-style: basic profile info is never hidden, only content).
+  const canSeeDetails = isOwnProfile || viewerFollows || !profile.privacy;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -235,16 +241,22 @@ async function ProfileContent({
         )}
       </div>
 
-      {activityHeatmap.length > 0 && (
-        <div className="mb-6">
-          <ActivityHeatmap days={activityHeatmap} />
-        </div>
-      )}
-
       {profile.biyo && (
         <p className="mb-6 max-w-xl leading-relaxed text-muted-foreground">
           {profile.biyo}
         </p>
+      )}
+
+      {!canSeeDetails ? (
+        <p className="rounded-lg border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+          Bu hesap gizli. Okuma durumunu, kitaplığını ve etkinliğini görmek için takip et.
+        </p>
+      ) : (
+        <>
+      {activityHeatmap.length > 0 && (
+        <div className="mb-6">
+          <ActivityHeatmap days={activityHeatmap} />
+        </div>
       )}
 
       {sharedReadBooks.length > 0 && (
@@ -396,6 +408,8 @@ async function ProfileContent({
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

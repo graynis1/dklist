@@ -11,6 +11,7 @@ import { getEditableProfile } from "@/db/queries/profile";
 import { avatarUrl } from "@/db/queries/avatar";
 import { updateProfileAction } from "@/app/profil/[username]/actions";
 import { TwoFactorToggle } from "@/components/dklist/two-factor-toggle";
+import { PrivacyToggle } from "@/components/dklist/privacy-toggle";
 
 export default function EditProfilePage({ searchParams }: PageProps<"/profil/duzenle">) {
   return (
@@ -49,6 +50,7 @@ async function EditProfileContent({
   return (
     <div className="flex flex-col gap-6">
       <TwoFactorToggle initialEnabled={profile.twoFactorEnabled} />
+      <PrivacyToggle initialPrivate={profile.privacy} />
       <Link href="/profil/engellenenler" className="text-sm text-muted-foreground hover:underline">
         Engellenen Kullanıcılar →
       </Link>

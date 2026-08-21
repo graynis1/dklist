@@ -9,6 +9,7 @@ import {
   updateProfile,
   toggleVerified,
   setTwoFactorEnabled,
+  setProfilePrivacy,
   type ReadingGoal,
 } from "@/db/queries/profile";
 import { uploadAvatar } from "@/db/queries/avatar";
@@ -90,6 +91,13 @@ export async function toggleBlockAction(targetUserId: number): Promise<{ status:
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
+}
+
+export async function setProfilePrivacyAction(isPrivate: boolean): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+  await setProfilePrivacy(Number(session.user.id), isPrivate);
+  return { status: true };
 }
 
 export async function setTwoFactorEnabledAction(enabled: boolean): Promise<{ status: boolean; message?: string }> {
