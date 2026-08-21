@@ -17,6 +17,7 @@ const NAV = [
   { href: "/yazarhane", label: "Yazarhane" },
   { href: "/listeler", label: "Listeler" },
   { href: "/ayin-kitabi", label: "Ayın Kitabı" },
+  { href: "/rozetler", label: "Rozetler" },
   { href: "/puan-tablosu", label: "Puan Tablosu" },
   { href: "/puan-magazasi", label: "Puan Mağazası" },
   { href: "/premium", label: "Premium" },
