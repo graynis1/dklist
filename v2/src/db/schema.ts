@@ -722,6 +722,18 @@ export const weeklyWinner = mysqlTable("weekly_winner", {
 	primaryKey({ columns: [table.id], name: "weekly_winner_id" }),
 ]);
 
+// Admin-editable point values - see migration 0011_point_settings.sql.
+// Key-value shape (not one column per point type) since new point sources
+// get added over time without a schema migration each time.
+export const pointSetting = mysqlTable("point_setting", {
+	settingKey: varchar("setting_key", { length: 50 }).notNull(),
+	points: int().notNull(),
+	updatedDate: datetime("updated_date", { mode: 'string' }),
+},
+(table) => [
+	primaryKey({ columns: [table.settingKey], name: "point_setting_setting_key" }),
+]);
+
 export const youtube = mysqlTable("youtube", {
 	id: int().autoincrement().notNull(),
 	title: varchar({ length: 255 }).notNull(),

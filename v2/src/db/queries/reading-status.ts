@@ -4,7 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { read } from "@/db/schema";
 import type { ReadStatus, DropReason, CurrentReadStatus } from "@/lib/reading-status";
-import { awardPoints, POINT_VALUES } from "@/db/queries/points";
+import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 export {
   READ_STATUSES,
@@ -64,7 +64,7 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   updateTag(`book-readers:${bookId}`);
 
   if (status === "okudum") {
-    await awardPoints(userId, POINT_VALUES.bookRead, "book_read", `read:book:${bookId}`);
+    await awardPoints(userId, (await getPointSettings()).bookRead, "book_read", `read:book:${bookId}`);
   }
 }
 

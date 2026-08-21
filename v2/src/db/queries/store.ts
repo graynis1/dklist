@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { store, storeFavorite, storePicture, user, book } from "@/db/schema";
 import { saveUploadedImage } from "@/lib/image-upload";
-import { awardPoints, POINT_VALUES } from "@/db/queries/points";
+import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 /**
  * Askıda Kitap (Phase 3 marketplace) - ported from StoreController.php.
@@ -311,7 +311,7 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
     await db.insert(storePicture).values({ advertId: storeId, imageName: filename });
   }
 
-  await awardPoints(ownerId, POINT_VALUES.storeListing, "store_listing", `store_listing:${storeId}`);
+  await awardPoints(ownerId, (await getPointSettings()).storeListing, "store_listing", `store_listing:${storeId}`);
 
   return slug;
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { pointTransaction, weeklyWinner, user, book, badges, userBadges } from "@/db/schema";
+import { pointTransaction, weeklyWinner, user, book, badges, userBadges, pointSetting } from "@/db/schema";
 import { currentISOWeek, getISOWeekRange } from "@/lib/iso-week";
 import { addNotification } from "@/db/queries/notifications";
 
@@ -32,6 +32,55 @@ export const POINT_VALUES = {
   messageReceived: 2,
   socialShare: 3,
 } as const;
+
+/**
+ * Maintainer's explicit "spama karşı koru" ask: unlike ratings (already
+ * naturally capped - the reasonKey is per-entity, `rating:book:123`, so
+ * re-rating the same book never re-earns) and every other point source
+ * here (each has its own natural per-entity/per-day cap baked into its
+ * reasonKey), comments had NO cap at all - a real gap, since every genuinely
+ * NEW comment always earns (comment:<new id>), so posting low-effort
+ * comments across many different books could farm points indefinitely.
+ * These are daily ceilings on how many comment/rating point-transactions
+ * count, not a block on posting itself - past the cap, the action still
+ * works normally, it just stops earning points for the rest of that day.
+ */
+export const DAILY_CAP_DEFAULTS = {
+  dailyCommentCap: 10,
+  dailyRatingCap: 20,
+} as const;
+
+export type PointSettingKey = keyof typeof POINT_VALUES | keyof typeof DAILY_CAP_DEFAULTS;
+
+const ALL_SETTING_DEFAULTS: Record<PointSettingKey, number> = { ...POINT_VALUES, ...DAILY_CAP_DEFAULTS };
+
+export type PointSettings = Record<PointSettingKey, number>;
+
+/**
+ * Admin-editable point values/caps (maintainer's explicit ask - these were
+ * hardcoded constants until now). Key-value table, not one column per
+ * point type, so a new point source doesn't need a schema migration - just
+ * a new entry in ALL_SETTING_DEFAULTS. Missing keys (never edited by an
+ * admin) silently fall back to the hardcoded default rather than needing
+ * every key pre-seeded as a row.
+ */
+export async function getPointSettings(): Promise<PointSettings> {
+  const rows = await db.select().from(pointSetting);
+  const overrides = new Map(rows.map((r) => [r.settingKey, r.points]));
+  const result = {} as PointSettings;
+  for (const key of Object.keys(ALL_SETTING_DEFAULTS) as PointSettingKey[]) {
+    result[key] = overrides.get(key) ?? ALL_SETTING_DEFAULTS[key];
+  }
+  return result;
+}
+
+export async function updatePointSetting(key: PointSettingKey, points: number): Promise<void> {
+  if (!(key in ALL_SETTING_DEFAULTS)) throw new Error("Tanımsız puan ayarı.");
+  if (!Number.isInteger(points) || points < 0) throw new Error("Puan değeri negatif olmayan bir tam sayı olmalıdır.");
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  await db.insert(pointSetting).values({ settingKey: key, points, updatedDate: now })
+    .onDuplicateKeyUpdate({ set: { points, updatedDate: now } });
+}
 
 /**
  * Activity-based milestone badges - a natural extension of the points
@@ -134,6 +183,37 @@ export async function awardPoints(
   await checkMilestoneBadges(userId);
 }
 
+/**
+ * Same as awardPoints(), but refuses to award once the user has already
+ * earned `dailyCap` point-transactions tagged with `reason` today - the
+ * spam-protection layer comment/rating points need (see DAILY_CAP_DEFAULTS'
+ * doc comment for why those two specifically). The action itself (posting
+ * the comment, submitting the rating) always still succeeds; this only
+ * gates whether it ALSO earns points. Counts by `reason`, not `reasonKey`,
+ * since reasonKey is unique per row by design (comment:<id>).
+ */
+export async function awardPointsWithDailyCap(
+  userId: number,
+  points: number,
+  reason: string,
+  reasonKey: string,
+  dailyCap: number,
+): Promise<void> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(pointTransaction)
+    .where(
+      and(
+        eq(pointTransaction.userId, userId),
+        eq(pointTransaction.reason, reason),
+        sql`${pointTransaction.createdAt} >= CURDATE()`,
+      ),
+    );
+  if (Number(row?.count ?? 0) >= dailyCap) return;
+
+  await awardPoints(userId, points, reason, reasonKey);
+}
+
 /** Once per calendar day per user - the honest version of "rewarding time
  * on site" without needing real session/dwell-time tracking infra (which
  * would mean a client-side beacon pinging every N seconds, a much heavier
@@ -142,7 +222,8 @@ export async function awardPoints(
  * separate "already awarded today" check needed. */
 export async function awardDailyVisitPoints(userId: number): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
-  await awardPoints(userId, POINT_VALUES.dailyVisit, "daily_visit", `daily_visit:${userId}:${today}`);
+  const settings = await getPointSettings();
+  await awardPoints(userId, settings.dailyVisit, "daily_visit", `daily_visit:${userId}:${today}`);
 }
 
 /** Once per (user, entityKey, day) - not per click, so mashing the same
@@ -152,7 +233,8 @@ export async function awardDailyVisitPoints(userId: number): Promise<void> {
  * already uses. */
 export async function awardSharePoints(userId: number, entityKey: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
-  await awardPoints(userId, POINT_VALUES.socialShare, "social_share", `social_share:${userId}:${entityKey}:${today}`);
+  const settings = await getPointSettings();
+  await awardPoints(userId, settings.socialShare, "social_share", `social_share:${userId}:${entityKey}:${today}`);
 }
 
 export async function getUserTotalPoints(userId: number): Promise<number> {

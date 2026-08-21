@@ -3,7 +3,7 @@ import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { chat, message, user, book, store, storePicture, follow } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
-import { awardPoints, POINT_VALUES } from "@/db/queries/points";
+import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 async function userFollows(followerId: number, followedId: number): Promise<boolean> {
   const [row] = await db
@@ -445,7 +445,7 @@ export async function sendMessage(
   // doesn't farm points, matches the reasonKey-per-chat idempotency shape
   // used everywhere else in the points system.
   if (chatJustCreated) {
-    await awardPoints(receiverId, POINT_VALUES.messageReceived, "message_received", `message_received:${chatRow.id}`);
+    await awardPoints(receiverId, (await getPointSettings()).messageReceived, "message_received", `message_received:${chatRow.id}`);
   }
 
   return { id: msgResult.insertId, text: trimmed, senderId, createdAt: now, type: effectiveType, attachment };

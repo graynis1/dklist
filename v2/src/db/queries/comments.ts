@@ -3,7 +3,7 @@ import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { comment, subComment, user } from "@/db/schema";
-import { awardPoints, POINT_VALUES } from "@/db/queries/points";
+import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
 import { extractHashtagTags } from "@/lib/hashtag";
 
@@ -166,7 +166,10 @@ export async function shareEntityComment(
 
   updateTag(`${targetType}-comments:${original.targetId}:${original.commentType}`);
   if (targetType === "book") updateTag("recent-book-activity");
-  await awardPoints(userId, POINT_VALUES.comment, "comment", `comment:${result.insertId}`);
+  {
+    const settings = await getPointSettings();
+    await awardPointsWithDailyCap(userId, settings.comment, "comment", `comment:${result.insertId}`, settings.dailyCommentCap);
+  }
   if (trimmed) await notifyHashtaggedReaders(trimmed, userId);
 
   if (original.userId !== userId) {
@@ -210,7 +213,10 @@ export async function addEntityComment(
 
   updateTag(`${targetType}-comments:${targetId}:${commentType}`);
   if (targetType === "book") updateTag("recent-book-activity");
-  await awardPoints(userId, POINT_VALUES.comment, "comment", `comment:${result.insertId}`);
+  {
+    const settings = await getPointSettings();
+    await awardPointsWithDailyCap(userId, settings.comment, "comment", `comment:${result.insertId}`, settings.dailyCommentCap);
+  }
   await notifyHashtaggedReaders(trimmed, userId);
   return result.insertId;
 }

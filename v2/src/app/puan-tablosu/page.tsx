@@ -11,7 +11,7 @@ import {
   getWeeklyLeaderboard,
   getPastWeeklyWinners,
   getUserWeeklyRank,
-  POINT_VALUES,
+  getPointSettings,
 } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
 
@@ -26,16 +26,6 @@ export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablo
           <p className="text-sm text-muted-foreground">
             Her hafta en yüksek puanı alan üyeye sistem tarafından bir kitap hediye edilir.
           </p>
-        </div>
-
-        <div className="mb-4 flex flex-wrap gap-3 rounded-lg border border-border bg-muted/40 p-4 text-xs text-muted-foreground">
-          <span>Kitap okudum: +{POINT_VALUES.bookRead}</span>
-          <span>Yorum yaz: +{POINT_VALUES.comment}</span>
-          <span>Puan ver: +{POINT_VALUES.rating}</span>
-          <span>Beğen: +{POINT_VALUES.like}</span>
-          <span>Paylaşım: +{POINT_VALUES.socialShare}</span>
-          <span>Mesaj al: +{POINT_VALUES.messageReceived}</span>
-          <span>Günlük ziyaret: +{POINT_VALUES.dailyVisit}</span>
         </div>
 
         {/* currentISOWeek() reads the real clock (new Date()), a genuinely
@@ -76,16 +66,27 @@ async function LeaderboardContent({
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
 
-  const [leaderboard, pastWinners, myRank] = await Promise.all([
+  const [leaderboard, pastWinners, myRank, pointSettings] = await Promise.all([
     getWeeklyLeaderboard(limit, week),
     getPastWeeklyWinners(10),
     userId ? getUserWeeklyRank(userId, week) : Promise.resolve(null),
+    getPointSettings(),
   ]);
 
   const iAmInVisibleList = userId !== null && leaderboard.some((e) => e.userId === userId);
 
   return (
     <>
+      <div className="mb-4 flex flex-wrap gap-3 rounded-lg border border-border bg-muted/40 p-4 text-xs text-muted-foreground">
+        <span>Kitap okudum: +{pointSettings.bookRead}</span>
+        <span>Yorum yaz: +{pointSettings.comment} (günde en fazla {pointSettings.dailyCommentCap})</span>
+        <span>Puan ver: +{pointSettings.rating} (günde en fazla {pointSettings.dailyRatingCap})</span>
+        <span>Beğen: +{pointSettings.like}</span>
+        <span>Paylaşım: +{pointSettings.socialShare}</span>
+        <span>Mesaj al: +{pointSettings.messageReceived}</span>
+        <span>Günlük ziyaret: +{pointSettings.dailyVisit}</span>
+      </div>
+
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Bu haftanın ({week}) en aktif okurları:</p>
         <div className="flex gap-2 text-xs">

@@ -3,7 +3,7 @@ import { updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { score, book, writer, translator } from "@/db/schema";
-import { awardPoints, POINT_VALUES } from "@/db/queries/points";
+import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 
 const BOOK_TARGET_TYPE = "book";
 const WRITER_TARGET_TYPE = "writer";
@@ -72,7 +72,10 @@ export async function rateBook(
 
   updateTag(`book:${bookSlug}`);
   updateTag(`book-rating:${bookId}`);
-  await awardPoints(userId, POINT_VALUES.rating, "rating", `rating:book:${bookId}`);
+  {
+    const settings = await getPointSettings();
+    await awardPointsWithDailyCap(userId, settings.rating, "rating", `rating:book:${bookId}`, settings.dailyRatingCap);
+  }
 
   return { newAverage };
 }
@@ -127,7 +130,10 @@ export async function rateWriter(
     .where(and(eq(score.targetId, writerId), eq(score.targetType, WRITER_TARGET_TYPE)));
 
   updateTag(`writer:${writerSlug}`);
-  await awardPoints(userId, POINT_VALUES.rating, "rating", `rating:writer:${writerId}`);
+  {
+    const settings = await getPointSettings();
+    await awardPointsWithDailyCap(userId, settings.rating, "rating", `rating:writer:${writerId}`, settings.dailyRatingCap);
+  }
   return { newAverage };
 }
 
@@ -179,6 +185,9 @@ export async function rateTranslator(
     .where(and(eq(score.targetId, translatorId), eq(score.targetType, TRANSLATOR_TARGET_TYPE)));
 
   updateTag(`translator:${translatorSlug}`);
-  await awardPoints(userId, POINT_VALUES.rating, "rating", `rating:translator:${translatorId}`);
+  {
+    const settings = await getPointSettings();
+    await awardPointsWithDailyCap(userId, settings.rating, "rating", `rating:translator:${translatorId}`, settings.dailyRatingCap);
+  }
   return { newAverage };
 }

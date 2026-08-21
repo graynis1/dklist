@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { blog, user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { saveUploadedImage } from "@/lib/image-upload";
-import { awardPoints, POINT_VALUES } from "@/db/queries/points";
+import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "blog");
 
@@ -508,7 +508,7 @@ export async function setBlogApproval(blogId: number, approve: boolean): Promise
   } else {
     await db.update(blog).set({ approved: approve ? 1 : 0 }).where(eq(blog.id, blogId));
     if (approve && existing.ownerId) {
-      await awardPoints(existing.ownerId, POINT_VALUES.blogPublished, "blog_published", `blog_publish:${blogId}`);
+      await awardPoints(existing.ownerId, (await getPointSettings()).blogPublished, "blog_published", `blog_publish:${blogId}`);
     }
   }
 
