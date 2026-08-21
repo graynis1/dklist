@@ -5,7 +5,9 @@ import { db } from "@/db";
 import { comment, subComment, user } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
+import { autoFlagComment } from "@/db/queries/notices";
 import { extractHashtagTags } from "@/lib/hashtag";
+import { findFlaggedWords } from "@/lib/dirty-controller";
 
 // v1's CommentTypeEnum - comments live on book/writer/translator pages, all
 // through the same `comment` table (type + target_id columns).
@@ -170,7 +172,10 @@ export async function shareEntityComment(
     const settings = await getPointSettings();
     await awardPointsWithDailyCap(userId, settings.comment, "comment", `comment:${result.insertId}`, settings.dailyCommentCap);
   }
-  if (trimmed) await notifyHashtaggedReaders(trimmed, userId);
+  if (trimmed) {
+    await notifyHashtaggedReaders(trimmed, userId);
+    await autoFlagComment(result.insertId, "comment", findFlaggedWords(trimmed));
+  }
 
   if (original.userId !== userId) {
     const [sharer] = await db.select({ username: user.username }).from(user).where(eq(user.id, userId)).limit(1);
@@ -218,6 +223,7 @@ export async function addEntityComment(
     await awardPointsWithDailyCap(userId, settings.comment, "comment", `comment:${result.insertId}`, settings.dailyCommentCap);
   }
   await notifyHashtaggedReaders(trimmed, userId);
+  await autoFlagComment(result.insertId, "comment", findFlaggedWords(trimmed));
   return result.insertId;
 }
 
@@ -343,5 +349,9 @@ export async function addSubComment(
     parentId,
   });
   await notifyHashtaggedReaders(trimmed, userId);
+  // The reply row itself always lives in `sub_comment`, regardless of
+  // whether `parentType` (what it's replying TO) is "comment" or
+  // "subComment" - so this is always the subComment case for flagging.
+  await autoFlagComment(result.insertId, "subComment", findFlaggedWords(trimmed));
   return result.insertId;
 }

@@ -51,6 +51,33 @@ export async function reportComment(
   return { status: true };
 }
 
+/**
+ * Auto-flag entry point - called from comments.ts right after a genuinely
+ * new comment/reply is inserted. `reporterUserId` stays null (system-
+ * flagged, not a real user's report) - getNotices()'s reporterUsername
+ * simply comes back null for these, rendered as "Otomatik" by the caller.
+ * Never throws - a flagging failure must never fail the comment post
+ * itself, matching this app's other fire-and-forget side-effect calls
+ * (e.g. logAdminAction).
+ */
+export async function autoFlagComment(commentId: number, parentType: NoticeCommentType, matchedWords: string[]): Promise<void> {
+  if (matchedWords.length === 0) return;
+  try {
+    await db.insert(notice).values({
+      commentId,
+      // Mirrors the "comment"/"subComment" pair with an "auto_flag_"
+      // prefix, so getNotices() can still tell which underlying table a
+      // given row's commentId points at.
+      type: parentType === "comment" ? "auto_flag_comment" : "auto_flag_subcomment",
+      reason: `Otomatik tespit: ${matchedWords.join(", ")}`,
+      createdAt: nowSql(),
+      isResolved: 0,
+    });
+  } catch {
+    // never block the comment post over a flagging failure
+  }
+}
+
 export async function reportUser(
   reporterId: number,
   reportedUserId: number,
@@ -135,7 +162,7 @@ export interface NoticeListItem {
   bookSlug: string | null;
 }
 
-export type NoticeTypeFilter = "all" | "comment" | "user_report" | "book_data_error";
+export type NoticeTypeFilter = "all" | "comment" | "user_report" | "book_data_error" | "auto_flag";
 
 /** "Hata bildir" (book data-error report) button on the book page - a new
  * notice type feeding the same admin moderation queue as user/comment
@@ -183,7 +210,9 @@ export async function getNotices(
         ? eq(notice.type, "user_report")
         : typeFilter === "book_data_error"
           ? eq(notice.type, "book_data_error")
-          : undefined;
+          : typeFilter === "auto_flag"
+            ? sql`${notice.type} IN ('auto_flag_comment', 'auto_flag_subcomment')`
+            : undefined;
 
   const [countRow] = await db
     .select({ count: sql<number>`count(*)` })
@@ -261,10 +290,10 @@ export async function getNotices(
     } else {
       if (!row.commentId) continue;
       const commentId = Number(row.commentId);
-      const commentRow =
-        row.type === "comment"
-          ? (await db.select({ text: comment.comment, userId: comment.userId }).from(comment).where(eq(comment.id, commentId)).limit(1))[0]
-          : (await db.select({ text: subComment.comment, userId: subComment.userId }).from(subComment).where(eq(subComment.id, commentId)).limit(1))[0];
+      const isTopLevelComment = row.type === "comment" || row.type === "auto_flag_comment";
+      const commentRow = isTopLevelComment
+        ? (await db.select({ text: comment.comment, userId: comment.userId }).from(comment).where(eq(comment.id, commentId)).limit(1))[0]
+        : (await db.select({ text: subComment.comment, userId: subComment.userId }).from(subComment).where(eq(subComment.id, commentId)).limit(1))[0];
       if (!commentRow) continue;
 
       const owner = (
@@ -277,7 +306,7 @@ export async function getNotices(
         type: row.type,
         createdAt: row.createdAt,
         isResolved: Boolean(row.isResolved),
-        reason: null,
+        reason: row.reason,
         reportedUser: null,
         reporterUsername: null,
         commentText: commentRow.text,

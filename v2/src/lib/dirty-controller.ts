@@ -23,3 +23,32 @@ export function isDirty(text: string | null | undefined): boolean {
   if (!text) return false;
   return DIRTY_LIST.some((word) => text === word.toLowerCase());
 }
+
+/**
+ * Eighth item from the "what else could be added" brainstorm list: an
+ * auto-flag for comments/replies, which isDirty() above was never meant
+ * for - it's an exact-whole-field match (right for a username/name field,
+ * useless against a real sentence). This is a genuine substring scan
+ * instead, deliberately kept separate from isDirty() rather than changing
+ * that function's behavior (which still needs to match v1's registration-
+ * field parity exactly). Doesn't block posting - see comments.ts's call
+ * sites - just surfaces a match for admin review, same "the action still
+ * succeeds, only the follow-up signal changes" shape as every other soft-
+ * gate in this app (daily point caps, etc).
+ */
+export function findFlaggedWords(text: string | null | undefined): string[] {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  // Single-word list entries are matched as whole tokens, not raw
+  // substrings - some entries ("am", "it") are short enough that a plain
+  // .includes() would false-positive on completely innocent words
+  // ("tamam", "kamera"). \b doesn't reliably tokenize Turkish letters
+  // (JS's \w is ASCII-only), so tokenize by hand via \p{L} instead.
+  // Multi-word phrase entries ("amına koyayım") stay substring-matched -
+  // specific enough as full phrases not to have the same false-positive risk.
+  const words = new Set(lower.split(/[^\p{L}]+/u).filter(Boolean));
+  return DIRTY_LIST.filter((entry) => {
+    const lowerEntry = entry.toLowerCase();
+    return lowerEntry.includes(" ") ? lower.includes(lowerEntry) : words.has(lowerEntry);
+  });
+}

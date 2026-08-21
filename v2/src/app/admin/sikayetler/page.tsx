@@ -15,6 +15,7 @@ const TABS: { value: NoticeTypeFilter; label: string }[] = [
   { value: "comment", label: "Yorum Şikayetleri" },
   { value: "user_report", label: "Kullanıcı Şikayetleri" },
   { value: "book_data_error", label: "Kitap Veri Hataları" },
+  { value: "auto_flag", label: "Otomatik Bayraklar" },
 ];
 
 export default function AdminNoticesPage({
@@ -113,6 +114,15 @@ async function AdminNoticesContent({
                       için <strong>@{n.reporterUsername}</strong> tarafından veri hatası bildirildi.
                     </p>
                     <p className="text-muted-foreground">{n.reason}</p>
+                  </>
+                ) : n.type === "auto_flag_comment" || n.type === "auto_flag_subcomment" ? (
+                  <>
+                    <p>
+                      <strong>@{n.commentOwnerUsername}</strong> kullanıcısının yorumu otomatik
+                      olarak bayraklandı ({n.type === "auto_flag_comment" ? "yorum" : "yanıt"}).
+                    </p>
+                    <p className="text-muted-foreground">{n.reason}</p>
+                    <p className="text-muted-foreground">&ldquo;{n.commentText}&rdquo;</p>
                   </>
                 ) : (
                   <>
