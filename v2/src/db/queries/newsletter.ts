@@ -1,5 +1,5 @@
 import "server-only";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { newsletter } from "@/db/schema";
 
@@ -26,13 +26,21 @@ export interface NewsletterSubscriber {
   mail: string;
 }
 
+/** Ports v1's getAll() search-by-mail + pagination (v1 also exposes a raw
+ * sortBy/orderBy column choice, but with only an id and a mail column to
+ * sort a flat subscriber list by, that's not a meaningfully different
+ * feature - kept fixed to newest-first here rather than porting a column
+ * picker with only one real alternative). */
 export async function getNewsletterSubscribers(
   page: number,
   pageSize: number,
+  search = "",
 ): Promise<{ items: NewsletterSubscriber[]; total: number; page: number; lastPage: number }> {
   const safeSize = Math.min(500, Math.max(1, pageSize));
+  const trimmedSearch = search.trim();
+  const whereClause = trimmedSearch ? like(newsletter.mail, `%${trimmedSearch}%`) : undefined;
 
-  const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(newsletter);
+  const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(newsletter).where(whereClause);
   const total = Number(countRow?.count ?? 0);
   const lastPage = Math.max(1, Math.ceil(total / safeSize));
   const effectivePage = Math.min(Math.max(1, page), lastPage);
@@ -40,6 +48,7 @@ export async function getNewsletterSubscribers(
   const items = await db
     .select({ id: newsletter.id, mail: newsletter.mail })
     .from(newsletter)
+    .where(whereClause)
     .orderBy(desc(newsletter.id))
     .limit(safeSize)
     .offset((effectivePage - 1) * safeSize);

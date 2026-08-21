@@ -2,7 +2,7 @@ import "server-only";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { blog, user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
@@ -346,9 +346,39 @@ export interface AdminBlogListItem {
   ownerUsername: string | null;
 }
 
-/** Admin/Mod-only - the moderation-queue branch of v1's getAll(), unfiltered
- * by approval status (unlike the public /bloglar list). */
-export async function getAdminBlogList(): Promise<AdminBlogListItem[]> {
+/**
+ * Admin/Mod-only - the moderation-queue branch of v1's getAll(), unfiltered
+ * by approval status (unlike the public /bloglar list). Ports the same
+ * search (title/preview/content) + pagination v1's admin branch has -
+ * matches v1's own pagePerSize cap of 100. Ordered newest-first rather than
+ * v1's default ASC-by-id: a moderation queue is more useful with the newest
+ * pending posts on top, a deliberate improvement over the raw port rather
+ * than an oversight.
+ */
+export async function getAdminBlogList(
+  page: number,
+  pageSize: number,
+  search: string,
+): Promise<{ items: AdminBlogListItem[]; total: number; page: number; lastPage: number }> {
+  const safeSize = Math.min(100, Math.max(1, pageSize));
+  const trimmedSearch = search.trim();
+
+  const whereClause = trimmedSearch
+    ? or(
+        like(blog.title, `%${trimmedSearch}%`),
+        like(blog.preview, `%${trimmedSearch}%`),
+        like(blog.content, `%${trimmedSearch}%`),
+      )
+    : undefined;
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(blog)
+    .where(whereClause);
+  const total = Number(countRow?.count ?? 0);
+  const lastPage = Math.max(1, Math.ceil(total / safeSize));
+  const effectivePage = Math.min(Math.max(1, page), lastPage);
+
   const rows = await db
     .select({
       id: blog.id,
@@ -360,10 +390,13 @@ export async function getAdminBlogList(): Promise<AdminBlogListItem[]> {
     })
     .from(blog)
     .leftJoin(user, eq(blog.ownerId, user.id))
+    .where(whereClause)
     .orderBy(desc(blog.id))
-    .limit(200);
+    .limit(safeSize)
+    .offset((effectivePage - 1) * safeSize);
 
-  return rows.map((r) => ({ ...r, approved: Boolean(r.approved), hasPendingRevision: Boolean(r.hasPendingRevision) }));
+  const items = rows.map((r) => ({ ...r, approved: Boolean(r.approved), hasPendingRevision: Boolean(r.hasPendingRevision) }));
+  return { items, total, page: effectivePage, lastPage };
 }
 
 /**

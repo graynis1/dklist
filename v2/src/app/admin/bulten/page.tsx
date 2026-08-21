@@ -7,6 +7,8 @@ import { getNewsletterSubscribers } from "@/db/queries/newsletter";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { NewsletterSubscriberActions } from "@/components/dklist/newsletter-subscriber-actions";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 // v1's NewsletterController::delete() gates Admin only (not Mod), unlike the
 // notice queue - matched here rather than reusing the notice queue's role set.
@@ -40,7 +42,8 @@ async function AdminNewsletterContent({
 
   const params = await searchParams;
   const page = Number(params.page ?? "1") || 1;
-  const { items, total, lastPage } = await getNewsletterSubscribers(page, 100);
+  const search = typeof params.search === "string" ? params.search : "";
+  const { items, total, lastPage } = await getNewsletterSubscribers(page, 100, search);
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
@@ -50,8 +53,17 @@ async function AdminNewsletterContent({
         <p className="text-sm text-muted-foreground">Toplam {total} kayıt.</p>
       </div>
 
+      <form action="/admin/bulten" className="mb-6 flex gap-2">
+        <Input name="search" defaultValue={search} placeholder="Mail adresinde ara..." />
+        <Button type="submit" variant="outline">
+          Ara
+        </Button>
+      </form>
+
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Henüz abone yok.</p>
+        <p className="text-sm text-muted-foreground">
+          {search ? "Bu aramaya uyan abone yok." : "Henüz abone yok."}
+        </p>
       ) : (
         <ul className="flex flex-col divide-y divide-border">
           {items.map((s) => (
@@ -68,7 +80,7 @@ async function AdminNewsletterContent({
           {Array.from({ length: lastPage }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}
-              href={`/admin/bulten?page=${p}`}
+              href={`/admin/bulten?page=${p}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
               className={`rounded-md px-2.5 py-1 ${p === page ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
             >
               {p}
