@@ -5,11 +5,9 @@ import { AuthStatus } from "@/components/dklist/auth-status";
 import { NotificationBell } from "@/components/dklist/notification-bell";
 import { MessageBell } from "@/components/dklist/message-bell";
 
-// "Yazarlar" stays a dead link deliberately - needs a writers-index/browse
-// page that doesn't exist yet, not a wrong destination.
 const NAV = [
   { href: "/ara", label: "Keşfet" },
-  { href: "#", label: "Yazarlar" },
+  { href: "/yazarlar", label: "Yazarlar" },
   { href: "/askida-kitap", label: "Askıda Kitap" },
   { href: "/bloglar", label: "Bloglar" },
 ];
