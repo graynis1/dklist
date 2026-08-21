@@ -20,7 +20,7 @@ import {
   getUserBadges,
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
-import { getUserTotalPoints } from "@/db/queries/points";
+import { getUserTotalPoints, isRecentlyActive } from "@/db/queries/points";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
 
@@ -81,6 +81,7 @@ async function ProfileContent({
     userBadges,
     totalPoints,
     ownerBlogs,
+    veteranTier,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -93,6 +94,7 @@ async function ProfileContent({
     getUserBadges(profile.id),
     getUserTotalPoints(profile.id),
     getBlogsByOwner(profile.id, isOwnProfile),
+    isRecentlyActive(profile.id),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -121,8 +123,16 @@ async function ProfileContent({
               <strong className="text-foreground">{totalPoints}</strong> puan
             </Link>
           </div>
-          {userBadges.length > 0 && (
+          {(userBadges.length > 0 || veteranTier) && (
             <div className="flex flex-wrap gap-1.5">
+              {veteranTier && (
+                <span
+                  title="Son 30 gün içindeki etkinliğe göre - düşen etkinlikle kaybolabilir"
+                  className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+                >
+                  🔥 Emekter
+                </span>
+              )}
               {userBadges.map((b) => (
                 <span
                   key={b.id}

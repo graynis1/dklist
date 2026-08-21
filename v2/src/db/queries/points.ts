@@ -136,6 +136,34 @@ export async function getUserTotalPoints(userId: number): Promise<number> {
   return Number(row?.total ?? 0);
 }
 
+// Customer's ask: "dynamic member badges/titles earned by recent activity
+// level rather than static admin-assigned badges" - v1's badge system
+// (BadgeController/"Rozetler") is static/manual only; this layers a
+// current-status tier on top instead of a permanent achievement. Unlike the
+// lifetime-point milestone badges (once earned, kept forever in
+// user_badges), this is deliberately NOT stored anywhere - it's recomputed
+// fresh from a trailing 30-day window every time a profile is viewed, so it
+// can turn back off if activity drops, matching "recent" in the customer's
+// own wording. Threshold is a judgment call (customer's notes explicitly
+// leave point-system specifics to be decided): 30 points in 30 days is
+// roughly "a genuine comment or two plus some ratings/likes a month", not
+// an extreme bar - documented here rather than left unexplained.
+const VETERAN_TIER_THRESHOLD_POINTS = 30;
+const VETERAN_TIER_WINDOW_DAYS = 30;
+
+export async function isRecentlyActive(userId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum(${pointTransaction.points}), 0)` })
+    .from(pointTransaction)
+    .where(
+      and(
+        eq(pointTransaction.userId, userId),
+        sql`${pointTransaction.createdAt} >= DATE_SUB(NOW(), INTERVAL ${VETERAN_TIER_WINDOW_DAYS} DAY)`,
+      ),
+    );
+  return Number(row?.total ?? 0) >= VETERAN_TIER_THRESHOLD_POINTS;
+}
+
 export interface LeaderboardEntry {
   userId: number;
   username: string;
