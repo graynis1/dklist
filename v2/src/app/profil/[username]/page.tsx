@@ -8,7 +8,9 @@ import { avatarUrl } from "@/db/queries/avatar";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { ReportUserButton } from "@/components/dklist/report-user-button";
 import { ReadingGoalControl } from "@/components/dklist/reading-goal-control";
+import { VerifiedToggleButton } from "@/components/dklist/verified-toggle-button";
 import { auth } from "@/auth";
+import { hasRole, USER_TYPES } from "@/lib/permission";
 import {
   getProfileByUsername,
   getFollowCounts,
@@ -69,6 +71,7 @@ async function ProfileContent({
   const session = await auth();
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
   const isOwnProfile = viewerId === profile.id;
+  const viewerIsAdmin = hasRole(session?.user?.userType, [USER_TYPES.Admin]);
 
   const [
     counts,
@@ -110,8 +113,16 @@ async function ProfileContent({
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col gap-2">
-          <h1 className="font-heading text-3xl font-medium tracking-tight">
+          <h1 className="flex items-center gap-1.5 font-heading text-3xl font-medium tracking-tight">
             @{profile.username}
+            {profile.verified && (
+              <span
+                title="Doğrulanmış resmi profil"
+                className="inline-flex size-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white"
+              >
+                ✓
+              </span>
+            )}
           </h1>
           <div className="flex gap-4 text-sm text-muted-foreground">
             <Link href={`/profil/${profile.username}/takipciler`} className="hover:underline">
@@ -158,6 +169,9 @@ async function ProfileContent({
             </Link>
             <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} />
             <ReportUserButton targetUserId={profile.id} />
+            {viewerIsAdmin && (
+              <VerifiedToggleButton targetUserId={profile.id} initialVerified={profile.verified} />
+            )}
           </div>
         )}
         {isOwnProfile && (

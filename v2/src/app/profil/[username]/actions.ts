@@ -7,10 +7,12 @@ import {
   setReadingGoal,
   getCurrentReadingGoal,
   updateProfile,
+  toggleVerified,
   type ReadingGoal,
 } from "@/db/queries/profile";
 import { uploadAvatar } from "@/db/queries/avatar";
 import { reportUser } from "@/db/queries/notices";
+import { requireRole, USER_TYPES } from "@/lib/permission";
 
 export async function toggleFollowAction(
   targetUserId: number,
@@ -55,6 +57,19 @@ export async function reportUserAction(
     return { status: false, message: "Giriş yapmalısınız." };
   }
   return reportUser(Number(session.user.id), reportedUserId, reason);
+}
+
+export async function toggleVerifiedAction(
+  targetUserId: number,
+): Promise<{ status: boolean; message?: string; verified?: boolean }> {
+  try {
+    await requireRole([USER_TYPES.Admin]);
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+
+  const verified = await toggleVerified(targetUserId);
+  return { status: true, verified };
 }
 
 export async function updateProfileAction(formData: FormData) {

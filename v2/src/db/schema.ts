@@ -580,6 +580,9 @@ export const user = mysqlTable("user", {
 	token: varchar({ length: 30 }).notNull(),
 	privacy: tinyint().notNull(),
 	userType: varchar("user_type", { length: 25 }).notNull(),
+	// Admin-designated "official profile" visual marker (blue-check style) -
+	// customer's ask, not a v1 column.
+	verified: tinyint().notNull().default(0),
 	// you can use { mode: 'date' }, if you want to have Date as type for this column
 	createdDate: date("created_date", { mode: 'string' }).notNull(),
 	sex: varchar({ length: 40 }).notNull(),

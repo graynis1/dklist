@@ -107,6 +107,7 @@ export interface ProfileSummary {
   username: string;
   biyo: string | null;
   image: string | null;
+  verified: boolean;
 }
 
 export async function getProfileByUsername(username: string): Promise<ProfileSummary | null> {
@@ -115,12 +116,26 @@ export async function getProfileByUsername(username: string): Promise<ProfileSum
   cacheTag(`profile:${username}`);
 
   const [row] = await db
-    .select({ id: user.id, username: user.username, biyo: user.biyo, image: user.image })
+    .select({ id: user.id, username: user.username, biyo: user.biyo, image: user.image, verified: user.verified })
     .from(user)
     .where(eq(user.username, username))
     .limit(1);
 
-  return row ?? null;
+  return row ? { ...row, verified: Boolean(row.verified) } : null;
+}
+
+/** Admin-only "official profile" toggle - customer's verified-account
+ * marker. No new admin panel needed, exposed contextually on the profile
+ * page itself, same pattern as other single admin actions this session. */
+export async function toggleVerified(targetUserId: number): Promise<boolean> {
+  const [row] = await db.select({ verified: user.verified }).from(user).where(eq(user.id, targetUserId)).limit(1);
+  const next = row?.verified ? 0 : 1;
+  await db.update(user).set({ verified: next }).where(eq(user.id, targetUserId));
+
+  const [target] = await db.select({ username: user.username }).from(user).where(eq(user.id, targetUserId)).limit(1);
+  if (target) updateTag(`profile:${target.username}`);
+
+  return Boolean(next);
 }
 
 export interface FollowCounts {
