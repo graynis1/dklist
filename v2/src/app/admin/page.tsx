@@ -36,6 +36,7 @@ const ADMIN_TOOLS: { href: string; label: string; description: string; roles: Us
   { href: "/admin/site-popup", label: "Açılış Popup'ı", description: "Oturum başına bir kez gösterilen duyuru/promosyon penceresi", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
   { href: "/admin/puan-ayarlari", label: "Puan Ayarları", description: "Puan/oyunlaştırma sisteminin kazanç değerleri ve spam koruma sınırları", roles: [USER_TYPES.Admin] },
   { href: "/admin/aktivite-gunlugu", label: "Aktivite Günlüğü", description: "Mod/Kütüphaneci/Admin yetkili işlemlerin denetim kaydı, kişi başına sayım", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
+  { href: "/admin/puan-magazasi", label: "Puan Mağazası", description: "Kullanıcıların puan harcayarak alabileceği profil çerçeveleri", roles: [USER_TYPES.Admin] },
 ];
 
 export default function AdminIndexPage() {

@@ -618,6 +618,9 @@ export const user = mysqlTable("user", {
 	image: varchar({ length: 255 }),
 	disable: tinyint().notNull(),
 	pendingCode: varchar("pending_code", { length: 10 }),
+	// Point-store redeemable cosmetic (avatar ring color/style) - null means
+	// no frame equipped, even if the user owns one or more via redemption.
+	profileFrame: varchar("profile_frame", { length: 30 }),
 },
 (table) => [
 	index("IDX_8D93D649996A8449").on(table.readBooksId),
@@ -627,6 +630,32 @@ export const user = mysqlTable("user", {
 	unique("UNIQ_8D93D6495F37A13B").on(table.token),
 	unique("UNIQ_8D93D64940C86FCE").on(table.publisherId),
 	unique("UNIQ_user_writer_id").on(table.writerId),
+]);
+
+export const pointReward = mysqlTable("point_reward", {
+	id: int().autoincrement().notNull(),
+	name: varchar({ length: 100 }).notNull(),
+	description: varchar({ length: 255 }),
+	pointCost: int("point_cost").notNull(),
+	rewardType: varchar("reward_type", { length: 30 }).notNull(),
+	rewardValue: varchar("reward_value", { length: 100 }).notNull(),
+	active: tinyint().notNull().default(1),
+	sortOrder: int("sort_order").notNull().default(0),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "point_reward_id" }),
+]);
+
+export const pointRedemption = mysqlTable("point_redemption", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id),
+	rewardId: int("reward_id").notNull().references(() => pointReward.id),
+	redeemedAt: datetime("redeemed_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "point_redemption_id" }),
+	unique("uniq_point_redemption_user_reward").on(table.userId, table.rewardId),
 ]);
 
 export const yazarhanePost = mysqlTable("yazarhane_post", {

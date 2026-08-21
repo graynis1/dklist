@@ -118,7 +118,10 @@ async function ProfileContent({
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <div className="mb-4 flex items-center gap-6">
-        <Avatar className="size-20 text-xl">
+        <Avatar
+          className="size-20 text-xl"
+          style={profile.profileFrame ? { boxShadow: `0 0 0 3px ${profile.profileFrame}` } : undefined}
+        >
           <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>

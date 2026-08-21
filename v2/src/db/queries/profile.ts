@@ -121,6 +121,7 @@ export interface ProfileSummary {
   biyo: string | null;
   image: string | null;
   verified: boolean;
+  profileFrame: string | null;
 }
 
 export async function getProfileByUsername(username: string): Promise<ProfileSummary | null> {
@@ -129,7 +130,7 @@ export async function getProfileByUsername(username: string): Promise<ProfileSum
   cacheTag(`profile:${username}`);
 
   const [row] = await db
-    .select({ id: user.id, username: user.username, biyo: user.biyo, image: user.image, verified: user.verified })
+    .select({ id: user.id, username: user.username, biyo: user.biyo, image: user.image, verified: user.verified, profileFrame: user.profileFrame })
     .from(user)
     .where(eq(user.username, username))
     .limit(1);
