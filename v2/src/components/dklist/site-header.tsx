@@ -5,14 +5,14 @@ import { AuthStatus } from "@/components/dklist/auth-status";
 import { NotificationBell } from "@/components/dklist/notification-bell";
 import { MessageBell } from "@/components/dklist/message-bell";
 
-// "Yazarlar"/"Askıda Kitap"/"Bloglar" stay dead links deliberately - each
-// needs a page that doesn't exist yet (a writers-index/browse page for the
-// first, Phase 3/4 features for the other two), not a wrong destination.
+// "Yazarlar"/"Askıda Kitap" stay dead links deliberately - each needs a page
+// that doesn't exist yet (a writers-index/browse page for the first, a
+// Phase 3 marketplace feature for the second), not a wrong destination.
 const NAV = [
   { href: "/ara", label: "Keşfet" },
   { href: "#", label: "Yazarlar" },
   { href: "#", label: "Askıda Kitap" },
-  { href: "#", label: "Bloglar" },
+  { href: "/bloglar", label: "Bloglar" },
 ];
 
 export function SiteHeader() {
