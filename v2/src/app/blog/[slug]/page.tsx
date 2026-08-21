@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { getBlogBySlug } from "@/db/queries/blog";
 import { DeleteBlogButton } from "@/components/dklist/delete-blog-button";
+import { ShareButton } from "@/components/dklist/share-button";
 
 const ELEVATED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
@@ -66,6 +67,9 @@ async function BlogDetailContent({
         ) : null}
         {post.ownerUsername ? " · " : ""}
         {post.createdDate}
+        <span className="ml-2 inline-block align-middle">
+          <ShareButton content={post.title} />
+        </span>
       </p>
 
       {isOwner && !post.approved && (

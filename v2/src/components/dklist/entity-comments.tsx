@@ -6,6 +6,7 @@ import type { BookComment, CommentReply, SubCommentParentType } from "@/db/queri
 import type { CommentLikeState } from "@/db/queries/comment-likes";
 import { toggleCommentLikeAction } from "@/actions/comment-likes";
 import { reportCommentAction } from "@/actions/notices";
+import { ShareButton } from "@/components/dklist/share-button";
 
 /** v1's CommentComponent `notice()` - a silent fire-and-forget report that
  * just hides itself after sending, no confirmation modal (comment reports
@@ -315,6 +316,7 @@ export function EntityComments({
                     </button>
                   )}
                   <ReportCommentButton commentId={c.id} parentType="comment" />
+                  <ShareButton content={c.text} />
                 </div>
                 {replyFormFor === c.id && (
                   <ReplyForm

@@ -6,6 +6,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { StoreFavoriteButton } from "@/components/dklist/store-favorite-button";
 import { StoreOwnerActions } from "@/components/dklist/store-owner-actions";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
+import { ShareButton } from "@/components/dklist/share-button";
 import { auth } from "@/auth";
 import {
   getStoreBySlug,
@@ -85,6 +86,9 @@ async function StoreDetailContent({
             @{item.ownerUsername}
           </Link>
           {item.location ? ` · ${item.location}` : ""}
+          <span className="ml-2 inline-block align-middle">
+            <ShareButton content={item.title} />
+          </span>
         </p>
 
         <p className="text-lg font-medium">
