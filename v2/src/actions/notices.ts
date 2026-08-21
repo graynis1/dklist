@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import {
   reportComment,
+  reportBookDataError,
   resolveNotice,
   deleteNotice,
   type NoticeCommentType,
@@ -23,6 +24,17 @@ export async function reportCommentAction(
     return { status: false, message: "Giriş yapmalısınız." };
   }
   return reportComment(Number(session.user.id), commentId, type);
+}
+
+export async function reportBookDataErrorAction(
+  bookId: number,
+  reason: string,
+): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  return reportBookDataError(Number(session.user.id), bookId, reason);
 }
 
 export async function resolveNoticeAction(id: number): Promise<{ status: boolean; message?: string }> {

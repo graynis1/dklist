@@ -272,6 +272,9 @@ export const notice = mysqlTable("notice", {
 	reason: longtext(),
 	createdAt: datetime("created_at", { mode: 'string'}).notNull(),
 	isResolved: tinyint("is_resolved").notNull(),
+	// "Hata bildir" (book data-error report) - a book-page report type,
+	// same per-type-dedicated-FK shape as commentId above.
+	bookId: int("book_id").references(() => book.id),
 },
 (table) => [
 	index("IDX_480D45C2E7566E").on(table.reportedUserId),

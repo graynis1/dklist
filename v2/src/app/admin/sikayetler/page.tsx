@@ -14,6 +14,7 @@ const TABS: { value: NoticeTypeFilter; label: string }[] = [
   { value: "all", label: "Tümü" },
   { value: "comment", label: "Yorum Şikayetleri" },
   { value: "user_report", label: "Kullanıcı Şikayetleri" },
+  { value: "book_data_error", label: "Kitap Veri Hataları" },
 ];
 
 export default function AdminNoticesPage({
@@ -54,7 +55,7 @@ async function AdminNoticesContent({
         <SectionLabel>Yönetim</SectionLabel>
         <h1 className="font-heading text-3xl font-medium tracking-tight">Şikayetler</h1>
         <p className="text-sm text-muted-foreground">
-          Kullanıcılardan gelen yorum ve profil şikayetleri - toplam {total} kayıt.
+          Kullanıcılardan gelen yorum, profil ve kitap veri hatası bildirimleri - toplam {total} kayıt.
         </p>
       </div>
 
@@ -102,6 +103,16 @@ async function AdminNoticesContent({
                     {n.reportedUser?.disable && (
                       <p className="text-xs text-destructive">Bu kullanıcı zaten devre dışı.</p>
                     )}
+                  </>
+                ) : n.type === "book_data_error" ? (
+                  <>
+                    <p>
+                      <Link href={`/kitap/${n.bookSlug}`} className="hover:underline">
+                        <strong>{n.bookName}</strong>
+                      </Link>{" "}
+                      için <strong>@{n.reporterUsername}</strong> tarafından veri hatası bildirildi.
+                    </p>
+                    <p className="text-muted-foreground">{n.reason}</p>
                   </>
                 ) : (
                   <>

@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { notice, comment, subComment, user } from "@/db/schema";
+import { notice, comment, subComment, user, book } from "@/db/schema";
 import { addNotification } from "./notifications";
 
 // v1's NoticeController/Notice entity - a moderation "şikayet" (report) queue
@@ -131,9 +131,40 @@ export interface NoticeListItem {
   commentText: string | null;
   commentOwnerUsername: string | null;
   commentOwnerId: number | null;
+  bookName: string | null;
+  bookSlug: string | null;
 }
 
-export type NoticeTypeFilter = "all" | "comment" | "user_report";
+export type NoticeTypeFilter = "all" | "comment" | "user_report" | "book_data_error";
+
+/** "Hata bildir" (book data-error report) button on the book page - a new
+ * notice type feeding the same admin moderation queue as user/comment
+ * reports, rather than a separate table. No same-24h dedup like reportUser
+ * (a data error is a fact, not a behavioral complaint - two different
+ * users flagging the same real error in one day is useful signal, not
+ * spam). */
+export async function reportBookDataError(
+  reporterId: number,
+  bookId: number,
+  reason: string,
+): Promise<{ status: boolean; message?: string }> {
+  const trimmed = reason.trim();
+  if (!trimmed) return { status: false, message: "Lütfen hatayı açıklayın." };
+
+  const [target] = await db.select({ id: book.id }).from(book).where(eq(book.id, bookId)).limit(1);
+  if (!target) return { status: false, message: "Kitap bulunamadı." };
+
+  await db.insert(notice).values({
+    type: "book_data_error",
+    reporterUserId: reporterId,
+    bookId,
+    reason: trimmed,
+    createdAt: nowSql(),
+    isResolved: 0,
+  });
+
+  return { status: true };
+}
 
 /** Admin/Mod-only listing - matches NoticeController::getAll()'s pagination
  * and per-type field shape (a user-report row surfaces the reported/reporter
@@ -150,7 +181,9 @@ export async function getNotices(
       ? sql`${notice.type} IN ('comment', 'subComment')`
       : typeFilter === "user_report"
         ? eq(notice.type, "user_report")
-        : undefined;
+        : typeFilter === "book_data_error"
+          ? eq(notice.type, "book_data_error")
+          : undefined;
 
   const [countRow] = await db
     .select({ count: sql<number>`count(*)` })
@@ -197,6 +230,33 @@ export async function getNotices(
         commentText: null,
         commentOwnerUsername: null,
         commentOwnerId: null,
+        bookName: null,
+        bookSlug: null,
+      });
+    } else if (row.type === "book_data_error") {
+      if (!row.bookId) continue;
+      const bookRow = (
+        await db.select({ name: book.name, slug: book.slug }).from(book).where(eq(book.id, row.bookId)).limit(1)
+      )[0];
+      if (!bookRow) continue;
+
+      const reporter = row.reporterUserId
+        ? (await db.select({ username: user.username }).from(user).where(eq(user.id, row.reporterUserId)).limit(1))[0]
+        : undefined;
+
+      items.push({
+        id: row.id,
+        type: row.type,
+        createdAt: row.createdAt,
+        isResolved: Boolean(row.isResolved),
+        reason: row.reason,
+        reportedUser: null,
+        reporterUsername: reporter?.username ?? null,
+        commentText: null,
+        commentOwnerUsername: null,
+        commentOwnerId: null,
+        bookName: bookRow.name,
+        bookSlug: bookRow.slug,
       });
     } else {
       if (!row.commentId) continue;
@@ -223,6 +283,8 @@ export async function getNotices(
         commentText: commentRow.text,
         commentOwnerUsername: owner.username,
         commentOwnerId: owner.id,
+        bookName: null,
+        bookSlug: null,
       });
     }
   }

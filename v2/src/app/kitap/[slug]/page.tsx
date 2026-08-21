@@ -16,6 +16,7 @@ import { ShareAttachmentButton } from "@/components/dklist/share-attachment-butt
 import { ShareButton } from "@/components/dklist/share-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { JsonLd } from "@/components/dklist/json-ld";
+import { ReportBookErrorButton } from "@/components/dklist/report-book-error-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
@@ -307,14 +308,16 @@ async function BookDetailContent({
               </p>
             )}
 
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <LibraryToggle
                 bookId={detail.id}
                 signedIn={Boolean(userId)}
                 initialInLibrary={inLibrary}
               />
-              <Button variant="outline">Askıya Bırak</Button>
-              <Button variant="ghost">Şikayet Et</Button>
+              <Button variant="outline" render={<Link href="/askida-kitap/yeni" />}>
+                Askıya Bırak
+              </Button>
+              {userId && <ReportBookErrorButton bookId={detail.id} />}
             </div>
 
             {storeListings.length > 0 && (
