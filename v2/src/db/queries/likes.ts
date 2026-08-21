@@ -3,6 +3,7 @@ import { updateTag, cacheTag, cacheLife } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { userBook, userWriter, userTranslator, writer, translator } from "@/db/schema";
+import { awardPoints, POINT_VALUES } from "@/db/queries/points";
 
 /**
  * "Beğen" (like) - v1's User::$likedBooks / Book::$users ManyToMany, backed
@@ -46,6 +47,7 @@ export async function toggleBookLike(
       .where(and(eq(userBook.userId, userId), eq(userBook.bookId, bookId)));
   } else {
     await db.insert(userBook).values({ userId, bookId });
+    await awardPoints(userId, POINT_VALUES.like, "like", `like:book:${bookId}`);
   }
   updateTag(`book-like-count:${bookId}`);
   return { liked: !already };
@@ -90,6 +92,7 @@ export async function toggleWriterLike(
       .where(and(eq(userWriter.userId, userId), eq(userWriter.writerId, writerId)));
   } else {
     await db.insert(userWriter).values({ userId, writerId });
+    await awardPoints(userId, POINT_VALUES.like, "like", `like:writer:${writerId}`);
   }
   updateTag(`writer-like-count:${writerId}`);
   updateTag(`liked-writers:${userId}`);
@@ -128,6 +131,7 @@ export async function toggleTranslatorLike(
       .where(and(eq(userTranslator.userId, userId), eq(userTranslator.translatorId, translatorId)));
   } else {
     await db.insert(userTranslator).values({ userId, translatorId });
+    await awardPoints(userId, POINT_VALUES.like, "like", `like:translator:${translatorId}`);
   }
   updateTag(`translator-like-count:${translatorId}`);
   updateTag(`liked-translators:${userId}`);

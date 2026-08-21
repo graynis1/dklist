@@ -3,6 +3,7 @@ import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { comment, subComment, user } from "@/db/schema";
+import { awardPoints, POINT_VALUES } from "@/db/queries/points";
 
 // v1's CommentTypeEnum - comments live on book/writer/translator pages, all
 // through the same `comment` table (type + target_id columns).
@@ -87,6 +88,7 @@ export async function addEntityComment(
   });
 
   updateTag(`${targetType}-comments:${targetId}:${commentType}`);
+  await awardPoints(userId, POINT_VALUES.comment, "comment", `comment:${result.insertId}`);
   return result.insertId;
 }
 

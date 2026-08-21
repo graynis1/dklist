@@ -10,6 +10,7 @@ const NAV = [
   { href: "/yazarlar", label: "Yazarlar" },
   { href: "/askida-kitap", label: "Askıda Kitap" },
   { href: "/bloglar", label: "Bloglar" },
+  { href: "/puan-tablosu", label: "Puan Tablosu" },
 ];
 
 export function SiteHeader() {

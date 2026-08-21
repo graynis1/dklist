@@ -670,6 +670,39 @@ export const writerBook = mysqlTable("writer_book", {
 	primaryKey({ columns: [table.writerId, table.bookId], name: "writer_book_writer_id_book_id"}),
 ]);
 
+// Gamification/engagement points - customer-requested new feature (not a v1
+// port, v1 has no points concept). See migration 0004_gamification_points.sql.
+export const pointTransaction = mysqlTable("point_transaction", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	points: int().notNull(),
+	reason: varchar({ length: 50 }).notNull(),
+	reasonKey: varchar("reason_key", { length: 150 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	unique("uq_point_transaction_user_reason_key").on(table.userId, table.reasonKey),
+	index("idx_point_transaction_user").on(table.userId),
+	index("idx_point_transaction_created").on(table.createdAt),
+	primaryKey({ columns: [table.id], name: "point_transaction_id" }),
+]);
+
+export const weeklyWinner = mysqlTable("weekly_winner", {
+	id: int().autoincrement().notNull(),
+	yearWeek: varchar("year_week", { length: 10 }).notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	points: int().notNull(),
+	prizeBookId: int("prize_book_id").references(() => book.id, { onDelete: "set null" }),
+	fulfilled: tinyint().notNull().default(0),
+	fulfilledAt: datetime("fulfilled_at", { mode: 'string' }),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	unique("uq_weekly_winner_year_week").on(table.yearWeek),
+	index("idx_weekly_winner_user").on(table.userId),
+	primaryKey({ columns: [table.id], name: "weekly_winner_id" }),
+]);
+
 export const youtube = mysqlTable("youtube", {
 	id: int().autoincrement().notNull(),
 	title: varchar({ length: 255 }).notNull(),
