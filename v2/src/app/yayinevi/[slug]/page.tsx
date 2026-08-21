@@ -6,6 +6,7 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Button } from "@/components/ui/button";
 import { getPublisherBySlug, getBooksByPublisher } from "@/db/queries/publishers";
+import { JsonLd } from "@/components/dklist/json-ld";
 
 export default function PublisherPage({ params }: PageProps<"/yayinevi/[slug]">) {
   return (
@@ -47,6 +48,13 @@ async function PublisherContent({
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: publisher.name,
+        }}
+      />
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2">
           <SectionLabel>Yayınevi</SectionLabel>

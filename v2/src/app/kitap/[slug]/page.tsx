@@ -15,11 +15,12 @@ import { LikeButton } from "@/components/dklist/like-button";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { ShareButton } from "@/components/dklist/share-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { JsonLd } from "@/components/dklist/json-ld";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
-import { getUserBookRating } from "@/db/queries/rating";
+import { getUserBookRating, getBookRatingCount } from "@/db/queries/rating";
 import { getBookComments, getRepliesForComments } from "@/db/queries/comments";
 import { isInLibrary } from "@/db/queries/library";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
@@ -81,6 +82,7 @@ async function BookDetailContent({
     currentStatus,
     dropStats,
     userRating,
+    ratingCount,
     comments,
     inLibrary,
     liked,
@@ -95,6 +97,7 @@ async function BookDetailContent({
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
     userId ? getUserBookRating(userId, detail.id) : Promise.resolve(null),
+    getBookRatingCount(detail.id),
     getBookComments(detail.id),
     userId ? isInLibrary(userId, detail.id) : Promise.resolve(false),
     userId ? isBookLiked(userId, detail.id) : Promise.resolve(false),
@@ -129,6 +132,30 @@ async function BookDetailContent({
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Book",
+          name: detail.name,
+          ...(detail.orgName && detail.orgName !== detail.name ? { alternateName: detail.orgName } : {}),
+          author: detail.writers.map((w) => ({ "@type": "Person", name: w.name })),
+          ...(detail.translators.length > 0 ? { translator: detail.translators.map((t) => ({ "@type": "Person", name: t.name })) } : {}),
+          ...(detail.publisher ? { publisher: { "@type": "Organization", name: detail.publisher.name } } : {}),
+          inLanguage: detail.lang,
+          ...(detail.pageNumber > 0 ? { numberOfPages: detail.pageNumber } : {}),
+          ...(ratingCount > 0
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: detail.score,
+                  bestRating: 10,
+                  worstRating: 1,
+                  ratingCount,
+                },
+              }
+            : {}),
+        }}
+      />
       <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
           <BookCover

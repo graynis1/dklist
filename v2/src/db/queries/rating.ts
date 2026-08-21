@@ -191,3 +191,16 @@ export async function rateTranslator(
   }
   return { newAverage };
 }
+
+/** Real rating count for a book - `score` has a UNIQUE(owner_id, target_id,
+ * target_type) constraint, so this is exactly "how many distinct people
+ * rated it", not an estimate. Used for the book page's schema.org
+ * AggregateRating - Google's structured-data guidelines want a real count,
+ * not a placeholder. */
+export async function getBookRatingCount(bookId: number): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(score)
+    .where(and(eq(score.targetId, bookId), eq(score.targetType, BOOK_TARGET_TYPE)));
+  return Number(row?.count ?? 0);
+}

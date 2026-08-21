@@ -15,6 +15,7 @@ import { getUserWriterRating } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { getAuthorMemberForWriter } from "@/db/queries/yazarhane";
+import { JsonLd } from "@/components/dklist/json-ld";
 import { auth } from "@/auth";
 import {
   toggleWriterLikeAction,
@@ -97,6 +98,14 @@ async function WriterContent({
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Person",
+          name: writer.name,
+          ...(writer.biyo ? { description: writer.biyo } : {}),
+        }}
+      />
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center">
         <Avatar className="size-20 text-xl">
           <AvatarFallback>{initials}</AvatarFallback>
