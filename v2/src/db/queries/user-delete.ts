@@ -33,10 +33,23 @@ async function deleteUsersCommentTree(userId: number): Promise<void> {
       .where(and(eq(subComment.parentType, "comment"), inArray(subComment.parentId, commentIds)));
     if (topReplies.length > 0) {
       const topReplyIds = topReplies.map((r) => r.id);
-      await db.delete(subComment).where(and(eq(subComment.parentType, "subComment"), inArray(subComment.parentId, topReplyIds)));
+      const nestedReplies = await db.select({ id: subComment.id }).from(subComment)
+        .where(and(eq(subComment.parentType, "subComment"), inArray(subComment.parentId, topReplyIds)));
+      if (nestedReplies.length > 0) {
+        const nestedReplyIds = nestedReplies.map((r) => r.id);
+        await db.delete(notice).where(inArray(notice.commentId, nestedReplyIds));
+        await db.delete(subComment).where(inArray(subComment.id, nestedReplyIds));
+      }
+      await db.delete(notice).where(inArray(notice.commentId, topReplyIds));
       await db.delete(subComment).where(inArray(subComment.id, topReplyIds));
     }
     await db.delete(commentLike).where(inArray(commentLike.commentId, commentIds));
+    // notice.commentId has no DB-level FK (a plain bigint column shared
+    // across comment/subComment ids - see notices.ts), so skipping this
+    // wouldn't crash, just leave a dangling row getNotices() silently skips
+    // forever. Matches v1's original deleteUserAdmin(), which explicitly
+    // deleted these rather than leaving them orphaned.
+    await db.delete(notice).where(inArray(notice.commentId, commentIds));
     await db.delete(comment).where(inArray(comment.id, commentIds));
   }
 
@@ -46,7 +59,14 @@ async function deleteUsersCommentTree(userId: number): Promise<void> {
   const ownReplies = await db.select({ id: subComment.id }).from(subComment).where(eq(subComment.userId, userId));
   if (ownReplies.length > 0) {
     const ownReplyIds = ownReplies.map((r) => r.id);
-    await db.delete(subComment).where(and(eq(subComment.parentType, "subComment"), inArray(subComment.parentId, ownReplyIds)));
+    const nestedOfOwn = await db.select({ id: subComment.id }).from(subComment)
+      .where(and(eq(subComment.parentType, "subComment"), inArray(subComment.parentId, ownReplyIds)));
+    if (nestedOfOwn.length > 0) {
+      const nestedOfOwnIds = nestedOfOwn.map((r) => r.id);
+      await db.delete(notice).where(inArray(notice.commentId, nestedOfOwnIds));
+      await db.delete(subComment).where(inArray(subComment.id, nestedOfOwnIds));
+    }
+    await db.delete(notice).where(inArray(notice.commentId, ownReplyIds));
     await db.delete(subComment).where(inArray(subComment.id, ownReplyIds));
   }
 }
