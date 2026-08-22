@@ -37,6 +37,9 @@ export function SiteFooter() {
           <Link href="/gizlilik-politikasi" className="hover:text-foreground hover:underline">
             Gizlilik Politikası
           </Link>
+          <Link href="/reklam-ver" className="hover:text-foreground hover:underline">
+            Reklam Ver
+          </Link>
           <a href="mailto:info@dklist.com" className="hover:text-foreground hover:underline">
             İletişim
           </a>

@@ -1,0 +1,56 @@
+import { Suspense } from "react";
+import { SiteHeader } from "@/components/dklist/site-header";
+import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdInquiryForm } from "@/components/dklist/ad-inquiry-form";
+import { getSiteStatsForAdvertisers } from "@/db/queries/ad-inquiry";
+
+export default function AdvertiseWithUsPage() {
+  return (
+    <div className="flex-1 bg-background">
+      <SiteHeader />
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <div className="mb-10 flex flex-col gap-2">
+          <SectionLabel>İşbirliği</SectionLabel>
+          <h1 className="font-heading text-3xl font-medium tracking-tight">DKList&apos;te Reklam Ver</h1>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            DKList, kitapseverlerin okuma durumlarını takip ettiği, kitap keşfettiği ve
+            yorumlarını paylaştığı bir topluluk. Yayınevi, kitapçı veya kitapla ilgili bir
+            markaysanız, ilgili bir kitlenin karşısına çıkmak için bize ulaşın.
+          </p>
+        </div>
+
+        <Suspense fallback={<div className="mb-10 h-24 animate-pulse rounded-lg bg-muted" />}>
+          <StatsSection />
+        </Suspense>
+
+        <div className="mt-10">
+          <h2 className="mb-4 font-heading text-xl font-medium">İletişime Geçin</h2>
+          <AdInquiryForm />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function StatsSection() {
+  const stats = await getSiteStatsForAdvertisers();
+
+  const items = [
+    { label: "Üye", value: stats.totalUsers },
+    { label: "Kitap", value: stats.totalBooks },
+    { label: "Yazar", value: stats.totalWriters },
+    { label: "Gösterim", value: stats.totalImpressions },
+    { label: "Tıklama", value: stats.totalClicks },
+  ];
+
+  return (
+    <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-5">
+      {items.map((item) => (
+        <div key={item.label} className="rounded-lg border border-border p-4 text-center">
+          <div className="font-heading text-2xl font-medium">{item.value.toLocaleString("tr-TR")}</div>
+          <div className="text-xs text-muted-foreground">{item.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}

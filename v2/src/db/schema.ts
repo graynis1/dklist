@@ -931,3 +931,20 @@ export const advertisement = mysqlTable("advertisement", {
 	index("idx_advertisement_placement").on(table.placement, table.active),
 	primaryKey({ columns: [table.id], name: "advertisement_id" }),
 ]);
+
+// Advertiser-facing lead capture for /reklam-ver - see
+// src/db/migrations/0022_ad_inquiry.sql for why this exists now (the
+// "natural next step" once impression/click stats existed). A lead inbox,
+// not a billing system - no payment/contract fields here.
+export const adInquiry = mysqlTable("ad_inquiry", {
+	id: int().autoincrement().notNull(),
+	name: varchar({ length: 100 }).notNull(),
+	company: varchar({ length: 150 }),
+	email: varchar({ length: 150 }).notNull(),
+	message: varchar({ length: 1000 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+	handled: tinyint().notNull().default(0),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "ad_inquiry_id" }),
+]);

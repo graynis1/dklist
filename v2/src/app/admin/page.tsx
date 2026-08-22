@@ -33,6 +33,7 @@ const ADMIN_TOOLS: { href: string; label: string; description: string; roles: Us
   { href: "/admin/siparisler", label: "Siparişler", description: "Tüm ücretli Askıda Kitap siparişlerini görüntüle", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
   { href: "/admin/premium-ayarlari", label: "Premium Ayarları", description: "Premium üyelik fiyatı, süresi ve satışını aç/kapa", roles: [USER_TYPES.Admin] },
   { href: "/admin/reklamlar", label: "Reklamlar", description: "Premium olmayan kullanıcılara gösterilen reklam alanları", roles: [USER_TYPES.Admin] },
+  { href: "/admin/reklam-talepleri", label: "Reklam Talepleri", description: "/reklam-ver üzerinden gelen işbirliği talepleri", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
   { href: "/admin/site-popup", label: "Açılış Popup'ı", description: "Oturum başına bir kez gösterilen duyuru/promosyon penceresi", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
   { href: "/admin/puan-ayarlari", label: "Puan Ayarları", description: "Puan/oyunlaştırma sisteminin kazanç değerleri ve spam koruma sınırları", roles: [USER_TYPES.Admin] },
   { href: "/admin/aktivite-gunlugu", label: "Aktivite Günlüğü", description: "Mod/Kütüphaneci/Admin yetkili işlemlerin denetim kaydı, kişi başına sayım", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
