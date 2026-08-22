@@ -5,6 +5,7 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { searchBooks, searchWriters, searchTranslators, searchPublishers, searchUsers } from "@/db/queries/search";
+import { semanticSearchBooks } from "@/db/queries/book-embedding";
 
 export default function SearchPage({ searchParams }: PageProps<"/ara">) {
   return (
@@ -68,15 +69,19 @@ async function Results({
     );
   }
 
-  const [books, writers, translators, publishers, users] = await Promise.all([
+  const [books, writers, translators, publishers, users, semanticMatches] = await Promise.all([
     searchBooks(term),
     searchWriters(term),
     searchTranslators(term),
     searchPublishers(term),
     searchUsers(term),
+    semanticSearchBooks(term),
   ]);
 
-  const totalCount = books.length + writers.length + translators.length + publishers.length + users.length;
+  const prefixBookIds = new Set(books.map((b) => b.id));
+  const semanticBooks = semanticMatches.filter((b) => !prefixBookIds.has(b.id));
+
+  const totalCount = books.length + writers.length + translators.length + publishers.length + users.length + semanticBooks.length;
 
   if (totalCount === 0) {
     return (
@@ -92,6 +97,39 @@ async function Results({
         <div className="flex flex-col gap-4">
           <SectionLabel>Kitaplar</SectionLabel>
           {books.map((book) => (
+            <Link
+              key={book.id}
+              href={`/kitap/${book.slug}`}
+              className="flex items-center gap-4 rounded-lg p-2 transition-colors hover:bg-accent"
+            >
+              <BookCover
+                title={book.name}
+                author={book.writers.join(", ")}
+                tone={toneForId(book.id)}
+                size="sm"
+                className="w-16 shrink-0"
+              />
+              <div className="flex flex-col gap-1">
+                <p className="font-medium">{book.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {book.writers.join(", ") || "Yazar bilinmiyor"}
+                </p>
+                <div className="flex items-center gap-1 text-xs">
+                  <StarRating value={book.score} />
+                  <span className="text-muted-foreground">
+                    {book.score.toFixed(1)}/10
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {semanticBooks.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <SectionLabel>Konusuna Yakın Kitaplar</SectionLabel>
+          {semanticBooks.map((book) => (
             <Link
               key={book.id}
               href={`/kitap/${book.slug}`}
