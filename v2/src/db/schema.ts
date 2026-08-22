@@ -648,6 +648,23 @@ export const user = mysqlTable("user", {
 	unique("UNIQ_user_writer_id").on(table.writerId),
 ]);
 
+// 2FA backup codes - see src/db/migrations/0023_two_factor_recovery_codes.sql
+// for why this exists (email-delivery hiccups shouldn't lock out a user who
+// already has a correct password). Hashed at rest, single-use (usedAt set
+// on consumption, never deleted so a used code can't be silently replayed
+// by inserting a fresh unused row with the same hash).
+export const twoFactorRecoveryCode = mysqlTable("two_factor_recovery_code", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	codeHash: varchar("code_hash", { length: 255 }).notNull(),
+	usedAt: datetime("used_at", { mode: 'string' }),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "two_factor_recovery_code_id" }),
+	index("idx_two_factor_recovery_code_user").on(table.userId),
+]);
+
 export const pointReward = mysqlTable("point_reward", {
 	id: int().autoincrement().notNull(),
 	name: varchar({ length: 100 }).notNull(),

@@ -1,9 +1,9 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { user as userTable } from "@/db/schema";
+import { user as userTable, twoFactorRecoveryCode } from "@/db/schema";
 import { isMailConfigured, sendTwoFactorCodeEmail } from "@/lib/mailer";
 
 /**
@@ -106,10 +106,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             .select({ id: userTable.id })
             .from(userTable)
             .where(sql`${userTable.id} = ${row.id} AND ${userTable.twoFactorCode} = ${code} AND ${userTable.twoFactorCodeExpires} > NOW()`);
-          if (!validRow) return null;
 
-          // Consume the code so it can never be replayed.
-          await db.update(userTable).set({ twoFactorCode: null, twoFactorCodeExpires: null }).where(eq(userTable.id, row.id));
+          if (validRow) {
+            // Consume the code so it can never be replayed.
+            await db.update(userTable).set({ twoFactorCode: null, twoFactorCodeExpires: null }).where(eq(userTable.id, row.id));
+          } else {
+            // Not a valid mailed OTP - fall back to a recovery/backup code
+            // (see migration 0023): covers the case where email delivery
+            // is down or slow at the exact moment of login. Each unused
+            // code is bcrypt-hashed, so this has to check them one at a
+            // time rather than a single SQL equality match.
+            const unusedCodes = await db
+              .select({ id: twoFactorRecoveryCode.id, codeHash: twoFactorRecoveryCode.codeHash })
+              .from(twoFactorRecoveryCode)
+              .where(and(eq(twoFactorRecoveryCode.userId, row.id), isNull(twoFactorRecoveryCode.usedAt)));
+
+            let matchedId: number | null = null;
+            for (const rc of unusedCodes) {
+              if (await bcrypt.compare(code, rc.codeHash)) {
+                matchedId = rc.id;
+                break;
+              }
+            }
+            if (!matchedId) return null;
+
+            await db
+              .update(twoFactorRecoveryCode)
+              .set({ usedAt: sql`NOW()` })
+              .where(eq(twoFactorRecoveryCode.id, matchedId));
+          }
         }
 
         return {

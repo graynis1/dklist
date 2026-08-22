@@ -100,11 +100,13 @@ export async function setProfilePrivacyAction(isPrivate: boolean): Promise<{ sta
   return { status: true };
 }
 
-export async function setTwoFactorEnabledAction(enabled: boolean): Promise<{ status: boolean; message?: string }> {
+export async function setTwoFactorEnabledAction(
+  enabled: boolean,
+): Promise<{ status: boolean; message?: string; recoveryCodes?: string[] }> {
   const session = await auth();
   if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
-  await setTwoFactorEnabled(Number(session.user.id), enabled);
-  return { status: true };
+  const recoveryCodes = await setTwoFactorEnabled(Number(session.user.id), enabled);
+  return { status: true, recoveryCodes: recoveryCodes ?? undefined };
 }
 
 export async function updateProfileAction(formData: FormData) {

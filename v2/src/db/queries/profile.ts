@@ -17,6 +17,7 @@ import {
   category,
   writerBook,
   writer,
+  twoFactorRecoveryCode,
 } from "@/db/schema";
 import type { ReadStatus } from "@/lib/reading-status";
 import { isBlockedEitherWay } from "@/db/queries/blocks";
@@ -63,8 +64,35 @@ export async function getEditableProfile(userId: number): Promise<EditableProfil
   return row ? { ...row, twoFactorEnabled: row.twoFactorEnabled === 1, privacy: row.privacy === 1 } : null;
 }
 
-export async function setTwoFactorEnabled(userId: number, enabled: boolean): Promise<void> {
+/**
+ * Enabling 2FA also (re)generates 10 single-use recovery codes, returned
+ * ONCE in plaintext here for the caller to show the user right away -
+ * never retrievable again after this, matching GitHub/Google's own
+ * "save these now" convention. Disabling just wipes any existing codes
+ * (re-enabling later generates a fresh batch anyway).
+ */
+export async function setTwoFactorEnabled(userId: number, enabled: boolean): Promise<string[] | null> {
   await db.update(user).set({ twoFactorEnabled: enabled ? 1 : 0 }).where(eq(user.id, userId));
+  await db.delete(twoFactorRecoveryCode).where(eq(twoFactorRecoveryCode.userId, userId));
+
+  if (!enabled) return null;
+
+  const plainCodes = Array.from({ length: 10 }, () => generateRecoveryCode());
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  for (const code of plainCodes) {
+    await db.insert(twoFactorRecoveryCode).values({
+      userId,
+      codeHash: await bcrypt.hash(code, 10),
+      createdAt: now,
+    });
+  }
+  return plainCodes;
+}
+
+function generateRecoveryCode(): string {
+  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789"; // no 0/1/i/l/o - avoids visual ambiguity when a user copies these by hand
+  const part = () => Array.from({ length: 4 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+  return `${part()}-${part()}`;
 }
 
 /** Gizlilik ayarı (private profile) - real behavior wired onto the

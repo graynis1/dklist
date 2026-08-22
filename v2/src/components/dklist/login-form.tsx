@@ -41,14 +41,14 @@ export function LoginForm() {
     return (
       <form onSubmit={submit} className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">
-          E-postana gönderilen doğrulama kodunu gir.
+          E-postana gönderilen doğrulama kodunu ya da bir yedek kodunu gir.
         </p>
         <Input
           name="code"
-          placeholder="6 haneli kod"
+          placeholder="6 haneli kod veya yedek kod (xxxx-xxxx)"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          maxLength={6}
+          maxLength={9}
           required
           autoFocus
         />
