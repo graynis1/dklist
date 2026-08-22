@@ -43,7 +43,7 @@ async function ResetForm({
           Bu şifreyi bir daha göremeyeceksiniz, giriş yaptıktan sonra
           değiştirmenizi öneririz.
         </p>
-        <Button render={<Link href="/giris" />} className="w-full">
+        <Button render={<Link href="/giris" />} nativeButton={false} className="w-full">
           Giriş Yap
         </Button>
       </div>
@@ -56,7 +56,7 @@ async function ResetForm({
         <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
           Yeni şifreniz e-posta adresinize gönderildi.
         </p>
-        <Button render={<Link href="/giris" />} className="w-full">
+        <Button render={<Link href="/giris" />} nativeButton={false} className="w-full">
           Giriş Yap
         </Button>
       </div>

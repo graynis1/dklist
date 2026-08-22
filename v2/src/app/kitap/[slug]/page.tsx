@@ -324,7 +324,7 @@ async function BookDetailContent({
                 signedIn={Boolean(userId)}
                 initialInLibrary={inLibrary}
               />
-              <Button variant="outline" render={<Link href="/askida-kitap/yeni" />}>
+              <Button variant="outline" render={<Link href="/askida-kitap/yeni" />} nativeButton={false}>
                 Askıya Bırak
               </Button>
               <AddToListButton bookId={detail.id} signedIn={Boolean(userId)} />

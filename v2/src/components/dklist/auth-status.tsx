@@ -27,10 +27,11 @@ async function AuthStatusContent() {
           variant="ghost"
           className="hidden sm:inline-flex"
           render={<Link href="/giris" />}
+          nativeButton={false}
         >
           Giriş Yap
         </Button>
-        <Button render={<Link href="/kayit-ol" />}>Üye Ol</Button>
+        <Button render={<Link href="/kayit-ol" />} nativeButton={false}>Üye Ol</Button>
       </>
     );
   }

@@ -48,7 +48,7 @@ export function SitePopupModal() {
         )}
         {popup.content && <p className="text-sm text-muted-foreground">{popup.content}</p>}
         {popup.link && (
-          <Button render={<a href={popup.link} target="_blank" rel="noopener noreferrer" />} className="w-fit">
+          <Button render={<a href={popup.link} target="_blank" rel="noopener noreferrer" />} nativeButton={false} className="w-fit">
             Daha Fazla
           </Button>
         )}

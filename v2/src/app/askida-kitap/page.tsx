@@ -33,7 +33,7 @@ export default function StoreListPage({ searchParams }: PageProps<"/askida-kitap
             <SectionLabel>Topluluk</SectionLabel>
             <h1 className="font-heading text-3xl font-medium tracking-tight">Askıda Kitap</h1>
           </div>
-          <Button render={<Link href="/askida-kitap/yeni" />}>İlan Ver</Button>
+          <Button render={<Link href="/askida-kitap/yeni" />} nativeButton={false}>İlan Ver</Button>
         </div>
         <Suspense fallback={<StoreListSkeleton />}>
           <StoreList searchParams={searchParams} />

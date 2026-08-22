@@ -33,8 +33,8 @@ async function PaymentResultContent({ searchParams }: { searchParams: PageProps<
       <h1 className={`mt-2 font-heading text-3xl font-medium tracking-tight ${content.tone}`}>{content.title}</h1>
       <p className="mt-4 text-muted-foreground">{content.description}</p>
       <div className="mt-8 flex justify-center gap-3">
-        <Button render={<Link href="/siparislerim" />}>Siparişlerim</Button>
-        <Button variant="outline" render={<Link href="/askida-kitap" />}>
+        <Button render={<Link href="/siparislerim" />} nativeButton={false}>Siparişlerim</Button>
+        <Button variant="outline" render={<Link href="/askida-kitap" />} nativeButton={false}>
           Askıda Kitap
         </Button>
       </div>

@@ -122,7 +122,7 @@ async function StoreDetailContent({
         )}
 
         {canBuy && (
-          <Button render={<Link href={`/askida-kitap/${item.slug}/satin-al`} />} className="w-fit">
+          <Button render={<Link href={`/askida-kitap/${item.slug}/satin-al`} />} nativeButton={false} className="w-fit">
             Satın Al
           </Button>
         )}
