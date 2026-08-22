@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
@@ -9,23 +10,38 @@ import { SupportTicketStatusToggle } from "@/components/dklist/support-ticket-st
 
 const ALLOWED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
-export default function AdminSupportTicketsPage() {
+const STATUS_TABS: { value: "all" | "open" | "resolved"; label: string }[] = [
+  { value: "open", label: "Açık" },
+  { value: "resolved", label: "Çözüldü" },
+  { value: "all", label: "Tümü" },
+];
+
+export default function AdminSupportTicketsPage({ searchParams }: PageProps<"/admin/destek-talepleri">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
-        <AdminSupportTicketsContent />
+        <AdminSupportTicketsContent searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function AdminSupportTicketsContent() {
+async function AdminSupportTicketsContent({
+  searchParams,
+}: {
+  searchParams: PageProps<"/admin/destek-talepleri">["searchParams"];
+}) {
   const session = await auth();
   if (!session?.user) redirect("/giris");
   if (!hasRole(session.user.userType, ALLOWED_ROLES)) redirect("/");
 
-  const tickets = await getSupportTickets();
+  const params = await searchParams;
+  const statusFilter = (["all", "open", "resolved"] as const).includes(params.status as never)
+    ? (params.status as "all" | "open" | "resolved")
+    : "open";
+
+  const tickets = await getSupportTickets(statusFilter);
   const categoryLabels = new Map(FAQ_CATEGORIES.map((c) => [c.slug, c.label]));
 
   return (
@@ -38,8 +54,26 @@ async function AdminSupportTicketsContent() {
         </p>
       </div>
 
+      <div className="mb-6 flex gap-2">
+        {STATUS_TABS.map((tab) => (
+          <Link
+            key={tab.value}
+            href={`/admin/destek-talepleri?status=${tab.value}`}
+            className={`rounded-full border px-3 py-1.5 text-sm ${
+              statusFilter === tab.value
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border hover:bg-accent"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+
       {tickets.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Henüz bir talep yok.</p>
+        <p className="text-sm text-muted-foreground">
+          {statusFilter === "all" ? "Henüz bir talep yok." : "Bu durumda bir talep yok."}
+        </p>
       ) : (
         <ul className="flex flex-col gap-4">
           {tickets.map((t) => (

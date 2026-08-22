@@ -104,7 +104,7 @@ export interface SupportTicketListItem {
   username: string | null;
 }
 
-export async function getSupportTickets(): Promise<SupportTicketListItem[]> {
+export async function getSupportTickets(statusFilter: "all" | "open" | "resolved" = "all"): Promise<SupportTicketListItem[]> {
   const rows = await db
     .select({
       id: supportTicket.id,
@@ -117,6 +117,7 @@ export async function getSupportTickets(): Promise<SupportTicketListItem[]> {
     })
     .from(supportTicket)
     .leftJoin(user, eq(supportTicket.userId, user.id))
+    .where(statusFilter === "all" ? undefined : eq(supportTicket.status, statusFilter))
     .orderBy(desc(supportTicket.id));
 
   return rows.map((r) => ({ ...r, username: r.username ?? null }));

@@ -81,7 +81,7 @@ export interface AdInquiryListItem {
   handled: boolean;
 }
 
-export async function getAdInquiries(): Promise<AdInquiryListItem[]> {
+export async function getAdInquiries(statusFilter: "all" | "open" | "handled" = "all"): Promise<AdInquiryListItem[]> {
   const rows = await db
     .select({
       id: adInquiry.id,
@@ -93,6 +93,7 @@ export async function getAdInquiries(): Promise<AdInquiryListItem[]> {
       handled: adInquiry.handled,
     })
     .from(adInquiry)
+    .where(statusFilter === "all" ? undefined : eq(adInquiry.handled, statusFilter === "handled" ? 1 : 0))
     .orderBy(desc(adInquiry.id));
 
   return rows.map((r) => ({ ...r, handled: Boolean(r.handled) }));
