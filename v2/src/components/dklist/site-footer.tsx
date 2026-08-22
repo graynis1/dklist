@@ -40,6 +40,9 @@ export function SiteFooter() {
           <Link href="/reklam-ver" className="hover:text-foreground hover:underline">
             Reklam Ver
           </Link>
+          <Link href="/destek" className="hover:text-foreground hover:underline">
+            Destek
+          </Link>
           <a href="mailto:info@dklist.com" className="hover:text-foreground hover:underline">
             İletişim
           </a>

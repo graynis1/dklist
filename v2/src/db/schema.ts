@@ -665,6 +665,25 @@ export const twoFactorRecoveryCode = mysqlTable("two_factor_recovery_code", {
 	index("idx_two_factor_recovery_code_user").on(table.userId),
 ]);
 
+// Replaces the "DK AI chatbot" idea from the Phase 7 wishlist - maintainer's
+// explicit call (no GPU on the VPS to self-host a model, and a real
+// chatbot isn't actually needed here): category-routed FAQ + a plain
+// ticket inbox instead, zero AI/paid-API dependency. userId nullable -
+// signed-out visitors can submit too (email is the only way to reach them).
+export const supportTicket = mysqlTable("support_ticket", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").references(() => user.id, { onDelete: "set null" }),
+	category: varchar({ length: 50 }).notNull(),
+	email: varchar({ length: 150 }).notNull(),
+	message: varchar({ length: 1000 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+	status: varchar({ length: 20 }).notNull().default('open'),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "support_ticket_id" }),
+	index("idx_support_ticket_status").on(table.status),
+]);
+
 export const pointReward = mysqlTable("point_reward", {
 	id: int().autoincrement().notNull(),
 	name: varchar({ length: 100 }).notNull(),
