@@ -996,3 +996,36 @@ export const adInquiry = mysqlTable("ad_inquiry", {
 (table) => [
 	primaryKey({ columns: [table.id], name: "ad_inquiry_id" }),
 ]);
+
+// Book clubs / group reading - see src/db/migrations/0026_book_club.sql.
+// Discussion reuses the existing generic comment system (type='bookClub'),
+// not a dedicated table.
+export const bookClub = mysqlTable("book_club", {
+	id: int().autoincrement().notNull(),
+	name: varchar({ length: 150 }).notNull(),
+	slug: varchar({ length: 180 }).notNull(),
+	description: text().notNull(),
+	ownerId: int("owner_id").references(() => user.id, { onDelete: "set null" }),
+	currentBookId: int("current_book_id").references(() => book.id),
+	visibility: varchar({ length: 10 }).notNull().default("public"),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	unique("uniq_book_club_slug").on(table.slug),
+	index("idx_book_club_owner").on(table.ownerId),
+	index("idx_book_club_current_book").on(table.currentBookId),
+	primaryKey({ columns: [table.id], name: "book_club_id" }),
+]);
+
+export const bookClubMember = mysqlTable("book_club_member", {
+	id: int().autoincrement().notNull(),
+	clubId: int("club_id").notNull().references(() => bookClub.id, { onDelete: "cascade" }),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	role: varchar({ length: 10 }).notNull().default("member"),
+	joinedAt: datetime("joined_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	unique("uniq_book_club_member").on(table.clubId, table.userId),
+	index("idx_book_club_member_user").on(table.userId),
+	primaryKey({ columns: [table.id], name: "book_club_member_id" }),
+]);

@@ -27,7 +27,7 @@ async function checkModerationOrThrow(text: string): Promise<void> {
 
 // v1's CommentTypeEnum - comments live on book/writer/translator pages, all
 // through the same `comment` table (type + target_id columns).
-export type CommentTargetType = "book" | "writer" | "translator";
+export type CommentTargetType = "book" | "writer" | "translator" | "bookClub";
 
 // Customer's notes were explicit that "yorum yap" (write a review) and
 // "alıntı yap" (add a quote) should read as clearly separate things, not
