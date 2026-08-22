@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { and, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user } from "@/db/schema";
+import { rankByContentSimilarity } from "@/db/queries/book-embedding";
 
 export interface BookDetail {
   id: number;
@@ -246,30 +247,38 @@ export interface SimilarBook {
 }
 
 /**
- * "Benzer Kitaplar" - same first category, ranked by score, excluding the
- * book itself. Deliberately plain (category + score), not the personalized
- * collaborative-filtering recommendations already built elsewhere (that
- * one needs a signed-in viewer's own read history; this needs nothing and
- * shows for anonymous visitors too, same as getBookCategoryRank it sits
- * next to). Cached like the rank query it's paired with - this is a hot
- * per-book-page query, not a one-off.
+ * "Benzer Kitaplar" - starts from the same first-category+score candidate
+ * pool as before (anonymous visitors too, no personalization needed), then
+ * re-ranks by actual content/theme similarity ("Book DNA" - local ONNX
+ * embeddings, see src/lib/embeddings.ts) whenever both the target book and
+ * a candidate have one computed. Falls back to the plain score ordering
+ * for any candidate still missing an embedding - most books do until
+ * they're re-saved/re-approved, this isn't a backfilled dataset yet.
+ * Cached like the rank query it's paired with - this is a hot per-book-
+ * page query, not a one-off.
  */
 export async function getSimilarBooks(bookId: number, categoryId: number, limit = 6): Promise<SimilarBook[]> {
   "use cache";
   cacheLife("hours");
   cacheTag(`similar-books:${categoryId}`);
 
+  // Pull a wider candidate pool than needed so the content re-rank below
+  // has real room to reorder, not just the same top-6-by-score every time.
   const rows = await db
     .select({ id: book.id, name: book.name, slug: book.slug, score: book.score })
     .from(bookCategory)
     .innerJoin(book, eq(bookCategory.bookId, book.id))
     .where(and(eq(bookCategory.categoryId, categoryId), ne(book.id, bookId)))
     .orderBy(desc(book.score))
-    .limit(limit);
+    .limit(limit * 4);
 
   if (rows.length === 0) return [];
 
-  const bookIds = rows.map((r) => r.id);
+  const rankedIds = await rankByContentSimilarity(bookId, rows.map((r) => r.id));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const topRows = rankedIds.slice(0, limit).map((id) => byId.get(id)!);
+
+  const bookIds = topRows.map((r) => r.id);
   const writerRows = await db
     .select({ bookId: writerBook.bookId, name: writer.name })
     .from(writerBook)
@@ -283,5 +292,5 @@ export async function getSimilarBooks(bookId: number, categoryId: number, limit 
     writersByBook.set(row.bookId, list);
   }
 
-  return rows.map((r) => ({ ...r, writers: writersByBook.get(r.id) ?? [] }));
+  return topRows.map((r) => ({ ...r, writers: writersByBook.get(r.id) ?? [] }));
 }

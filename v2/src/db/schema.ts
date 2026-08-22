@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, bigint, int, index, foreignKey, longtext, date, smallint, double, datetime, unique, tinyint, text } from "drizzle-orm/mysql-core"
+import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, bigint, int, index, foreignKey, longtext, date, smallint, double, datetime, unique, tinyint, text, json } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
 export const mergeBulkProgress = mysqlTable("_merge_bulk_progress", {
@@ -682,6 +682,18 @@ export const supportTicket = mysqlTable("support_ticket", {
 (table) => [
 	primaryKey({ columns: [table.id], name: "support_ticket_id" }),
 	index("idx_support_ticket_status").on(table.status),
+]);
+
+// "Book DNA" - local/self-hosted embedding vectors (see migration 0025's
+// doc comment). Computed at write time, never inside a cached read path.
+export const bookEmbedding = mysqlTable("book_embedding", {
+	bookId: int("book_id").notNull().references(() => book.id, { onDelete: "cascade" }),
+	embedding: json().notNull(),
+	model: varchar({ length: 100 }).notNull(),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.bookId], name: "book_embedding_book_id" }),
 ]);
 
 export const pointReward = mysqlTable("point_reward", {

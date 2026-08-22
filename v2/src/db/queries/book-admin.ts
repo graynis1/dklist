@@ -9,6 +9,7 @@ import { deleteBookCascade } from "@/db/queries/entity-delete-cascade";
 import { userWriter } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
 import { resolveSystemSenderId } from "@/db/queries/points";
+import { computeAndStoreBookEmbedding } from "@/db/queries/book-embedding";
 
 function slugify(input: string): string {
   // Turkish-character map must run BEFORE toLowerCase(), not after: JS's
@@ -162,6 +163,12 @@ export async function createBookSubmission(
     updateTag("latest-books");
     if (writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, name);
   }
+
+  // Fire-and-forget - the model can take a few seconds to warm up on first
+  // use, and a book submission shouldn't block on that. Safe here because
+  // this app runs as a long-lived process (next start), not a serverless
+  // function that could be torn down mid-promise.
+  void computeAndStoreBookEmbedding(bookId, name, orgName, content || null);
 
   return { id: bookId, slug, approved };
 }
