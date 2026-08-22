@@ -333,7 +333,7 @@ No existing automated test suite to extend. Verification is manual/operational, 
 
 ## Open items pending the customer/site owner (non-blocking)
 
-- AI features' LLM hosting approach, given the no-paid-services constraint. (The only item still genuinely open - the other three below were resolved by the maintainer's own explicit instruction, not left pending.)
+- ~~AI features' LLM hosting approach, given the no-paid-services constraint.~~ **RESOLVED (2026-08-22)** - see the "Phase 7 kararı netleşti" entry further down: no chatbot needed (maintainer's explicit call, "gerçek bir chatbot'a ihtiyaç yok"), destek stays static-FAQ/ticket-based, and the two AI-adjacent features that *were* worth building (Book DNA content-similarity, hard-block comment/message moderation) both run entirely on a local CPU-only embedding model - no GPU, no paid API, nothing left open here.
 
 **All three items below were RESOLVED (2026-08-21, committed `5272623`)** per the maintainer's explicit instruction to build them out with my own judgment rather than wait indefinitely on a customer answer:
 - ~~"Yazarhane" — exact scope undefined.~~ Built as a real author-member (userType='Yazar') content hub, optionally linked 1:1 to their catalog `writer` record (migration 0014: `user.writer_id` + `yazarhane_post`). `/yazarhane` index + `/yazarhane/[username]` hub, posts earn points, writer catalog page links to the linked member's hub.
