@@ -19,7 +19,7 @@ import { JsonLd } from "@/components/dklist/json-ld";
 import { ReportBookErrorButton } from "@/components/dklist/report-book-error-button";
 import { AddToListButton } from "@/components/dklist/add-to-list-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions } from "@/db/queries/book-detail";
+import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions, getSimilarBooks } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating, getBookRatingCount } from "@/db/queries/rating";
@@ -95,6 +95,7 @@ async function BookDetailContent({
     workPooledScore,
     storeListings,
     workEditions,
+    similarBooks,
   ] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
@@ -114,6 +115,7 @@ async function BookDetailContent({
     detail.workId
       ? getWorkEditions(detail.workId, detail.id, detail.lang)
       : Promise.resolve({ sameLanguage: [], otherLanguages: {} }),
+    detail.categories.length > 0 ? getSimilarBooks(detail.id, detail.categories[0].id) : Promise.resolve([]),
   ]);
 
   const quotes = await getBookComments(detail.id, "alinti");
@@ -383,6 +385,35 @@ async function BookDetailContent({
                 </ul>
               </details>
             ))}
+          </section>
+        </>
+      )}
+
+      {similarBooks.length > 0 && (
+        <>
+          <Separator />
+          <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+            <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
+              Benzer Kitaplar
+            </h2>
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {similarBooks.map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/kitap/${b.slug}`}
+                  className="w-32 flex-shrink-0"
+                >
+                  <BookCover
+                    title={b.name}
+                    author={b.writers.join(", ") || "Yazar bilinmiyor"}
+                    tone={toneForId(b.id)}
+                    size="sm"
+                    className="w-full"
+                  />
+                  <p className="mt-2 line-clamp-2 text-xs font-medium">{b.name}</p>
+                </Link>
+              ))}
+            </div>
           </section>
         </>
       )}
