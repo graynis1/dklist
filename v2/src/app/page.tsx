@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { auth } from "@/auth";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { RecentlyViewedShelf } from "@/components/dklist/recently-viewed-shelf";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -602,6 +603,8 @@ export default function Home() {
           <HeroShelf />
         </div>
       </section>
+
+      <RecentlyViewedShelf />
 
       <Separator />
 

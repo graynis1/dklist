@@ -13,6 +13,7 @@ import { EntityComments } from "@/components/dklist/entity-comments";
 import { LibraryToggle } from "@/components/dklist/library-toggle";
 import { LikeButton } from "@/components/dklist/like-button";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
+import { RecentlyViewedTracker } from "@/components/dklist/recently-viewed-tracker";
 import { ShareButton } from "@/components/dklist/share-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { JsonLd } from "@/components/dklist/json-ld";
@@ -159,6 +160,12 @@ async function BookDetailContent({
               }
             : {}),
         }}
+      />
+      <RecentlyViewedTracker
+        id={detail.id}
+        name={detail.name}
+        slug={detail.slug}
+        writers={detail.writers.map((w) => w.name)}
       />
       <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
