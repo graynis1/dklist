@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getUserAdminList } from "@/db/queries/user-admin";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserAdminRow } from "@/components/dklist/user-admin-row";
@@ -47,14 +47,15 @@ async function AdminUsersContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Kullanıcılar</h1>
-        <p className="text-sm text-muted-foreground">
-          Kullanıcı rollerini ve hesap durumunu yönet - toplam {total} kayıt.
-          {!canMutate && " (Sadece görüntüleme - değişiklik için Yönetici gerekir.)"}
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Kullanıcılar"
+        description={
+          <>
+            Kullanıcı rollerini ve hesap durumunu yönet - toplam {total} kayıt.
+            {!canMutate && " (Sadece görüntüleme - değişiklik için Yönetici gerekir.)"}
+          </>
+        }
+      />
 
       <form action="/admin/kullanicilar" className="mb-6 flex gap-2">
         <Input name="search" defaultValue={search} placeholder="Kullanıcı adında ara..." />

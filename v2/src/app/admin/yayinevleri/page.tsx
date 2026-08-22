@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getPublisherAdminList } from "@/db/queries/publisher-admin";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CreatePublisherForm } from "@/components/dklist/create-publisher-form";
@@ -41,13 +41,10 @@ async function AdminPublishersContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Yayınevleri</h1>
-        <p className="text-sm text-muted-foreground">
-          Yayınevi kayıtlarını yönet - toplam {total} kayıt (tahmini).
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Yayınevleri"
+        description={`Yayınevi kayıtlarını yönet - toplam ${total} kayıt (tahmini).`}
+      />
 
       <CreatePublisherForm />
 

@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 
 // First real Phase 4 permission check - previously gated on "is signed in"
 // only, not any actual role, and (worse) the Server Action itself had no
@@ -71,17 +71,10 @@ async function AdminMergeContent({
 
   return (
     <div className="mx-auto max-w-lg px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">
-          Mükerrer Kayıt Birleştir
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Aynı esere ait iki farklı work kaydını birleştirir - mükerrer
-          olan tüm kitapları asıl kayda taşır, sonra mükerrer kaydı siler.
-          Bu geri alınamaz.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Mükerrer Kayıt Birleştir"
+        description="Aynı esere ait iki farklı work kaydını birleştirir - mükerrer olan tüm kitapları asıl kayda taşır, sonra mükerrer kaydı siler. Bu geri alınamaz."
+      />
 
       {ok && (
         <p className="mb-6 rounded-md bg-secondary p-3 text-sm">

@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getSitePopup } from "@/db/queries/site-popup";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { SitePopupSettingsForm } from "@/components/dklist/site-popup-settings-form";
 
 const ALLOWED = [USER_TYPES.Admin, USER_TYPES.Mod];
@@ -29,13 +29,10 @@ async function AdminSitePopupContent() {
 
   return (
     <div className="mx-auto max-w-lg px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Açılış Popup&apos;ı</h1>
-        <p className="text-sm text-muted-foreground">
-          Ziyaretçilere oturum başına bir kez gösterilen duyuru/promosyon penceresi.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Açılış Popup'ı"
+        description="Ziyaretçilere oturum başına bir kez gösterilen duyuru/promosyon penceresi."
+      />
       <SitePopupSettingsForm popup={popup} />
     </div>
   );

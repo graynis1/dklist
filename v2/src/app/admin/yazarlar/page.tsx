@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getWriterAdminList } from "@/db/queries/writer-admin";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CreateWriterForm } from "@/components/dklist/create-writer-form";
@@ -41,13 +41,7 @@ async function AdminWritersContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Yazarlar</h1>
-        <p className="text-sm text-muted-foreground">
-          Yazar kayıtlarını yönet - toplam {total} kayıt.
-        </p>
-      </div>
+      <AdminPageHeader title="Yazarlar" description={`Yazar kayıtlarını yönet - toplam ${total} kayıt.`} />
 
       <CreateWriterForm />
 

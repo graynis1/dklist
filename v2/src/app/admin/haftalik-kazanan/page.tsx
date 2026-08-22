@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { getWeeklyLeaderboard, getWeeklyWinner, getPastWeeklyWinners } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
 import { RecordWinnerForm } from "@/components/dklist/record-winner-form";
@@ -41,13 +42,10 @@ async function AdminWeeklyWinnerContent() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Haftalık Kazanan</h1>
-        <p className="text-sm text-muted-foreground">
-          Bu hafta ({week}) en yüksek puanı alan üyeyi seçip hediye edilecek kitabı kaydedin.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Haftalık Kazanan"
+        description={`Bu hafta (${week}) en yüksek puanı alan üyeyi seçip hediye edilecek kitabı kaydedin.`}
+      />
 
       {currentWinner ? (
         <div className="mb-8 rounded-lg border border-border bg-secondary p-4 text-sm">

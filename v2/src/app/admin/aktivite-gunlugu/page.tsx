@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getRecentAdminActions, getAdminActionCountsByPerson } from "@/db/queries/admin-log";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 
 const ALLOWED = [USER_TYPES.Admin, USER_TYPES.Mod];
 
@@ -31,13 +31,10 @@ async function AdminActivityLogContent() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Aktivite Günlüğü</h1>
-        <p className="text-sm text-muted-foreground">
-          Mod/Kütüphaneci/Admin yetkisiyle yapılan tüm işlemlerin denetim kaydı.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Aktivite Günlüğü"
+        description="Mod/Kütüphaneci/Admin yetkisiyle yapılan tüm işlemlerin denetim kaydı."
+      />
 
       <div className="mb-8 rounded-lg border border-border p-4">
         <h2 className="mb-3 font-heading text-lg font-medium">Kişi Başına İşlem Sayısı</h2>

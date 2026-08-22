@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getAdminBlogList } from "@/db/queries/blog";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BlogModerationActions } from "@/components/dklist/blog-moderation-actions";
@@ -44,13 +44,10 @@ async function AdminBlogContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Blog Moderasyonu</h1>
-        <p className="text-sm text-muted-foreground">
-          Onay bekleyen ve yayındaki tüm yazılar - toplam {total} kayıt.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Blog Moderasyonu"
+        description={`Onay bekleyen ve yayındaki tüm yazılar - toplam ${total} kayıt.`}
+      />
 
       <form action="/admin/bloglar" className="mb-6 flex gap-2">
         <Input name="search" defaultValue={search} placeholder="Başlık, önizleme veya içerikte ara..." />

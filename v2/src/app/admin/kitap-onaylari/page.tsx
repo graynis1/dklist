@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getPendingBookSubmissions } from "@/db/queries/book-admin";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { BookSubmissionActions } from "@/components/dklist/book-submission-actions";
 
 // Same "Kütüphaneci"("Mod")/Admin gate as the customer's spec: Kütüphaneci
@@ -32,13 +32,10 @@ async function BookApprovalsContent() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Kitap Onayları</h1>
-        <p className="text-sm text-muted-foreground">
-          Yazar/yayınevi üyelerinin gönderdiği, onay bekleyen kitaplar - {submissions.length} kayıt.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Kitap Onayları"
+        description={`Yazar/yayınevi üyelerinin gönderdiği, onay bekleyen kitaplar - ${submissions.length} kayıt.`}
+      />
 
       {submissions.length === 0 ? (
         <p className="text-sm text-muted-foreground">Onay bekleyen kitap yok.</p>

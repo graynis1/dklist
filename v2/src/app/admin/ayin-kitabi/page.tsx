@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getCurrentBookOfMonth, getPastBooksOfMonth } from "@/db/queries/book-of-month";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { SetBookOfMonthForm } from "@/components/dklist/set-book-of-month-form";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
@@ -30,13 +30,10 @@ async function AdminBookOfMonthContent() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Ayın Kitabı</h1>
-        <p className="text-sm text-muted-foreground">
-          Topluluk okuma etkinliği için ayın kitabını belirle - yeni bir kitap seçmek öncekini otomatik olarak geçmişe taşır.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Ayın Kitabı"
+        description="Topluluk okuma etkinliği için ayın kitabını belirle - yeni bir kitap seçmek öncekini otomatik olarak geçmişe taşır."
+      />
 
       <SetBookOfMonthForm />
 

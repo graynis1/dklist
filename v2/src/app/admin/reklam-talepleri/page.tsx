@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getAdInquiries } from "@/db/queries/ad-inquiry";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { AdInquiryHandledToggle } from "@/components/dklist/ad-inquiry-handled-toggle";
 
 const ALLOWED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
@@ -45,13 +45,10 @@ async function AdminAdInquiriesContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Reklam Talepleri</h1>
-        <p className="text-sm text-muted-foreground">
-          /reklam-ver üzerinden gelen işbirliği talepleri - {inquiries.length} kayıt.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Reklam Talepleri"
+        description={`/reklam-ver üzerinden gelen işbirliği talepleri - ${inquiries.length} kayıt.`}
+      />
 
       <div className="mb-6 flex gap-2">
         {STATUS_TABS.map((tab) => (

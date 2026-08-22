@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getPremiumSettings } from "@/db/queries/premium";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { PremiumSettingsForm } from "@/components/dklist/premium-settings-form";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
@@ -29,10 +29,7 @@ async function AdminPremiumSettingsContent() {
 
   return (
     <div className="mx-auto max-w-lg px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Premium Üyelik Ayarları</h1>
-      </div>
+      <AdminPageHeader title="Premium Üyelik Ayarları" />
       <PremiumSettingsForm settings={settings} />
     </div>
   );

@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getSupportTickets, FAQ_CATEGORIES } from "@/db/queries/support";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { SupportTicketStatusToggle } from "@/components/dklist/support-ticket-status-toggle";
 
 const ALLOWED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
@@ -46,13 +46,10 @@ async function AdminSupportTicketsContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Destek Talepleri</h1>
-        <p className="text-sm text-muted-foreground">
-          /destek üzerinden gelen kullanıcı destek talepleri - {tickets.length} kayıt.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Destek Talepleri"
+        description={`/destek üzerinden gelen kullanıcı destek talepleri - ${tickets.length} kayıt.`}
+      />
 
       <div className="mb-6 flex gap-2">
         {STATUS_TABS.map((tab) => (

@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { listAllOrdersAdmin } from "@/db/queries/store-order";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 
 const VIEW_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
@@ -39,11 +39,7 @@ async function AdminOrdersContent() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <SectionLabel>Yönetim</SectionLabel>
-        <h1 className="font-heading text-3xl font-medium tracking-tight">Siparişler</h1>
-        <p className="text-sm text-muted-foreground">Son 200 sipariş - toplam {orders.length} kayıt.</p>
-      </div>
+      <AdminPageHeader title="Siparişler" description={`Son 200 sipariş - toplam ${orders.length} kayıt.`} />
 
       {orders.length === 0 ? (
         <p className="text-sm text-muted-foreground">Henüz sipariş yok.</p>
