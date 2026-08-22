@@ -10,6 +10,12 @@ import { getBlogList } from "@/db/queries/blog";
 
 const BLOG_AUTHOR_ROLES = [USER_TYPES.Blogger, USER_TYPES.Mod, USER_TYPES.Admin];
 
+export const metadata = {
+  alternates: {
+    types: { "application/rss+xml": "/rss.xml" },
+  },
+};
+
 export default function BlogListPage({ searchParams }: PageProps<"/bloglar">) {
   return (
     <div className="flex-1 bg-background">
@@ -20,9 +26,14 @@ export default function BlogListPage({ searchParams }: PageProps<"/bloglar">) {
             <SectionLabel>Topluluk</SectionLabel>
             <h1 className="font-heading text-3xl font-medium tracking-tight">Bloglar</h1>
           </div>
-          <Suspense fallback={null}>
-            <NewPostLink />
-          </Suspense>
+          <div className="flex items-center gap-3">
+            <a href="/rss.xml" className="text-sm text-muted-foreground underline hover:text-foreground">
+              RSS
+            </a>
+            <Suspense fallback={null}>
+              <NewPostLink />
+            </Suspense>
+          </div>
         </div>
         <Suspense fallback={<BlogListSkeleton />}>
           <BlogList searchParams={searchParams} />
