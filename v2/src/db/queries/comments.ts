@@ -5,9 +5,25 @@ import { db } from "@/db";
 import { comment, subComment, user, commentLike } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
-import { autoFlagComment } from "@/db/queries/notices";
 import { extractHashtagTags } from "@/lib/hashtag";
 import { findFlaggedWords } from "@/lib/dirty-controller";
+import { isLikelyAbusive } from "@/lib/moderation";
+
+/**
+ * Real AI-based content blocking, on top of (not instead of) the existing
+ * findFlaggedWords() keyword scan - maintainer's explicit ask: comments and
+ * messages should genuinely be blocked, not just soft-flagged for later
+ * admin review. Either signal (keyword match OR the local embedding-
+ * similarity check) rejects the post outright, before it's ever written.
+ */
+async function checkModerationOrThrow(text: string): Promise<void> {
+  if (findFlaggedWords(text).length > 0) {
+    throw new Error("İçeriğiniz topluluk kurallarına aykırı görünüyor, lütfen düzenleyip tekrar deneyin.");
+  }
+  if (await isLikelyAbusive(text)) {
+    throw new Error("İçeriğiniz topluluk kurallarına aykırı görünüyor, lütfen düzenleyip tekrar deneyin.");
+  }
+}
 
 // v1's CommentTypeEnum - comments live on book/writer/translator pages, all
 // through the same `comment` table (type + target_id columns).
@@ -157,6 +173,7 @@ export async function shareEntityComment(
   if (!original || original.type !== targetType) {
     throw new Error("Paylaşılacak gönderi bulunamadı.");
   }
+  if (trimmed) await checkModerationOrThrow(trimmed);
 
   const [result] = await db.insert(comment).values({
     userId,
@@ -176,7 +193,6 @@ export async function shareEntityComment(
   }
   if (trimmed) {
     await notifyHashtaggedReaders(trimmed, userId);
-    await autoFlagComment(result.insertId, "comment", findFlaggedWords(trimmed));
   }
 
   if (original.userId !== userId) {
@@ -208,6 +224,7 @@ export async function addEntityComment(
   if (trimmed.length > 2000) {
     throw new Error("Yorum en fazla 2000 karakter olabilir.");
   }
+  await checkModerationOrThrow(trimmed);
 
   const [result] = await db.insert(comment).values({
     userId,
@@ -225,7 +242,6 @@ export async function addEntityComment(
     await awardPointsWithDailyCap(userId, settings.comment, "comment", `comment:${result.insertId}`, settings.dailyCommentCap);
   }
   await notifyHashtaggedReaders(trimmed, userId);
-  await autoFlagComment(result.insertId, "comment", findFlaggedWords(trimmed));
   return result.insertId;
 }
 
@@ -346,6 +362,7 @@ export async function addSubComment(
   if (trimmed.length > 2000) {
     throw new Error("Yanıt en fazla 2000 karakter olabilir.");
   }
+  await checkModerationOrThrow(trimmed);
 
   const [result] = await db.insert(subComment).values({
     userId,
@@ -354,10 +371,6 @@ export async function addSubComment(
     parentId,
   });
   await notifyHashtaggedReaders(trimmed, userId);
-  // The reply row itself always lives in `sub_comment`, regardless of
-  // whether `parentType` (what it's replying TO) is "comment" or
-  // "subComment" - so this is always the subComment case for flagging.
-  await autoFlagComment(result.insertId, "subComment", findFlaggedWords(trimmed));
   return result.insertId;
 }
 
@@ -380,11 +393,11 @@ export async function updateComment(userId: number, commentId: number, newText: 
     .limit(1);
   if (!row) throw new Error("Yorum bulunamadı.");
   if (row.userId !== userId) throw new Error("Bu yorumu düzenleme yetkiniz yok.");
+  await checkModerationOrThrow(trimmed);
 
   await db.update(comment).set({ comment: trimmed }).where(eq(comment.id, commentId));
   updateTag(`${row.type}-comments:${row.targetId}:${row.commentType}`);
   if (row.type === "book") updateTag("recent-book-activity");
-  await autoFlagComment(commentId, "comment", findFlaggedWords(trimmed));
 }
 
 /**
@@ -428,9 +441,9 @@ export async function updateSubComment(userId: number, subCommentId: number, new
   const [row] = await db.select({ userId: subComment.userId }).from(subComment).where(eq(subComment.id, subCommentId)).limit(1);
   if (!row) throw new Error("Yanıt bulunamadı.");
   if (row.userId !== userId) throw new Error("Bu yanıtı düzenleme yetkiniz yok.");
+  await checkModerationOrThrow(trimmed);
 
   await db.update(subComment).set({ comment: trimmed }).where(eq(subComment.id, subCommentId));
-  await autoFlagComment(subCommentId, "subComment", findFlaggedWords(trimmed));
 }
 
 export async function deleteSubComment(userId: number, subCommentId: number): Promise<void> {

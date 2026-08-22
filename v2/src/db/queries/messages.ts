@@ -6,6 +6,8 @@ import { addNotification } from "@/db/queries/notifications";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 import { publishUserEvent } from "@/lib/event-bus";
 import { isBlockedEitherWay } from "@/db/queries/blocks";
+import { findFlaggedWords } from "@/lib/dirty-controller";
+import { isLikelyAbusive } from "@/lib/moderation";
 
 async function userFollows(followerId: number, followedId: number): Promise<boolean> {
   const [row] = await db
@@ -365,6 +367,9 @@ export async function sendMessage(
   }
   if (await isBlockedEitherWay(senderId, receiverId)) {
     throw new Error("Bu kullanıcıya mesaj gönderemezsiniz.");
+  }
+  if (findFlaggedWords(trimmed).length > 0 || (await isLikelyAbusive(trimmed))) {
+    throw new Error("Mesajınız topluluk kurallarına aykırı görünüyor, lütfen düzenleyip tekrar deneyin.");
   }
 
   let attachment: MessageAttachment | null = null;
