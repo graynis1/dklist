@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { SectionLabel } from "@/components/dklist/star-rating";
@@ -10,14 +10,18 @@ import { getRecentlyViewedBooks, type RecentlyViewedBook } from "@/lib/recently-
  * Per-browser "recently viewed" shelf - purely client-side (localStorage),
  * so this can never be a Server Component. Renders nothing until mounted
  * (avoids a hydration mismatch, since the server has no idea what's in
- * this specific browser's localStorage).
+ * this specific browser's localStorage). The read is deferred via a
+ * transition (rather than a plain synchronous setState in the mount
+ * effect) so it doesn't trigger an extra synchronous render pass right
+ * after mount.
  */
 export function RecentlyViewedShelf() {
   const [books, setBooks] = useState<RecentlyViewedBook[] | null>(null);
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
-    setBooks(getRecentlyViewedBooks());
-  }, []);
+    startTransition(() => setBooks(getRecentlyViewedBooks()));
+  }, [startTransition]);
 
   if (!books || books.length === 0) return null;
 

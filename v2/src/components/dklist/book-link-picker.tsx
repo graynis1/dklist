@@ -24,7 +24,7 @@ export function BookLinkPicker() {
 
   useEffect(() => {
     if (selected || query.trim().length < 2) {
-      setResults([]);
+      startTransition(() => setResults([]));
       return;
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
