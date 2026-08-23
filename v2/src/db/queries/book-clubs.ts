@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { bookClub, bookClubMember, user, book, writerBook, writer } from "@/db/schema";
 import { isDuplicateKeyError } from "@/lib/db-errors";
 import { hasRole, USER_TYPES } from "@/lib/roles";
+import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 /**
  * Book clubs / group reading - maintainer's explicit ask, built from scratch
@@ -18,6 +19,11 @@ import { hasRole, USER_TYPES } from "@/lib/roles";
  * "private" club still works via a direct link, matching the lightweight
  * "unlisted, not access-controlled" pattern already used elsewhere in this
  * app rather than building a separate invite/approval system.
+ *
+ * Membership earns `clubJoin` points (see points.ts) - deliberately deferred
+ * when clubs first shipped, wired in as the documented follow-up. Awarded to
+ * the owner on creation (implicit self-join) and to anyone joining via
+ * joinClub(), keyed per (user, club) so it can never double-award.
  */
 
 function slugify(input: string): string {
@@ -70,6 +76,7 @@ export async function createBookClub(ownerId: number, input: CreateClubInput): P
   });
 
   await db.insert(bookClubMember).values({ clubId: result.insertId, userId: ownerId, role: "owner", joinedAt: nowSql() });
+  await awardPoints(ownerId, (await getPointSettings()).clubJoin, "club_join", `club_join:${ownerId}:${result.insertId}`);
 
   return { id: result.insertId, slug };
 }
@@ -204,6 +211,7 @@ export async function joinClub(clubId: number, userId: number): Promise<void> {
     if (isDuplicateKeyError(err, "uniq_book_club_member")) return; // already a member, not an error
     throw err;
   }
+  await awardPoints(userId, (await getPointSettings()).clubJoin, "club_join", `club_join:${userId}:${clubId}`);
   updateTag("book-club-list");
 }
 

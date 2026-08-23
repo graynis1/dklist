@@ -36,6 +36,12 @@ export const POINT_VALUES = {
   // Yazarhane post (see yazarhane.ts) - same tier as blogPublished, both
   // being real editorial-ish content contributions.
   authorPost: 8,
+  // Kitap kulübü (book clubs) - flagged in PLAN.md as a deliberate follow-up
+  // when clubs first shipped ("not wired into the gamification points system
+  // this pass"). Same tier as follow/libraryAdd (a lightweight social-join
+  // action, not content creation) - naturally idempotent per (user, club)
+  // via the reasonKey, same as those two.
+  clubJoin: 1,
 } as const;
 
 /**
