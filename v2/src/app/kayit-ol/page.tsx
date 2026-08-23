@@ -1,20 +1,41 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthVisualPanel, AuthMobileTeaser } from "@/components/dklist/auth-visual-panel";
 import { registerAction } from "./actions";
+
+const BOOKS: [
+  { title: string; author: string; tone: "ochre" },
+  { title: string; author: string; tone: "sage" },
+  { title: string; author: string; tone: "plum" },
+] = [
+  { title: "Simyacı", author: "Paulo Coelho", tone: "ochre" },
+  { title: "Küçük Prens", author: "Antoine de Saint-Exupéry", tone: "sage" },
+  { title: "İnsanın Anlam Arayışı", author: "Viktor E. Frankl", tone: "plum" },
+];
 
 export default function RegisterPage({ searchParams }: PageProps<"/kayit-ol">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-20">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-heading text-2xl">Üye Ol</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <div className="grid grid-cols-1 lg:min-h-[calc(100vh-4rem)] lg:grid-cols-2">
+        <AuthVisualPanel
+          eyebrow="Aramıza Katıl"
+          title="Bir sonraki favori kitabını burada bulacaksın."
+          description="Okuduklarını değerlendir, yeni kitaplar keşfet, aynı rafı paylaştığın okurlarla tanış."
+          books={BOOKS}
+          stat={{ value: "98M+", label: "Katalogdaki Kitap" }}
+        />
+
+        <div className="flex flex-col items-center justify-center px-6 py-16">
+          <AuthMobileTeaser books={BOOKS} />
+          <div className="flex w-full max-w-sm flex-col gap-6">
+            <div className="flex flex-col gap-1">
+              <h1 className="font-heading text-3xl font-medium tracking-tight">Üye Ol</h1>
+              <p className="text-sm text-muted-foreground">Bir dakikada hesabını oluştur, okumaya başla.</p>
+            </div>
             <form action={registerAction} className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <Input name="name" placeholder="İsim" required />
@@ -46,8 +67,14 @@ export default function RegisterPage({ searchParams }: PageProps<"/kayit-ol">) {
                 Üye Ol
               </Button>
             </form>
-          </CardContent>
-        </Card>
+            <p className="text-sm text-muted-foreground">
+              Zaten üye misin?{" "}
+              <Link href="/giris" className="font-medium text-primary hover:underline">
+                Giriş yap
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
