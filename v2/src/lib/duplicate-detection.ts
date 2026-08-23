@@ -61,8 +61,14 @@ export function normalizeTitle(title: string): string {
     t = t.replace(new RegExp(`(?<![\\p{L}\\p{N}])${phrase}(?![\\p{L}\\p{N}])`, "gu"), " ");
   }
   t = t.replace(/[^\p{L}\p{N}\s]/gu, " "); // punctuation -> space (unicode-aware)
-  const tokens = t.split(/\s+/).filter(Boolean).filter((tok) => !/^\d+$/.test(tok)); // bare volume/edition numbers
-  return tokens.join(" ").trim();
+  const tokens = t.split(/\s+/).filter(Boolean);
+  const withoutBareNumbers = tokens.filter((tok) => !/^\d+$/.test(tok)); // bare volume/edition numbers
+  // A title that's entirely numeric (e.g. the real book "1984") is genuine
+  // content, not an edition/volume marker - only drop bare-number tokens
+  // when something non-numeric remains; otherwise stripping them would
+  // normalize a real title down to an empty string.
+  const result = withoutBareNumbers.length > 0 ? withoutBareNumbers : tokens;
+  return result.join(" ").trim();
 }
 
 /** Standard Jaro similarity (0-1). */
