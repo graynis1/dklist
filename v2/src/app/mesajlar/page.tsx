@@ -100,6 +100,7 @@ async function MessagesContent({
               </Link>
             </div>
             <MessageThread
+              key={activeProfile.username}
               currentUserId={currentUserId}
               otherUsername={activeProfile.username}
               initialMessages={initialMessages}

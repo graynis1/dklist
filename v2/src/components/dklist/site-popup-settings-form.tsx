@@ -31,7 +31,7 @@ export function SitePopupSettingsForm({ popup }: { popup: SitePopupView }) {
     <form action={submit} className="flex flex-col gap-4 rounded-lg border border-border p-6">
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="active" defaultChecked={popup.active} disabled={isPending} />
-        Açılış popup'ını aktif et
+        Açılış popup&apos;ını aktif et
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Başlık
@@ -48,7 +48,7 @@ export function SitePopupSettingsForm({ popup }: { popup: SitePopupView }) {
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Bağlantı URL'si (opsiyonel)
+        Bağlantı URL&apos;si (opsiyonel)
         <Input name="link" defaultValue={popup.link ?? ""} disabled={isPending} />
       </label>
       {popup.image && (

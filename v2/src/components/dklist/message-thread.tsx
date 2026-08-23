@@ -10,6 +10,10 @@ import type { MessageItem } from "@/db/queries/messages";
  * websocket/push infra either (its frontend has its own visibility-aware
  * polling hook), so this matches the real reference behavior rather than
  * under- or over-building relative to it.
+ *
+ * The caller must render this with `key={otherUsername}` so switching
+ * conversations remounts it fresh from the new `initialMessages` prop,
+ * rather than needing a sync-on-prop-change effect here.
  */
 const POLL_MS = 5000;
 
@@ -26,10 +30,6 @@ export function MessageThread({
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages, otherUsername]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
