@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { book, writerBook, writer } from "@/db/schema";
 import {
   normalizeTitle,
+  normalizeIsbn,
   titleAuthorSimilarity,
   DUPLICATE_MATCH_THRESHOLD,
 } from "@/lib/duplicate-detection";
@@ -33,13 +34,17 @@ export async function findDuplicateCandidatesDryRun(limit = 5000): Promise<{
     .from(book)
     .limit(limit);
 
-  // Stage 1: ISBN exact match.
+  // Stage 1: ISBN exact match, normalized/canonicalized to ISBN-13 first so
+  // e.g. a hyphenated ISBN-10 row and a plain ISBN-13 row for the same real
+  // book still match instead of comparing as different raw strings.
   const byIsbn = new Map<string, number[]>();
   for (const r of rows) {
     if (!r.isbn) continue;
-    const list = byIsbn.get(r.isbn) ?? [];
+    const key = normalizeIsbn(r.isbn);
+    if (!key) continue;
+    const list = byIsbn.get(key) ?? [];
     list.push(r.id);
-    byIsbn.set(r.isbn, list);
+    byIsbn.set(key, list);
   }
   const isbnGroups: DuplicateGroup[] = [];
   const matchedByIsbn = new Set<number>();

@@ -142,3 +142,56 @@ export function titleAuthorSimilarity(
 }
 
 export const DUPLICATE_MATCH_THRESHOLD = 0.95;
+
+/**
+ * ISBN check-digit validation + ISBN-10 -> ISBN-13 conversion, so stage 1
+ * ("ISBN exact match") can compare the same book's ISBN-10 and ISBN-13
+ * listings as equal instead of missing them as a raw-string mismatch - a
+ * real gap in `book.isbn` (a free-text `varchar(50)`, confirmed via
+ * `schema.ts`, not a normalized/indexed identifier): the same real-world
+ * book routinely has an ISBN-10 row from an older edition and an ISBN-13
+ * row from a newer one, plus hyphens/spaces in either format depending on
+ * how the data was originally entered.
+ */
+
+function isbn10CheckDigit(digits: string): string {
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += (i + 1) * Number(digits[i]);
+  const remainder = sum % 11;
+  return remainder === 10 ? "X" : String(remainder);
+}
+
+function isbn13CheckDigit(digits: string): string {
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += (i % 2 === 0 ? 1 : 3) * Number(digits[i]);
+  const remainder = sum % 10;
+  return String(remainder === 0 ? 0 : 10 - remainder);
+}
+
+/**
+ * Strips everything but digits/`X`, validates the real ISBN-10 or ISBN-13
+ * check digit (rejecting malformed/mistyped values rather than treating them
+ * as a match key - same "return nothing rather than a false signal" spirit
+ * as `normalizeTitle`'s empty-string return), and canonicalizes to ISBN-13
+ * (the modern, superset identifier) so an ISBN-10 and its ISBN-13 equivalent
+ * normalize to the same key. Returns `null` for anything that isn't a
+ * structurally valid ISBN.
+ */
+export function normalizeIsbn(raw: string): string | null {
+  const cleaned = raw.toUpperCase().replace(/[^0-9X]/g, "");
+
+  if (cleaned.length === 10) {
+    if (!/^\d{9}[\dX]$/.test(cleaned)) return null;
+    if (isbn10CheckDigit(cleaned) !== cleaned[9]) return null;
+    const core = "978" + cleaned.slice(0, 9);
+    return core + isbn13CheckDigit(core);
+  }
+
+  if (cleaned.length === 13) {
+    if (!/^\d{13}$/.test(cleaned)) return null;
+    if (isbn13CheckDigit(cleaned) !== cleaned[12]) return null;
+    return cleaned;
+  }
+
+  return null;
+}
