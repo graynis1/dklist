@@ -258,6 +258,13 @@ async function WeeklyLeaderWidget() {
 }
 
 async function BookOfMonthWidget() {
+  // getCurrentBookOfMonth()'s participant count and active pick genuinely
+  // vary per-request (not cacheable) - connection() opts this subtree out
+  // of static prerendering instead of Next flagging the non-deterministic
+  // read as an "unstable value" error. Already inside a <Suspense> boundary
+  // at the call site, matching this project's established dynamic-content
+  // pattern (see PLAN.md's Next.js 16 caching notes).
+  await connection();
   const current = await getCurrentBookOfMonth();
   if (!current) {
     return <p className="text-sm text-muted-foreground">Şu anda belirlenmiş bir ayın kitabı yok.</p>;
