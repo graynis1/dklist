@@ -5,6 +5,7 @@ import { store, storeFavorite, storePicture, user, book, read } from "@/db/schem
 import { saveUploadedImage } from "@/lib/image-upload";
 import { awardPoints, getPointSettings, resolveSystemSenderId } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
+import { slugify } from "@/lib/slugify";
 
 /**
  * Askıda Kitap (Phase 3 marketplace) - ported from StoreController.php.
@@ -18,18 +19,6 @@ import { addNotification } from "@/db/queries/notifications";
  * browse/detail/edit/status/favorite for free listings; paid listings are
  * blocked at creation time until that toggle + checkout flow exist.
  */
-
-function slugify(input: string): string {
-  // Turkish-character map runs BEFORE toLowerCase() - see book-admin.ts's
-  // slugify() for why (JS's toLowerCase() turns İ into "i" + a combining
-  // dot, not the plain "i" this map expects, a real bug caught via testing).
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
-  return input
-    .replace(/[çğıöşüİÇĞÖŞÜ]/g, (c) => map[c] ?? c)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export interface StoreListItem {
   id: number;

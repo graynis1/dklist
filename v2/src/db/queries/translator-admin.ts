@@ -7,20 +7,12 @@ import { translator } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { saveUploadedImage } from "@/lib/image-upload";
 import { deleteCommentTreeForTarget } from "@/db/queries/entity-delete-cascade";
+import { slugify } from "@/lib/slugify";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "translator");
 
 function deleteTranslatorImageFile(filename: string): Promise<void> {
   return unlink(path.join(UPLOAD_DIR, filename)).catch(() => {});
-}
-
-function slugify(input: string): string {
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
-  return input
-    .replace(/[çğıöşüİÇĞÖŞÜ]/g, (c) => map[c] ?? c)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 export interface TranslatorListItem {

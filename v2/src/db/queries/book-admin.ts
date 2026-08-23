@@ -4,29 +4,13 @@ import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
+import { slugify } from "@/lib/slugify";
 import { AUTO_APPROVE_ROLES, type UserType } from "@/lib/permission";
 import { deleteBookCascade } from "@/db/queries/entity-delete-cascade";
 import { userWriter } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
 import { resolveSystemSenderId } from "@/db/queries/points";
 import { computeAndStoreBookEmbedding } from "@/db/queries/book-embedding";
-
-function slugify(input: string): string {
-  // Turkish-character map must run BEFORE toLowerCase(), not after: JS's
-  // locale-insensitive toLowerCase() turns capital İ (U+0130) into "i" plus
-  // a combining dot above (U+0307), not the plain "i" this map expects to
-  // replace it with - by the time toLowerCase() ran first, "İ" no longer
-  // existed in the string for this regex to match, and the stray combining
-  // character got swallowed into a spurious extra hyphen instead (a real
-  // bug, caught via testing: "İletişim Yayınları" produced
-  // "i-letisim-yayinlari" - note the wrong break after the first "i").
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
-  return input
-    .replace(/[çğıöşüİÇĞÖŞÜ]/g, (c) => map[c] ?? c)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export interface CreateBookInput {
   name: string;
