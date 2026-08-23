@@ -52,7 +52,13 @@ export function normalizeTitle(title: string): string {
   t = t.replace(/\([^)]*\)/g, " "); // parenthetical remarks
   t = t.replace(/\[[^\]]*\]/g, " "); // bracketed remarks
   for (const phrase of EDITION_NOISE_PHRASES) {
-    t = t.replaceAll(phrase, " ");
+    // Word-boundary-aware, not a raw substring replace: a plain replaceAll
+    // would also strip "baskı" out of an unrelated real word like
+    // "Basımevi" (a title about printing-house history), silently eating
+    // meaningful title content instead of just the edition-noise phrase.
+    // \p{L}/\p{N} lookaround (not \b, which doesn't understand Turkish
+    // letters) ensures the phrase is only stripped as a standalone token.
+    t = t.replace(new RegExp(`(?<![\\p{L}\\p{N}])${phrase}(?![\\p{L}\\p{N}])`, "gu"), " ");
   }
   t = t.replace(/[^\p{L}\p{N}\s]/gu, " "); // punctuation -> space (unicode-aware)
   const tokens = t.split(/\s+/).filter(Boolean).filter((tok) => !/^\d+$/.test(tok)); // bare volume/edition numbers
