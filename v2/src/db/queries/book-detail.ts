@@ -15,6 +15,7 @@ export interface BookDetail {
   pageNumber: number;
   workId: number | null;
   lang: string;
+  hasImage: boolean;
   publisher: { id: number; name: string; slug: string } | null;
   writers: { id: number; name: string; slug: string }[];
   categories: { id: number; name: string; slug: string }[];
@@ -37,6 +38,7 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
       pageNumber: book.pageNumber,
       workId: book.workId,
       lang: book.lang,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
       publisherId: publisher.id,
       publisherName: publisher.name,
       publisherSlug: publisher.slug,
@@ -76,6 +78,7 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
     pageNumber: row.pageNumber,
     workId: row.workId,
     lang: row.lang,
+    hasImage: Boolean(row.hasImage),
     publisher: row.publisherId
       ? { id: row.publisherId, name: row.publisherName!, slug: row.publisherSlug! }
       : null,
@@ -120,6 +123,7 @@ export interface WorkEdition {
   slug: string;
   lang: string;
   score: number;
+  hasImage: boolean;
 }
 
 export interface WorkEditionGroups {
@@ -140,14 +144,22 @@ export async function getWorkEditions(workId: number, excludeBookId: number, cur
   cacheTag(`work-editions:${workId}`);
 
   const rows = await db
-    .select({ id: book.id, name: book.name, slug: book.slug, lang: book.lang, score: book.score })
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      lang: book.lang,
+      score: book.score,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(book)
     .where(eq(book.workId, workId));
 
   const sameLanguage: WorkEdition[] = [];
   const otherLanguages: Record<string, WorkEdition[]> = {};
 
-  for (const row of rows) {
+  for (const raw of rows) {
+    const row = { ...raw, hasImage: Boolean(raw.hasImage) };
     if (row.id === excludeBookId) continue;
     if (row.lang === currentLang) {
       sameLanguage.push(row);
@@ -243,6 +255,7 @@ export interface SimilarBook {
   name: string;
   slug: string;
   score: number;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -265,12 +278,19 @@ export async function getSimilarBooks(bookId: number, categoryId: number, limit 
   // Pull a wider candidate pool than needed so the content re-rank below
   // has real room to reorder, not just the same top-6-by-score every time.
   const rows = await db
-    .select({ id: book.id, name: book.name, slug: book.slug, score: book.score })
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(bookCategory)
     .innerJoin(book, eq(bookCategory.bookId, book.id))
     .where(and(eq(bookCategory.categoryId, categoryId), ne(book.id, bookId)))
     .orderBy(desc(book.score))
-    .limit(limit * 4);
+    .limit(limit * 4)
+    .then((r) => r.map((row) => ({ ...row, hasImage: Boolean(row.hasImage) })));
 
   if (rows.length === 0) return [];
 

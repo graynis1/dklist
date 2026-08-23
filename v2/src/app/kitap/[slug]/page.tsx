@@ -165,6 +165,7 @@ async function BookDetailContent({
         id={detail.id}
         name={detail.name}
         slug={detail.slug}
+        hasImage={detail.hasImage}
         writers={detail.writers.map((w) => w.name)}
       />
       <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
@@ -173,6 +174,8 @@ async function BookDetailContent({
             title={detail.name}
             author={writerNames}
             tone={tone}
+            bookId={detail.id}
+            hasImage={detail.hasImage}
             size="lg"
             className="mx-auto w-full max-w-[280px] lg:mx-0"
           />
@@ -414,6 +417,8 @@ async function BookDetailContent({
                     title={b.name}
                     author={b.writers.join(", ") || "Yazar bilinmiyor"}
                     tone={toneForId(b.id)}
+                    bookId={b.id}
+                    hasImage={b.hasImage}
                     size="sm"
                     className="w-full"
                   />

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { PhotoBookCover } from "@/components/dklist/photo-book-cover";
 
 export type BookCoverTone =
   | "oxblood"
@@ -50,6 +51,15 @@ interface BookCoverProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   rotate?: number;
+  /** Real book id - required (with hasImage) to attempt the real cover photo. */
+  bookId?: number;
+  /** Whether this book has a real source cover (`book.image` is set). When
+   * true, a real photo is fetched via the /kapak/[id] proxy and shown instead
+   * of the typeset jacket below; falls back to the jacket if the photo fails
+   * to load (a stored source URL that 404s at the origin, same ~40% real-
+   * coverage ceiling v1 always had - not every book with a source URL
+   * actually has a live image behind it). */
+  hasImage?: boolean;
 }
 
 const SIZE_CLASS: Record<NonNullable<BookCoverProps["size"]>, string> = {
@@ -59,9 +69,10 @@ const SIZE_CLASS: Record<NonNullable<BookCoverProps["size"]>, string> = {
 };
 
 /**
- * A typeset, art-directed book "jacket" - deliberately not a photographic cover.
- * Guarantees consistent rendering (no third-party image dependency) and lets the
- * whole shelf read as one curated visual system instead of mismatched cover art.
+ * Real photo when available (proxied through /kapak/[id] so the real Open
+ * Library/Amazon origin is never exposed to the client), falling back to the
+ * typeset "jacket" design below when a book has no real source cover, or its
+ * real cover fails to load.
  */
 export function BookCover({
   title,
@@ -70,15 +81,21 @@ export function BookCover({
   size = "md",
   className,
   rotate = 0,
+  bookId,
+  hasImage,
 }: BookCoverProps) {
   const t = TONE_STYLE[tone];
-  return (
+  const showPhoto = hasImage && bookId != null;
+
+  const wrapperClassName = cn(
+    "group relative aspect-[2/3] shrink-0 overflow-hidden rounded-[0.35rem] shadow-[0_1px_2px_rgba(0,0,0,0.15),0_12px_28px_-12px_rgba(0,0,0,0.45)] ring-1 ring-black/10 transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_24px_40px_-16px_rgba(0,0,0,0.55)]",
+    SIZE_CLASS[size],
+    className,
+  );
+
+  const typesetJacket = (
     <div
-      className={cn(
-        "group relative aspect-[2/3] shrink-0 overflow-hidden rounded-[0.35rem] shadow-[0_1px_2px_rgba(0,0,0,0.15),0_12px_28px_-12px_rgba(0,0,0,0.45)] ring-1 ring-black/10 transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_24px_40px_-16px_rgba(0,0,0,0.55)]",
-        SIZE_CLASS[size],
-        className,
-      )}
+      className={wrapperClassName}
       style={{ backgroundColor: t.bg, color: t.fg, transform: `rotate(${rotate}deg)` }}
     >
       <div className="absolute inset-0 flex flex-col justify-between p-[10%]">
@@ -106,4 +123,18 @@ export function BookCover({
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/20" />
     </div>
   );
+
+  if (showPhoto) {
+    return (
+      <PhotoBookCover
+        src={`/kapak/${bookId}`}
+        alt={`${title} - ${author}`}
+        wrapperClassName={wrapperClassName}
+        rotate={rotate}
+        fallback={typesetJacket}
+      />
+    );
+  }
+
+  return typesetJacket;
 }

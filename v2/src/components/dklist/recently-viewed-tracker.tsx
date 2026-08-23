@@ -8,16 +8,18 @@ export function RecentlyViewedTracker({
   id,
   name,
   slug,
+  hasImage,
   writers,
 }: {
   id: number;
   name: string;
   slug: string;
+  hasImage: boolean;
   writers: string[];
 }) {
   useEffect(() => {
-    addRecentlyViewedBook({ id, name, slug, writers });
-  }, [id, name, slug, writers]);
+    addRecentlyViewedBook({ id, name, slug, hasImage, writers });
+  }, [id, name, slug, hasImage, writers]);
 
   return null;
 }

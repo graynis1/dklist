@@ -10,6 +10,7 @@ export interface SearchResultBook {
   slug: string;
   score: number;
   viewCount: number;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -35,14 +36,15 @@ export async function searchBooks(
   if (trimmed.length < 2) return [];
 
   const rows = (await db.execute(sql`
-    SELECT b.id, b.name, b.slug, b.score, b.view_count AS viewCount
+    SELECT b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+      (b.image IS NOT NULL AND b.image != '') AS hasImage
     FROM book b
     WHERE b.name LIKE ${trimmed + "%"}
     ORDER BY b.view_count DESC
     LIMIT ${limit}
   `))[0] as unknown as Omit<SearchResultBook, "writers">[];
 
-  return attachWriterNames(rows);
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }
 
 export interface SearchResultEntity {

@@ -167,6 +167,7 @@ export interface ListBookItem {
   name: string;
   slug: string;
   score: number;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -199,12 +200,20 @@ export async function getListBySlug(slug: string): Promise<ListDetail | null> {
 
   if (!list) return null;
 
-  const bookRows = await db
-    .select({ id: book.id, name: book.name, slug: book.slug, score: book.score })
-    .from(readingListBook)
-    .innerJoin(book, eq(readingListBook.bookId, book.id))
-    .where(eq(readingListBook.listId, list.id))
-    .orderBy(readingListBook.sortOrder);
+  const bookRows = (
+    await db
+      .select({
+        id: book.id,
+        name: book.name,
+        slug: book.slug,
+        score: book.score,
+        hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+      })
+      .from(readingListBook)
+      .innerJoin(book, eq(readingListBook.bookId, book.id))
+      .where(eq(readingListBook.listId, list.id))
+      .orderBy(readingListBook.sortOrder)
+  ).map((r) => ({ ...r, hasImage: Boolean(r.hasImage) }));
 
   const bookIds = bookRows.map((b) => b.id);
   const writerRows = bookIds.length

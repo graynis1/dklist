@@ -12,6 +12,7 @@ export interface CategoryBookListItem {
   slug: string;
   score: number;
   viewCount: number;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -35,7 +36,8 @@ export async function getBooksByCategory(
   cacheTag(`category-books:${categoryId}`);
 
   const rows = (await db.execute(sql`
-    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount
+    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+      (b.image IS NOT NULL AND b.image != '') AS hasImage
     FROM book b FORCE INDEX (idx_book_viewcount)
     WHERE EXISTS (
       SELECT 1 FROM book_category bc
@@ -45,7 +47,7 @@ export async function getBooksByCategory(
     LIMIT ${limit}
   `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
 
-  return attachWriterNames(rows);
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }
 
 export interface CategorySummary {
@@ -122,12 +124,13 @@ export async function getLatestBooks(limit = 12): Promise<CategoryBookListItem[]
       slug: book.slug,
       score: book.score,
       viewCount: book.viewCount,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(book)
     .orderBy(desc(book.id))
     .limit(limit);
 
-  return attachWriterNames(rows);
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }
 
 export interface RecommendedBook extends CategoryBookListItem {
@@ -158,6 +161,7 @@ export async function getRecommendedBooks(viewerId: number, limit = 8): Promise<
       slug: book.slug,
       score: book.score,
       viewCount: book.viewCount,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
       readerOverlap: sql<number>`count(distinct ${neighborRead.userId})`,
     })
     .from(viewerRead)
@@ -177,11 +181,11 @@ export async function getRecommendedBooks(viewerId: number, limit = 8): Promise<
       and(eq(viewerHasCandidate.userId, viewerId), eq(viewerHasCandidate.bookId, candidateRead.bookId)),
     )
     .where(and(eq(viewerRead.userId, viewerId), isNull(viewerHasCandidate.id)))
-    .groupBy(book.id, book.name, book.slug, book.score, book.viewCount)
+    .groupBy(book.id, book.name, book.slug, book.score, book.viewCount, book.image)
     .orderBy(sql`count(distinct ${neighborRead.userId}) desc`, desc(book.score))
     .limit(limit);
 
-  const withWriters = await attachWriterNames(rows);
+  const withWriters = await attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
   return withWriters as RecommendedBook[];
 }
 
@@ -207,12 +211,13 @@ export async function getTopBooks(limit = 5): Promise<TopBookItem[]> {
       score: book.score,
       viewCount: book.viewCount,
       content: book.content,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(book)
     .orderBy(desc(book.viewCount))
     .limit(limit);
 
-  return attachWriterNames(rows);
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }
 
 export type BookSortBy = "viewCount" | "score" | "name";
@@ -223,6 +228,7 @@ export interface BookListItem {
   slug: string;
   score: number;
   viewCount: number;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -285,7 +291,14 @@ export async function getBookList(
     const effectivePage = Math.min(Math.max(1, page), lastPage);
 
     const rows = await db
-      .select({ id: book.id, name: book.name, slug: book.slug, score: book.score, viewCount: book.viewCount })
+      .select({
+        id: book.id,
+        name: book.name,
+        slug: book.slug,
+        score: book.score,
+        viewCount: book.viewCount,
+        hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+      })
       .from(book)
       .innerJoin(read, eq(read.bookId, book.id))
       .where(whereClause)
@@ -293,7 +306,7 @@ export async function getBookList(
       .limit(safeSize)
       .offset((effectivePage - 1) * safeSize);
 
-    items = await attachWriterNames(rows);
+    items = await attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
     return { items, total, page: effectivePage, lastPage };
   }
 
@@ -311,14 +324,21 @@ export async function getBookList(
   const effectivePage = Math.min(Math.max(1, page), lastPage);
 
   const rows = await db
-    .select({ id: book.id, name: book.name, slug: book.slug, score: book.score, viewCount: book.viewCount })
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      viewCount: book.viewCount,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(book)
     .where(searchCondition)
     .orderBy(direction(sortColumn))
     .limit(safeSize)
     .offset((effectivePage - 1) * safeSize);
 
-  items = await attachWriterNames(rows);
+  items = await attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
   return { items, total, page: effectivePage, lastPage };
 }
 

@@ -72,6 +72,8 @@ async function CategoryContent({
                 title={book.name}
                 author={book.writers.join(", ") || "Yazar bilinmiyor"}
                 tone={toneForId(book.id)}
+                bookId={book.id}
+                hasImage={book.hasImage}
                 size="md"
                 className="w-full"
               />

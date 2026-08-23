@@ -1,5 +1,5 @@
 import "server-only";
-import { inArray, eq } from "drizzle-orm";
+import { inArray, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { bookEmbedding, book } from "@/db/schema";
 import { getEmbedding, cosineSimilarity, EMBEDDING_MODEL } from "@/lib/embeddings";
@@ -78,6 +78,7 @@ export interface SemanticSearchResultBook {
   slug: string;
   score: number;
   viewCount: number;
+  hasImage: boolean;
   writers: string[];
   similarity: number;
 }
@@ -135,11 +136,18 @@ export async function semanticSearchBooks(term: string, limit = 8): Promise<Sema
   if (scored.length === 0) return [];
 
   const bookRows = await db
-    .select({ id: book.id, name: book.name, slug: book.slug, score: book.score, viewCount: book.viewCount })
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      viewCount: book.viewCount,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(book)
     .where(inArray(book.id, scored.map((s) => s.bookId)));
 
-  const withWriters = await attachWriterNames(bookRows);
+  const withWriters = await attachWriterNames(bookRows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
   const byId = new Map(withWriters.map((b) => [b.id, b]));
   const similarityById = new Map(scored.map((s) => [s.bookId, s.similarity]));
 

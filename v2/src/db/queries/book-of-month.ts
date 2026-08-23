@@ -24,11 +24,12 @@ export interface BookOfMonthEntry {
   bookId: number;
   bookName: string;
   bookSlug: string;
+  hasImage: boolean;
   writers: string[];
   participantCount: number;
 }
 
-async function attachWriters(rows: { id: number; periodLabel: string; startsAt: string; bookId: number; bookName: string; bookSlug: string; participantCount: number }[]): Promise<BookOfMonthEntry[]> {
+async function attachWriters(rows: { id: number; periodLabel: string; startsAt: string; bookId: number; bookName: string; bookSlug: string; hasImage: boolean; participantCount: number }[]): Promise<BookOfMonthEntry[]> {
   const bookIds = rows.map((r) => r.bookId);
   const writerRows = bookIds.length
     ? await db.select({ bookId: writerBook.bookId, name: writer.name }).from(writerBook).innerJoin(writer, eq(writerBook.writerId, writer.id)).where(inArray(writerBook.bookId, bookIds))
@@ -50,6 +51,7 @@ export async function getCurrentBookOfMonth(): Promise<BookOfMonthEntry | null> 
       bookId: book.id,
       bookName: book.name,
       bookSlug: book.slug,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
       participantCount: sql<number>`(SELECT count(*) FROM book_of_month_participant p WHERE p.book_of_month_id = ${bookOfMonth.id})`,
     })
     .from(bookOfMonth)
@@ -59,7 +61,7 @@ export async function getCurrentBookOfMonth(): Promise<BookOfMonthEntry | null> 
     .limit(1);
 
   if (!row) return null;
-  const [withWriters] = await attachWriters([{ ...row, participantCount: Number(row.participantCount) }]);
+  const [withWriters] = await attachWriters([{ ...row, hasImage: Boolean(row.hasImage), participantCount: Number(row.participantCount) }]);
   return withWriters;
 }
 
@@ -72,6 +74,7 @@ export async function getPastBooksOfMonth(limit = 20): Promise<BookOfMonthEntry[
       bookId: book.id,
       bookName: book.name,
       bookSlug: book.slug,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
       participantCount: sql<number>`(SELECT count(*) FROM book_of_month_participant p WHERE p.book_of_month_id = ${bookOfMonth.id})`,
     })
     .from(bookOfMonth)
@@ -80,7 +83,7 @@ export async function getPastBooksOfMonth(limit = 20): Promise<BookOfMonthEntry[
     .orderBy(desc(bookOfMonth.id))
     .limit(limit);
 
-  return attachWriters(rows.map((r) => ({ ...r, participantCount: Number(r.participantCount) })));
+  return attachWriters(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage), participantCount: Number(r.participantCount) })));
 }
 
 export async function isParticipating(bookOfMonthId: number, userId: number): Promise<boolean> {

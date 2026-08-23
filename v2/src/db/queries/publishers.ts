@@ -88,6 +88,7 @@ export interface PublisherBookItem {
   slug: string;
   score: number;
   viewCount: number;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -103,10 +104,11 @@ export async function getBooksByPublisher(publisherId: number): Promise<Publishe
       slug: book.slug,
       score: book.score,
       viewCount: book.viewCount,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(book)
     .where(eq(book.publisherId, publisherId))
     .orderBy(desc(book.viewCount));
 
-  return attachWriterNames(rows);
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }

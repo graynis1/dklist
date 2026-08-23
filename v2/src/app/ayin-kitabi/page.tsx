@@ -42,6 +42,8 @@ async function BookOfMonthContent() {
             title={current.bookName}
             author={current.writers.join(", ") || "Yazar bilinmiyor"}
             tone={toneForId(current.bookId)}
+            bookId={current.bookId}
+            hasImage={current.hasImage}
             size="md"
             className="w-32 shrink-0"
           />

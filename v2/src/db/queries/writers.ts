@@ -38,6 +38,7 @@ export interface WriterBookItem {
   slug: string;
   score: number;
   viewCount: number;
+  hasImage: boolean;
 }
 
 export interface WriterListItem {
@@ -108,16 +109,19 @@ export async function getBooksByWriter(writerId: number): Promise<WriterBookItem
   cacheLife("hours");
   cacheTag(`writer-books:${writerId}`);
 
-  return db
+  const rows = await db
     .select({
       id: book.id,
       name: book.name,
       slug: book.slug,
       score: book.score,
       viewCount: book.viewCount,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(writerBook)
     .innerJoin(book, eq(writerBook.bookId, book.id))
     .where(eq(writerBook.writerId, writerId))
     .orderBy(desc(book.viewCount));
+
+  return rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) }));
 }

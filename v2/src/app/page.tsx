@@ -108,6 +108,8 @@ async function FeaturedSection() {
             title={featured.name}
             author={writerNames}
             tone={toneForId(featured.id)}
+            bookId={featured.id}
+            hasImage={featured.hasImage}
             size="lg"
             className="w-full"
           />
@@ -150,6 +152,8 @@ async function FeaturedSection() {
                 title={book.name}
                 author={book.writers.join(", ") || "Yazar bilinmiyor"}
                 tone={toneForId(book.id)}
+                bookId={book.id}
+                hasImage={book.hasImage}
                 size="md"
                 className="w-full"
               />
@@ -282,6 +286,8 @@ async function BookOfMonthWidget() {
         title={current.bookName}
         author={current.writers.join(", ") || "Yazar bilinmiyor"}
         tone={toneForId(current.bookId)}
+        bookId={current.bookId}
+        hasImage={current.hasImage}
         size="sm"
         className="w-16 shrink-0"
       />
@@ -340,6 +346,8 @@ async function ActivityFeedShelf() {
             title={item.bookName}
             author={item.writers.join(", ") || "Yazar bilinmiyor"}
             tone={toneForId(item.bookId)}
+            bookId={item.bookId}
+            hasImage={item.hasImage}
             size="sm"
             className="w-16 shrink-0"
           />
@@ -475,6 +483,8 @@ async function RecommendedBooksShelf() {
             title={b.name}
             author={b.writers.join(", ") || "Yazar bilinmiyor"}
             tone={toneForId(b.id)}
+            bookId={b.id}
+            hasImage={b.hasImage}
             size="sm"
             className="w-full"
           />
@@ -524,6 +534,8 @@ async function LatestBooksShelf() {
             title={book.name}
             author={book.writers.join(", ") || "Yazar bilinmiyor"}
             tone={toneForId(book.id)}
+            bookId={book.id}
+            hasImage={book.hasImage}
             size="sm"
             className="w-full"
           />
@@ -558,6 +570,8 @@ async function TrendingBooksShelf() {
             title={book.name}
             author={book.writers.join(", ") || "Yazar bilinmiyor"}
             tone={toneForId(book.id)}
+            bookId={book.id}
+            hasImage={book.hasImage}
             size="sm"
             className="w-full"
           />

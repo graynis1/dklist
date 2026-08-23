@@ -75,6 +75,8 @@ async function ListDetailContent({
                   title={b.name}
                   author={b.writers.join(", ") || "Yazar bilinmiyor"}
                   tone={toneForId(b.id)}
+                  bookId={b.id}
+                  hasImage={b.hasImage}
                   size="md"
                   className="w-full"
                 />

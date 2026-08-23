@@ -150,6 +150,8 @@ async function TranslatorContent({
                 title={book.name}
                 author={translator.name}
                 tone={toneForId(book.id)}
+                bookId={book.id}
+                hasImage={book.hasImage}
                 size="md"
                 className="w-full"
               />

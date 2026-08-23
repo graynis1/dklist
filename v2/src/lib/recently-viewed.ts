@@ -5,6 +5,7 @@ export interface RecentlyViewedBook {
   id: number;
   name: string;
   slug: string;
+  hasImage: boolean;
   writers: string[];
 }
 

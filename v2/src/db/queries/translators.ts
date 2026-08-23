@@ -82,6 +82,7 @@ export interface TranslatorBookItem {
   name: string;
   slug: string;
   score: number;
+  hasImage: boolean;
 }
 
 export async function getBooksByTranslator(translatorId: number): Promise<TranslatorBookItem[]> {
@@ -89,10 +90,18 @@ export async function getBooksByTranslator(translatorId: number): Promise<Transl
   cacheLife("hours");
   cacheTag(`translator-books:${translatorId}`);
 
-  return db
-    .select({ id: book.id, name: book.name, slug: book.slug, score: book.score })
+  const rows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      score: book.score,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(translatorBook)
     .innerJoin(book, eq(translatorBook.bookId, book.id))
     .where(eq(translatorBook.translatorId, translatorId))
     .orderBy(desc(book.viewCount));
+
+  return rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) }));
 }

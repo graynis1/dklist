@@ -13,6 +13,7 @@ export interface BookActivityItem {
   bookName: string;
   bookSlug: string;
   excerpt: string;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -41,6 +42,7 @@ export async function getRecentBookActivity(limit = 10): Promise<BookActivityIte
       bookName: book.name,
       bookSlug: book.slug,
       text: comment.comment,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(comment)
     .innerJoin(user, eq(comment.userId, user.id))
@@ -56,6 +58,7 @@ export async function getRecentBookActivity(limit = 10): Promise<BookActivityIte
     ...r,
     kind: r.kind === "alinti" ? "alinti" : "yorum",
     excerpt: r.text.length > 140 ? `${r.text.slice(0, 140)}...` : r.text,
+    hasImage: Boolean(r.hasImage),
     writers: writersByBookId.get(r.bookId) ?? [],
   }));
 }
@@ -66,6 +69,7 @@ export interface TrendingBookItem {
   slug: string;
   score: number;
   recentCommentCount: number;
+  hasImage: boolean;
   writers: string[];
 }
 
@@ -92,16 +96,17 @@ export async function getTrendingBooks(limit = 10, days = 7): Promise<TrendingBo
       slug: book.slug,
       score: book.score,
       recentCommentCount: sql<number>`count(*)`,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(comment)
     .innerJoin(book, eq(comment.targetId, book.id))
     .where(and(eq(comment.type, "book"), sql`${comment.date} >= DATE_SUB(CURDATE(), INTERVAL ${days} DAY)`))
-    .groupBy(book.id, book.name, book.slug, book.score)
+    .groupBy(book.id, book.name, book.slug, book.score, book.image)
     .orderBy(desc(sql`count(*)`))
     .limit(limit);
 
   const withWriters = await attachWriterNames(rows.map((r) => ({ ...r, id: r.id })));
   const writersByBookId = new Map(withWriters.map((w) => [w.id, w.writers]));
 
-  return rows.map((r) => ({ ...r, recentCommentCount: Number(r.recentCommentCount), writers: writersByBookId.get(r.id) ?? [] }));
+  return rows.map((r) => ({ ...r, recentCommentCount: Number(r.recentCommentCount), hasImage: Boolean(r.hasImage), writers: writersByBookId.get(r.id) ?? [] }));
 }

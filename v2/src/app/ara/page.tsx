@@ -106,6 +106,8 @@ async function Results({
                 title={book.name}
                 author={book.writers.join(", ")}
                 tone={toneForId(book.id)}
+                bookId={book.id}
+                hasImage={book.hasImage}
                 size="sm"
                 className="w-16 shrink-0"
               />
@@ -139,6 +141,8 @@ async function Results({
                 title={book.name}
                 author={book.writers.join(", ")}
                 tone={toneForId(book.id)}
+                bookId={book.id}
+                hasImage={book.hasImage}
                 size="sm"
                 className="w-16 shrink-0"
               />

@@ -35,6 +35,8 @@ export function RecentlyViewedShelf() {
               title={b.name}
               author={b.writers.join(", ") || "Yazar bilinmiyor"}
               tone={toneForId(b.id)}
+              bookId={b.id}
+              hasImage={b.hasImage}
               size="sm"
               className="w-full"
             />

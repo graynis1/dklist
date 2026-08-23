@@ -177,6 +177,8 @@ async function WriterContent({
                 title={book.name}
                 author={writer.name}
                 tone={toneForId(book.id)}
+                bookId={book.id}
+                hasImage={book.hasImage}
                 size="md"
                 className="w-full"
               />
