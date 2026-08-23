@@ -1,0 +1,52 @@
+name: v2 CI
+
+on:
+  push:
+    branches: [v2-rewrite]
+    paths: ["v2/**", ".github/workflows/v2-ci.yml"]
+  pull_request:
+    branches: [v2-rewrite]
+    paths: ["v2/**", ".github/workflows/v2-ci.yml"]
+
+defaults:
+  run:
+    working-directory: v2
+
+jobs:
+  check:
+    name: typecheck, lint, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # `npm ci` fails here: the committed lockfile is missing optional
+      # esbuild platform packages (a known cross-platform lockfile quirk,
+      # see PLAN.md's Dockerfile notes) — `npm install` is what the
+      # Dockerfile itself uses, for the same reason.
+      - name: Install dependencies
+        run: npm install
+
+      # Next.js 16 generates PageProps/LayoutProps into .next/types; a
+      # fresh checkout has no .next/ yet, so tsc fails on every typed
+      # route until this runs once.
+      - name: Generate Next.js route types
+        run: npx next typegen
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test
+
+      # Deliberately NOT running `npm run build` here: this app's Cache
+      # Components prerendering executes DB-backed queries at build time,
+      # and CI has no reachable MySQL database (same constraint documented
+      # in v2/PLAN.md's "Cloud-agent operating constraints" section). A
+      # real build check needs a DB-connected environment, not this job.
