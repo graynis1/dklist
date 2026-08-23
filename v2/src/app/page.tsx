@@ -39,6 +39,7 @@ function CategoriesSkeleton() {
 }
 
 async function CategoriesShelf() {
+  await connection();
   const categories = await getTopCategories(24);
 
   if (categories.length === 0) {
@@ -87,6 +88,7 @@ function FeaturedSkeleton() {
  * inventing a category label that doesn't exist in the schema.
  */
 async function FeaturedSection() {
+  await connection();
   const topBooks = await getTopBooks(5);
 
   if (topBooks.length === 0) {
@@ -185,6 +187,7 @@ function TopReadersSkeleton() {
  * is the natural spot, same as Kategoriler/Yeni Eklenenler.
  */
 async function TopReadersShelf() {
+  await connection();
   const readers = await getTopReaders(12);
 
   if (readers.length === 0) {
@@ -316,6 +319,7 @@ function ActivityFeedSkeleton() {
  * surfaces here rather than a `/kapak/[id]` photo.
  */
 async function ActivityFeedShelf() {
+  await connection();
   const items = await getRecentBookActivity(8);
 
   if (items.length === 0) {
@@ -497,6 +501,7 @@ function LatestBooksSkeleton() {
 }
 
 async function LatestBooksShelf() {
+  await connection();
   const books = await getLatestBooks(12);
 
   if (books.length === 0) {
@@ -530,6 +535,7 @@ async function LatestBooksShelf() {
 }
 
 async function TrendingBooksShelf() {
+  await connection();
   const books = await getTrendingBooks(12);
 
   if (books.length === 0) {

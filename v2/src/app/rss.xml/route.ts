@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getBlogList } from "@/db/queries/blog";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dklist.com";
@@ -22,6 +23,16 @@ function toRfc822(dateStr: string): string {
  * source (getBlogList) the public blog list page already uses.
  */
 export async function GET() {
+  // Even though getBlogList() itself is `'use cache'`, Next still tries to
+  // populate that cache once during the build's static-prerender pass,
+  // which needs a real DB connection at BUILD time - fine on a dev machine
+  // where .env.local happens to be present, but wrong in a real deploy
+  // (a Docker build has no DB access, and .env.local is gitignored/
+  // dockerignored on purpose - production credentials don't belong baked
+  // into a build layer). `connection()` defers this route to request time
+  // instead, matching the same fix already applied to the homepage's
+  // BookOfMonthWidget for the same underlying reason.
+  await connection();
   const { items } = await getBlogList(1, 20, "");
 
   const itemsXml = items

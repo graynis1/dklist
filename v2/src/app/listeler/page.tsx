@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
@@ -25,6 +26,7 @@ export default function ListsBrowsePage() {
 }
 
 async function ListsBrowseContent() {
+  await connection();
   const lists = await getPublicLists();
 
   if (lists.length === 0) {

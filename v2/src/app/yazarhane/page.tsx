@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
@@ -37,6 +38,7 @@ function YazarhaneSkeleton() {
 }
 
 async function YazarhaneContent() {
+  await connection();
   const [members, posts] = await Promise.all([getAuthorMembers(), getRecentAuthorPosts(20)]);
 
   return (

@@ -1,0 +1,8 @@
+node_modules
+.next
+uploads
+.env.local
+.git
+*.test.ts
+scripts
+db-sanity-check.mts

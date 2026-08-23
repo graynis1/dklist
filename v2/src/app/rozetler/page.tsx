@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { getPublicBadgeGallery } from "@/db/queries/badges-public";
@@ -24,6 +25,7 @@ export default function BadgeGalleryPage() {
 }
 
 async function BadgeGalleryContent() {
+  await connection();
   const gallery = await getPublicBadgeGallery();
 
   if (gallery.length === 0) {

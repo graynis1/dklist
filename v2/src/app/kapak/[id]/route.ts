@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
-import os from "node:os";
 import path from "node:path";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { db } from "@/db";
@@ -11,7 +10,15 @@ import { book } from "@/db/schema";
 // that shows a cover points here instead. Resolves the real source at request time,
 // caches the bytes to disk, and streams them back so the origin never appears in
 // any network request the browser can see.
-const CACHE_DIR = path.join(os.tmpdir(), "dklist-v2-cover-cache");
+//
+// Cache lives under the same `uploads/` root every other upload/cache path in
+// this app uses (avatar/blog/badge/etc.) - NOT os.tmpdir(). A container's temp
+// dir is ephemeral (wiped on restart/redeploy on most setups), which would
+// silently defeat caching in production and re-hit the real Open Library/
+// Amazon origin on every restart; `uploads/` is the directory this project
+// already mounts as a persistent Docker volume for exactly this reason
+// (matches v1's own dedicated `cover_cache_data` volume).
+const CACHE_DIR = path.join(process.cwd(), "uploads", "cover-cache");
 
 export async function GET(
   _request: NextRequest,

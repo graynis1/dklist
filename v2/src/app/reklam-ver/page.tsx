@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { AdInquiryForm } from "@/components/dklist/ad-inquiry-form";
@@ -33,6 +34,7 @@ export default function AdvertiseWithUsPage() {
 }
 
 async function StatsSection() {
+  await connection();
   const stats = await getSiteStatsForAdvertisers();
 
   const items = [
