@@ -4,15 +4,7 @@ import { db } from "@/db";
 import { book, publisher } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { deleteBookCascade } from "@/db/queries/entity-delete-cascade";
-
-function slugify(input: string): string {
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
-  return input
-    .replace(/[çğıöşüİÇĞÖŞÜ]/g, (c) => map[c] ?? c)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+import { slugify } from "@/lib/slugify";
 
 export interface PublisherListItem {
   id: number;

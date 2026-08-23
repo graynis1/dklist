@@ -6,6 +6,7 @@ import { bookClub, bookClubMember, user, book, writerBook, writer } from "@/db/s
 import { isDuplicateKeyError } from "@/lib/db-errors";
 import { hasRole, USER_TYPES } from "@/lib/roles";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { slugify } from "@/lib/slugify";
 
 /**
  * Book clubs / group reading - maintainer's explicit ask, built from scratch
@@ -25,15 +26,6 @@ import { awardPoints, getPointSettings } from "@/db/queries/points";
  * the owner on creation (implicit self-join) and to anyone joining via
  * joinClub(), keyed per (user, club) so it can never double-award.
  */
-
-function slugify(input: string): string {
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
-  return input
-    .replace(/[çğıöşüİÇĞÖŞÜ]/g, (c) => map[c] ?? c)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 function nowSql(): string {
   return new Date().toISOString().slice(0, 19).replace("T", " ");

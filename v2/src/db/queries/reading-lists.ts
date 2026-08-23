@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { readingList, readingListBook, book, user, writerBook, writer } from "@/db/schema";
 import { isDuplicateKeyError } from "@/lib/db-errors";
+import { slugify } from "@/lib/slugify";
 
 /**
  * Kürasyonlu okuma listeleri (Letterboxd "Lists" style) - fifth item from
@@ -11,14 +12,6 @@ import { isDuplicateKeyError } from "@/lib/db-errors";
  * - a list is a curated, shareable collection with its own title/
  * description, e.g. "Yılın en iyi 10 fantastik kitabı".
  */
-function slugify(input: string): string {
-  const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
-  return input
-    .replace(/[çğıöşüİÇĞÖŞÜ]/g, (c) => map[c] ?? c)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 function nowSql(): string {
   return new Date().toISOString().slice(0, 19).replace("T", " ");
