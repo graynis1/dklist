@@ -1,15 +1,13 @@
 FROM php:8.2-apache
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git unzip libicu-dev libzip-dev curl \
+        git unzip libicu-dev libzip-dev \
     && docker-php-ext-install intl pdo_mysql zip opcache \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/* \
     && mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && sed -ri -e 's/^variables_order = .*/variables_order = "EGPCS"/' "$PHP_INI_DIR/php.ini" \
-    && sed -ri -e 's/^memory_limit = .*/memory_limit = 512M/' "$PHP_INI_DIR/php.ini" \
-    && curl -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-    && chmod +x /usr/local/bin/cloudflared
+    && sed -ri -e 's/^memory_limit = .*/memory_limit = 1536M/' "$PHP_INI_DIR/php.ini"
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -21,7 +19,7 @@ WORKDIR /app
 COPY . /app
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
-    && mkdir -p var/cache var/log uploads \
+    && mkdir -p var/cache var/log var/app_cache uploads \
     && chmod -R 777 var uploads
 
 RUN sed -ri -e 's!DocumentRoot /var/www/html!DocumentRoot /app/public!g' /etc/apache2/sites-available/*.conf \
@@ -29,25 +27,19 @@ RUN sed -ri -e 's!DocumentRoot /var/www/html!DocumentRoot /app/public!g' /etc/ap
     && sed -ri -e 's!Listen 80!Listen ${PORT}!g' /etc/apache2/ports.conf \
     && sed -ri -e 's!:80>!:${PORT}>!g' /etc/apache2/sites-available/*.conf
 
-# Force a single Apache worker process. Debian's default prefork MPM starts 5 children, each
-# with its own separate pool of persistent DB connections - most requests would still hit a
-# "cold" child that has to pay the full tunnel handshake again. Pinning to exactly one worker
-# makes every request reuse the same already-established connection.
-RUN sed -ri -e 's/StartServers\s+[0-9]+/StartServers 1/' \
-             -e 's/MinSpareServers\s+[0-9]+/MinSpareServers 1/' \
-             -e 's/MaxSpareServers\s+[0-9]+/MaxSpareServers 1/' \
-             -e 's/MaxRequestWorkers\s+[0-9]+/MaxRequestWorkers 1/' \
-             /etc/apache2/mods-available/mpm_prefork.conf
-
-# cache:clear/schema sync need the real DATABASE_URL, which only exists at runtime (not during
-# this Docker build), and the free tier has no shell/pre-deploy-command access - so both run on
-# every boot instead. The existing migration history is incomplete (it's missing the table the
-# very first migration depends on), so schema:update --force syncs straight from the entity
-# mappings instead of replaying migrations; it's idempotent, safe to run on every boot.
-# NOTE: intentionally NOT --complete - that flag drops any table/column not in the entity
-# mappings, which would wipe out the bulk-import staging tables on every container restart.
-# DATABASE_URL points at 127.0.0.1:3307 in this container. cloudflared-access proxies that
-# local port through the Cloudflare Tunnel to the real MySQL server (which sits behind CGNAT
-# with no reachable public IP) - this replaces the ngrok tunnel, which started refusing
-# connections specifically from Render's cloud IP range after sustained use.
-CMD ["sh", "-c", "cloudflared access tcp --hostname mysql.esenlikic.xyz --url 127.0.0.1:3307 & sleep 5; php bin/console cache:clear --env=prod --no-debug; php bin/console doctrine:schema:update --force --no-interaction; apache2-foreground"]
+# REMOVED 2026-08-24: `doctrine:schema:update --force` on every boot was a live
+# production incident, not a theoretical risk - v2 (a separate app sharing this
+# same database) added real columns to tables Doctrine also maps here (user,
+# read, chat, marketplace_settings, notice, advertisement) via hand-written
+# ALTER TABLE migrations. `--force` alone (even without `--complete`) still
+# drops any column present in the DB but absent from Doctrine's own entity
+# mappings - the very next container restart after v2's migrations landed
+# silently wiped every one of those columns back out, with no error for most
+# tables (it only surfaced when it hit `book` and failed loudly trying to drop
+# `idx_book_work`, an FK-protected index it didn't recognize either). This is
+# exactly the failure class this whole rewrite project was started to get away
+# from - see PLAN.md's opening paragraph. If v1's own PHP code ever needs a
+# genuinely new column again, add it with an explicit, reviewed `ALTER TABLE`
+# run once by hand - never let a boot script auto-sync a shared production
+# schema again.
+CMD ["sh", "-c", "php bin/console cache:clear --env=prod --no-debug; apache2-foreground"]
