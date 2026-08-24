@@ -1,8 +1,11 @@
 /**
  * Phase 5 classical duplicate-detection primitives (PLAN.md's 5-stage list,
- * stages 1-3 - stage 4/AI-review is explicitly out of scope until the
- * no-paid-services/self-hosted-model question is resolved, stage 5's manual
- * approval panel already exists at /admin/merge). Pure functions only here -
+ * stages 1-3, plus the pure decision logic for stage 4/AI review - now
+ * unblocked since the no-paid-services/self-hosted-model question was
+ * resolved elsewhere in this session (local CPU-only embeddings, see
+ * src/lib/embeddings.ts, already proven for Book DNA and moderation).
+ * Stage 5's manual approval panel already exists at /admin/merge, plus a
+ * read-only preview UI at /admin/mukerrer-tarama. Pure functions only here -
  * deliberately NOT wired into any full-table scan against the real ~98.5M-row
  * `book` table yet. That table has no index on `isbn` (confirmed via a
  * read-only prod check), so even an exact-match GROUP BY would be a full
@@ -154,6 +157,69 @@ export function titleAuthorSimilarity(
 }
 
 export const DUPLICATE_MATCH_THRESHOLD = 0.95;
+
+/**
+ * Below this, a fuzzy title+author score isn't worth a second opinion at
+ * all - two books this dissimilar are essentially never the same work, and
+ * running the (comparatively expensive) embedding model over every such
+ * pair would just burn CPU for no real signal. A documented judgment call,
+ * same spirit as `DUPLICATE_MATCH_THRESHOLD` itself and the 0.08 margin
+ * chosen for the moderation embedding check (src/lib/moderation.ts).
+ */
+export const AMBIGUOUS_MATCH_FLOOR = 0.75;
+
+export type FuzzyMatchClassification = "confirmed" | "ambiguous" | "no_match";
+
+/**
+ * Sorts a raw `titleAuthorSimilarity()` score into the three buckets stage 4
+ * of the Phase 5 pipeline needs: confidently the same book, confidently not,
+ * or genuinely unclear and worth a second (AI) opinion before either
+ * auto-grouping it or discarding it outright.
+ */
+export function classifyFuzzyMatch(score: number): FuzzyMatchClassification {
+  if (score >= DUPLICATE_MATCH_THRESHOLD) return "confirmed";
+  if (score >= AMBIGUOUS_MATCH_FLOOR) return "ambiguous";
+  return "no_match";
+}
+
+export type AmbiguousReviewVerdict = "confirmed" | "rejected" | "needs_manual_review";
+
+/**
+ * Semantic-similarity thresholds for resolving a pair `classifyFuzzyMatch()`
+ * already flagged "ambiguous" - i.e. the real "stage 4 (optional AI review
+ * for residual ambiguous cases only)" decision from PLAN.md's Phase 5 list.
+ * Deliberately conservative on both ends: a high embedding similarity over
+ * two books' descriptions/blurbs is much harder to fake by coincidence than
+ * a title string matching (two unrelated books can share a generic title,
+ * they very rarely share near-identical content descriptions), so it's
+ * trusted to *confirm*; a low similarity is equally trusted to *reject*
+ * (the fuzzy title/author match was almost certainly a false positive - a
+ * common title shared by two unrelated books). Anything in between falls
+ * through to the existing manual-approval panel (stage 5,
+ * /admin/mukerrer-tarama + /admin/merge) rather than guessing - documented
+ * judgment calls, not measured against real labeled data yet (no DB access
+ * in this sandbox to calibrate against), so a local session recalibrating
+ * these against real duplicate/non-duplicate pairs is a reasonable
+ * follow-up once this ships.
+ */
+export const AMBIGUOUS_REVIEW_CONFIRM_FLOOR = 0.92;
+export const AMBIGUOUS_REVIEW_REJECT_CEILING = 0.55;
+
+/**
+ * Combines the classical fuzzy score with an embedding cosine-similarity
+ * score (computed by the caller over e.g. `book.content`, via
+ * `getEmbedding()`/`cosineSimilarity()` in src/lib/embeddings.ts - kept out
+ * of this function so it stays pure and unit-testable without loading the
+ * actual model) to resolve an otherwise-ambiguous candidate pair. Only
+ * meaningful for a pair `classifyFuzzyMatch()` already classified
+ * "ambiguous" - a "confirmed"/"no_match" pair doesn't need a second
+ * opinion, so callers shouldn't invoke this for those.
+ */
+export function reviewAmbiguousMatchWithEmbedding(semanticSimilarity: number): AmbiguousReviewVerdict {
+  if (semanticSimilarity >= AMBIGUOUS_REVIEW_CONFIRM_FLOOR) return "confirmed";
+  if (semanticSimilarity < AMBIGUOUS_REVIEW_REJECT_CEILING) return "rejected";
+  return "needs_manual_review";
+}
 
 /**
  * ISBN check-digit validation + ISBN-10 -> ISBN-13 conversion, so stage 1

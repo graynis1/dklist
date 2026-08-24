@@ -6,8 +6,11 @@ import {
   normalizeTitle,
   normalizeIsbn,
   titleAuthorSimilarity,
-  DUPLICATE_MATCH_THRESHOLD,
+  classifyFuzzyMatch,
+  reviewAmbiguousMatchWithEmbedding,
+  type AmbiguousReviewVerdict,
 } from "@/lib/duplicate-detection";
+import { getEmbedding, cosineSimilarity } from "@/lib/embeddings";
 
 /**
  * Dry-run only - reports candidate duplicate groups, writes nothing. Bounded
@@ -17,7 +20,7 @@ import {
  * PLAN.md's Phase 5 notes: `book.isbn` has no index on the real prod table).
  */
 export interface DuplicateGroup {
-  matchType: "isbn" | "normalized_title" | "fuzzy_title_author";
+  matchType: "isbn" | "normalized_title" | "fuzzy_title_author" | "ambiguous_fuzzy";
   bookIds: number[];
   key: string;
   score?: number;
@@ -28,6 +31,16 @@ export async function findDuplicateCandidatesDryRun(limit = 5000): Promise<{
   isbnGroups: DuplicateGroup[];
   normalizedTitleGroups: DuplicateGroup[];
   fuzzyGroups: DuplicateGroup[];
+  /**
+   * Phase 5 stage 4 candidates: pairs `classifyFuzzyMatch()` scored
+   * "ambiguous" - too similar to ignore, not similar enough to
+   * auto-confirm. Each is a bare 2-book pair (not merged into a larger
+   * group the way confirmed matches are, since an unconfirmed pair
+   * shouldn't be transitively chained with another unconfirmed pair).
+   * `resolveAmbiguousGroupWithAi()` below is the actual stage-4 resolver
+   * for one of these; this function only detects and reports them.
+   */
+  ambiguousGroups: DuplicateGroup[];
 }> {
   const rows = await db
     .select({ id: book.id, name: book.name, isbn: book.isbn })
@@ -94,6 +107,7 @@ export async function findDuplicateCandidatesDryRun(limit = 5000): Promise<{
   }
 
   const fuzzyGroups: DuplicateGroup[] = [];
+  const ambiguousGroups: DuplicateGroup[] = [];
   const consumed = new Set<number>();
   for (let i = 0; i < fuzzyCandidates.length; i++) {
     const a = fuzzyCandidates[i];
@@ -108,9 +122,15 @@ export async function findDuplicateCandidatesDryRun(limit = 5000): Promise<{
         b.name,
         authorsByBook.get(b.id) ?? [],
       );
-      if (score >= DUPLICATE_MATCH_THRESHOLD) {
+      const classification = classifyFuzzyMatch(score);
+      if (classification === "confirmed") {
         group.push(b.id);
         consumed.add(b.id);
+      } else if (classification === "ambiguous") {
+        // Not consumed - an unresolved pair shouldn't block either book
+        // from also being considered against other candidates, and
+        // shouldn't be silently folded into a confirmed group.
+        ambiguousGroups.push({ matchType: "ambiguous_fuzzy", bookIds: [a.id, b.id], key: normalizeTitle(a.name), score });
       }
     }
     if (group.length > 1) {
@@ -119,5 +139,47 @@ export async function findDuplicateCandidatesDryRun(limit = 5000): Promise<{
     }
   }
 
-  return { scanned: rows.length, isbnGroups, normalizedTitleGroups, fuzzyGroups };
+  return { scanned: rows.length, isbnGroups, normalizedTitleGroups, fuzzyGroups, ambiguousGroups };
+}
+
+/**
+ * Phase 5 stage 4: resolves one `ambiguous_fuzzy` pair (from the
+ * `ambiguousGroups` above) using the local embedding model over each
+ * book's `content` (description/blurb) - see src/lib/embeddings.ts for why
+ * this is CPU-only/self-hosted, no paid API. Falls back to the book's own
+ * `name` when `content` is empty (a real, common case - many catalog rows
+ * have no blurb at all), since some signal beats none; if BOTH books have
+ * no content, there's nothing for the embedding model to compare beyond
+ * what the classical fuzzy stage already scored, so this returns
+ * "needs_manual_review" without calling the model at all.
+ *
+ * NOT runnable or verifiable in this cloud sandbox - no DATABASE_URL, and
+ * the embedding model needs its one-time download (no network policy
+ * assumption should be made here either). Type-checks cleanly against the
+ * real schema/embeddings module; a local session should Playwright/DB
+ * -verify this against real ambiguous pairs (the duplicate-review-panel
+ * placeholder data at /admin/mukerrer-tarama has no ambiguous example yet
+ * either - worth adding one there once this is verified) before trusting
+ * its verdicts in the admin panel.
+ */
+export async function resolveAmbiguousGroupWithAi(group: DuplicateGroup): Promise<AmbiguousReviewVerdict> {
+  if (group.matchType !== "ambiguous_fuzzy" || group.bookIds.length !== 2) {
+    throw new Error("resolveAmbiguousGroupWithAi() expects a single ambiguous_fuzzy pair");
+  }
+  const [idA, idB] = group.bookIds;
+  const rows = await db
+    .select({ id: book.id, name: book.name, content: book.content })
+    .from(book)
+    .where(inArray(book.id, [idA, idB]));
+  const a = rows.find((r) => r.id === idA);
+  const b = rows.find((r) => r.id === idB);
+  if (!a || !b) throw new Error("resolveAmbiguousGroupWithAi(): one or both books no longer exist");
+
+  const textA = (a.content?.trim() || a.name).trim();
+  const textB = (b.content?.trim() || b.name).trim();
+  if (!textA || !textB) return "needs_manual_review";
+
+  const [embeddingA, embeddingB] = await Promise.all([getEmbedding(textA), getEmbedding(textB)]);
+  const semanticSimilarity = cosineSimilarity(embeddingA, embeddingB);
+  return reviewAmbiguousMatchWithEmbedding(semanticSimilarity);
 }
