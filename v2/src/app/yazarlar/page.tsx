@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
@@ -66,7 +66,13 @@ async function WriterList({
                 className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
               >
                 <EntityAvatar id={w.id} name={w.name} />
-                <span className="truncate text-sm font-medium">{w.name}</span>
+                <div className="flex flex-col gap-0.5 overflow-hidden">
+                  <span className="truncate text-sm font-medium">{w.name}</span>
+                  <div className="flex items-center gap-1 text-xs">
+                    <StarRating value={w.score} />
+                    <span className="text-muted-foreground">{w.score.toFixed(1)}/10</span>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
