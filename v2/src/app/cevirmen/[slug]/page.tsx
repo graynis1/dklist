@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { EntityLikeButton } from "@/components/dklist/entity-like-button";
 import { RateEntityControl } from "@/components/dklist/rate-entity-control";
 import { EntityComments } from "@/components/dklist/entity-comments";
@@ -81,19 +81,10 @@ async function TranslatorContent({
     getCommentLikeStates(userId, quoteIds),
   ]);
   const repliesByQuoteObj = Object.fromEntries(repliesByQuote);
-  const initials = translator.name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
     <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center">
-        <Avatar className="size-20 text-xl">
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
+        <EntityAvatar id={translator.id} name={translator.name} size="size-20" className="text-xl" />
         <div className="flex flex-col gap-2">
           <SectionLabel>Çevirmen</SectionLabel>
           <h1 className="font-heading text-4xl font-medium tracking-tight">

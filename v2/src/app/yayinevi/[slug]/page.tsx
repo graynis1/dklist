@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { BookCover, toneForId } from "@/components/dklist/book-cover";
+import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Button } from "@/components/ui/button";
 import { getPublisherBySlug, getBooksByPublisher } from "@/db/queries/publishers";
@@ -56,12 +56,23 @@ async function PublisherContent({
         }}
       />
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <SectionLabel>Yayınevi</SectionLabel>
-          <h1 className="font-heading text-4xl font-medium tracking-tight">
-            {publisher.name}
-          </h1>
-          <p className="text-muted-foreground">{books.length} kitap</p>
+        <div className="flex items-center gap-5">
+          <span
+            className="flex size-16 shrink-0 items-center justify-center rounded-xl text-xl font-semibold"
+            style={{
+              backgroundColor: TONE_STYLE[toneForId(publisher.id)].bg,
+              color: TONE_STYLE[toneForId(publisher.id)].fg,
+            }}
+          >
+            {publisher.name.slice(0, 2).toUpperCase()}
+          </span>
+          <div className="flex flex-col gap-2">
+            <SectionLabel>Yayınevi</SectionLabel>
+            <h1 className="font-heading text-4xl font-medium tracking-tight">
+              {publisher.name}
+            </h1>
+            <p className="text-muted-foreground">{books.length} kitap</p>
+          </div>
         </div>
         <Button variant="outline">Takip Et</Button>
       </div>

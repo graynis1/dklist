@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { getWriterList } from "@/db/queries/writers";
 
 export default function WriterListPage({ searchParams }: PageProps<"/yazarlar">) {
@@ -65,9 +65,7 @@ async function WriterList({
                 href={`/yazar/${w.slug}`}
                 className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
               >
-                <Avatar className="size-9 text-sm">
-                  <AvatarFallback>{w.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <EntityAvatar id={w.id} name={w.name} />
                 <span className="truncate text-sm font-medium">{w.name}</span>
               </Link>
             ))}

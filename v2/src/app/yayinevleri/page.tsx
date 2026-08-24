@@ -5,6 +5,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getPublisherList } from "@/db/queries/publishers";
+import { toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 
 export default function PublisherListPage({ searchParams }: PageProps<"/yayinevleri">) {
   return (
@@ -58,15 +59,25 @@ async function PublisherList({
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {items.map((p) => (
-              <Link
-                key={p.id}
-                href={`/yayinevi/${p.slug}`}
-                className="truncate rounded-lg border border-border p-3 text-sm font-medium transition-colors hover:bg-accent"
-              >
-                {p.name}
-              </Link>
-            ))}
+            {items.map((p) => {
+              const tone = toneForId(p.id);
+              const t = TONE_STYLE[tone];
+              return (
+                <Link
+                  key={p.id}
+                  href={`/yayinevi/${p.slug}`}
+                  className="flex items-center gap-3 truncate rounded-lg border border-border p-3 text-sm font-medium transition-colors hover:bg-accent"
+                >
+                  <span
+                    className="flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold"
+                    style={{ backgroundColor: t.bg, color: t.fg }}
+                  >
+                    {p.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="truncate">{p.name}</span>
+                </Link>
+              );
+            })}
           </div>
 
           {lastPage > 1 && (
