@@ -19,6 +19,7 @@ const SECTIONS: { title: string; links: { href: string; label: string }[] }[] = 
   {
     title: "Topluluk",
     links: [
+      { href: "/akis", label: "Akış" },
       { href: "/askida-kitap", label: "Askıda Kitap" },
       { href: "/kulupler", label: "Kulüpler" },
       { href: "/listeler", label: "Listeler" },

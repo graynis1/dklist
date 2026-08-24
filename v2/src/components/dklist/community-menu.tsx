@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const COMMUNITY_LINKS = [
+  { href: "/akis", label: "Akış" },
   { href: "/cevirmenler", label: "Çevirmenler" },
   { href: "/askida-kitap", label: "Askıda Kitap" },
   { href: "/kulupler", label: "Kulüpler" },

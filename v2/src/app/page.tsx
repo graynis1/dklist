@@ -789,11 +789,19 @@ export default function Home() {
       {/* Recent activity feed - comments/quotes referencing a book pull that
           book's cover thumbnail in, 1000kitap-style. */}
       <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
-        <div className="mb-8 flex flex-col gap-2">
-          <SectionLabel>Akış</SectionLabel>
-          <h2 className="font-heading text-3xl font-medium tracking-tight">
-            Son Etkinlikler
-          </h2>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <SectionLabel>Akış</SectionLabel>
+            <h2 className="font-heading text-3xl font-medium tracking-tight">
+              Son Etkinlikler
+            </h2>
+          </div>
+          <Link
+            href="/akis"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Tüm Akışı Gör →
+          </Link>
         </div>
 
         <Suspense fallback={<ActivityFeedSkeleton />}>
