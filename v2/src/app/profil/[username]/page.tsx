@@ -1,8 +1,24 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  UsersIcon,
+  UserPlusIcon,
+  TrophyIcon,
+  ClockIcon,
+  FlameIcon,
+  BookOpenIcon,
+  CheckCircle2Icon,
+  BookmarkIcon,
+  XCircleIcon,
+  LibraryIcon,
+  HeartIcon,
+  Building2Icon,
+  NewspaperIcon,
+  TargetIcon,
+  MessageCircleIcon,
+} from "lucide-react";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
@@ -44,6 +60,13 @@ const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
   "yarida-birakildi": "Yarıda Bıraktım",
 };
 
+const STATUS_ICONS: Record<(typeof READ_STATUSES)[number], typeof BookOpenIcon> = {
+  okudum: CheckCircle2Icon,
+  okuyorum: BookOpenIcon,
+  okuyacagim: BookmarkIcon,
+  "yarida-birakildi": XCircleIcon,
+};
+
 export default function ProfilePage({ params }: PageProps<"/profil/[username]">) {
   return (
     <div className="flex-1 bg-background">
@@ -57,7 +80,7 @@ export default function ProfilePage({ params }: PageProps<"/profil/[username]">)
 
 function ProfileSkeleton() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
+    <div className="mx-auto max-w-5xl px-6 py-16">
       <div className="flex items-center gap-4">
         <div className="size-20 animate-pulse rounded-full bg-muted" />
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />
@@ -138,372 +161,364 @@ async function ProfileContent({
   const canSeeDetails = isOwnProfile || viewerFollows || !profile.privacy;
 
   const tone = TONE_STYLE[toneForId(profile.id)];
+  const topBadgeName = veteranTier ? "Emekter" : (userBadges.at(-1)?.name ?? null);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10 sm:py-16">
-      <div
-        className="relative h-32 overflow-hidden rounded-2xl sm:h-40"
-        style={{
-          background: `linear-gradient(135deg, ${tone.bg} 0%, color-mix(in oklch, ${tone.bg}, black 35%) 100%)`,
-        }}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-white/10" />
-        <div
-          className="pointer-events-none absolute -top-10 -right-10 size-40 rounded-full opacity-30 blur-2xl"
-          style={{ backgroundColor: tone.rule }}
-        />
-      </div>
-
-      <div className="mb-4 flex flex-col gap-4 px-1 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
-        <div className="-mt-12 flex items-end gap-4 sm:mt-0">
-          <Avatar
-            className="size-24 shrink-0 text-2xl ring-4 ring-background sm:size-28"
+    <div className="mx-auto max-w-[1400px] px-6 py-10 sm:py-16">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[300px_1fr]">
+        {/* ---- Sol: profil kartı (Bionluk tarzı sabit kimlik kartı) ---- */}
+        <aside className="flex flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card lg:sticky lg:top-24">
+          <div
+            className="relative h-16"
             style={{
-              backgroundColor: tone.bg,
-              color: tone.fg,
-              boxShadow: profile.profileFrame ? `0 0 0 3px ${profile.profileFrame}` : undefined,
+              background: `linear-gradient(135deg, ${tone.bg} 0%, color-mix(in oklch, ${tone.bg}, black 35%) 100%)`,
             }}
           >
-            <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
-            <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col gap-1.5 pb-1">
-            <h1 className="flex items-center gap-1.5 font-heading text-2xl font-medium tracking-tight sm:text-3xl">
+            <div
+              className="pointer-events-none absolute -top-6 -right-6 size-24 rounded-full opacity-30 blur-xl"
+              style={{ backgroundColor: tone.rule }}
+            />
+          </div>
+
+          <div className="-mt-10 flex flex-col items-center gap-2 px-5 text-center">
+            <Avatar
+              className="size-20 text-xl ring-4 ring-card"
+              style={{
+                backgroundColor: tone.bg,
+                color: tone.fg,
+                boxShadow: profile.profileFrame ? `0 0 0 3px ${profile.profileFrame}` : undefined,
+              }}
+            >
+              <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
+              <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
+            </Avatar>
+            <h1 className="flex items-center gap-1 font-heading text-xl font-medium tracking-tight">
               @{profile.username}
               {profile.verified && (
                 <span
                   title="Doğrulanmış resmi profil"
-                  className="inline-flex size-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white"
+                  className="inline-flex size-4 items-center justify-center rounded-full bg-blue-500 text-[0.6rem] text-white"
                 >
                   ✓
                 </span>
               )}
-              {isPremium && (
-                <span
-                  title="DKList Premium üye"
-                  className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-2 py-0.5 text-xs font-medium text-white"
-                >
-                  ★ Premium
-                </span>
-              )}
             </h1>
-            {(userBadges.length > 0 || veteranTier) && (
-              <div className="flex flex-wrap gap-1.5">
-                {veteranTier && (
-                  <span
-                    title="Son 30 gün içindeki etkinliğe göre - düşen etkinlikle kaybolabilir"
-                    className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+            {(topBadgeName || isPremium) && (
+              <p className="text-xs font-medium text-muted-foreground">
+                {isPremium && <span className="text-amber-500">★ Premium</span>}
+                {isPremium && topBadgeName && " · "}
+                {topBadgeName}
+              </p>
+            )}
+
+            <div className="mt-1 flex w-full flex-col gap-2">
+              {viewerId && !isOwnProfile && (
+                <>
+                  <Link
+                    href={`/mesajlar?user=${profile.username}`}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
                   >
-                    🔥 Emekter
-                  </span>
+                    <MessageCircleIcon className="size-4" />
+                    Mesaj Yaz
+                  </Link>
+                  <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} className="w-full" />
+                </>
+              )}
+              {isOwnProfile && (
+                <Link
+                  href="/profil/duzenle"
+                  className="flex w-full items-center justify-center rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  Profili Düzenle
+                </Link>
+              )}
+            </div>
+
+            {viewerId && !isOwnProfile && (
+              <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground">
+                <ReportUserButton targetUserId={profile.id} />
+                <BlockUserButton targetUserId={profile.id} initialBlocked={viewerHasBlocked} />
+                {viewerIsAdmin && (
+                  <VerifiedToggleButton targetUserId={profile.id} initialVerified={profile.verified} />
                 )}
-                {userBadges.map((b) => (
-                  <span
-                    key={b.id}
-                    title={b.comment}
-                    className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
-                  >
-                    {b.img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/api/badge-image/${b.img}`} alt="" className="size-4 rounded-full object-cover" />
-                    ) : (
-                      "🏅"
-                    )}{" "}
-                    {b.name}
-                  </span>
-                ))}
               </div>
             )}
           </div>
-        </div>
 
-        {viewerId && !isOwnProfile && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={`/mesajlar?user=${profile.username}`}
-              className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
-            >
-              Mesaj Yaz
-            </Link>
-            <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} />
-            <ReportUserButton targetUserId={profile.id} />
-            <BlockUserButton targetUserId={profile.id} initialBlocked={viewerHasBlocked} />
-            {viewerIsAdmin && (
-              <VerifiedToggleButton targetUserId={profile.id} initialVerified={profile.verified} />
-            )}
-          </div>
-        )}
-        {isOwnProfile && (
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <Link href="/ilanlarim" className="underline hover:text-foreground">
-              İlanlarım
-            </Link>
-            <Link href="/favorilerim" className="underline hover:text-foreground">
-              Favorilerim
-            </Link>
-            <Link href="/profil/duzenle" className="underline hover:text-foreground">
-              Profili düzenle
-            </Link>
-            <Link href="/ice-aktar" className="underline hover:text-foreground">
-              Goodreads&apos;ten İçe Aktar
-            </Link>
-          </div>
-        )}
-      </div>
-
-      <div className="mb-6 flex flex-wrap gap-2">
-        <StatChip href={`/profil/${profile.username}/takipciler`} value={counts.followers} label="takipçi" />
-        <StatChip href={`/profil/${profile.username}/takip-edilenler`} value={counts.following} label="takip" />
-        <StatChip href="/puan-tablosu" value={totalPoints} label="puan" />
-        {totalReadingMinutes > 0 && (
-          <StatChip
-            value={`${Math.floor(totalReadingMinutes / 60)}s ${totalReadingMinutes % 60}d`}
-            label="okuma süresi"
-          />
-        )}
-      </div>
-
-      {profile.biyo && (
-        <p className="mb-6 max-w-xl leading-relaxed text-muted-foreground">
-          {profile.biyo}
-        </p>
-      )}
-
-      {!canSeeDetails ? (
-        <p className="rounded-lg border border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
-          Bu hesap gizli. Okuma durumunu, kitaplığını ve etkinliğini görmek için takip et.
-        </p>
-      ) : (
-        <>
-      {activityHeatmap.length > 0 && (
-        <div className="mb-6">
-          {activityStreak > 0 && (
-            <p className="mb-2 text-sm font-medium">
-              🔥 {activityStreak} gün üst üste aktif
+          {profile.biyo && (
+            <p className="border-t border-border px-5 py-4 text-sm leading-relaxed text-muted-foreground">
+              {profile.biyo}
             </p>
           )}
-          <ActivityHeatmap days={activityHeatmap} />
+
+          <div className="flex flex-col divide-y divide-border border-t border-border text-sm">
+            <SidebarStatRow
+              icon={UsersIcon}
+              label="Takipçi"
+              value={counts.followers}
+              href={`/profil/${profile.username}/takipciler`}
+            />
+            <SidebarStatRow
+              icon={UserPlusIcon}
+              label="Takip"
+              value={counts.following}
+              href={`/profil/${profile.username}/takip-edilenler`}
+            />
+            <SidebarStatRow icon={TrophyIcon} label="Puan" value={totalPoints} href="/puan-tablosu" />
+            {totalReadingMinutes > 0 && (
+              <SidebarStatRow
+                icon={ClockIcon}
+                label="Okuma Süresi"
+                value={`${Math.floor(totalReadingMinutes / 60)}s ${totalReadingMinutes % 60}d`}
+              />
+            )}
+            {activityStreak > 0 && (
+              <SidebarStatRow icon={FlameIcon} label="Aktiflik Serisi" value={`${activityStreak} gün`} />
+            )}
+          </div>
+
+          {isOwnProfile && (
+            <div className="flex flex-col divide-y divide-border border-t border-border text-sm">
+              <SidebarLinkRow href="/ilanlarim" label="İlanlarım" />
+              <SidebarLinkRow href="/favorilerim" label="Favorilerim" />
+              <SidebarLinkRow href="/ice-aktar" label="Goodreads'ten İçe Aktar" />
+            </div>
+          )}
+        </aside>
+
+        {/* ---- Sağ: içerik ---- */}
+        <div className="flex flex-col gap-6">
+          {!canSeeDetails ? (
+            <div className="rounded-2xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+              Bu hesap gizli. Okuma durumunu, kitaplığını ve etkinliğini görmek için takip et.
+            </div>
+          ) : (
+            <>
+              {sharedReadBooks.length > 0 && (
+                <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                  İkinizin de okuduğu {sharedReadBooks.length === 1 ? "kitap" : `${sharedReadBooks.length} kitap`}:{" "}
+                  {sharedReadBooks.map((b, i) => (
+                    <span key={b.id}>
+                      <Link href={`/kitap/${b.slug}`} className="font-medium text-foreground hover:underline">
+                        {b.name}
+                      </Link>
+                      {i < sharedReadBooks.length - 1 ? ", " : ""}
+                    </span>
+                  ))}
+                </p>
+              )}
+
+              {activityHeatmap.length > 0 && (
+                <SectionCard title="Aktivite" icon={FlameIcon}>
+                  <ActivityHeatmap days={activityHeatmap} />
+                </SectionCard>
+              )}
+
+              <SectionCard title="2026 Okuma Hedefi" icon={TargetIcon}>
+                <div className="flex flex-col gap-3">
+                  <ReadingGoalControl isOwnProfile={isOwnProfile} initialGoal={readingGoal} />
+                  {pastGoals.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Geçmiş yıllar:{" "}
+                      {pastGoals.map((g) => `${g.year}: ${g.readCount}/${g.targetCount}`).join(", ")}
+                    </p>
+                  )}
+                  {isOwnProfile && readingScoreStats && (readingScoreStats.booksRead > 0 || readingScoreStats.totalMinutes > 0) && (
+                    <ReadingScoreCard username={profile.username} stats={readingScoreStats} />
+                  )}
+                  {isOwnProfile && totalPoints > 0 && (
+                    <PointsShareCard
+                      username={profile.username}
+                      stats={{
+                        totalPoints,
+                        weeklyPoints: weeklyRank?.points ?? 0,
+                        weeklyRank: weeklyRank?.rank ?? null,
+                        streakDays: activityStreak,
+                      }}
+                    />
+                  )}
+                </div>
+              </SectionCard>
+
+              {/* xl+ ekranlarda iki sütuna yayılır - dar tek sütun geniş
+                  ekranlarda boşluk bırakıyordu ("sayfa bomboş kaldı"). */}
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                {READ_STATUSES.every((s) => booksByStatus[s].length === 0) && libraryBooks.length === 0 && (
+                  <SectionCard title="Kütüphane" icon={LibraryIcon}>
+                    <p className="text-sm text-muted-foreground">Henüz bir kitaba okuma durumu eklenmemiş.</p>
+                  </SectionCard>
+                )}
+
+                {READ_STATUSES.map((status) => {
+                  const books = booksByStatus[status];
+                  if (books.length === 0) return null;
+                  return (
+                    <SectionCard key={status} title={STATUS_LABELS[status]} icon={STATUS_ICONS[status]} count={books.length}>
+                      <BookShelf books={books} />
+                    </SectionCard>
+                  );
+                })}
+
+                {libraryBooks.length > 0 && (
+                  // Deliberately its own section, not merged into the reading-status
+                  // groups above - ownership (kitaplığım) and reading status are
+                  // independent facts per the customer's explicit ask.
+                  <SectionCard title="Kitaplığım" icon={LibraryIcon} count={libraryBooks.length}>
+                    <BookShelf books={libraryBooks} />
+                  </SectionCard>
+                )}
+
+                {likedWriters.length > 0 && (
+                  <SectionCard title="Beğenilen Yazarlar" icon={HeartIcon} count={likedWriters.length}>
+                    <EntityChipShelf items={likedWriters} hrefPrefix="/yazar" />
+                  </SectionCard>
+                )}
+
+                {likedTranslators.length > 0 && (
+                  <SectionCard title="Beğenilen Çevirmenler" icon={HeartIcon} count={likedTranslators.length}>
+                    <EntityChipShelf items={likedTranslators} hrefPrefix="/cevirmen" />
+                  </SectionCard>
+                )}
+
+                {likedPublishers.length > 0 && (
+                  <SectionCard title="Takip Edilen Yayınevleri" icon={Building2Icon} count={likedPublishers.length}>
+                    <EntityChipShelf items={likedPublishers} hrefPrefix="/yayinevi" />
+                  </SectionCard>
+                )}
+              </div>
+
+              {ownerBlogs.length > 0 && (
+                <SectionCard title="Blog Yazıları" icon={NewspaperIcon} count={ownerBlogs.length}>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {ownerBlogs.map((b) => {
+                      const t = TONE_STYLE[toneForId(b.id)];
+                      return (
+                        <Link
+                          key={b.id}
+                          href={`/blog/${b.slug}`}
+                          className="group flex overflow-hidden rounded-lg border border-border transition-colors hover:border-foreground/20 hover:bg-accent"
+                        >
+                          <div className="w-1.5 shrink-0" style={{ backgroundColor: t.bg }} />
+                          <div className="flex flex-1 flex-col justify-center gap-1 px-3 py-2.5">
+                            <p className="text-sm font-medium leading-snug">{b.title}</p>
+                            {!b.approved && (
+                              <span className="w-fit rounded-full bg-secondary px-1.5 py-0.5 text-[0.65rem] font-medium text-secondary-foreground">
+                                Onay bekliyor
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </SectionCard>
+              )}
+            </>
+          )}
         </div>
-      )}
-
-      {sharedReadBooks.length > 0 && (
-        <p className="mb-6 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-          İkinizin de okuduğu {sharedReadBooks.length === 1 ? "kitap" : `${sharedReadBooks.length} kitap`}:{" "}
-          {sharedReadBooks.map((b, i) => (
-            <span key={b.id}>
-              <Link href={`/kitap/${b.slug}`} className="font-medium text-foreground hover:underline">
-                {b.name}
-              </Link>
-              {i < sharedReadBooks.length - 1 ? ", " : ""}
-            </span>
-          ))}
-        </p>
-      )}
-
-      <div className="mb-10 flex flex-col gap-2">
-        <ReadingGoalControl isOwnProfile={isOwnProfile} initialGoal={readingGoal} />
-        {pastGoals.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            Geçmiş yıllar:{" "}
-            {pastGoals
-              .map((g) => `${g.year}: ${g.readCount}/${g.targetCount}`)
-              .join(", ")}
-          </p>
-        )}
-        {isOwnProfile && readingScoreStats && (readingScoreStats.booksRead > 0 || readingScoreStats.totalMinutes > 0) && (
-          <div className="mt-2">
-            <ReadingScoreCard username={profile.username} stats={readingScoreStats} />
-          </div>
-        )}
-        {isOwnProfile && totalPoints > 0 && (
-          <div className="mt-2">
-            <PointsShareCard
-              username={profile.username}
-              stats={{
-                totalPoints,
-                weeklyPoints: weeklyRank?.points ?? 0,
-                weeklyRank: weeklyRank?.rank ?? null,
-                streakDays: activityStreak,
-              }}
-            />
-          </div>
-        )}
       </div>
-
-      <div className="flex flex-col gap-10">
-        {READ_STATUSES.map((status) => {
-          const books = booksByStatus[status];
-          if (books.length === 0) return null;
-          return (
-            <BookShelf
-              key={status}
-              title={STATUS_LABELS[status]}
-              count={books.length}
-              books={books}
-            />
-          );
-        })}
-        {READ_STATUSES.every((s) => booksByStatus[s].length === 0) && (
-          <p className="text-sm text-muted-foreground">
-            Henüz bir kitaba okuma durumu eklenmemiş.
-          </p>
-        )}
-
-        {libraryBooks.length > 0 && (
-          // Deliberately its own section, not merged into the reading-status
-          // groups above - ownership (kitaplığım) and reading status are
-          // independent facts per the customer's explicit ask.
-          <BookShelf title="Kitaplığım" count={libraryBooks.length} books={libraryBooks} />
-        )}
-
-        {(likedWriters.length > 0 || likedTranslators.length > 0 || likedPublishers.length > 0) && (
-          <div className="flex flex-col gap-6">
-            {likedWriters.length > 0 && (
-              <EntityChipShelf
-                title="Beğenilen Yazarlar"
-                count={likedWriters.length}
-                items={likedWriters}
-                hrefPrefix="/yazar"
-              />
-            )}
-            {likedTranslators.length > 0 && (
-              <EntityChipShelf
-                title="Beğenilen Çevirmenler"
-                count={likedTranslators.length}
-                items={likedTranslators}
-                hrefPrefix="/cevirmen"
-              />
-            )}
-            {likedPublishers.length > 0 && (
-              <EntityChipShelf
-                title="Takip Edilen Yayınevleri"
-                count={likedPublishers.length}
-                items={likedPublishers}
-                hrefPrefix="/yayinevi"
-              />
-            )}
-          </div>
-        )}
-
-        {ownerBlogs.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <SectionLabel>Blog Yazıları</SectionLabel>
-              <span className="text-sm text-muted-foreground">({ownerBlogs.length})</span>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {ownerBlogs.map((b) => {
-                const t = TONE_STYLE[toneForId(b.id)];
-                return (
-                  <Link
-                    key={b.id}
-                    href={`/blog/${b.slug}`}
-                    className="group flex overflow-hidden rounded-lg border border-border transition-colors hover:border-foreground/20 hover:bg-accent"
-                  >
-                    <div className="w-1.5 shrink-0" style={{ backgroundColor: t.bg }} />
-                    <div className="flex flex-1 flex-col justify-center gap-1 px-3 py-2.5">
-                      <p className="text-sm font-medium leading-snug">{b.title}</p>
-                      {!b.approved && (
-                        <span className="w-fit rounded-full bg-secondary px-1.5 py-0.5 text-[0.65rem] font-medium text-secondary-foreground">
-                          Onay bekliyor
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-        </>
-      )}
     </div>
   );
 }
 
-function StatChip({
-  href,
-  value,
+function SidebarStatRow({
+  icon: Icon,
   label,
+  value,
+  href,
 }: {
-  href?: string;
-  value: number | string;
+  icon: typeof UsersIcon;
   label: string;
+  value: number | string;
+  href?: string;
 }) {
   const content = (
-    <div className="flex flex-col rounded-lg border border-border px-3 py-1.5 transition-colors hover:bg-accent">
-      <span className="font-heading text-base font-medium leading-none">{value}</span>
-      <span className="text-[0.7rem] text-muted-foreground">{label}</span>
+    <div className="flex items-center justify-between gap-2 px-5 py-2.5 transition-colors hover:bg-accent">
+      <span className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="size-4" />
+        {label}
+      </span>
+      <span className="font-medium">{value}</span>
     </div>
   );
   return href ? <Link href={href}>{content}</Link> : content;
 }
 
-function BookShelf({
+function SidebarLinkRow({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="px-5 py-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+      {label}
+    </Link>
+  );
+}
+
+function SectionCard({
   title,
+  icon: Icon,
   count,
-  books,
+  children,
 }: {
   title: string;
-  count: number;
+  icon: typeof UsersIcon;
+  count?: number;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Icon className="size-4 text-primary" />
+        <h2 className="font-heading text-base font-medium tracking-tight">{title}</h2>
+        {count !== undefined && <span className="text-sm text-muted-foreground">({count})</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function BookShelf({
+  books,
+}: {
   books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
 }) {
   return (
-    <div>
-      <div className="mb-3 flex items-center gap-2">
-        <SectionLabel>{title}</SectionLabel>
-        <span className="text-sm text-muted-foreground">({count})</span>
-      </div>
-      <div className="-mx-6 flex gap-4 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {books.map((b) => (
-          <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 shrink-0 flex-col gap-1.5">
-            <BookCover
-              title={b.name}
-              author={b.writers.join(", ") || "Yazar bilinmiyor"}
-              tone={toneForId(b.id)}
-              bookId={b.id}
-              hasImage={b.hasImage}
-              size="sm"
-              className="w-full"
-            />
-            <p className="truncate text-xs font-medium">{b.name}</p>
-          </Link>
-        ))}
-      </div>
+    <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {books.map((b) => (
+        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 shrink-0 flex-col gap-1.5">
+          <BookCover
+            title={b.name}
+            author={b.writers.join(", ") || "Yazar bilinmiyor"}
+            tone={toneForId(b.id)}
+            bookId={b.id}
+            hasImage={b.hasImage}
+            size="sm"
+            className="w-full"
+          />
+          <p className="truncate text-xs font-medium">{b.name}</p>
+        </Link>
+      ))}
     </div>
   );
 }
 
 function EntityChipShelf({
-  title,
-  count,
   items,
   hrefPrefix,
 }: {
-  title: string;
-  count: number;
   items: { id: number; name: string; slug: string }[];
   hrefPrefix: string;
 }) {
   return (
-    <div>
-      <div className="mb-3 flex items-center gap-2">
-        <SectionLabel>{title}</SectionLabel>
-        <span className="text-sm text-muted-foreground">({count})</span>
-      </div>
-      <div className="-mx-6 flex gap-2.5 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {items.map((item) => (
-          <Link
-            key={item.id}
-            href={`${hrefPrefix}/${item.slug}`}
-            className="flex shrink-0 items-center gap-2 rounded-full border border-border py-1 pr-3.5 pl-1 text-sm transition-colors hover:border-foreground/20 hover:bg-accent"
-          >
-            <EntityAvatar id={item.id} name={item.name} size="size-7" />
-            <span className="whitespace-nowrap">{item.name}</span>
-          </Link>
-        ))}
-      </div>
+    <div className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {items.map((item) => (
+        <Link
+          key={item.id}
+          href={`${hrefPrefix}/${item.slug}`}
+          className="flex shrink-0 items-center gap-2 rounded-full border border-border py-1 pr-3.5 pl-1 text-sm transition-colors hover:border-foreground/20 hover:bg-accent"
+        >
+          <EntityAvatar id={item.id} name={item.name} size="size-7" />
+          <span className="whitespace-nowrap">{item.name}</span>
+        </Link>
+      ))}
     </div>
   );
 }

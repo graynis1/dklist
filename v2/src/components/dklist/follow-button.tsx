@@ -7,9 +7,11 @@ import { toggleFollowAction } from "@/app/profil/[username]/actions";
 export function FollowButton({
   targetUserId,
   initialFollowing,
+  className,
 }: {
   targetUserId: number;
   initialFollowing: boolean;
+  className?: string;
 }) {
   const [following, setFollowing] = useState(initialFollowing);
   const [isPending, startTransition] = useTransition();
@@ -17,6 +19,7 @@ export function FollowButton({
   return (
     <Button
       variant={following ? "outline" : "default"}
+      className={className}
       disabled={isPending}
       onClick={() =>
         startTransition(async () => {
