@@ -1,4 +1,4 @@
-import { Suspense, type ReactNode } from "react";
+import { Suspense, type ReactNode, type CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -67,6 +67,33 @@ const STATUS_ICONS: Record<(typeof READ_STATUSES)[number], typeof BookOpenIcon> 
   okuyorum: BookOpenIcon,
   okuyacagim: BookmarkIcon,
   "yarida-birakildi": XCircleIcon,
+};
+
+const SECTION_TINTS = {
+  primary: "bg-primary/10 text-primary",
+  rose: "bg-rose-500/10 text-rose-500",
+  emerald: "bg-emerald-500/10 text-emerald-500",
+  blue: "bg-blue-500/10 text-blue-500",
+  violet: "bg-violet-500/10 text-violet-500",
+  amber: "bg-amber-500/10 text-amber-600",
+  teal: "bg-teal-500/10 text-teal-600",
+  indigo: "bg-indigo-500/10 text-indigo-500",
+} as const;
+
+const STATUS_TINTS: Record<(typeof READ_STATUSES)[number], keyof typeof SECTION_TINTS> = {
+  okudum: "emerald",
+  okuyorum: "blue",
+  okuyacagim: "violet",
+  "yarida-birakildi": "rose",
+};
+
+/** Horizontal-scroll rafların sağ (ve gerekirse sol) kenarını yumuşakça
+ * saydamlaştırır - önceki halde son öğe sert bir kenarda birden kesiliyordu
+ * ("kayboluyor" şikayeti); bu, "burada daha fazlası var, kaydır" sinyalini
+ * gizli scrollbar yerine görsel olarak veriyor. */
+const SCROLL_FADE_STYLE: CSSProperties = {
+  maskImage: "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 24px), transparent 100%)",
+  WebkitMaskImage: "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 24px), transparent 100%)",
 };
 
 export default function ProfilePage({ params }: PageProps<"/profil/[username]">) {
@@ -397,7 +424,7 @@ async function ProfileContent({
               )}
 
               {activityHeatmap.length > 0 && (
-                <SectionCard title="Aktivite" icon={FlameIcon}>
+                <SectionCard title="Aktivite" icon={FlameIcon} tint="rose">
                   <ActivityHeatmap days={activityHeatmap} />
                 </SectionCard>
               )}
@@ -428,9 +455,12 @@ async function ProfileContent({
                 </div>
               </SectionCard>
 
-              {/* xl+ ekranlarda iki sütuna yayılır - dar tek sütun geniş
-                  ekranlarda boşluk bırakıyordu ("sayfa bomboş kaldı"). */}
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+              {/* Tek sütun, tam genişlik - iki sütuna bölmek raflardaki
+                  kitap/yazar satırlarının genişliğini yarıya düşürüp daha
+                  fazlasının kırpılmasına yol açıyordu ("kayboluyor" şikayeti).
+                  Geniş ekranda boşluk kalmasın diye üst container zaten
+                  max-w-[1400px]'e genişletildi - bu yeterli. */}
+              <div className="flex flex-col gap-6">
                 {READ_STATUSES.every((s) => booksByStatus[s].length === 0) && libraryBooks.length === 0 && (
                   <SectionCard title="Kütüphane" icon={LibraryIcon}>
                     <div className="flex flex-col items-center gap-2 py-6 text-center">
@@ -448,7 +478,7 @@ async function ProfileContent({
                   const books = booksByStatus[status];
                   if (books.length === 0) return null;
                   return (
-                    <SectionCard key={status} title={STATUS_LABELS[status]} icon={STATUS_ICONS[status]} count={books.length}>
+                    <SectionCard key={status} title={STATUS_LABELS[status]} icon={STATUS_ICONS[status]} count={books.length} tint={STATUS_TINTS[status]}>
                       <BookShelf books={books} />
                     </SectionCard>
                   );
@@ -458,32 +488,32 @@ async function ProfileContent({
                   // Deliberately its own section, not merged into the reading-status
                   // groups above - ownership (kitaplığım) and reading status are
                   // independent facts per the customer's explicit ask.
-                  <SectionCard title="Kitaplığım" icon={LibraryIcon} count={libraryBooks.length}>
+                  <SectionCard title="Kitaplığım" icon={LibraryIcon} count={libraryBooks.length} tint="amber">
                     <BookShelf books={libraryBooks} />
                   </SectionCard>
                 )}
 
                 {likedWriters.length > 0 && (
-                  <SectionCard title="Beğenilen Yazarlar" icon={HeartIcon} count={likedWriters.length}>
+                  <SectionCard title="Beğenilen Yazarlar" icon={HeartIcon} count={likedWriters.length} tint="rose">
                     <EntityChipShelf items={likedWriters} hrefPrefix="/yazar" />
                   </SectionCard>
                 )}
 
                 {likedTranslators.length > 0 && (
-                  <SectionCard title="Beğenilen Çevirmenler" icon={HeartIcon} count={likedTranslators.length}>
+                  <SectionCard title="Beğenilen Çevirmenler" icon={HeartIcon} count={likedTranslators.length} tint="violet">
                     <EntityChipShelf items={likedTranslators} hrefPrefix="/cevirmen" />
                   </SectionCard>
                 )}
 
                 {likedPublishers.length > 0 && (
-                  <SectionCard title="Takip Edilen Yayınevleri" icon={Building2Icon} count={likedPublishers.length}>
+                  <SectionCard title="Takip Edilen Yayınevleri" icon={Building2Icon} count={likedPublishers.length} tint="teal">
                     <EntityChipShelf items={likedPublishers} hrefPrefix="/yayinevi" />
                   </SectionCard>
                 )}
               </div>
 
               {ownerBlogs.length > 0 && (
-                <SectionCard title="Blog Yazıları" icon={NewspaperIcon} count={ownerBlogs.length}>
+                <SectionCard title="Blog Yazıları" icon={NewspaperIcon} count={ownerBlogs.length} tint="indigo">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {ownerBlogs.map((b) => {
                       const t = TONE_STYLE[toneForId(b.id)];
@@ -557,17 +587,19 @@ function SectionCard({
   title,
   icon: Icon,
   count,
+  tint = "primary",
   children,
 }: {
   title: string;
   icon: typeof UsersIcon;
   count?: number;
+  tint?: keyof typeof SECTION_TINTS;
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">
       <div className="mb-4 flex items-center gap-2.5">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${SECTION_TINTS[tint]}`}>
           <Icon className="size-4" />
         </span>
         <h2 className="font-heading text-base font-medium tracking-tight">{title}</h2>
@@ -584,9 +616,12 @@ function BookShelf({
   books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
 }) {
   return (
-    <div className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      style={SCROLL_FADE_STYLE}
+    >
       {books.map((b) => (
-        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 shrink-0 flex-col gap-1.5">
+        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 shrink-0 flex-col gap-1">
           <BookCover
             title={b.name}
             author={b.writers.join(", ") || "Yazar bilinmiyor"}
@@ -597,6 +632,7 @@ function BookShelf({
             className="w-full"
           />
           <p className="truncate text-xs font-medium">{b.name}</p>
+          <p className="truncate text-[0.7rem] text-muted-foreground">{b.writers.join(", ") || "Yazar bilinmiyor"}</p>
         </Link>
       ))}
     </div>
@@ -611,7 +647,10 @@ function EntityChipShelf({
   hrefPrefix: string;
 }) {
   return (
-    <div className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      style={SCROLL_FADE_STYLE}
+    >
       {items.map((item) => (
         <Link
           key={item.id}
