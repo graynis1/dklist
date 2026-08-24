@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  AMBIGUOUS_MATCH_FLOOR,
+  AMBIGUOUS_REVIEW_CONFIRM_FLOOR,
+  AMBIGUOUS_REVIEW_REJECT_CEILING,
   DUPLICATE_MATCH_THRESHOLD,
+  classifyFuzzyMatch,
   normalizeIsbn,
   normalizeTitle,
+  reviewAmbiguousMatchWithEmbedding,
   stringSimilarity,
   titleAuthorSimilarity,
 } from "./duplicate-detection";
@@ -125,5 +130,42 @@ describe("normalizeIsbn", () => {
 
   it("strips whitespace/punctuation before validating", () => {
     expect(normalizeIsbn("  0261102214  ")).toBe("9780261102217");
+  });
+});
+
+describe("classifyFuzzyMatch (Phase 5 stage 4 triage)", () => {
+  it("classifies a score at/above the duplicate threshold as confirmed", () => {
+    expect(classifyFuzzyMatch(DUPLICATE_MATCH_THRESHOLD)).toBe("confirmed");
+    expect(classifyFuzzyMatch(1)).toBe("confirmed");
+  });
+
+  it("classifies a score in the ambiguous band as ambiguous", () => {
+    expect(classifyFuzzyMatch(AMBIGUOUS_MATCH_FLOOR)).toBe("ambiguous");
+    expect(classifyFuzzyMatch((AMBIGUOUS_MATCH_FLOOR + DUPLICATE_MATCH_THRESHOLD) / 2)).toBe("ambiguous");
+    // Just under the confirm threshold - still ambiguous, not auto-confirmed.
+    expect(classifyFuzzyMatch(DUPLICATE_MATCH_THRESHOLD - 0.001)).toBe("ambiguous");
+  });
+
+  it("classifies a score below the ambiguous floor as no_match", () => {
+    expect(classifyFuzzyMatch(AMBIGUOUS_MATCH_FLOOR - 0.001)).toBe("no_match");
+    expect(classifyFuzzyMatch(0)).toBe("no_match");
+  });
+});
+
+describe("reviewAmbiguousMatchWithEmbedding (Phase 5 stage 4 AI review)", () => {
+  it("confirms an ambiguous pair when semantic similarity is high", () => {
+    expect(reviewAmbiguousMatchWithEmbedding(AMBIGUOUS_REVIEW_CONFIRM_FLOOR)).toBe("confirmed");
+    expect(reviewAmbiguousMatchWithEmbedding(1)).toBe("confirmed");
+  });
+
+  it("rejects an ambiguous pair when semantic similarity is low", () => {
+    expect(reviewAmbiguousMatchWithEmbedding(AMBIGUOUS_REVIEW_REJECT_CEILING - 0.001)).toBe("rejected");
+    expect(reviewAmbiguousMatchWithEmbedding(0)).toBe("rejected");
+  });
+
+  it("falls through to manual review when semantic similarity is itself inconclusive", () => {
+    const midpoint = (AMBIGUOUS_REVIEW_REJECT_CEILING + AMBIGUOUS_REVIEW_CONFIRM_FLOOR) / 2;
+    expect(reviewAmbiguousMatchWithEmbedding(midpoint)).toBe("needs_manual_review");
+    expect(reviewAmbiguousMatchWithEmbedding(AMBIGUOUS_REVIEW_REJECT_CEILING)).toBe("needs_manual_review");
   });
 });
