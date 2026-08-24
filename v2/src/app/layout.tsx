@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SiteFooter } from "@/components/dklist/site-footer";
 import { MobileBottomNav } from "@/components/dklist/mobile-bottom-nav";
+import { FloatingChatWidget } from "@/components/dklist/floating-chat-widget";
 import { SitePopupModal } from "@/components/dklist/site-popup-modal";
 import { DailyVisitTracker } from "@/components/dklist/daily-visit-tracker";
 import { PwaRegister } from "@/components/dklist/pwa-register";
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <SiteFooter />
           <MobileBottomNav />
+          <FloatingChatWidget />
           <SitePopupModal />
           <DailyVisitTracker />
           <PwaRegister />
