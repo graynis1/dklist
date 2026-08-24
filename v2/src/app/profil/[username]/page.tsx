@@ -27,7 +27,7 @@ import {
   getUserBadges,
   getSharedReadBooks,
 } from "@/db/queries/profile";
-import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
+import { getLikedWriters, getLikedTranslators, getLikedPublishers } from "@/db/queries/likes";
 import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap, getUserActivityStreak, getUserWeeklyRank } from "@/db/queries/points";
 import { ActivityHeatmap } from "@/components/dklist/activity-heatmap";
 import { getBlogsByOwner } from "@/db/queries/blog";
@@ -90,6 +90,7 @@ async function ProfileContent({
     pastGoals,
     likedWriters,
     likedTranslators,
+    likedPublishers,
     userBadges,
     totalPoints,
     ownerBlogs,
@@ -111,6 +112,7 @@ async function ProfileContent({
     getPastReadingGoals(profile.id),
     getLikedWriters(profile.id),
     getLikedTranslators(profile.id),
+    getLikedPublishers(profile.id),
     getUserBadges(profile.id),
     getUserTotalPoints(profile.id),
     getBlogsByOwner(profile.id, isOwnProfile),
@@ -404,6 +406,26 @@ async function ProfileContent({
                   className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
                 >
                   {t.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {likedPublishers.length > 0 && (
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <SectionLabel>Takip Edilen Yayınevleri</SectionLabel>
+              <span className="text-sm text-muted-foreground">({likedPublishers.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {likedPublishers.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/yayinevi/${p.slug}`}
+                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
+                >
+                  {p.name}
                 </Link>
               ))}
             </div>

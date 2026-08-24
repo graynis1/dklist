@@ -2,7 +2,7 @@ import "server-only";
 import { updateTag, cacheTag, cacheLife } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { userBook, userWriter, userTranslator, writer, translator } from "@/db/schema";
+import { userBook, userWriter, userTranslator, userPublisher, writer, translator, publisher } from "@/db/schema";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 /**
@@ -136,6 +136,66 @@ export async function toggleTranslatorLike(
   updateTag(`translator-like-count:${translatorId}`);
   updateTag(`liked-translators:${userId}`);
   return { liked: !already };
+}
+
+/**
+ * Publisher "Takip Et" - unlike book/writer/translator Like, this has no v1
+ * equivalent at all (PublisherController has no rating/comment/like system,
+ * confirmed by reading it in full). The button existed in the page from
+ * early scaffolding with no onClick - a real dead-UI gap flagged during a
+ * "buttons don't work" audit. Wired to the same Like mechanism as
+ * writer/translator rather than left removed, since a follow-a-publisher
+ * action is a reasonable, cheap real feature to back it with.
+ */
+export async function isPublisherLiked(userId: number, publisherId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ publisherId: userPublisher.publisherId })
+    .from(userPublisher)
+    .where(and(eq(userPublisher.userId, userId), eq(userPublisher.publisherId, publisherId)))
+    .limit(1);
+  return Boolean(row);
+}
+
+export async function getPublisherLikeCount(publisherId: number): Promise<number> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`publisher-like-count:${publisherId}`);
+
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(userPublisher)
+    .where(eq(userPublisher.publisherId, publisherId));
+  return n;
+}
+
+export async function togglePublisherLike(
+  userId: number,
+  publisherId: number,
+): Promise<{ liked: boolean }> {
+  const already = await isPublisherLiked(userId, publisherId);
+  if (already) {
+    await db
+      .delete(userPublisher)
+      .where(and(eq(userPublisher.userId, userId), eq(userPublisher.publisherId, publisherId)));
+  } else {
+    await db.insert(userPublisher).values({ userId, publisherId });
+    await awardPoints(userId, (await getPointSettings()).like, "like", `like:publisher:${publisherId}`);
+  }
+  updateTag(`publisher-like-count:${publisherId}`);
+  updateTag(`liked-publishers:${userId}`);
+  return { liked: !already };
+}
+
+export async function getLikedPublishers(userId: number): Promise<LikedEntity[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`liked-publishers:${userId}`);
+
+  return db
+    .select({ id: publisher.id, name: publisher.name, slug: publisher.slug })
+    .from(userPublisher)
+    .innerJoin(publisher, eq(userPublisher.publisherId, publisher.id))
+    .where(eq(userPublisher.userId, userId));
 }
 
 export interface LikedEntity {

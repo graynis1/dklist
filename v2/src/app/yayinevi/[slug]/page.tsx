@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
-import { Button } from "@/components/ui/button";
+import { EntityLikeButton } from "@/components/dklist/entity-like-button";
 import { getPublisherBySlug, getBooksByPublisher } from "@/db/queries/publishers";
+import { isPublisherLiked, getPublisherLikeCount } from "@/db/queries/likes";
 import { JsonLd } from "@/components/dklist/json-ld";
+import { auth } from "@/auth";
+import { togglePublisherLikeAction } from "./actions";
 
 export default function PublisherPage({ params }: PageProps<"/yayinevi/[slug]">) {
   return (
@@ -44,7 +47,13 @@ async function PublisherContent({
     notFound();
   }
 
-  const books = await getBooksByPublisher(publisher.id);
+  const session = await auth();
+  const userId = session?.user?.id ? Number(session.user.id) : null;
+  const [books, liked, likeCount] = await Promise.all([
+    getBooksByPublisher(publisher.id),
+    userId ? isPublisherLiked(userId, publisher.id) : Promise.resolve(false),
+    getPublisherLikeCount(publisher.id),
+  ]);
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
@@ -74,7 +83,14 @@ async function PublisherContent({
             <p className="text-muted-foreground">{books.length} kitap</p>
           </div>
         </div>
-        <Button variant="outline">Takip Et</Button>
+        <EntityLikeButton
+          entityId={publisher.id}
+          signedIn={Boolean(userId)}
+          initialLiked={liked}
+          initialCount={likeCount}
+          toggleAction={togglePublisherLikeAction}
+          label="Takip Et"
+        />
       </div>
 
       {books.length === 0 ? (

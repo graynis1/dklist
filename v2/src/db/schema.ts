@@ -819,6 +819,16 @@ export const userTranslator = mysqlTable("user_translator", {
 	primaryKey({ columns: [table.userId, table.translatorId], name: "user_translator_user_id_translator_id"}),
 ]);
 
+export const userPublisher = mysqlTable("user_publisher", {
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" } ),
+	publisherId: int("publisher_id").notNull().references(() => publisher.id, { onDelete: "cascade" } ),
+},
+(table) => [
+	index("idx_user_publisher_user").on(table.userId),
+	index("idx_user_publisher_publisher").on(table.publisherId),
+	primaryKey({ columns: [table.userId, table.publisherId], name: "user_publisher_user_id_publisher_id"}),
+]);
+
 export const userWriter = mysqlTable("user_writer", {
 	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" } ),
 	writerId: int("writer_id").notNull().references(() => writer.id, { onDelete: "cascade" } ),
