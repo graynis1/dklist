@@ -56,7 +56,14 @@ async function NewBookClubContent({
           />
           <div className="flex flex-col gap-1">
             <label className="text-sm text-muted-foreground">Görünürlük</label>
-            <Select name="visibility" defaultValue="public">
+            <Select
+              name="visibility"
+              defaultValue="public"
+              items={[
+                { value: "public", label: "Herkese açık - /kulupler listesinde görünür" },
+                { value: "private", label: "Özel - sadece bağlantıyı bilenler bulabilir" },
+              ]}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>

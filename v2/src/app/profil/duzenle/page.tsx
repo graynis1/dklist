@@ -89,7 +89,16 @@ async function EditProfileContent({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Select name="sex" defaultValue={profile.sex} required>
+            <Select
+              name="sex"
+              defaultValue={profile.sex}
+              required
+              items={[
+                { value: "erkek", label: "Erkek" },
+                { value: "kadin", label: "Kadın" },
+                { value: "belirtmek-istemiyorum", label: "Belirtmek istemiyorum" },
+              ]}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Cinsiyet seçin" />
               </SelectTrigger>

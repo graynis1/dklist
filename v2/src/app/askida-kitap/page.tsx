@@ -80,7 +80,15 @@ async function StoreList({
     <div>
       <form action="/askida-kitap" className="mb-8 flex flex-wrap items-center gap-2">
         <Input name="search" defaultValue={search} placeholder="İlan başlığında ara..." className="max-w-xs" />
-        <Select name="listingType" defaultValue={listingType ?? ""}>
+        <Select
+          name="listingType"
+          defaultValue={listingType ?? ""}
+          items={[
+            { value: "", label: "Tümü" },
+            { value: "free", label: "Ücretsiz" },
+            { value: "paid", label: "Ücretli" },
+          ]}
+        >
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Tümü" />
           </SelectTrigger>
@@ -90,7 +98,7 @@ async function StoreList({
             <SelectItem value="paid">Ücretli</SelectItem>
           </SelectContent>
         </Select>
-        <Select name="sortBy" defaultValue={sortBy}>
+        <Select name="sortBy" defaultValue={sortBy} items={SORT_OPTIONS}>
           <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>

@@ -41,7 +41,7 @@ export function ReportUserButton({ targetUserId }: { targetUserId: number }) {
       </button>
       {open && (
         <div className="flex w-56 flex-col gap-2 rounded-md border border-border bg-popover p-3">
-          <Select value={reason || undefined} onValueChange={(v) => setReason(v ?? "")}>
+          <Select value={reason || undefined} onValueChange={(v) => setReason(v ?? "")} items={REPORT_REASONS}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Şikayet sebebi seçin" />
             </SelectTrigger>

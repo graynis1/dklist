@@ -2,12 +2,12 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
+import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
-import { getBookList, type BookSortBy } from "@/db/queries/books";
+import { getBookList, getTopCategories, type BookSortBy } from "@/db/queries/books";
 
 const SORT_OPTIONS: { value: BookSortBy; label: string }[] = [
   { value: "viewCount", label: "Popülerlik" },
@@ -57,14 +57,10 @@ async function BookListContent({
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
 
-  const { items, total, lastPage } = await getBookList(
-    page,
-    40,
-    search,
-    sortBy,
-    "desc",
-    onlyRead && userId ? userId : undefined,
-  );
+  const [{ items, total, lastPage }, topCategories] = await Promise.all([
+    getBookList(page, 40, search, sortBy, "desc", onlyRead && userId ? userId : undefined),
+    page === 1 && !search && !onlyRead ? getTopCategories(14) : Promise.resolve([]),
+  ]);
 
   const baseQuery: Record<string, string> = {};
   if (search) baseQuery.search = search;
@@ -74,9 +70,23 @@ async function BookListContent({
 
   return (
     <div>
+      {topCategories.length > 0 && (
+        <div className="mb-6 -mx-6 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {topCategories.map((c) => (
+            <Link
+              key={c.id}
+              href={`/kategori/${c.slug}`}
+              className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+            >
+              {c.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       <form action="/kitaplar" className="mb-8 flex flex-wrap items-center gap-2">
         <Input name="search" defaultValue={search} placeholder="Kitap adında ara..." className="max-w-xs" />
-        <Select name="sortBy" defaultValue={sortBy}>
+        <Select name="sortBy" defaultValue={sortBy} items={SORT_OPTIONS}>
           <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>
@@ -117,7 +127,16 @@ async function BookListContent({
                   size="sm"
                   className="w-full"
                 />
-                <p className="truncate text-xs font-medium">{b.name}</p>
+                <div className="flex flex-col gap-0.5">
+                  <p className="truncate text-xs font-medium">{b.name}</p>
+                  <p className="truncate text-[0.7rem] text-muted-foreground">
+                    {b.writers.join(", ") || "Yazar bilinmiyor"}
+                  </p>
+                  <div className="flex items-center gap-1 text-[0.7rem]">
+                    <StarRating value={b.score} />
+                    <span className="text-muted-foreground">{b.score.toFixed(1)}/10</span>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>

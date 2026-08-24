@@ -96,7 +96,12 @@ export function UserAdminRow({
           {ROLE_LABELS[USER_TYPES.Kurucu]}
         </span>
       ) : (
-        <Select value={user.userType} disabled={isPending || !canMutate} onValueChange={(v) => v && changeRole(v)}>
+        <Select
+          value={user.userType}
+          disabled={isPending || !canMutate}
+          onValueChange={(v) => v && changeRole(v)}
+          items={ASSIGNABLE_ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
+        >
           <SelectTrigger size="sm">
             <SelectValue />
           </SelectTrigger>

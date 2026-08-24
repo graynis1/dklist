@@ -36,7 +36,11 @@ export function SupportTicketForm({ categories }: { categories: FaqCategory[] })
       <label htmlFor="support-category" className="text-sm text-muted-foreground">
         Konu
       </label>
-      <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
+      <Select
+        value={category}
+        onValueChange={(v) => setCategory(v ?? "")}
+        items={categories.map((c) => ({ value: c.slug, label: c.label }))}
+      >
         <SelectTrigger id="support-category">
           <SelectValue />
         </SelectTrigger>
