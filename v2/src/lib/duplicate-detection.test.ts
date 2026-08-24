@@ -95,6 +95,41 @@ describe("titleAuthorSimilarity", () => {
     const score = titleAuthorSimilarity("Simyacı", ["Paulo Coelho"], "Simyacı", ["Someone Else"]);
     expect(score).toBeLessThan(DUPLICATE_MATCH_THRESHOLD);
   });
+
+  // Regression: both titles normalizing to "" (entirely edition noise, or
+  // pure punctuation) used to compare as identical empty strings and score a
+  // perfect 1.0, grouping unrelated books as duplicates. Stage 2 skips empty
+  // keys, so these fall straight through to this stage.
+  it.each([
+    ["Ciltli", "Resimli"],
+    ["(Özel Baskı)", "[Tam Metin]"],
+    ["***", "---"],
+  ])("scores %s vs %s at zero when both titles normalize to nothing", (a, b) => {
+    expect(normalizeTitle(a)).toBe("");
+    expect(normalizeTitle(b)).toBe("");
+    expect(titleAuthorSimilarity(a, [], b, [])).toBe(0);
+  });
+
+  it("scores zero when only one side's title normalizes to nothing", () => {
+    expect(titleAuthorSimilarity("Ciltli", [], "Simyacı", [])).toBe(0);
+  });
+
+  it("still matches a real title that merely carries an edition marker", () => {
+    const score = titleAuthorSimilarity("Simyacı Ciltli", ["Paulo Coelho"], "Simyacı", ["Paulo Coelho"]);
+    expect(score).toBeGreaterThanOrEqual(DUPLICATE_MATCH_THRESHOLD);
+  });
+
+  // Same false-signal class one level down: blank author names are trivially
+  // "contained" in each other and used to score 0.97 off no real data.
+  it("ignores blank author names instead of scoring them as a near-exact match", () => {
+    const titleOnly = stringSimilarity(normalizeTitle("Simyacı"), normalizeTitle("Simyacı"));
+    expect(titleAuthorSimilarity("Simyacı", [""], "Simyacı", ["   "])).toBe(titleOnly);
+  });
+
+  it("still cross-checks the real author names when only some are blank", () => {
+    const score = titleAuthorSimilarity("Simyacı", ["", "Paulo Coelho"], "Simyacı", ["Paulo Coelho", "  "]);
+    expect(score).toBeGreaterThanOrEqual(DUPLICATE_MATCH_THRESHOLD);
+  });
 });
 
 describe("normalizeIsbn", () => {

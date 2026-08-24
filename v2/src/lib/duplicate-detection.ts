@@ -129,14 +129,32 @@ export function titleAuthorSimilarity(
   titleB: string,
   authorsB: string[],
 ): number {
-  const titleScore = stringSimilarity(normalizeTitle(titleA), normalizeTitle(titleB));
+  const normTitleA = normalizeTitle(titleA);
+  const normTitleB = normalizeTitle(titleB);
+  // normalizeTitle returns "" for a title that is entirely edition noise or
+  // punctuation ("Ciltli", "(Özel Baskı)", "***"). Two such titles compare
+  // as identical empty strings and would score a perfect 1.0, grouping
+  // completely unrelated books as duplicates - and every one of them lands
+  // in the same group, since stage 2 skips empty keys and passes them
+  // straight through to this stage. An empty normalization carries no
+  // signal at all, so it must never produce one: same "return nothing
+  // rather than a false signal" rule normalizeIsbn already follows for a
+  // malformed ISBN.
+  if (!normTitleA || !normTitleB) return 0;
+
+  const titleScore = stringSimilarity(normTitleA, normTitleB);
   if (titleScore < 0.8) return titleScore; // don't bother scoring authors if titles already don't match
 
+  // Blank/whitespace-only author names are the same false signal one level
+  // down: two of them are trivially "contained" in each other and would
+  // score 0.97 off no real data.
+  const namesA = authorsA.map((a) => turkishLowercase(a.trim())).filter(Boolean);
+  const namesB = authorsB.map((b) => turkishLowercase(b.trim())).filter(Boolean);
+  if (namesA.length === 0 || namesB.length === 0) return titleScore; // no author data to cross-check - fall back to title alone
+
   let bestAuthorScore = 0;
-  for (const a of authorsA) {
-    for (const b of authorsB) {
-      const normA = turkishLowercase(a.trim());
-      const normB = turkishLowercase(b.trim());
+  for (const normA of namesA) {
+    for (const normB of namesB) {
       // Common real-world variant: "Dostoyevski" vs "Fyodor Dostoyevski" -
       // a straight Jaro-Winkler comparison scores this poorly since the
       // extra first name shifts the whole alignment, even though it's
@@ -149,7 +167,6 @@ export function titleAuthorSimilarity(
       if (score > bestAuthorScore) bestAuthorScore = score;
     }
   }
-  if (authorsA.length === 0 || authorsB.length === 0) return titleScore; // no author data to cross-check - fall back to title alone
   return titleScore * 0.7 + bestAuthorScore * 0.3;
 }
 
