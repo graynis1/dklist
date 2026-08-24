@@ -17,6 +17,8 @@ import {
   NewspaperIcon,
   TargetIcon,
   MessageCircleIcon,
+  LockIcon,
+  SparklesIcon,
 } from "lucide-react";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -161,26 +163,26 @@ async function ProfileContent({
   const canSeeDetails = isOwnProfile || viewerFollows || !profile.privacy;
 
   const tone = TONE_STYLE[toneForId(profile.id)];
-  const topBadgeName = veteranTier ? "Emekter" : (userBadges.at(-1)?.name ?? null);
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-10 sm:py-16">
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[300px_1fr]">
         {/* ---- Sol: profil kartı (Bionluk tarzı sabit kimlik kartı) ---- */}
-        <aside className="flex flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card lg:sticky lg:top-24">
+        <aside className="flex flex-col gap-4 overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:sticky lg:top-24">
           <div
-            className="relative h-16"
+            className="relative h-20"
             style={{
-              background: `linear-gradient(135deg, ${tone.bg} 0%, color-mix(in oklch, ${tone.bg}, black 35%) 100%)`,
+              background: `linear-gradient(135deg, ${tone.bg} 0%, color-mix(in oklch, ${tone.bg}, var(--primary) 30%) 100%)`,
             }}
           >
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10" />
             <div
-              className="pointer-events-none absolute -top-6 -right-6 size-24 rounded-full opacity-30 blur-xl"
-              style={{ backgroundColor: tone.rule }}
+              className="pointer-events-none absolute -top-8 -right-8 size-28 rounded-full opacity-40 blur-2xl"
+              style={{ backgroundColor: "var(--primary)" }}
             />
           </div>
 
-          <div className="-mt-10 flex flex-col items-center gap-2 px-5 text-center">
+          <div className="-mt-11 flex flex-col items-center gap-2.5 px-5 text-center">
             <Avatar
               className="size-20 text-xl ring-4 ring-card"
               style={{
@@ -203,31 +205,68 @@ async function ProfileContent({
                 </span>
               )}
             </h1>
-            {(topBadgeName || isPremium) && (
-              <p className="text-xs font-medium text-muted-foreground">
-                {isPremium && <span className="text-amber-500">★ Premium</span>}
-                {isPremium && topBadgeName && " · "}
-                {topBadgeName}
-              </p>
+
+            {(userBadges.length > 0 || veteranTier || isPremium) && (
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {isPremium && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-2 py-0.5 text-xs font-medium text-white">
+                    ★ Premium
+                  </span>
+                )}
+                {veteranTier && (
+                  <span
+                    title="Son 30 gün içindeki etkinliğe göre - düşen etkinlikle kaybolabilir"
+                    className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+                  >
+                    🔥 Emekter
+                  </span>
+                )}
+                {userBadges.map((b) => (
+                  <span
+                    key={b.id}
+                    title={b.comment}
+                    className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                  >
+                    {b.img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/badge-image/${b.img}`} alt="" className="size-3.5 rounded-full object-cover" />
+                    ) : (
+                      "🏅"
+                    )}{" "}
+                    {b.name}
+                  </span>
+                ))}
+              </div>
             )}
+
+            <Link
+              href="/puan-tablosu"
+              className="mt-1 flex flex-col items-center rounded-2xl bg-gradient-to-b from-amber-400/15 to-transparent px-6 py-2.5 transition-colors hover:from-amber-400/25"
+            >
+              <span className="flex items-center gap-1.5 font-heading text-2xl font-semibold text-amber-500">
+                <TrophyIcon className="size-5" />
+                {totalPoints}
+              </span>
+              <span className="text-[0.7rem] tracking-wide text-muted-foreground uppercase">Puan</span>
+            </Link>
 
             <div className="mt-1 flex w-full flex-col gap-2">
               {viewerId && !isOwnProfile && (
                 <>
                   <Link
                     href={`/mesajlar?user=${profile.username}`}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                   >
                     <MessageCircleIcon className="size-4" />
                     Mesaj Yaz
                   </Link>
-                  <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} className="w-full" />
+                  <FollowButton targetUserId={profile.id} initialFollowing={viewerFollows} className="w-full rounded-xl" />
                 </>
               )}
               {isOwnProfile && (
                 <Link
                   href="/profil/duzenle"
-                  className="flex w-full items-center justify-center rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                  className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
                 >
                   Profili Düzenle
                 </Link>
@@ -264,7 +303,6 @@ async function ProfileContent({
               value={counts.following}
               href={`/profil/${profile.username}/takip-edilenler`}
             />
-            <SidebarStatRow icon={TrophyIcon} label="Puan" value={totalPoints} href="/puan-tablosu" />
             {totalReadingMinutes > 0 && (
               <SidebarStatRow
                 icon={ClockIcon}
@@ -273,7 +311,7 @@ async function ProfileContent({
               />
             )}
             {activityStreak > 0 && (
-              <SidebarStatRow icon={FlameIcon} label="Aktiflik Serisi" value={`${activityStreak} gün`} />
+              <SidebarStatRow icon={FlameIcon} label="Aktiflik Serisi" value={`${activityStreak} gün`} accent />
             )}
           </div>
 
@@ -289,13 +327,16 @@ async function ProfileContent({
         {/* ---- Sağ: içerik ---- */}
         <div className="flex flex-col gap-6">
           {!canSeeDetails ? (
-            <div className="rounded-2xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
-              Bu hesap gizli. Okuma durumunu, kitaplığını ve etkinliğini görmek için takip et.
+            <div className="flex flex-col items-center gap-2 rounded-3xl border border-border bg-card px-4 py-12 text-center shadow-sm">
+              <LockIcon className="size-6 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Bu hesap gizli. Okuma durumunu, kitaplığını ve etkinliğini görmek için takip et.
+              </p>
             </div>
           ) : (
             <>
               {sharedReadBooks.length > 0 && (
-                <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                <p className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
                   İkinizin de okuduğu {sharedReadBooks.length === 1 ? "kitap" : `${sharedReadBooks.length} kitap`}:{" "}
                   {sharedReadBooks.map((b, i) => (
                     <span key={b.id}>
@@ -345,7 +386,14 @@ async function ProfileContent({
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 {READ_STATUSES.every((s) => booksByStatus[s].length === 0) && libraryBooks.length === 0 && (
                   <SectionCard title="Kütüphane" icon={LibraryIcon}>
-                    <p className="text-sm text-muted-foreground">Henüz bir kitaba okuma durumu eklenmemiş.</p>
+                    <div className="flex flex-col items-center gap-2 py-6 text-center">
+                      <SparklesIcon className="size-6 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        {isOwnProfile
+                          ? "Henüz bir kitaba okuma durumu eklemedin - ilk kitabını ekleyerek başla!"
+                          : "Henüz bir kitaba okuma durumu eklenmemiş."}
+                      </p>
+                    </div>
                   </SectionCard>
                 )}
 
@@ -426,16 +474,22 @@ function SidebarStatRow({
   label,
   value,
   href,
+  accent = false,
 }: {
   icon: typeof UsersIcon;
   label: string;
   value: number | string;
   href?: string;
+  accent?: boolean;
 }) {
   const content = (
     <div className="flex items-center justify-between gap-2 px-5 py-2.5 transition-colors hover:bg-accent">
-      <span className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="size-4" />
+      <span className="flex items-center gap-2.5 text-muted-foreground">
+        <span
+          className={`flex size-7 shrink-0 items-center justify-center rounded-full ${accent ? "bg-orange-500/15 text-orange-500" : "bg-primary/10 text-primary"}`}
+        >
+          <Icon className="size-3.5" />
+        </span>
         {label}
       </span>
       <span className="font-medium">{value}</span>
@@ -464,9 +518,11 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-      <div className="mb-4 flex items-center gap-2">
-        <Icon className="size-4 text-primary" />
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-center gap-2.5">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Icon className="size-4" />
+        </span>
         <h2 className="font-heading text-base font-medium tracking-tight">{title}</h2>
         {count !== undefined && <span className="text-sm text-muted-foreground">({count})</span>}
       </div>
