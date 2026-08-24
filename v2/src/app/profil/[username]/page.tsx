@@ -163,6 +163,8 @@ async function ProfileContent({
   const canSeeDetails = isOwnProfile || viewerFollows || !profile.privacy;
 
   const tone = TONE_STYLE[toneForId(profile.id)];
+  const featuredBook = booksByStatus.okuyorum[0] ?? booksByStatus.okudum[0] ?? libraryBooks[0] ?? null;
+  const featuredLabel = booksByStatus.okuyorum[0] ? "Şu An Okuyor" : booksByStatus.okudum[0] ? "Son Okuduğu" : "Kitaplığından";
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-10 sm:py-16">
@@ -170,21 +172,34 @@ async function ProfileContent({
         {/* ---- Sol: profil kartı (Bionluk tarzı sabit kimlik kartı) ---- */}
         <aside className="flex flex-col gap-4 overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:sticky lg:top-24">
           <div
-            className="relative h-20"
+            className="relative h-32 overflow-hidden"
             style={{
-              background: `linear-gradient(135deg, ${tone.bg} 0%, color-mix(in oklch, ${tone.bg}, var(--primary) 30%) 100%)`,
+              background: `radial-gradient(120% 140% at 15% -10%, color-mix(in oklch, var(--primary), white 15%) 0%, ${tone.bg} 45%, color-mix(in oklch, ${tone.bg}, black 40%) 100%)`,
             }}
           >
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/10" />
             <div
-              className="pointer-events-none absolute -top-8 -right-8 size-28 rounded-full opacity-40 blur-2xl"
+              className="pointer-events-none absolute -top-10 -right-10 size-36 rounded-full opacity-40 blur-2xl"
               style={{ backgroundColor: "var(--primary)" }}
             />
+            <div
+              className="pointer-events-none absolute -bottom-12 -left-8 size-32 rounded-full opacity-30 blur-2xl"
+              style={{ backgroundColor: tone.rule }}
+            />
+            {/* Marka kimliğine gönderme - sitenin diğer yerlerindeki serif
+                başlık dilini banner'a da taşıyan dekoratif tırnak işareti. */}
+            <span
+              className="pointer-events-none absolute right-4 bottom-1 font-heading text-7xl leading-none italic opacity-15 select-none"
+              style={{ color: tone.fg }}
+              aria-hidden
+            >
+              &rdquo;
+            </span>
           </div>
 
-          <div className="-mt-11 flex flex-col items-center gap-2.5 px-5 text-center">
+          <div className="-mt-14 flex flex-col items-center gap-2.5 px-5 text-center">
             <Avatar
-              className="size-20 text-xl ring-4 ring-card"
+              className="size-24 text-2xl ring-4 ring-card"
               style={{
                 backgroundColor: tone.bg,
                 color: tone.fg,
@@ -194,7 +209,7 @@ async function ProfileContent({
               <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
               <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
             </Avatar>
-            <h1 className="flex items-center gap-1 font-heading text-xl font-medium tracking-tight">
+            <h1 className="flex items-center gap-1 font-heading text-2xl font-medium tracking-tight">
               @{profile.username}
               {profile.verified && (
                 <span
@@ -335,6 +350,38 @@ async function ProfileContent({
             </div>
           ) : (
             <>
+              {featuredBook && (
+                <div
+                  className="relative flex items-center gap-5 overflow-hidden rounded-3xl border border-border p-5 shadow-sm sm:p-6"
+                  style={{
+                    background: `linear-gradient(120deg, color-mix(in oklch, ${TONE_STYLE[toneForId(featuredBook.id)].bg}, transparent 88%) 0%, transparent 65%)`,
+                  }}
+                >
+                  <BookCover
+                    title={featuredBook.name}
+                    author={featuredBook.writers.join(", ") || "Yazar bilinmiyor"}
+                    tone={toneForId(featuredBook.id)}
+                    bookId={featuredBook.id}
+                    hasImage={featuredBook.hasImage}
+                    size="md"
+                    className="shrink-0"
+                  />
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium tracking-[0.2em] text-primary uppercase">{featuredLabel}</span>
+                    <Link href={`/kitap/${featuredBook.slug}`} className="font-heading text-xl leading-snug font-medium hover:underline">
+                      {featuredBook.name}
+                    </Link>
+                    <p className="text-sm text-muted-foreground">{featuredBook.writers.join(", ") || "Yazar bilinmiyor"}</p>
+                    <Link
+                      href={`/kitap/${featuredBook.slug}`}
+                      className="mt-1.5 inline-flex w-fit items-center gap-1 text-sm font-medium text-primary hover:underline"
+                    >
+                      Kitaba Git →
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {sharedReadBooks.length > 0 && (
                 <p className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
                   İkinizin de okuduğu {sharedReadBooks.length === 1 ? "kitap" : `${sharedReadBooks.length} kitap`}:{" "}
