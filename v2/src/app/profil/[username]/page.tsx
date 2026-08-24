@@ -11,6 +11,7 @@ import { BlockUserButton } from "@/components/dklist/block-user-button";
 import { isBlockedByMe } from "@/db/queries/blocks";
 import { ReadingGoalControl } from "@/components/dklist/reading-goal-control";
 import { ReadingScoreCard } from "@/components/dklist/reading-score-card";
+import { PointsShareCard } from "@/components/dklist/points-share-card";
 import { VerifiedToggleButton } from "@/components/dklist/verified-toggle-button";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
@@ -27,7 +28,7 @@ import {
   getSharedReadBooks,
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators } from "@/db/queries/likes";
-import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap, getUserActivityStreak } from "@/db/queries/points";
+import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap, getUserActivityStreak, getUserWeeklyRank } from "@/db/queries/points";
 import { ActivityHeatmap } from "@/components/dklist/activity-heatmap";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
@@ -100,6 +101,7 @@ async function ProfileContent({
     activityHeatmap,
     viewerHasBlocked,
     activityStreak,
+    weeklyRank,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -120,6 +122,7 @@ async function ProfileContent({
     getUserActivityHeatmap(profile.id),
     viewerId && !isOwnProfile ? isBlockedByMe(viewerId, profile.id) : Promise.resolve(false),
     getUserActivityStreak(profile.id),
+    isOwnProfile ? getUserWeeklyRank(profile.id) : Promise.resolve(null),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -293,6 +296,19 @@ async function ProfileContent({
         {isOwnProfile && readingScoreStats && (readingScoreStats.booksRead > 0 || readingScoreStats.totalMinutes > 0) && (
           <div className="mt-2">
             <ReadingScoreCard username={profile.username} stats={readingScoreStats} />
+          </div>
+        )}
+        {isOwnProfile && totalPoints > 0 && (
+          <div className="mt-2">
+            <PointsShareCard
+              username={profile.username}
+              stats={{
+                totalPoints,
+                weeklyPoints: weeklyRank?.points ?? 0,
+                weeklyRank: weeklyRank?.rank ?? null,
+                streakDays: activityStreak,
+              }}
+            />
           </div>
         )}
       </div>

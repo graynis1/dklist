@@ -13,7 +13,7 @@ export type BookCoverTone =
   | "plum"
   | "mustard";
 
-const TONE_STYLE: Record<BookCoverTone, { bg: string; fg: string; rule: string }> = {
+export const TONE_STYLE: Record<BookCoverTone, { bg: string; fg: string; rule: string }> = {
   oxblood: { bg: "oklch(0.32 0.1 22)", fg: "oklch(0.96 0.02 60)", rule: "oklch(0.6 0.12 30 / 55%)" },
   dusk: { bg: "oklch(0.34 0.05 250)", fg: "oklch(0.96 0.01 90)", rule: "oklch(0.65 0.06 250 / 55%)" },
   ochre: { bg: "oklch(0.62 0.11 75)", fg: "oklch(0.18 0.02 60)", rule: "oklch(0.3 0.05 60 / 45%)" },

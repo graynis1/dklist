@@ -15,6 +15,7 @@ import { LikeButton } from "@/components/dklist/like-button";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { RecentlyViewedTracker } from "@/components/dklist/recently-viewed-tracker";
 import { ShareButton } from "@/components/dklist/share-button";
+import { ReadingProgressShareCard } from "@/components/dklist/reading-progress-share-card";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { JsonLd } from "@/components/dklist/json-ld";
 import { ReportBookErrorButton } from "@/components/dklist/report-book-error-button";
@@ -313,6 +314,17 @@ async function BookDetailContent({
               signedIn={Boolean(userId)}
               initialStatus={currentStatus}
             />
+
+            {currentStatus && currentStatus.status !== "okuyacagim" && (
+              <ReadingProgressShareCard
+                bookTitle={detail.name}
+                author={writerNames}
+                tone={tone}
+                status={currentStatus.status as "okuyorum" | "okudum" | "yarida-birakildi"}
+                rating={userRating}
+                dropPercentage={currentStatus.dropPercentage}
+              />
+            )}
 
             {dropStats.droppedCount > 0 && (
               <p className="text-xs text-muted-foreground">
