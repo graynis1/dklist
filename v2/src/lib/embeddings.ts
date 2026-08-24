@@ -19,7 +19,11 @@ import "server-only";
  * identical underlying reason: next dev's HMR re-evaluates this module on
  * nearly every file save, and re-loading a ~100MB ONNX model on every
  * save would make dev unusable.
+ *
+ * `cosineSimilarity` lives in vector-math.ts (no `server-only` import) and
+ * is re-exported here unchanged - see that file's header comment for why.
  */
+export { cosineSimilarity } from "@/lib/vector-math";
 
 export const EMBEDDING_MODEL = "Xenova/paraphrase-multilingual-MiniLM-L12-v2";
 
@@ -45,13 +49,4 @@ export async function getEmbedding(text: string): Promise<number[]> {
   if (!trimmed) return [];
   const output = await extractor(trimmed, { pooling: "mean", normalize: true });
   return Array.from(output.data as ArrayLike<number>);
-}
-
-export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length === 0 || b.length === 0 || a.length !== b.length) return 0;
-  let dot = 0;
-  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
-  // Vectors are already normalized (pooling: mean, normalize: true), so
-  // dot product IS the cosine similarity - no need to divide by magnitudes.
-  return dot;
 }
