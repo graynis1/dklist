@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { auth } from "@/auth";
 import { createBookClubAction, searchBooksForClubAction } from "./actions";
 import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
@@ -55,14 +56,15 @@ async function NewBookClubContent({
           />
           <div className="flex flex-col gap-1">
             <label className="text-sm text-muted-foreground">Görünürlük</label>
-            <select
-              name="visibility"
-              defaultValue="public"
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-            >
-              <option value="public">Herkese açık - /kulupler listesinde görünür</option>
-              <option value="private">Özel - sadece bağlantıyı bilenler bulabilir</option>
-            </select>
+            <Select name="visibility" defaultValue="public">
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Herkese açık - /kulupler listesinde görünür</SelectItem>
+                <SelectItem value="private">Özel - sadece bağlantıyı bilenler bulabilir</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-fit">

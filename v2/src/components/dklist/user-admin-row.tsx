@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROLE_LABELS, USER_TYPES, type UserType } from "@/lib/roles";
 import {
   updateUserRoleAction,
@@ -95,18 +96,18 @@ export function UserAdminRow({
           {ROLE_LABELS[USER_TYPES.Kurucu]}
         </span>
       ) : (
-        <select
-          value={user.userType}
-          disabled={isPending || !canMutate}
-          onChange={(e) => changeRole(e.target.value)}
-          className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm outline-none focus:border-ring"
-        >
-          {ASSIGNABLE_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {ROLE_LABELS[role]}
-            </option>
-          ))}
-        </select>
+        <Select value={user.userType} disabled={isPending || !canMutate} onValueChange={(v) => v && changeRole(v)}>
+          <SelectTrigger size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ASSIGNABLE_ROLES.map((role) => (
+              <SelectItem key={role} value={role}>
+                {ROLE_LABELS[role]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
 
       <Button variant="outline" size="sm" disabled={isPending || !canMutate} onClick={toggleDisabled}>

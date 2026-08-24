@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AuthVisualPanel, AuthMobileTeaser } from "@/components/dklist/auth-visual-panel";
 import { registerAction } from "./actions";
 
@@ -44,19 +45,16 @@ export default function RegisterPage({ searchParams }: PageProps<"/kayit-ol">) {
               <Input name="username" placeholder="Kullanıcı adı" required />
               <Input name="mail" type="email" placeholder="E-posta" required />
               <div className="grid grid-cols-2 gap-4">
-                <select
-                  name="sex"
-                  required
-                  defaultValue=""
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                >
-                  <option value="" disabled>
-                    Cinsiyet
-                  </option>
-                  <option value="erkek">Erkek</option>
-                  <option value="kadin">Kadın</option>
-                  <option value="belirtmek-istemiyorum">Belirtmek istemiyorum</option>
-                </select>
+                <Select name="sex" required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Cinsiyet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="erkek">Erkek</SelectItem>
+                    <SelectItem value="kadin">Kadın</SelectItem>
+                    <SelectItem value="belirtmek-istemiyorum">Belirtmek istemiyorum</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input name="birthDate" type="date" required />
               </div>
               <Input name="password" type="password" placeholder="Şifre (en az 6 karakter)" required minLength={6} />

@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { getBookList, type BookSortBy } from "@/db/queries/books";
 
@@ -75,17 +76,18 @@ async function BookListContent({
     <div>
       <form action="/kitaplar" className="mb-8 flex flex-wrap items-center gap-2">
         <Input name="search" defaultValue={search} placeholder="Kitap adında ara..." className="max-w-xs" />
-        <select
-          name="sortBy"
-          defaultValue={sortBy}
-          className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <Select name="sortBy" defaultValue={sortBy}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {userId && (
           <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <input type="checkbox" name="onlyRead" value="1" defaultChecked={onlyRead} />

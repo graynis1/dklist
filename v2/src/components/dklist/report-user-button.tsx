@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { reportUserAction } from "@/app/profil/[username]/actions";
 
 // Matches v1's ActionsComponent fixed reason list exactly (the real v1
@@ -40,18 +41,18 @@ export function ReportUserButton({ targetUserId }: { targetUserId: number }) {
       </button>
       {open && (
         <div className="flex w-56 flex-col gap-2 rounded-md border border-border bg-popover p-3">
-          <select
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full rounded-md border border-border bg-background p-1.5 text-sm"
-          >
-            <option value="">Şikayet sebebi seçin</option>
-            {REPORT_REASONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
+          <Select value={reason || undefined} onValueChange={(v) => setReason(v ?? "")}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Şikayet sebebi seçin" />
+            </SelectTrigger>
+            <SelectContent>
+              {REPORT_REASONS.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {status && !status.ok && <p className="text-xs text-destructive">{status.message}</p>}
           <div className="flex justify-end gap-2">
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>

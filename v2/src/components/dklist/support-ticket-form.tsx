@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { submitSupportTicketAction } from "@/actions/support";
 import type { FaqCategory } from "@/db/queries/support";
 
@@ -32,18 +33,18 @@ export function SupportTicketForm({ categories }: { categories: FaqCategory[] })
       <label htmlFor="support-category" className="text-sm text-muted-foreground">
         Konu
       </label>
-      <select
-        id="support-category"
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-      >
-        {categories.map((c) => (
-          <option key={c.slug} value={c.slug}>
-            {c.label}
-          </option>
-        ))}
-      </select>
+      <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
+        <SelectTrigger id="support-category">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map((c) => (
+            <SelectItem key={c.slug} value={c.slug}>
+              {c.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input type="email" placeholder="E-posta" required value={email} onChange={(e) => setEmail(e.target.value)} />
       <textarea
         placeholder="Sorununuzu kısaca anlatın"

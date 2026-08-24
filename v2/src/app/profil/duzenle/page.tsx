@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { auth } from "@/auth";
 import { getEditableProfile } from "@/db/queries/profile";
 import { avatarUrl } from "@/db/queries/avatar";
@@ -88,17 +89,16 @@ async function EditProfileContent({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <select
-              name="sex"
-              defaultValue={profile.sex}
-              required
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-            >
-              <option value="">Cinsiyet seçin</option>
-              <option value="erkek">Erkek</option>
-              <option value="kadin">Kadın</option>
-              <option value="belirtmek-istemiyorum">Belirtmek istemiyorum</option>
-            </select>
+            <Select name="sex" defaultValue={profile.sex} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Cinsiyet seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="erkek">Erkek</SelectItem>
+                <SelectItem value="kadin">Kadın</SelectItem>
+                <SelectItem value="belirtmek-istemiyorum">Belirtmek istemiyorum</SelectItem>
+              </SelectContent>
+            </Select>
             <Input
               name="birthDate"
               type="date"

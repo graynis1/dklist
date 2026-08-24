@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   getStoreList,
   storeImageUrl,
@@ -79,26 +80,28 @@ async function StoreList({
     <div>
       <form action="/askida-kitap" className="mb-8 flex flex-wrap items-center gap-2">
         <Input name="search" defaultValue={search} placeholder="İlan başlığında ara..." className="max-w-xs" />
-        <select
-          name="listingType"
-          defaultValue={listingType ?? ""}
-          className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-        >
-          <option value="">Tümü</option>
-          <option value="free">Ücretsiz</option>
-          <option value="paid">Ücretli</option>
-        </select>
-        <select
-          name="sortBy"
-          defaultValue={sortBy}
-          className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <Select name="listingType" defaultValue={listingType ?? ""}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Tümü" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Tümü</SelectItem>
+            <SelectItem value="free">Ücretsiz</SelectItem>
+            <SelectItem value="paid">Ücretli</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select name="sortBy" defaultValue={sortBy}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button type="submit" variant="outline">
           Filtrele
         </Button>
