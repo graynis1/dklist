@@ -3,16 +3,20 @@
 import { auth } from "@/auth";
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import { createSupportTicket, setSupportTicketStatus, type CreateSupportTicketInput } from "@/db/queries/support";
+import { getAiSupportResponse } from "@/lib/ai-support";
 
 // Public - signed-out visitors can submit too, matches the ad-inquiry form's
 // own gating (email is the only way to reach someone with no account).
 export async function submitSupportTicketAction(
   input: Omit<CreateSupportTicketInput, "userId">,
-): Promise<{ status: boolean; message?: string }> {
+): Promise<{ status: boolean; message?: string; aiAnswer?: string | null }> {
   const session = await auth();
   try {
     await createSupportTicket({ ...input, userId: session?.user?.id ? Number(session.user.id) : null });
-    return { status: true };
+    // Best-effort - a real, grounded FAQ match if one exists, never a
+    // fabricated answer (see ai-support.ts). Never blocks ticket creation.
+    const aiAnswer = await getAiSupportResponse(input.category, input.message).catch(() => null);
+    return { status: true, aiAnswer };
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
