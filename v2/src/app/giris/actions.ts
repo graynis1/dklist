@@ -2,6 +2,7 @@
 
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export type LoginResult =
   | { status: "two_factor_required" }
@@ -23,6 +24,16 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
   const username = String(formData.get("username") ?? "");
   const password = String(formData.get("password") ?? "");
   const code = formData.get("code") ? String(formData.get("code")) : undefined;
+
+  // Brute-force guard - keyed by IP+username so a botnet spraying many
+  // usernames from one IP is still capped per-username, and a single
+  // attacker hammering one real account from rotating IPs is still capped
+  // by IP. No login attempt of any kind existed before this - unlimited
+  // password guessing was genuinely possible.
+  const ip = await getClientIp();
+  if (!checkRateLimit(`login:${ip}:${username}`, 10, 5 * 60 * 1000)) {
+    return { status: "error", message: "Çok fazla giriş denemesi yapıldı. Lütfen birkaç dakika sonra tekrar deneyin." };
+  }
 
   // signIn()'s options end up passed through URLSearchParams, which
   // stringifies `undefined` to the literal string "undefined" rather than

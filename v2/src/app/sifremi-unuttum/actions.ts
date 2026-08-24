@@ -2,9 +2,17 @@
 
 import { redirect } from "next/navigation";
 import { requestPasswordReset } from "@/db/queries/auth-account";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function requestPasswordResetAction(formData: FormData) {
   const target = String(formData.get("target") ?? "");
+
+  // Prevents both email-bombing a real account and brute-forcing the
+  // target-account lookup itself - no limit existed before this.
+  const ip = await getClientIp();
+  if (!checkRateLimit(`reset-request:${ip}:${target}`, 5, 15 * 60 * 1000)) {
+    redirect(`/sifremi-unuttum?error=${encodeURIComponent("Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.")}`);
+  }
 
   let userId: number;
   let resetCode: string;

@@ -4,8 +4,14 @@ import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import { registerUser } from "@/db/queries/auth-account";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function registerAction(formData: FormData) {
+  const ip = await getClientIp();
+  if (!checkRateLimit(`register:${ip}`, 5, 60 * 60 * 1000)) {
+    redirect(`/kayit-ol?error=${encodeURIComponent("Çok fazla kayıt denemesi yapıldı. Lütfen daha sonra tekrar deneyin.")}`);
+  }
+
   const name = String(formData.get("name") ?? "");
   const surname = String(formData.get("surname") ?? "");
   const username = String(formData.get("username") ?? "");

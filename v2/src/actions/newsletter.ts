@@ -5,11 +5,16 @@ import {
   subscribeToNewsletter,
   deleteNewsletterSubscriber,
 } from "@/db/queries/newsletter";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Public - no auth, matches v1's NewsletterController::add().
 export async function subscribeToNewsletterAction(
   mail: string,
 ): Promise<{ status: boolean; message?: string }> {
+  const ip = await getClientIp();
+  if (!checkRateLimit(`newsletter:${ip}`, 5, 60 * 60 * 1000)) {
+    return { status: false, message: "Çok fazla deneme yapıldı. Lütfen daha sonra tekrar deneyin." };
+  }
   return subscribeToNewsletter(mail);
 }
 
