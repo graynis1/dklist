@@ -23,6 +23,7 @@ import type { ReadStatus } from "@/lib/reading-status";
 import { isBlockedEitherWay } from "@/db/queries/blocks";
 import { addNotification } from "@/db/queries/notifications";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { attachWriterNames } from "@/db/queries/books";
 
 export interface EditableProfile {
   name: string;
@@ -342,6 +343,8 @@ export interface ProfileBookItem {
   id: number;
   name: string;
   slug: string;
+  hasImage: boolean;
+  writers: string[];
 }
 
 export async function getBooksByStatus(
@@ -352,10 +355,18 @@ export async function getBooksByStatus(
   cacheTag(`profile-books:${userId}`);
 
   const rows = await db
-    .select({ status: read.status, id: book.id, name: book.name, slug: book.slug })
+    .select({
+      status: read.status,
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(read)
     .innerJoin(book, eq(read.bookId, book.id))
     .where(eq(read.userId, userId));
+
+  const withWriters = await attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 
   const grouped: Record<string, ProfileBookItem[]> = {
     okudum: [],
@@ -363,8 +374,8 @@ export async function getBooksByStatus(
     okuyacagim: [],
     "yarida-birakildi": [],
   };
-  for (const row of rows) {
-    (grouped[row.status] ??= []).push({ id: row.id, name: row.name, slug: row.slug });
+  for (const row of withWriters) {
+    (grouped[row.status] ??= []).push({ id: row.id, name: row.name, slug: row.slug, hasImage: row.hasImage, writers: row.writers });
   }
   return grouped as Record<ReadStatus, ProfileBookItem[]>;
 }
@@ -389,7 +400,12 @@ export async function getSharedReadBooks(
   const ownerRead = alias(read, "owner_read");
 
   const rows = await db
-    .select({ id: book.id, name: book.name, slug: book.slug })
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(viewerRead)
     .innerJoin(ownerRead, eq(viewerRead.bookId, ownerRead.bookId))
     .innerJoin(book, eq(viewerRead.bookId, book.id))
@@ -403,7 +419,7 @@ export async function getSharedReadBooks(
     )
     .limit(limit);
 
-  return rows;
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }
 
 export interface FollowSuggestion {
@@ -458,6 +474,8 @@ export interface LibraryBookItem {
   id: number;
   name: string;
   slug: string;
+  hasImage: boolean;
+  writers: string[];
 }
 
 export async function getLibraryBooks(ownerId: number): Promise<LibraryBookItem[]> {
@@ -465,11 +483,18 @@ export async function getLibraryBooks(ownerId: number): Promise<LibraryBookItem[
   cacheLife("minutes");
   cacheTag(`library-books:${ownerId}`);
 
-  return db
-    .select({ id: book.id, name: book.name, slug: book.slug })
+  const rows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
     .from(libraryBook)
     .innerJoin(book, eq(libraryBook.bookId, book.id))
     .where(eq(libraryBook.ownerId, ownerId));
+
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }
 
 export interface ReadingGoal {

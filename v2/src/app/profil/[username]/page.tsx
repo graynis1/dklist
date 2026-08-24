@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
+import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { avatarUrl } from "@/db/queries/avatar";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { ReportUserButton } from "@/components/dklist/report-user-button";
@@ -135,87 +137,88 @@ async function ProfileContent({
   // way (Instagram-style: basic profile info is never hidden, only content).
   const canSeeDetails = isOwnProfile || viewerFollows || !profile.privacy;
 
+  const tone = TONE_STYLE[toneForId(profile.id)];
+
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <div className="mb-4 flex items-center gap-6">
-        <Avatar
-          className="size-20 text-xl"
-          style={profile.profileFrame ? { boxShadow: `0 0 0 3px ${profile.profileFrame}` } : undefined}
-        >
-          <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-2">
-          <h1 className="flex items-center gap-1.5 font-heading text-3xl font-medium tracking-tight">
-            @{profile.username}
-            {profile.verified && (
-              <span
-                title="Doğrulanmış resmi profil"
-                className="inline-flex size-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white"
-              >
-                ✓
-              </span>
-            )}
-            {isPremium && (
-              <span
-                title="DKList Premium üye"
-                className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-2 py-0.5 text-xs font-medium text-white"
-              >
-                ★ Premium
-              </span>
-            )}
-          </h1>
-          <div className="flex gap-4 text-sm text-muted-foreground">
-            <Link href={`/profil/${profile.username}/takipciler`} className="hover:underline">
-              <strong className="text-foreground">{counts.followers}</strong>{" "}
-              takipçi
-            </Link>
-            <Link href={`/profil/${profile.username}/takip-edilenler`} className="hover:underline">
-              <strong className="text-foreground">{counts.following}</strong>{" "}
-              takip
-            </Link>
-            <Link href="/puan-tablosu" className="hover:underline">
-              <strong className="text-foreground">{totalPoints}</strong> puan
-            </Link>
-            {totalReadingMinutes > 0 && (
-              <span>
-                <strong className="text-foreground">
-                  {Math.floor(totalReadingMinutes / 60)} sa {totalReadingMinutes % 60} dk
-                </strong>{" "}
-                okuma süresi
-              </span>
-            )}
-          </div>
-          {(userBadges.length > 0 || veteranTier) && (
-            <div className="flex flex-wrap gap-1.5">
-              {veteranTier && (
+    <div className="mx-auto max-w-3xl px-6 py-10 sm:py-16">
+      <div
+        className="relative h-32 overflow-hidden rounded-2xl sm:h-40"
+        style={{
+          background: `linear-gradient(135deg, ${tone.bg} 0%, color-mix(in oklch, ${tone.bg}, black 35%) 100%)`,
+        }}
+      >
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-white/10" />
+        <div
+          className="pointer-events-none absolute -top-10 -right-10 size-40 rounded-full opacity-30 blur-2xl"
+          style={{ backgroundColor: tone.rule }}
+        />
+      </div>
+
+      <div className="mb-4 flex flex-col gap-4 px-1 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
+        <div className="-mt-12 flex items-end gap-4 sm:mt-0">
+          <Avatar
+            className="size-24 shrink-0 text-2xl ring-4 ring-background sm:size-28"
+            style={{
+              backgroundColor: tone.bg,
+              color: tone.fg,
+              boxShadow: profile.profileFrame ? `0 0 0 3px ${profile.profileFrame}` : undefined,
+            }}
+          >
+            <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
+            <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-1.5 pb-1">
+            <h1 className="flex items-center gap-1.5 font-heading text-2xl font-medium tracking-tight sm:text-3xl">
+              @{profile.username}
+              {profile.verified && (
                 <span
-                  title="Son 30 gün içindeki etkinliğe göre - düşen etkinlikle kaybolabilir"
-                  className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+                  title="Doğrulanmış resmi profil"
+                  className="inline-flex size-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white"
                 >
-                  🔥 Emekter
+                  ✓
                 </span>
               )}
-              {userBadges.map((b) => (
+              {isPremium && (
                 <span
-                  key={b.id}
-                  title={b.comment}
-                  className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                  title="DKList Premium üye"
+                  className="inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-2 py-0.5 text-xs font-medium text-white"
                 >
-                  {b.img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`/api/badge-image/${b.img}`} alt="" className="size-4 rounded-full object-cover" />
-                  ) : (
-                    "🏅"
-                  )}{" "}
-                  {b.name}
+                  ★ Premium
                 </span>
-              ))}
-            </div>
-          )}
+              )}
+            </h1>
+            {(userBadges.length > 0 || veteranTier) && (
+              <div className="flex flex-wrap gap-1.5">
+                {veteranTier && (
+                  <span
+                    title="Son 30 gün içindeki etkinliğe göre - düşen etkinlikle kaybolabilir"
+                    className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary"
+                  >
+                    🔥 Emekter
+                  </span>
+                )}
+                {userBadges.map((b) => (
+                  <span
+                    key={b.id}
+                    title={b.comment}
+                    className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                  >
+                    {b.img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/badge-image/${b.img}`} alt="" className="size-4 rounded-full object-cover" />
+                    ) : (
+                      "🏅"
+                    )}{" "}
+                    {b.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+
         {viewerId && !isOwnProfile && (
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/mesajlar?user=${profile.username}`}
               className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
@@ -231,7 +234,7 @@ async function ProfileContent({
           </div>
         )}
         {isOwnProfile && (
-          <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <Link href="/ilanlarim" className="underline hover:text-foreground">
               İlanlarım
             </Link>
@@ -245,6 +248,18 @@ async function ProfileContent({
               Goodreads&apos;ten İçe Aktar
             </Link>
           </div>
+        )}
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <StatChip href={`/profil/${profile.username}/takipciler`} value={counts.followers} label="takipçi" />
+        <StatChip href={`/profil/${profile.username}/takip-edilenler`} value={counts.following} label="takip" />
+        <StatChip href="/puan-tablosu" value={totalPoints} label="puan" />
+        {totalReadingMinutes > 0 && (
+          <StatChip
+            value={`${Math.floor(totalReadingMinutes / 60)}s ${totalReadingMinutes % 60}d`}
+            label="okuma süresi"
+          />
         )}
       </div>
 
@@ -315,30 +330,17 @@ async function ProfileContent({
         )}
       </div>
 
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
         {READ_STATUSES.map((status) => {
           const books = booksByStatus[status];
           if (books.length === 0) return null;
           return (
-            <div key={status}>
-              <div className="mb-3 flex items-center gap-2">
-                <SectionLabel>{STATUS_LABELS[status]}</SectionLabel>
-                <span className="text-sm text-muted-foreground">
-                  ({books.length})
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {books.map((b) => (
-                  <Link
-                    key={b.id}
-                    href={`/kitap/${b.slug}`}
-                    className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
-                  >
-                    {b.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
+            <BookShelf
+              key={status}
+              title={STATUS_LABELS[status]}
+              count={books.length}
+              books={books}
+            />
           );
         })}
         {READ_STATUSES.every((s) => booksByStatus[s].length === 0) && (
@@ -348,87 +350,38 @@ async function ProfileContent({
         )}
 
         {libraryBooks.length > 0 && (
-          <div>
-            {/* Deliberately its own section, not merged into the reading-status
-                groups above - ownership (kitaplığım) and reading status are
-                independent facts per the customer's explicit ask. */}
-            <div className="mb-3 flex items-center gap-2">
-              <SectionLabel>Kitaplığım</SectionLabel>
-              <span className="text-sm text-muted-foreground">
-                ({libraryBooks.length})
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {libraryBooks.map((b) => (
-                <Link
-                  key={b.id}
-                  href={`/kitap/${b.slug}`}
-                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
-                >
-                  {b.name}
-                </Link>
-              ))}
-            </div>
-          </div>
+          // Deliberately its own section, not merged into the reading-status
+          // groups above - ownership (kitaplığım) and reading status are
+          // independent facts per the customer's explicit ask.
+          <BookShelf title="Kitaplığım" count={libraryBooks.length} books={libraryBooks} />
         )}
 
-        {likedWriters.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <SectionLabel>Beğenilen Yazarlar</SectionLabel>
-              <span className="text-sm text-muted-foreground">({likedWriters.length})</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {likedWriters.map((w) => (
-                <Link
-                  key={w.id}
-                  href={`/yazar/${w.slug}`}
-                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
-                >
-                  {w.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {likedTranslators.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <SectionLabel>Beğenilen Çevirmenler</SectionLabel>
-              <span className="text-sm text-muted-foreground">({likedTranslators.length})</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {likedTranslators.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/cevirmen/${t.slug}`}
-                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
-                >
-                  {t.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {likedPublishers.length > 0 && (
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <SectionLabel>Takip Edilen Yayınevleri</SectionLabel>
-              <span className="text-sm text-muted-foreground">({likedPublishers.length})</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {likedPublishers.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/yayinevi/${p.slug}`}
-                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
-                >
-                  {p.name}
-                </Link>
-              ))}
-            </div>
+        {(likedWriters.length > 0 || likedTranslators.length > 0 || likedPublishers.length > 0) && (
+          <div className="flex flex-col gap-6">
+            {likedWriters.length > 0 && (
+              <EntityChipShelf
+                title="Beğenilen Yazarlar"
+                count={likedWriters.length}
+                items={likedWriters}
+                hrefPrefix="/yazar"
+              />
+            )}
+            {likedTranslators.length > 0 && (
+              <EntityChipShelf
+                title="Beğenilen Çevirmenler"
+                count={likedTranslators.length}
+                items={likedTranslators}
+                hrefPrefix="/cevirmen"
+              />
+            )}
+            {likedPublishers.length > 0 && (
+              <EntityChipShelf
+                title="Takip Edilen Yayınevleri"
+                count={likedPublishers.length}
+                items={likedPublishers}
+                hrefPrefix="/yayinevi"
+              />
+            )}
           </div>
         )}
 
@@ -438,23 +391,119 @@ async function ProfileContent({
               <SectionLabel>Blog Yazıları</SectionLabel>
               <span className="text-sm text-muted-foreground">({ownerBlogs.length})</span>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {ownerBlogs.map((b) => (
-                <Link
-                  key={b.id}
-                  href={`/blog/${b.slug}`}
-                  className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
-                >
-                  {b.title}
-                  {!b.approved && " (onay bekliyor)"}
-                </Link>
-              ))}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {ownerBlogs.map((b) => {
+                const t = TONE_STYLE[toneForId(b.id)];
+                return (
+                  <Link
+                    key={b.id}
+                    href={`/blog/${b.slug}`}
+                    className="group flex overflow-hidden rounded-lg border border-border transition-colors hover:border-foreground/20 hover:bg-accent"
+                  >
+                    <div className="w-1.5 shrink-0" style={{ backgroundColor: t.bg }} />
+                    <div className="flex flex-1 flex-col justify-center gap-1 px-3 py-2.5">
+                      <p className="text-sm font-medium leading-snug">{b.title}</p>
+                      {!b.approved && (
+                        <span className="w-fit rounded-full bg-secondary px-1.5 py-0.5 text-[0.65rem] font-medium text-secondary-foreground">
+                          Onay bekliyor
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
       </div>
         </>
       )}
+    </div>
+  );
+}
+
+function StatChip({
+  href,
+  value,
+  label,
+}: {
+  href?: string;
+  value: number | string;
+  label: string;
+}) {
+  const content = (
+    <div className="flex flex-col rounded-lg border border-border px-3 py-1.5 transition-colors hover:bg-accent">
+      <span className="font-heading text-base font-medium leading-none">{value}</span>
+      <span className="text-[0.7rem] text-muted-foreground">{label}</span>
+    </div>
+  );
+  return href ? <Link href={href}>{content}</Link> : content;
+}
+
+function BookShelf({
+  title,
+  count,
+  books,
+}: {
+  title: string;
+  count: number;
+  books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <SectionLabel>{title}</SectionLabel>
+        <span className="text-sm text-muted-foreground">({count})</span>
+      </div>
+      <div className="-mx-6 flex gap-4 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {books.map((b) => (
+          <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 shrink-0 flex-col gap-1.5">
+            <BookCover
+              title={b.name}
+              author={b.writers.join(", ") || "Yazar bilinmiyor"}
+              tone={toneForId(b.id)}
+              bookId={b.id}
+              hasImage={b.hasImage}
+              size="sm"
+              className="w-full"
+            />
+            <p className="truncate text-xs font-medium">{b.name}</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EntityChipShelf({
+  title,
+  count,
+  items,
+  hrefPrefix,
+}: {
+  title: string;
+  count: number;
+  items: { id: number; name: string; slug: string }[];
+  hrefPrefix: string;
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <SectionLabel>{title}</SectionLabel>
+        <span className="text-sm text-muted-foreground">({count})</span>
+      </div>
+      <div className="-mx-6 flex gap-2.5 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {items.map((item) => (
+          <Link
+            key={item.id}
+            href={`${hrefPrefix}/${item.slug}`}
+            className="flex shrink-0 items-center gap-2 rounded-full border border-border py-1 pr-3.5 pl-1 text-sm transition-colors hover:border-foreground/20 hover:bg-accent"
+          >
+            <EntityAvatar id={item.id} name={item.name} size="size-7" />
+            <span className="whitespace-nowrap">{item.name}</span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
