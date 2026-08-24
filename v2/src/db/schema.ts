@@ -73,6 +73,10 @@ export const book = mysqlTable("book", {
 	lang: varchar({ length: 10 }).notNull(),
 	isbn: varchar({ length: 50 }),
 	content: longtext(),
+	// Migration 0027 - locally-generated (Ollama, free/no-API-cost) foreword-
+	// style blurb, only ever shown with an explicit "AI tarafından
+	// oluşturuldu" label, never presented as the real publisher blurb.
+	aiSummary: text("ai_summary"),
 	image: varchar({ length: 255 }),
 	country: varchar({ length: 100 }),
 	orgName: varchar("org_name", { length: 150 }).notNull(),

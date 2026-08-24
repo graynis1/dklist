@@ -16,6 +16,12 @@ export interface BookDetail {
   workId: number | null;
   lang: string;
   hasImage: boolean;
+  /** Real publisher-provided description, when the catalog has one (rare
+   * for the bulk-imported data). Distinct from aiSummary - never blended. */
+  content: string | null;
+  /** Locally-generated (Ollama) foreword-style blurb - only ever shown
+   * with an explicit AI-generated label, see migration 0027. */
+  aiSummary: string | null;
   publisher: { id: number; name: string; slug: string } | null;
   writers: { id: number; name: string; slug: string }[];
   categories: { id: number; name: string; slug: string }[];
@@ -39,6 +45,8 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
       workId: book.workId,
       lang: book.lang,
       hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+      content: book.content,
+      aiSummary: book.aiSummary,
       publisherId: publisher.id,
       publisherName: publisher.name,
       publisherSlug: publisher.slug,
@@ -79,6 +87,8 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
     workId: row.workId,
     lang: row.lang,
     hasImage: Boolean(row.hasImage),
+    content: row.content,
+    aiSummary: row.aiSummary,
     publisher: row.publisherId
       ? { id: row.publisherId, name: row.publisherName!, slug: row.publisherSlug! }
       : null,

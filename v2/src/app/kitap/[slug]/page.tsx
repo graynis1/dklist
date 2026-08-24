@@ -266,6 +266,19 @@ async function BookDetailContent({
               )}
             </div>
 
+            {(detail.content || detail.aiSummary) && (
+              <div className="flex flex-col gap-1.5">
+                <p className="leading-relaxed text-muted-foreground">
+                  {detail.content || detail.aiSummary}
+                </p>
+                {!detail.content && detail.aiSummary && (
+                  <span className="inline-flex w-fit items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-[0.7rem] font-medium text-secondary-foreground">
+                    ✨ AI tarafından oluşturuldu
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <RateBookControl
                 bookId={detail.id}
