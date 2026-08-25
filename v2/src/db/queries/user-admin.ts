@@ -3,6 +3,7 @@ import { and, eq, inArray, like, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { user, publisher, writer, badges, userBadges } from "@/db/schema";
 import { isProtectedFromRoleChange, USER_TYPES, type UserType } from "@/lib/permission";
+import { containsPattern } from "@/lib/sql-like";
 
 export interface UserAdminListItem {
   id: number;
@@ -27,7 +28,7 @@ export async function getUserAdminList(page = 1, pageSize = 20, search = ""): Pr
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
-    ? and(ne(user.userType, USER_TYPES.SuperAdmin), like(sql`LOWER(${user.username})`, sql`LOWER(${`%${trimmedSearch}%`})`))
+    ? and(ne(user.userType, USER_TYPES.SuperAdmin), like(sql`LOWER(${user.username})`, sql`LOWER(${containsPattern(trimmedSearch)})`))
     : ne(user.userType, USER_TYPES.SuperAdmin);
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(user).where(whereClause);

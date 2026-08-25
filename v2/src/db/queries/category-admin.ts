@@ -3,6 +3,7 @@ import { eq, inArray, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { category } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
+import { containsPattern } from "@/lib/sql-like";
 
 function slugify(input: string): string {
   const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
@@ -23,7 +24,7 @@ export async function getCategoryList(page = 1, pageSize = 20, search = ""): Pro
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
-    ? like(sql`LOWER(${category.category})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    ? like(sql`LOWER(${category.category})`, sql`LOWER(${containsPattern(trimmedSearch)})`)
     : undefined;
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(category).where(whereClause);
   const total = Number(countRow?.count ?? 0);

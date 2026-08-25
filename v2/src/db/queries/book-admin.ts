@@ -8,6 +8,7 @@ import { AUTO_APPROVE_ROLES, type UserType } from "@/lib/permission";
 import { deleteBookCascade } from "@/db/queries/entity-delete-cascade";
 import { userWriter } from "@/db/schema";
 import { addNotification } from "@/db/queries/notifications";
+import { prefixPattern } from "@/lib/sql-like";
 import { resolveSystemSenderId } from "@/db/queries/points";
 import { computeAndStoreBookEmbedding } from "@/db/queries/book-embedding";
 
@@ -304,7 +305,7 @@ export async function getBookAdminList(
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
-    ? or(like(book.name, `${trimmedSearch}%`), like(book.orgName, `${trimmedSearch}%`))
+    ? or(like(book.name, prefixPattern(trimmedSearch)), like(book.orgName, prefixPattern(trimmedSearch)))
     : undefined;
 
   let total: number;
