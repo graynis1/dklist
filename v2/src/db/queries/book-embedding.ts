@@ -1,5 +1,5 @@
 import "server-only";
-import { inArray, eq, sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { bookEmbedding, book } from "@/db/schema";
 import { getEmbedding, cosineSimilarity, EMBEDDING_MODEL } from "@/lib/embeddings";
