@@ -7,7 +7,7 @@ import { attachWriterNames } from "@/db/queries/books";
 
 export interface BookActivityItem {
   id: number;
-  kind: "yorum" | "alinti";
+  kind: "comment" | "quotation";
   username: string;
   bookId: number;
   bookName: string;
@@ -56,7 +56,7 @@ export async function getRecentBookActivity(limit = 10): Promise<BookActivityIte
 
   return rows.map((r) => ({
     ...r,
-    kind: r.kind === "alinti" ? "alinti" : "yorum",
+    kind: r.kind === "quotation" ? "quotation" : "comment",
     excerpt: r.text.length > 140 ? `${r.text.slice(0, 140)}...` : r.text,
     hasImage: Boolean(r.hasImage),
     writers: writersByBookId.get(r.bookId) ?? [],

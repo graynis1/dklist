@@ -32,9 +32,16 @@ export type CommentTargetType = "book" | "writer" | "translator" | "bookClub";
 // Customer's notes were explicit that "yorum yap" (write a review) and
 // "alıntı yap" (add a quote) should read as clearly separate things, not
 // blended into one generic "posts" feed like v1 did - commentType is the
-// column that carries that distinction. Only "yorum" (review) is wired up
-// in this pass; "alinti" (quote) reuses the same table/shape, a fast-follow.
-export type CommentType = "yorum" | "alinti";
+// column that carries that distinction.
+//
+// Real bug found and fixed: this was originally typed as "yorum" | "alinti"
+// (guessed Turkish literals) without checking what the actual comment_type
+// column contains - v1's real CommentTypeEnum values are English
+// ("comment"/"quotation"), confirmed by querying the real data (24 real
+// rows, all "comment"/"quotation", zero "yorum"/"alinti"). Every comment/
+// quote on every book/writer/translator/club page was silently invisible
+// because of this mismatch - the SELECT's WHERE clause matched nothing.
+export type CommentType = "comment" | "quotation";
 
 export interface SharedFromInfo {
   authorUsername: string;
@@ -59,7 +66,7 @@ export interface BookComment {
 export async function getEntityComments(
   targetId: number,
   targetType: CommentTargetType,
-  commentType: CommentType = "yorum",
+  commentType: CommentType = "comment",
 ): Promise<BookComment[]> {
   "use cache";
   cacheLife("minutes");
@@ -215,7 +222,7 @@ export async function addEntityComment(
   targetId: number,
   targetType: CommentTargetType,
   text: string,
-  commentType: CommentType = "yorum",
+  commentType: CommentType = "comment",
 ): Promise<number> {
   const trimmed = text.trim();
   if (trimmed.length < 2) {
@@ -247,7 +254,7 @@ export async function addEntityComment(
 
 export async function getBookComments(
   bookId: number,
-  commentType: CommentType = "yorum",
+  commentType: CommentType = "comment",
 ): Promise<BookComment[]> {
   return getEntityComments(bookId, "book", commentType);
 }
@@ -256,7 +263,7 @@ export async function addBookComment(
   userId: number,
   bookId: number,
   text: string,
-  commentType: CommentType = "yorum",
+  commentType: CommentType = "comment",
 ): Promise<number> {
   return addEntityComment(userId, bookId, "book", text, commentType);
 }

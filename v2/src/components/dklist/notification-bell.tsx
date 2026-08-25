@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { BellIcon } from "lucide-react";
 import { auth } from "@/auth";
 import { getUnreadNotificationCount } from "@/db/queries/notifications";
 
@@ -27,7 +28,7 @@ async function NotificationBellContent() {
       className="relative flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
       aria-label="Bildirimler"
     >
-      <span aria-hidden>🔔</span>
+      <BellIcon className="size-5" />
       {count > 0 && (
         <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
           {count > 9 ? "9+" : count}

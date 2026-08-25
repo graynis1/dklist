@@ -79,7 +79,7 @@ async function BookListContent({
   return (
     <div>
       {topCategories.length > 0 && (
-        <div className="mb-6 -mx-6 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mb-6 flex flex-wrap gap-2">
           {topCategories.map((c) => (
             <Link
               key={c.id}

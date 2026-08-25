@@ -141,7 +141,7 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
             initialComments={comments}
             initialRepliesByComment={repliesByCommentObj}
             commentLikes={commentLikes}
-            addCommentAction={addCommentAction.bind(null, club.id, "yorum")}
+            addCommentAction={addCommentAction.bind(null, club.id, "comment")}
             addReplyAction={addReplyAction}
             shareCommentAction={shareCommentAction}
             placeholder="Kulüpteki tartışmaya katıl…"

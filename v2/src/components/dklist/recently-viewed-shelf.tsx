@@ -28,7 +28,7 @@ export function RecentlyViewedShelf() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-10">
       <SectionLabel>Son Baktıkların</SectionLabel>
-      <div className="mt-4 flex gap-4 overflow-x-auto pb-2">
+      <div className="mt-4 flex flex-wrap gap-4">
         {books.map((b) => (
           <Link key={b.id} href={`/kitap/${b.slug}`} className="w-32 flex-shrink-0">
             <BookCover

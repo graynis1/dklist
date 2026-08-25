@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { MessageCircleIcon } from "lucide-react";
 import { auth } from "@/auth";
 import { getUnreadMessageCount } from "@/db/queries/messages";
 
@@ -25,7 +26,7 @@ async function MessageBellContent() {
       className="relative flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
       aria-label="Mesajlar"
     >
-      <span aria-hidden>✉️</span>
+      <MessageCircleIcon className="size-5" />
       {count > 0 && (
         <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
           {count > 9 ? "9+" : count}

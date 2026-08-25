@@ -87,7 +87,7 @@ async function WriterContent({
     getEntityComments(writer.id, "writer"),
     getAuthorMemberForWriter(writer.id),
   ]);
-  const quotes = await getEntityComments(writer.id, "writer", "alinti");
+  const quotes = await getEntityComments(writer.id, "writer", "quotation");
 
   const commentIds = comments.map((c) => c.id);
   const [repliesByComment, commentLikes] = await Promise.all([
@@ -211,7 +211,7 @@ async function WriterContent({
         initialComments={comments}
         initialRepliesByComment={repliesByCommentObj}
         commentLikes={commentLikes}
-        addCommentAction={addWriterCommentAction.bind(null, writer.id, "yorum")}
+        addCommentAction={addWriterCommentAction.bind(null, writer.id, "comment")}
         addReplyAction={addWriterReplyAction}
         shareCommentAction={shareWriterCommentAction}
         placeholder="Bu yazar hakkında ne düşünüyorsunuz?"
@@ -228,7 +228,7 @@ async function WriterContent({
         initialComments={quotes}
         initialRepliesByComment={repliesByQuoteObj}
         commentLikes={quoteLikes}
-        addCommentAction={addWriterCommentAction.bind(null, writer.id, "alinti")}
+        addCommentAction={addWriterCommentAction.bind(null, writer.id, "quotation")}
         addReplyAction={addWriterReplyAction}
         shareCommentAction={shareWriterCommentAction}
         placeholder="Bu yazardan bir alıntı paylaşın…"

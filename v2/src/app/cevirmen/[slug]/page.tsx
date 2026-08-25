@@ -79,7 +79,7 @@ async function TranslatorContent({
     userId ? getUserTranslatorRating(userId, translator.id) : Promise.resolve(null),
     getEntityComments(translator.id, "translator"),
   ]);
-  const quotes = await getEntityComments(translator.id, "translator", "alinti");
+  const quotes = await getEntityComments(translator.id, "translator", "quotation");
 
   const commentIds = comments.map((c) => c.id);
   const [repliesByComment, commentLikes] = await Promise.all([
@@ -184,7 +184,7 @@ async function TranslatorContent({
         initialComments={comments}
         initialRepliesByComment={repliesByCommentObj}
         commentLikes={commentLikes}
-        addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "yorum")}
+        addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "comment")}
         addReplyAction={addTranslatorReplyAction}
         shareCommentAction={shareTranslatorCommentAction}
         placeholder="Bu çevirmen hakkında ne düşünüyorsunuz?"
@@ -201,7 +201,7 @@ async function TranslatorContent({
         initialComments={quotes}
         initialRepliesByComment={repliesByQuoteObj}
         commentLikes={quoteLikes}
-        addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "alinti")}
+        addCommentAction={addTranslatorCommentAction.bind(null, translator.id, "quotation")}
         addReplyAction={addTranslatorReplyAction}
         shareCommentAction={shareTranslatorCommentAction}
         placeholder="Bu çevirmenden bir alıntı paylaşın…"

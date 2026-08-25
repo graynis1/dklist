@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { HomeIcon, LibraryIcon, BellIcon, MessageCircleIcon, CircleUserIcon, KeyRoundIcon } from "lucide-react";
 import { auth } from "@/auth";
 import { getUnreadNotificationCount } from "@/db/queries/notifications";
 import { getUnreadMessageCount } from "@/db/queries/messages";
@@ -13,16 +14,21 @@ import { getUnreadMessageCount } from "@/db/queries/messages";
  * Kitaplar/Bildirimler/Mesajlar/Profil except by typing a URL. Login here is
  * a real page (/giris), not v1's modal popup - matches the simpler pattern
  * already used consistently this session (e.g. legal pages over modals).
+ *
+ * Icons were raw emoji (🏠📚🔔💬👤🔑) - flagged as looking cheap/"AI-
+ * generated" next to the rest of the app's lucide-react icon language
+ * (also found and fixed the same issue in notification-bell.tsx/message-
+ * bell.tsx, the desktop header's equivalent icons).
  */
 export function MobileBottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex h-14 items-center justify-around border-t border-border bg-background/95 backdrop-blur-md md:hidden">
       <Link href="/" className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground">
-        <span aria-hidden>🏠</span>
+        <HomeIcon className="size-5" />
         Ana Sayfa
       </Link>
       <Link href="/kitaplar" className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground">
-        <span aria-hidden>📚</span>
+        <LibraryIcon className="size-5" />
         Kitaplar
       </Link>
       <Suspense fallback={<LoggedOutItems />}>
@@ -35,7 +41,7 @@ export function MobileBottomNav() {
 function LoggedOutItems() {
   return (
     <Link href="/giris" className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground">
-      <span aria-hidden>🔑</span>
+      <KeyRoundIcon className="size-5" />
       Giriş Yap
     </Link>
   );
@@ -57,7 +63,7 @@ async function SignedInItems() {
         href="/bildirimler"
         className="relative flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
       >
-        <span aria-hidden>🔔</span>
+        <BellIcon className="size-5" />
         Bildirimler
         {notifCount > 0 && (
           <span className="absolute -top-1 right-3 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
@@ -69,7 +75,7 @@ async function SignedInItems() {
         href="/mesajlar"
         className="relative flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
       >
-        <span aria-hidden>💬</span>
+        <MessageCircleIcon className="size-5" />
         Mesajlar
         {msgCount > 0 && (
           <span className="absolute -top-1 right-3 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
@@ -81,7 +87,7 @@ async function SignedInItems() {
         href={`/profil/${session.user.name}`}
         className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
       >
-        <span aria-hidden>👤</span>
+        <CircleUserIcon className="size-5" />
         Profil
       </Link>
     </>

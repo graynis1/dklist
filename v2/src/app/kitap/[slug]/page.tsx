@@ -136,7 +136,7 @@ async function BookDetailContent({
     detail.categories.length > 0 ? getSimilarBooks(detail.id, detail.categories[0].id) : Promise.resolve([]),
   ]);
 
-  const quotes = await getBookComments(detail.id, "alinti");
+  const quotes = await getBookComments(detail.id, "quotation");
 
   const commentIds = comments.map((c) => c.id);
   const [repliesByComment, commentLikes] = await Promise.all([
@@ -447,7 +447,7 @@ async function BookDetailContent({
             <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
               Benzer Kitaplar
             </h2>
-            <div className="flex gap-4 overflow-x-auto pb-2">
+            <div className="flex flex-wrap gap-4">
               {similarBooks.map((b) => (
                 <Link
                   key={b.id}
@@ -513,7 +513,7 @@ async function BookDetailContent({
           initialComments={comments}
           initialRepliesByComment={repliesByCommentObj}
           commentLikes={commentLikes}
-          addCommentAction={addCommentAction.bind(null, detail.id, "yorum")}
+          addCommentAction={addCommentAction.bind(null, detail.id, "comment")}
           addReplyAction={addReplyAction}
           shareCommentAction={shareCommentAction}
           placeholder="Bu kitap hakkında ne düşünüyorsunuz?"
@@ -532,7 +532,7 @@ async function BookDetailContent({
           initialComments={quotes}
           initialRepliesByComment={repliesByQuoteObj}
           commentLikes={quoteLikes}
-          addCommentAction={addCommentAction.bind(null, detail.id, "alinti")}
+          addCommentAction={addCommentAction.bind(null, detail.id, "quotation")}
           addReplyAction={addReplyAction}
           shareCommentAction={shareCommentAction}
           placeholder="Bu kitaptan bir alıntı paylaşın…"

@@ -212,7 +212,7 @@ export async function getSiteFeed(opts: {
     if (r.reason === "comment" && r.entityId) {
       const c = commentById.get(r.entityId);
       if (!c) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
-      const isQuote = c.commentType === "alinti";
+      const isQuote = c.commentType === "quotation";
       const excerpt = c.comment.length > 140 ? `${c.comment.slice(0, 140)}...` : c.comment;
       if (c.type === "book") {
         const b = bookMap.get(Number(c.targetId));

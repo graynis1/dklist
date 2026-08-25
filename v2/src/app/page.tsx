@@ -355,7 +355,7 @@ async function ActivityFeedShelf() {
             <p className="text-sm">
               <span className="font-medium">@{item.username}</span>{" "}
               <span className="text-muted-foreground">
-                {item.kind === "alinti" ? "bir alıntı paylaştı" : "bir yorum yazdı"} ·{" "}
+                {item.kind === "quotation" ? "bir alıntı paylaştı" : "bir yorum yazdı"} ·{" "}
               </span>
               <span className="font-medium">{item.bookName}</span>
             </p>
@@ -476,7 +476,7 @@ async function RecommendedBooksShelf() {
   }
 
   return (
-    <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex flex-wrap gap-5">
       {books.map((b) => (
         <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-32 shrink-0 flex-col gap-2">
           <BookCover
@@ -523,7 +523,7 @@ async function LatestBooksShelf() {
   }
 
   return (
-    <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex flex-wrap gap-5">
       {books.map((book) => (
         <Link
           key={book.id}
@@ -559,7 +559,7 @@ async function TrendingBooksShelf() {
   }
 
   return (
-    <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex flex-wrap gap-5">
       {books.map((book) => (
         <Link
           key={book.id}
