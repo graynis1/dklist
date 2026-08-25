@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import { getMyListsAction, addBookToListAction } from "@/actions/reading-lists";
 
 export function AddToListButton({ bookId, signedIn }: { bookId: number; signedIn: boolean }) {

@@ -256,7 +256,7 @@ export async function createBlogPost(
   }
 
   const slug = slugifyBlogTitle(title, ownerUsername);
-  const [result] = await db.insert(blog).values({
+  await db.insert(blog).values({
     ownerId,
     title,
     preview,

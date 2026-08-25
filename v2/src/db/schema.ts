@@ -1,5 +1,4 @@
-import { mysqlTable, mysqlSchema, AnyMySqlColumn, primaryKey, varchar, bigint, int, index, foreignKey, longtext, date, smallint, double, datetime, unique, tinyint, text, json } from "drizzle-orm/mysql-core"
-import { sql } from "drizzle-orm"
+import { mysqlTable, AnyMySqlColumn, primaryKey, varchar, bigint, int, index, foreignKey, longtext, date, smallint, double, datetime, unique, tinyint, text, json } from "drizzle-orm/mysql-core"
 
 export const mergeBulkProgress = mysqlTable("_merge_bulk_progress", {
 	label: varchar({ length: 191 }).notNull(),

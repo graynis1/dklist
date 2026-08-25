@@ -4,7 +4,7 @@ config({ path: ".env.local" });
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql, { type ResultSetHeader } from "mysql2/promise";
 import * as schema from "../src/db/schema";
-import { publisher, writer, category, book, bookCategory, writerBook, translator, translatorBook, work } from "../src/db/schema";
+import { publisher, writer, category, book, bookCategory, writerBook, translator, translatorBook } from "../src/db/schema";
 
 // Small, safe, entirely fake dataset for local dev against dklist_shadow ONLY.
 // Never point this script at the real DATABASE_URL - it truncates tables.
