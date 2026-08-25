@@ -17,6 +17,7 @@ import { avatarUrl } from "@/db/queries/avatar";
 import { updateProfileAction } from "@/app/profil/[username]/actions";
 import { TwoFactorToggle } from "@/components/dklist/two-factor-toggle";
 import { PrivacyToggle } from "@/components/dklist/privacy-toggle";
+import { SEX_OPTIONS } from "@/lib/sex";
 
 export default function EditProfilePage({ searchParams }: PageProps<"/profil/duzenle">) {
   return (
@@ -93,23 +94,16 @@ async function EditProfileContent({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Select
-              name="sex"
-              defaultValue={profile.sex}
-              required
-              items={[
-                { value: "erkek", label: "Erkek" },
-                { value: "kadin", label: "Kadın" },
-                { value: "belirtmek-istemiyorum", label: "Belirtmek istemiyorum" },
-              ]}
-            >
+            <Select name="sex" defaultValue={profile.sex} required items={SEX_OPTIONS}>
               <SelectTrigger>
                 <SelectValue placeholder="Cinsiyet seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="erkek">Erkek</SelectItem>
-                <SelectItem value="kadin">Kadın</SelectItem>
-                <SelectItem value="belirtmek-istemiyorum">Belirtmek istemiyorum</SelectItem>
+                {SEX_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Input
