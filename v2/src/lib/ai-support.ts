@@ -1,5 +1,6 @@
 import "server-only";
 import { FAQ_CATEGORIES } from "@/db/queries/support";
+import { matchFaqAnswer } from "@/lib/ai-support-match";
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434/api/generate";
 const MODEL = "qwen2.5:7b";
@@ -53,12 +54,7 @@ export async function getAiSupportResponse(
     if (!res.ok) return null;
 
     const data = (await res.json()) as { response?: string };
-    const raw = data.response?.trim() ?? "";
-    const match = raw.match(/\d+/);
-    if (!match) return null;
-
-    const index = Number(match[0]) - 1;
-    return category.questions[index]?.a ?? null;
+    return matchFaqAnswer(data.response ?? "", category.questions);
   } catch {
     // Ollama unavailable (not running locally, or a real prod deploy with
     // no local model yet) - fail silently, the ticket itself still gets
