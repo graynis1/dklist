@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { getBookList, getTopCategories, type BookSortBy } from "@/db/queries/books";
 
 const SORT_OPTIONS: { value: BookSortBy; label: string }[] = [
@@ -116,6 +117,10 @@ async function BookListContent({
           Filtrele
         </Button>
       </form>
+
+      <Suspense fallback={null}>
+        <AdSlot placement="kitaplar-listesi" className="mb-8 max-w-none px-0" />
+      </Suspense>
 
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">

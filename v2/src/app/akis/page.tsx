@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { SiteFeedList } from "@/components/dklist/site-feed";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { getSiteFeed } from "@/db/queries/feed";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,9 @@ async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">[
           </TabLink>
         </div>
       )}
+      <Suspense fallback={null}>
+        <AdSlot placement="akis" className="max-w-none px-0" />
+      </Suspense>
       <SiteFeedList initialItems={page.items} initialCursor={page.nextCursor} followingOnly={followingOnly} />
     </div>
   );
