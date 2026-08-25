@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { Button } from "@/components/ui/button";
 import { acceptRequestAction, deleteChatAction } from "@/app/mesajlar/actions";
 import type { ConversationItem as ConversationItemType } from "@/db/queries/messages";
@@ -34,9 +34,7 @@ export function MessageRequestItem({ request }: { request: ConversationItemType 
   return (
     <div className="flex items-center gap-3 p-3">
       <Link href={`/mesajlar?user=${request.otherUsername}`} className="flex min-w-0 flex-1 items-center gap-3">
-        <Avatar className="size-9 text-sm">
-          <AvatarFallback>{request.otherUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <EntityAvatar id={request.otherUserId} name={request.otherUsername} size="size-9" />
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium">@{request.otherUsername}</span>
           <span className="truncate text-xs text-muted-foreground">{request.lastMessagePreview ?? ""}</span>

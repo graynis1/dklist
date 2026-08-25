@@ -14,6 +14,17 @@ import { NOINDEX_METADATA } from "@/lib/seo";
 // account-specific data if a crawler ever reached them.
 export const metadata: Metadata = NOINDEX_METADATA;
 
+// The layout reads auth() (cookies()) directly to gate the whole panel and
+// build the sidebar - there is no legitimate static/anonymous shell for an
+// always-behind-login admin panel, so opting out of Cache Components'
+// static-shell prerender check here (rather than wrapping in <Suspense>) is
+// the correct fix, not a workaround: `next build` was failing outright
+// ("Route '/admin/aktivite-gunlugu': ... blocking-prerender-dynamic") since
+// this is exactly the "ancestor can't be instant" case the instant.md docs
+// describe - set as low in the tree as possible (this layout, not root) so
+// the rest of the app keeps its static-shell validation.
+export const instant = false;
+
 /**
  * A genuinely separate shell for the whole admin panel - replaces the old
  * `return children` no-op layout that left every admin page rendering the

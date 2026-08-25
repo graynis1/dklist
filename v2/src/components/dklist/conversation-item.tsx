@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { XIcon } from "lucide-react";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { deleteChatAction } from "@/app/mesajlar/actions";
 import type { ConversationItem as ConversationItemType } from "@/db/queries/messages";
 
@@ -32,9 +33,7 @@ export function ConversationItem({
   return (
     <div className={`group flex items-center gap-3 p-3 transition-colors hover:bg-accent ${isActive ? "bg-accent" : ""}`}>
       <Link href={`/mesajlar?user=${conversation.otherUsername}`} className="flex min-w-0 flex-1 items-center gap-3">
-        <Avatar className="size-9 text-sm">
-          <AvatarFallback>{conversation.otherUsername.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <EntityAvatar id={conversation.otherUserId} name={conversation.otherUsername} size="size-9" />
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium">@{conversation.otherUsername}</span>
           <span className="truncate text-xs text-muted-foreground">
@@ -51,10 +50,10 @@ export function ConversationItem({
         type="button"
         onClick={remove}
         disabled={isPending}
-        className="shrink-0 text-xs text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100 disabled:opacity-50"
+        className="shrink-0 text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100 disabled:opacity-50"
         aria-label="Sohbeti sil"
       >
-        ✕
+        <XIcon className="size-3.5" />
       </button>
     </div>
   );

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { MessageThread } from "@/components/dklist/message-thread";
 import { ConversationItem } from "@/components/dklist/conversation-item";
 import { MessageRequestItem } from "@/components/dklist/message-request-item";
@@ -66,8 +66,8 @@ async function MessagesContent({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 rounded-lg border border-border md:grid-cols-[16rem_1fr]">
-      <div className="flex flex-col divide-y divide-border border-b border-border md:border-r md:border-b-0">
+    <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-border md:h-[40rem] md:grid-cols-[17rem_1fr]">
+      <div className="flex flex-col divide-y divide-border overflow-y-auto border-b border-border md:border-r md:border-b-0">
         {conversations.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Henüz bir konuşman yok.</p>
         ) : (
@@ -91,14 +91,16 @@ async function MessagesContent({
         )}
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         {activeProfile ? (
           <>
             <div className="flex items-center gap-3 border-b border-border p-3">
-              <Avatar className="size-8 text-sm">
-                <AvatarImage src={avatarUrl(activeProfile.image) ?? undefined} />
-                <AvatarFallback>{activeProfile.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
+              <EntityAvatar
+                id={activeProfile.id}
+                name={activeProfile.username}
+                image={avatarUrl(activeProfile.image) ?? undefined}
+                size="size-8"
+              />
               <Link href={`/profil/${activeProfile.username}`} className="font-medium hover:underline">
                 @{activeProfile.username}
               </Link>
