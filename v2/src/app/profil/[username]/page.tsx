@@ -1,4 +1,4 @@
-import { Suspense, type ReactNode, type CSSProperties } from "react";
+import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -85,15 +85,6 @@ const STATUS_TINTS: Record<(typeof READ_STATUSES)[number], keyof typeof SECTION_
   okuyorum: "blue",
   okuyacagim: "violet",
   "yarida-birakildi": "rose",
-};
-
-/** Horizontal-scroll rafların sağ (ve gerekirse sol) kenarını yumuşakça
- * saydamlaştırır - önceki halde son öğe sert bir kenarda birden kesiliyordu
- * ("kayboluyor" şikayeti); bu, "burada daha fazlası var, kaydır" sinyalini
- * gizli scrollbar yerine görsel olarak veriyor. */
-const SCROLL_FADE_STYLE: CSSProperties = {
-  maskImage: "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 24px), transparent 100%)",
-  WebkitMaskImage: "linear-gradient(to right, transparent 0, black 16px, black calc(100% - 24px), transparent 100%)",
 };
 
 export default function ProfilePage({ params }: PageProps<"/profil/[username]">) {
@@ -616,12 +607,9 @@ function BookShelf({
   books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
 }) {
   return (
-    <div
-      className="-mx-5 flex gap-4 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      style={SCROLL_FADE_STYLE}
-    >
+    <div className="flex flex-wrap gap-4">
       {books.map((b) => (
-        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 shrink-0 flex-col gap-1">
+        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 flex-col gap-1">
           <BookCover
             title={b.name}
             author={b.writers.join(", ") || "Yazar bilinmiyor"}
@@ -647,15 +635,12 @@ function EntityChipShelf({
   hrefPrefix: string;
 }) {
   return (
-    <div
-      className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      style={SCROLL_FADE_STYLE}
-    >
+    <div className="flex flex-wrap gap-2.5">
       {items.map((item) => (
         <Link
           key={item.id}
           href={`${hrefPrefix}/${item.slug}`}
-          className="flex shrink-0 items-center gap-2 rounded-full border border-border py-1 pr-3.5 pl-1 text-sm transition-colors hover:border-foreground/20 hover:bg-accent"
+          className="flex items-center gap-2 rounded-full border border-border py-1 pr-3.5 pl-1 text-sm transition-colors hover:border-foreground/20 hover:bg-accent"
         >
           <EntityAvatar id={item.id} name={item.name} size="size-7" />
           <span className="whitespace-nowrap">{item.name}</span>
