@@ -102,20 +102,15 @@ async function fetchIfPublicHost(url: string): Promise<Buffer | null> {
   }
 }
 
-// A simple typeset placeholder (matches the BookCover component's "no photo"
-// design language) instead of a broken-image icon when a book has no cover URL
-// or the fetch failed - roughly 50% of the real catalog has none, per PLAN.md's
-// data-quality notes, so this is the common case, not an edge case.
+// Must be a non-2xx response, not a "successful" flat placeholder image -
+// PhotoBookCover's <img onError> is what swaps to BookCover's real fallback
+// (the per-book toneForId-colored typeset jacket). A 200 here, even with a
+// generic "no cover" SVG body, is indistinguishable from a real photo to the
+// <img> tag, so onError never fires and every uncovered book (roughly 50%
+// of the real catalog, per PLAN.md's data-quality notes) rendered the exact
+// same flat placeholder instead of its own colored jacket - a real bug, not
+// a style choice, found from a live screenshot showing five identical
+// covers that should have been five different colors.
 function placeholder(): Response {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
-    <rect width="400" height="600" fill="oklch(0.94 0.02 55)" />
-    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
-      font-family="Georgia, serif" font-size="20" fill="oklch(0.48 0.02 55)">Kapak Yok</text>
-  </svg>`;
-  return new Response(svg, {
-    headers: {
-      "Content-Type": "image/svg+xml",
-      "Cache-Control": "public, max-age=3600",
-    },
-  });
+  return new Response(null, { status: 404 });
 }

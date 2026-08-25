@@ -109,7 +109,14 @@ export function MessageThread({
                       >
                         {m.attachment.image && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={m.attachment.image} alt="" className="size-10 rounded object-cover" />
+                          <img
+                            src={m.attachment.image}
+                            alt=""
+                            className="size-10 rounded object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
                         )}
                         <span className="text-xs font-medium">{m.attachment.title}</span>
                       </a>
