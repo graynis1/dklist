@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AuthVisualPanel, AuthMobileTeaser } from "@/components/dklist/auth-visual-panel";
+import { SEX_OPTIONS } from "@/lib/sex";
 import { registerAction } from "./actions";
 
 const BOOKS: [
@@ -58,9 +59,11 @@ export default function RegisterPage({ searchParams }: PageProps<"/kayit-ol">) {
                     <SelectValue placeholder="Cinsiyet" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="erkek">Erkek</SelectItem>
-                    <SelectItem value="kadin">Kadın</SelectItem>
-                    <SelectItem value="belirtmek-istemiyorum">Belirtmek istemiyorum</SelectItem>
+                    {SEX_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Input name="birthDate" type="date" required />
