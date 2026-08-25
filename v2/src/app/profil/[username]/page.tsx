@@ -199,8 +199,12 @@ async function ProfileContent({
   const canSeeDetails = isOwnProfile || viewerFollows || !profile.privacy;
 
   const tone = TONE_STYLE[toneForId(profile.id)];
-  const featuredBook = booksByStatus.okuyorum[0] ?? booksByStatus.okudum[0] ?? libraryBooks[0] ?? null;
-  const featuredLabel = booksByStatus.okuyorum[0] ? "Şu An Okuyor" : booksByStatus.okudum[0] ? "Son Okuduğu" : "Kitaplığından";
+  // Sadece gerçek bir okuma etkinliğinden (okuyor/okudu) geliyorsa öne
+  // çıkar - kitaplığım'a düşerse aşağıdaki Kitaplığım rafıyla birebir
+  // aynı tek kitabı iki kez göstermiş oluyorduk (gerçek bir tekrar hatası,
+  // "aynı kitap iki kez" ekran görüntüsüyle bulundu).
+  const featuredBook = booksByStatus.okuyorum[0] ?? booksByStatus.okudum[0] ?? null;
+  const featuredLabel = booksByStatus.okuyorum[0] ? "Şu An Okuyor" : "Son Okuduğu";
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-10 sm:py-16">
@@ -432,7 +436,10 @@ async function ProfileContent({
                 </p>
               )}
 
-              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+              {/* Aktivite verisi yoksa 2. sütun boş kalıp yanında ölü bir
+                  boşluk bırakıyordu (gerçek bir "yetim hücre" hatası) -
+                  yalnızca ikisi de doluyken yan yana diz. */}
+              <div className={activityHeatmap.length > 0 ? "grid grid-cols-1 items-start gap-6 lg:grid-cols-2" : "flex flex-col gap-6"}>
                 {activityHeatmap.length > 0 && (
                   <SectionCard title="Aktivite" icon={FlameIcon} tint="rose">
                     <ActivityHeatmap days={activityHeatmap} />
@@ -630,28 +637,28 @@ function BookShelf({
   books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
 }) {
   return (
-    <div className="flex flex-col">
-      <div className="flex flex-wrap items-end gap-4 pb-2">
-        {books.map((b) => (
-          <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 flex-col gap-1">
-            <BookCover
-              title={b.name}
-              author={b.writers.join(", ") || "Yazar bilinmiyor"}
-              tone={toneForId(b.id)}
-              bookId={b.id}
-              hasImage={b.hasImage}
-              size="sm"
-              className="w-full"
-            />
-            <p className="truncate text-xs font-medium">{b.name}</p>
-            <p className="truncate text-[0.7rem] text-muted-foreground">{b.writers.join(", ") || "Yazar bilinmiyor"}</p>
-          </Link>
-        ))}
-      </div>
-      {/* Kitapları gerçek bir rafta duruyormuş gibi gösteren dekoratif
-          tahta çıta - jenerik bir kart/liste yerine sitenin kitap kimliğine
-          gönderme yapan somut bir görsel imza. */}
-      <div className="h-2.5 rounded-b-sm bg-gradient-to-b from-amber-700/60 to-amber-950/70 shadow-[0_5px_10px_-3px_rgba(0,0,0,0.4)] dark:from-amber-800/50 dark:to-amber-950/60" />
+    <div className="flex flex-wrap gap-4">
+      {books.map((b) => (
+        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 flex-col gap-1">
+          <BookCover
+            title={b.name}
+            author={b.writers.join(", ") || "Yazar bilinmiyor"}
+            tone={toneForId(b.id)}
+            bookId={b.id}
+            hasImage={b.hasImage}
+            size="sm"
+            className="w-full"
+          />
+          {/* Her kitabın kendi altında, tam kendi genişliğinde küçük bir
+              raf çıtası - tek bir ortak çıta öğe sayısına göre boş alana
+              doğru gerilip kopuk/bozuk görünüyordu (gerçek bir görsel hata,
+              ekran görüntüsüyle bulundu). Kendi genişliğine bağlı olduğu
+              için sayı ne olursa olsun her zaman doğru görünür. */}
+          <div className="h-1.5 w-full rounded-b-[1px] bg-gradient-to-b from-amber-700/60 to-amber-950/70 shadow-[0_2px_4px_-1px_rgba(0,0,0,0.4)] dark:from-amber-800/50 dark:to-amber-950/60" />
+          <p className="truncate text-xs font-medium">{b.name}</p>
+          <p className="truncate text-[0.7rem] text-muted-foreground">{b.writers.join(", ") || "Yazar bilinmiyor"}</p>
+        </Link>
+      ))}
     </div>
   );
 }
