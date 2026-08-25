@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getAdminBlogList } from "@/db/queries/blog";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ const VIEW_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 export default function AdminBlogPage({ searchParams }: PageProps<"/admin/bloglar">) {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
         <AdminBlogContent searchParams={searchParams} />
       </Suspense>

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getSitePopup } from "@/db/queries/site-popup";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { SitePopupSettingsForm } from "@/components/dklist/site-popup-settings-form";
 
@@ -12,7 +11,6 @@ const ALLOWED = [USER_TYPES.Admin, USER_TYPES.Mod];
 export default function AdminSitePopupPage() {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-lg px-6 py-16" />}>
         <AdminSitePopupContent />
       </Suspense>

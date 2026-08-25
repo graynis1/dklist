@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getAdAdminList } from "@/db/queries/advertisements";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { CreateAdForm } from "@/components/dklist/create-ad-form";
 import { AdAdminRow } from "@/components/dklist/ad-admin-row";
@@ -13,7 +12,6 @@ const ADMIN_ONLY = [USER_TYPES.Admin];
 export default function AdminAdsPage() {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
         <AdminAdsContent />
       </Suspense>

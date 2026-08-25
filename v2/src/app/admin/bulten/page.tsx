@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getNewsletterSubscribers } from "@/db/queries/newsletter";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { NewsletterSubscriberActions } from "@/components/dklist/newsletter-subscriber-actions";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,6 @@ export default function AdminNewsletterPage({
 }: PageProps<"/admin/bulten">) {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-2xl px-6 py-16" />}>
         <AdminNewsletterContent searchParams={searchParams} />
       </Suspense>

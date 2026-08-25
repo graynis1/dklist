@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getSupportTickets, FAQ_CATEGORIES } from "@/db/queries/support";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { SupportTicketStatusToggle } from "@/components/dklist/support-ticket-status-toggle";
 
@@ -19,7 +18,6 @@ const STATUS_TABS: { value: "all" | "open" | "resolved"; label: string }[] = [
 export default function AdminSupportTicketsPage({ searchParams }: PageProps<"/admin/destek-talepleri">) {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
         <AdminSupportTicketsContent searchParams={searchParams} />
       </Suspense>

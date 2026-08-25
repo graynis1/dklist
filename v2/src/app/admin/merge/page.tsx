@@ -4,7 +4,6 @@ import { auth } from "@/auth";
 import { mergeWorks } from "@/db/queries/merge";
 import { requireRole, hasRole, USER_TYPES } from "@/lib/permission";
 import { logAdminAction } from "@/db/queries/admin-log";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +45,6 @@ export default function AdminMergePage({
 }: PageProps<"/admin/merge">) {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-lg px-6 py-16" />}>
         <AdminMergeContent searchParams={searchParams} />
       </Suspense>
