@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { BookCover, toneForId } from "@/components/dklist/book-cover";
+import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
 import { ReadStatusControl } from "@/components/dklist/read-status-control";
 import { RateBookControl } from "@/components/dklist/rate-book-control";
@@ -22,7 +22,7 @@ import { AdSlot } from "@/components/dklist/ad-slot";
 import { JsonLd } from "@/components/dklist/json-ld";
 import { ReportBookErrorButton } from "@/components/dklist/report-book-error-button";
 import { AddToListButton } from "@/components/dklist/add-to-list-button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions, getSimilarBooks } from "@/db/queries/book-detail";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
@@ -408,34 +408,58 @@ async function BookDetailContent({
               Diğer Baskılar
             </h2>
             {workEditions.sameLanguage.length > 0 && (
-              <ul className="mb-4 flex flex-col gap-1">
+              <div className="mb-6 flex flex-wrap gap-4">
                 {workEditions.sameLanguage.map((e) => (
-                  <li key={e.id}>
-                    <Link href={`/kitap/${e.slug}`} className="text-primary hover:underline">
-                      {e.name}
-                    </Link>{" "}
-                    <span className="text-sm text-muted-foreground">{e.score.toFixed(1)}/10</span>
-                  </li>
+                  <Link key={e.id} href={`/kitap/${e.slug}`} className="flex w-24 flex-col gap-1">
+                    <BookCover
+                      title={e.name}
+                      author=""
+                      tone={toneForId(e.id)}
+                      bookId={e.id}
+                      hasImage={e.hasImage}
+                      size="sm"
+                      className="w-full"
+                    />
+                    <p className="truncate text-xs font-medium">{e.name}</p>
+                    <p className="text-[0.7rem] text-muted-foreground">{e.score.toFixed(1)}/10</p>
+                  </Link>
                 ))}
-              </ul>
+              </div>
             )}
-            {Object.entries(workEditions.otherLanguages).map(([lang, editions]) => (
-              <details key={lang} className="mb-2">
-                <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-                  {lang.toUpperCase()} baskılar ({editions.length})
-                </summary>
-                <ul className="mt-2 flex flex-col gap-1 pl-4">
-                  {editions.map((e) => (
-                    <li key={e.id}>
-                      <Link href={`/kitap/${e.slug}`} className="text-primary hover:underline">
-                        {e.name}
-                      </Link>{" "}
-                      <span className="text-sm text-muted-foreground">{e.score.toFixed(1)}/10</span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ))}
+            {Object.keys(workEditions.otherLanguages).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(workEditions.otherLanguages).map(([lang, editions]) => {
+                  const t = TONE_STYLE[toneForId(lang.charCodeAt(0) + lang.charCodeAt(lang.length - 1))];
+                  return (
+                    <details key={lang} className="group">
+                      <summary
+                        className="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:border-foreground/20 hover:bg-accent [&::-webkit-details-marker]:hidden"
+                      >
+                        <span
+                          className="flex size-4 items-center justify-center rounded-full text-[0.55rem] font-semibold"
+                          style={{ backgroundColor: t.bg, color: t.fg }}
+                        >
+                          {lang.slice(0, 1).toUpperCase()}
+                        </span>
+                        {lang.toUpperCase()} baskılar ({editions.length})
+                      </summary>
+                      <div className="mt-2 flex max-w-md flex-col gap-1 rounded-lg border border-border bg-card p-3">
+                        {editions.map((e) => (
+                          <Link
+                            key={e.id}
+                            href={`/kitap/${e.slug}`}
+                            className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-accent"
+                          >
+                            <span className="truncate text-primary hover:underline">{e.name}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{e.score.toFixed(1)}/10</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            )}
           </section>
         </>
       )}
@@ -485,11 +509,7 @@ async function BookDetailContent({
                   href={`/profil/${r.username}`}
                   className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm hover:bg-accent"
                 >
-                  <Avatar className="size-6 text-[10px]">
-                    <AvatarFallback>
-                      {r.username.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <EntityAvatar id={r.id} name={r.username} size="size-6" className="text-[10px]" />
                   {r.username}
                   <span className="text-xs text-muted-foreground">
                     {READER_STATUS_LABELS[r.status] ?? r.status}
