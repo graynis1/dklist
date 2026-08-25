@@ -80,6 +80,24 @@ const SECTION_TINTS = {
   indigo: "bg-indigo-500/10 text-indigo-500",
 } as const;
 
+/** Kartların artık her biri aynı düz bg-card kutusu değil - başlıktaki
+ * ikon rengiyle eşleşen, çok hafif bir zemin tonu taşıyor. Sayfaya
+ * uzaktan bakınca bile bölümler arasında görsel fark seçilsin diye.
+ * Inline style olarak uygulanıyor (className olarak bg-card ile aynı
+ * anda verilseydi ikisi de background-color'ı hedeflediği için hangisinin
+ * kazanacağı Tailwind'in derleme sırasına kalırdı - inline style her
+ * zaman kazanır, belirsizlik kalmaz). */
+const SECTION_WASHES: Record<keyof typeof SECTION_TINTS, string> = {
+  primary: "color-mix(in oklch, var(--primary) 5%, var(--card))",
+  rose: "color-mix(in oklch, var(--color-rose-500) 5%, var(--card))",
+  emerald: "color-mix(in oklch, var(--color-emerald-500) 5%, var(--card))",
+  blue: "color-mix(in oklch, var(--color-blue-500) 5%, var(--card))",
+  violet: "color-mix(in oklch, var(--color-violet-500) 5%, var(--card))",
+  amber: "color-mix(in oklch, var(--color-amber-500) 6%, var(--card))",
+  teal: "color-mix(in oklch, var(--color-teal-500) 5%, var(--card))",
+  indigo: "color-mix(in oklch, var(--color-indigo-500) 5%, var(--card))",
+};
+
 const STATUS_TINTS: Record<(typeof READ_STATUSES)[number], keyof typeof SECTION_TINTS> = {
   okudum: "emerald",
   okuyorum: "blue",
@@ -414,44 +432,46 @@ async function ProfileContent({
                 </p>
               )}
 
-              {activityHeatmap.length > 0 && (
-                <SectionCard title="Aktivite" icon={FlameIcon} tint="rose">
-                  <ActivityHeatmap days={activityHeatmap} />
+              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+                {activityHeatmap.length > 0 && (
+                  <SectionCard title="Aktivite" icon={FlameIcon} tint="rose">
+                    <ActivityHeatmap days={activityHeatmap} />
+                  </SectionCard>
+                )}
+
+                <SectionCard title="2026 Okuma Hedefi" icon={TargetIcon}>
+                  <div className="flex flex-col gap-3">
+                    <ReadingGoalControl isOwnProfile={isOwnProfile} initialGoal={readingGoal} />
+                    {pastGoals.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Geçmiş yıllar:{" "}
+                        {pastGoals.map((g) => `${g.year}: ${g.readCount}/${g.targetCount}`).join(", ")}
+                      </p>
+                    )}
+                    {isOwnProfile && readingScoreStats && (readingScoreStats.booksRead > 0 || readingScoreStats.totalMinutes > 0) && (
+                      <ReadingScoreCard username={profile.username} stats={readingScoreStats} />
+                    )}
+                    {isOwnProfile && totalPoints > 0 && (
+                      <PointsShareCard
+                        username={profile.username}
+                        stats={{
+                          totalPoints,
+                          weeklyPoints: weeklyRank?.points ?? 0,
+                          weeklyRank: weeklyRank?.rank ?? null,
+                          streakDays: activityStreak,
+                        }}
+                      />
+                    )}
+                  </div>
                 </SectionCard>
-              )}
+              </div>
 
-              <SectionCard title="2026 Okuma Hedefi" icon={TargetIcon}>
-                <div className="flex flex-col gap-3">
-                  <ReadingGoalControl isOwnProfile={isOwnProfile} initialGoal={readingGoal} />
-                  {pastGoals.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      Geçmiş yıllar:{" "}
-                      {pastGoals.map((g) => `${g.year}: ${g.readCount}/${g.targetCount}`).join(", ")}
-                    </p>
-                  )}
-                  {isOwnProfile && readingScoreStats && (readingScoreStats.booksRead > 0 || readingScoreStats.totalMinutes > 0) && (
-                    <ReadingScoreCard username={profile.username} stats={readingScoreStats} />
-                  )}
-                  {isOwnProfile && totalPoints > 0 && (
-                    <PointsShareCard
-                      username={profile.username}
-                      stats={{
-                        totalPoints,
-                        weeklyPoints: weeklyRank?.points ?? 0,
-                        weeklyRank: weeklyRank?.rank ?? null,
-                        streakDays: activityStreak,
-                      }}
-                    />
-                  )}
-                </div>
-              </SectionCard>
-
-              {/* Tek sütun, tam genişlik - iki sütuna bölmek raflardaki
-                  kitap/yazar satırlarının genişliğini yarıya düşürüp daha
-                  fazlasının kırpılmasına yol açıyordu ("kayboluyor" şikayeti).
-                  Geniş ekranda boşluk kalmasın diye üst container zaten
-                  max-w-[1400px]'e genişletildi - bu yeterli. */}
-              <div className="flex flex-col gap-6">
+              {/* items-start şart: aksi halde grid her satırdaki en uzun
+                  kartın yüksekliğine göre kısa kartları da gereksiz yere
+                  uzatıyor (daha önce yaşanan gerçek bug). Raflar artık
+                  kaydırma değil sarma (flex-wrap) kullandığı için - hiçbir
+                  öğe kırpılmadan - iki sütuna bölmek güvenli. */}
+              <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
                 {READ_STATUSES.every((s) => booksByStatus[s].length === 0) && libraryBooks.length === 0 && (
                   <SectionCard title="Kütüphane" icon={LibraryIcon}>
                     <div className="flex flex-col items-center gap-2 py-6 text-center">
@@ -588,7 +608,10 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">
+    <div
+      className="rounded-3xl border border-border p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6"
+      style={{ backgroundColor: SECTION_WASHES[tint] }}
+    >
       <div className="mb-4 flex items-center gap-2.5">
         <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${SECTION_TINTS[tint]}`}>
           <Icon className="size-4" />
@@ -607,22 +630,28 @@ function BookShelf({
   books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
 }) {
   return (
-    <div className="flex flex-wrap gap-4">
-      {books.map((b) => (
-        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 flex-col gap-1">
-          <BookCover
-            title={b.name}
-            author={b.writers.join(", ") || "Yazar bilinmiyor"}
-            tone={toneForId(b.id)}
-            bookId={b.id}
-            hasImage={b.hasImage}
-            size="sm"
-            className="w-full"
-          />
-          <p className="truncate text-xs font-medium">{b.name}</p>
-          <p className="truncate text-[0.7rem] text-muted-foreground">{b.writers.join(", ") || "Yazar bilinmiyor"}</p>
-        </Link>
-      ))}
+    <div className="flex flex-col">
+      <div className="flex flex-wrap items-end gap-4 pb-2">
+        {books.map((b) => (
+          <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 flex-col gap-1">
+            <BookCover
+              title={b.name}
+              author={b.writers.join(", ") || "Yazar bilinmiyor"}
+              tone={toneForId(b.id)}
+              bookId={b.id}
+              hasImage={b.hasImage}
+              size="sm"
+              className="w-full"
+            />
+            <p className="truncate text-xs font-medium">{b.name}</p>
+            <p className="truncate text-[0.7rem] text-muted-foreground">{b.writers.join(", ") || "Yazar bilinmiyor"}</p>
+          </Link>
+        ))}
+      </div>
+      {/* Kitapları gerçek bir rafta duruyormuş gibi gösteren dekoratif
+          tahta çıta - jenerik bir kart/liste yerine sitenin kitap kimliğine
+          gönderme yapan somut bir görsel imza. */}
+      <div className="h-2.5 rounded-b-sm bg-gradient-to-b from-amber-700/60 to-amber-950/70 shadow-[0_5px_10px_-3px_rgba(0,0,0,0.4)] dark:from-amber-800/50 dark:to-amber-950/60" />
     </div>
   );
 }
