@@ -8,6 +8,7 @@ import { publishUserEvent } from "@/lib/event-bus";
 import { isBlockedEitherWay } from "@/db/queries/blocks";
 import { findFlaggedWords } from "@/lib/dirty-controller";
 import { isLikelyAbusive } from "@/lib/moderation";
+import { storeImageUrl } from "@/lib/image-urls";
 
 async function userFollows(followerId: number, followedId: number): Promise<boolean> {
   const [row] = await db
@@ -343,7 +344,7 @@ async function buildAttachment(
         title: row.title,
         slug: row.slug,
         price: row.price,
-        image: pic ? `/api/store-image/${pic.imageName}` : null,
+        image: storeImageUrl(pic?.imageName ?? null),
       },
       previewText: "🏷️ İlan paylaştı",
     };

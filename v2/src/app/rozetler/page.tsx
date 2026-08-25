@@ -11,6 +11,7 @@ import { connection } from "next/server";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { getPublicBadgeGallery } from "@/db/queries/badges-public";
+import { badgeImageUrl } from "@/lib/image-urls";
 
 export default function BadgeGalleryPage() {
   return (
@@ -46,7 +47,7 @@ async function BadgeGalleryContent() {
         <div key={b.id} className="flex items-center gap-4 rounded-lg border border-border p-4">
           {b.img ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/api/badge-image/${b.img}`} alt="" className="size-12 shrink-0 rounded-full object-cover" />
+            <img src={badgeImageUrl(b.img)} alt="" className="size-12 shrink-0 rounded-full object-cover" />
           ) : (
             <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-secondary text-xl">🏅</span>
           )}

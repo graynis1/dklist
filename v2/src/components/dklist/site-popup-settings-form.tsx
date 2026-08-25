@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { updateSitePopupAction } from "@/app/admin/site-popup/actions";
 import type { SitePopupView } from "@/db/queries/site-popup";
+import { sitePopupImageUrl } from "@/lib/image-urls";
 
 export function SitePopupSettingsForm({ popup }: { popup: SitePopupView }) {
   const router = useRouter();
@@ -53,7 +54,7 @@ export function SitePopupSettingsForm({ popup }: { popup: SitePopupView }) {
       </label>
       {popup.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={`/api/site-popup-image/${popup.image}`} alt="" className="h-32 w-full rounded-md border border-border object-cover" />
+        <img src={sitePopupImageUrl(popup.image)} alt="" className="h-32 w-full rounded-md border border-border object-cover" />
       )}
       <label className="flex flex-col gap-1 text-sm">
         Görsel (opsiyonel, yüklersen mevcut görseli değiştirir)

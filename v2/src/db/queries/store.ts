@@ -5,6 +5,7 @@ import { store, storeFavorite, storePicture, user, book, read } from "@/db/schem
 import { saveUploadedImage } from "@/lib/image-upload";
 import { awardPoints, getPointSettings, resolveSystemSenderId } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
+export { storeImageUrl } from "@/lib/image-urls";
 
 /**
  * Askıda Kitap (Phase 3 marketplace) - ported from StoreController.php.
@@ -505,8 +506,4 @@ export async function getMyFavoriteStores(userId: number): Promise<FavoriteStore
     location: r.location,
     image: firstImageByStore.get(r.id) ?? null,
   }));
-}
-
-export function storeImageUrl(imageName: string | null): string | null {
-  return imageName ? `/api/store-image/${imageName}` : null;
 }

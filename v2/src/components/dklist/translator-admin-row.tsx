@@ -10,6 +10,7 @@ import {
   deleteTranslatorAction,
 } from "@/app/admin/cevirmenler/actions";
 import type { TranslatorListItem } from "@/db/queries/translator-admin";
+import { translatorImageUrl } from "@/lib/image-urls";
 
 export function TranslatorAdminRow({ translator }: { translator: TranslatorListItem }) {
   const router = useRouter();
@@ -50,7 +51,7 @@ export function TranslatorAdminRow({ translator }: { translator: TranslatorListI
         {translator.img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/translator-image/${translator.img}`}
+            src={translatorImageUrl(translator.img)}
             alt={translator.name}
             className="size-14 rounded-full border border-border object-cover"
           />

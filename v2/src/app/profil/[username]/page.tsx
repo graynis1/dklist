@@ -56,6 +56,7 @@ import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
 import { getTotalReadingMinutes } from "@/db/queries/reading-status";
 import { isUserPremium } from "@/db/queries/premium";
+import { badgeImageUrl } from "@/lib/image-urls";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
   finishRead: "Okudum",
@@ -302,7 +303,7 @@ async function ProfileContent({
                   >
                     {b.img ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/api/badge-image/${b.img}`} alt="" className="size-3.5 rounded-full object-cover" />
+                      <img src={badgeImageUrl(b.img)} alt="" className="size-3.5 rounded-full object-cover" />
                     ) : (
                       "🏅"
                     )}{" "}

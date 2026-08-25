@@ -5,6 +5,7 @@ import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { user } from "@/db/schema";
+export { avatarImageUrl as avatarUrl } from "@/lib/image-urls";
 
 // v1's ImageManager falls back to local-disk storage (an `/uploads`
 // directory + `/image/{name}` route) whenever Cloudinary isn't configured -
@@ -58,8 +59,4 @@ export async function uploadAvatar(userId: number, file: File): Promise<string> 
   }
 
   return filename;
-}
-
-export function avatarUrl(image: string | null): string | null {
-  return image ? `/api/avatar/${image}` : null;
 }
