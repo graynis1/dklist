@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
+import { ALLOWED_IMAGE_EXTENSIONS, looksLikeImage } from "@/lib/image-validation";
 
 /**
  * Shared local-disk image save helper - v1's ImageManager::saveImage() is
@@ -10,19 +11,10 @@ import { mkdir, writeFile } from "node:fs/promises";
  * subdirectory to, rather than duplicating the magic-byte/size validation
  * per feature.
  */
-const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
-
-function looksLikeImage(bytes: Buffer): boolean {
-  if (bytes.length < 12) return false;
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return true; // PNG
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return true; // JPEG
-  if (bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP") return true; // WEBP
-  return false;
-}
 
 export async function saveUploadedImage(subdir: string, file: File): Promise<string> {
   const originalExt = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (!ALLOWED_EXTENSIONS.has(originalExt)) {
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(originalExt)) {
     throw new Error("Sadece .png, .jpg ve .webp uzantılı resim dosyaları kabul edilir.");
   }
 

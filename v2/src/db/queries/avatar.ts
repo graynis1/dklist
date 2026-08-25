@@ -5,6 +5,7 @@ import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { user } from "@/db/schema";
+import { ALLOWED_IMAGE_EXTENSIONS, looksLikeImage } from "@/lib/image-validation";
 
 // v1's ImageManager falls back to local-disk storage (an `/uploads`
 // directory + `/image/{name}` route) whenever Cloudinary isn't configured -
@@ -16,24 +17,9 @@ import { user } from "@/db/schema";
 // actual data loss, not just a cache miss.
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "avatars");
 
-const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
-
-// Magic-byte signatures - Node has no getimagesize() equivalent built in, so
-// this checks the file's real content the same way v1's getimagesize() call
-// does, rather than trusting the client-supplied extension/MIME type (which
-// is exactly the kind of thing v1's own comment on this check warns about:
-// trivially spoofable by renaming any file).
-function looksLikeImage(bytes: Buffer): boolean {
-  if (bytes.length < 12) return false;
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return true; // PNG
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return true; // JPEG
-  if (bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP") return true; // WEBP
-  return false;
-}
-
 export async function uploadAvatar(userId: number, file: File): Promise<string> {
   const originalExt = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (!ALLOWED_EXTENSIONS.has(originalExt)) {
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(originalExt)) {
     throw new Error("Sadece .png, .jpg ve .webp uzantılı resim dosyaları kabul edilir.");
   }
 
