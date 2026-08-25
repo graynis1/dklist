@@ -51,7 +51,7 @@ export default function WriterPage({ params }: PageProps<"/yazar/[slug]">) {
 
 function WriterSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10 flex items-center gap-4">
         <div className="size-20 animate-pulse rounded-full bg-muted" />
         <div className="h-10 w-64 animate-pulse rounded bg-muted" />
@@ -103,7 +103,7 @@ async function WriterContent({
   ]);
   const repliesByQuoteObj = Object.fromEntries(repliesByQuote);
   return (
-    <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+    <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
       <JsonLd
         data={{
           "@context": "https://schema.org",

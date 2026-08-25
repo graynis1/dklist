@@ -36,7 +36,7 @@ export default function StoreListPage({ searchParams }: PageProps<"/askida-kitap
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-5xl px-6 py-16">
+      <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="mb-10 flex items-end justify-between gap-4">
           <div className="flex flex-col gap-2">
             <SectionLabel>Topluluk</SectionLabel>

@@ -136,7 +136,7 @@ export default function ProfilePage({ params }: PageProps<"/profil/[username]">)
 
 function ProfileSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <div className="flex items-center gap-4">
         <div className="size-20 animate-pulse rounded-full bg-muted" />
         <div className="h-8 w-48 animate-pulse rounded bg-muted" />

@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   pointTransaction,
@@ -13,6 +13,7 @@ import {
   bookClub,
   follow,
 } from "@/db/schema";
+import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
 
 /**
  * Site-wide activity feed ("akış") - the customer explicitly called the
@@ -57,6 +58,17 @@ export interface FeedItem {
   targetLabel: string | null;
   targetHref: string | null;
   excerpt: string | null;
+  /** Only set when entityKind is "book" - lets the feed card show a real
+   * cover/typeset jacket thumbnail instead of reading as a plain text log,
+   * the concrete difference between a notification list and something that
+   * reads like an actual community feed. */
+  bookCover: { id: number; hasImage: boolean } | null;
+  /** Set only for reason "comment" - lets the feed card offer a real like
+   * button (reusing the same comment_like system EntityComments already
+   * uses) instead of a static, non-interactive post, per the maintainer's
+   * explicit ask for /akis to read as a genuine social/forum feed. */
+  commentId: number | null;
+  likeState: CommentLikeState | null;
 }
 
 function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedItem["entityKind"]; entityId: number | null } {
@@ -181,14 +193,20 @@ export async function getSiteFeed(opts: {
   }
   const commentById = new Map(commentRows.map((c) => [c.id, c]));
 
-  const [bookRows, writerRows, translatorRows, userRows, blogRows, storeRows, clubRows] = await Promise.all([
-    bookIds.size ? db.select({ id: book.id, name: book.name, slug: book.slug }).from(book).where(inArray(book.id, [...bookIds])) : Promise.resolve([]),
+  const [bookRows, writerRows, translatorRows, userRows, blogRows, storeRows, clubRows, likeStates] = await Promise.all([
+    bookIds.size
+      ? db
+          .select({ id: book.id, name: book.name, slug: book.slug, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` })
+          .from(book)
+          .where(inArray(book.id, [...bookIds]))
+      : Promise.resolve([]),
     writerIds.size ? db.select({ id: writer.id, name: writer.name, slug: writer.slug }).from(writer).where(inArray(writer.id, [...writerIds])) : Promise.resolve([]),
     translatorIds.size ? db.select({ id: translator.id, name: translator.name, slug: translator.slug }).from(translator).where(inArray(translator.id, [...translatorIds])) : Promise.resolve([]),
     userIds.size ? db.select({ id: user.id, username: user.username }).from(user).where(inArray(user.id, [...userIds])) : Promise.resolve([]),
     blogIds.size ? db.select({ id: blog.id, title: blog.title, slug: blog.slug }).from(blog).where(inArray(blog.id, [...blogIds])) : Promise.resolve([]),
     storeIds.size ? db.select({ id: store.id, title: store.title, slug: store.slug }).from(store).where(inArray(store.id, [...storeIds])) : Promise.resolve([]),
     clubIds.size ? db.select({ id: bookClub.id, name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(inArray(bookClub.id, [...clubIds])) : Promise.resolve([]),
+    getCommentLikeStates(opts.viewerId ?? null, [...commentIds]),
   ]);
 
   const bookMap = new Map(bookRows.map((b) => [b.id, b]));
@@ -207,16 +225,29 @@ export async function getSiteFeed(opts: {
       actorUsername: r.actorUsername,
       actorImage: r.actorImage,
       reason: r.reason as FeedReason,
+      bookCover: null as FeedItem["bookCover"],
+      commentId: null as FeedItem["commentId"],
+      likeState: null as FeedItem["likeState"],
     };
 
     if (r.reason === "comment" && r.entityId) {
       const c = commentById.get(r.entityId);
       if (!c) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
+      base.commentId = c.id;
+      base.likeState = likeStates[c.id] ?? { count: 0, liked: false };
       const isQuote = c.commentType === "quotation";
       const excerpt = c.comment.length > 140 ? `${c.comment.slice(0, 140)}...` : c.comment;
       if (c.type === "book") {
         const b = bookMap.get(Number(c.targetId));
-        return { ...base, entityKind: "book", isQuote, targetLabel: b?.name ?? null, targetHref: b ? `/kitap/${b.slug}` : null, excerpt };
+        return {
+          ...base,
+          entityKind: "book",
+          isQuote,
+          targetLabel: b?.name ?? null,
+          targetHref: b ? `/kitap/${b.slug}` : null,
+          excerpt,
+          bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage) } : null,
+        };
       }
       if (c.type === "writer") {
         const w = writerMap.get(Number(c.targetId));
@@ -228,7 +259,15 @@ export async function getSiteFeed(opts: {
 
     if ((r.reason === "book_read" || r.reason === "library_add" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
       const b = bookMap.get(r.entityId);
-      return { ...base, entityKind: "book", isQuote: false, targetLabel: b?.name ?? null, targetHref: b ? `/kitap/${b.slug}` : null, excerpt: null };
+      return {
+        ...base,
+        entityKind: "book",
+        isQuote: false,
+        targetLabel: b?.name ?? null,
+        targetHref: b ? `/kitap/${b.slug}` : null,
+        excerpt: null,
+        bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage) } : null,
+      };
     }
 
     if ((r.reason === "rating" || r.reason === "like") && r.entityKind === "writer" && r.entityId) {
