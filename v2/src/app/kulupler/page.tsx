@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Kitap Kulüpleri",
+  description: "Kitap kulüplerine katıl, birlikte okuyun, tartışın.",
+  path: "/kulupler",
+});
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";

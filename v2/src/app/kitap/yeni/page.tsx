@@ -1,4 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { NOINDEX_METADATA } from "@/lib/seo";
+
+export const metadata: Metadata = NOINDEX_METADATA;
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";

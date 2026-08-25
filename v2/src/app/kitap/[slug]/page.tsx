@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -38,6 +40,20 @@ const READER_STATUS_LABELS: Record<string, string> = {
   okuyacagim: "okuyacak",
   "yarida-birakildi": "yarıda bıraktı",
 };
+
+export async function generateMetadata({ params }: PageProps<"/kitap/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const book = await getBookBySlug(slug);
+  if (!book) return {};
+
+  const writerNames = book.writers.map((w) => w.name).join(", ");
+  const title = writerNames ? `${book.name} - ${writerNames}` : book.name;
+  const description = truncateDescription(
+    book.content || book.aiSummary || `${book.name}${writerNames ? ` (${writerNames})` : ""} - DKList'te oku, puanla, yorum yap.`,
+  );
+
+  return pageMetadata({ title, description, path: `/kitap/${book.slug}` });
+}
 
 export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
   return (

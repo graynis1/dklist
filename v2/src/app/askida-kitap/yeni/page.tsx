@@ -1,6 +1,10 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
+import { NOINDEX_METADATA } from "@/lib/seo";
+
+export const metadata: Metadata = NOINDEX_METADATA;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

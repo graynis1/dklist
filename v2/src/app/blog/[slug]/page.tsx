@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -10,8 +11,23 @@ import { getBlogBySlug } from "@/db/queries/blog";
 import { DeleteBlogButton } from "@/components/dklist/delete-blog-button";
 import { ShareButton } from "@/components/dklist/share-button";
 import { HashtagText } from "@/components/dklist/hashtag-text";
+import { JsonLd } from "@/components/dklist/json-ld";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 
 const ELEVATED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
+
+export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getBlogBySlug(slug);
+  if (!post || !post.approved) return {};
+
+  return pageMetadata({
+    title: post.title,
+    description: truncateDescription(post.preview || post.title),
+    path: `/blog/${post.slug}`,
+    image: post.img ?? undefined,
+  });
+}
 
 export default function BlogDetailPage({ params }: PageProps<"/blog/[slug]">) {
   return (
@@ -56,6 +72,17 @@ async function BlogDetailContent({
 
   return (
     <article className="flex flex-col gap-4">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: post.title,
+          description: post.preview,
+          datePublished: post.createdDate,
+          ...(post.img ? { image: post.img } : {}),
+          ...(post.ownerUsername ? { author: { "@type": "Person", name: post.ownerUsername } } : {}),
+        }}
+      />
       <SectionLabel>Blog</SectionLabel>
       <h1 className="font-heading text-4xl font-medium tracking-tight text-balance">
         {post.title}

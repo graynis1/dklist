@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
@@ -22,6 +24,17 @@ import {
   addTranslatorReplyAction,
   shareTranslatorCommentAction,
 } from "./actions";
+
+export async function generateMetadata({ params }: PageProps<"/cevirmen/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const translator = await getTranslatorBySlug(slug);
+  if (!translator) return {};
+
+  const description = truncateDescription(
+    translator.biyo || `${translator.name} - çevirileri, puanı ve yorumları DKList'te.`,
+  );
+  return pageMetadata({ title: `${translator.name} (Çevirmen)`, description, path: `/cevirmen/${translator.slug}` });
+}
 
 export default function TranslatorPage({ params }: PageProps<"/cevirmen/[slug]">) {
   return (

@@ -1,10 +1,24 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { getCategoryBySlug, getBooksByCategory } from "@/db/queries/books";
+import { pageMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ params }: PageProps<"/kategori/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const cat = await getCategoryBySlug(slug);
+  if (!cat) return {};
+
+  return pageMetadata({
+    title: `${cat.name} Kitapları`,
+    description: `${cat.name} kategorisindeki en popüler kitapları DKList'te keşfet, puanla, okuma listene ekle.`,
+    path: `/kategori/${cat.slug}`,
+  });
+}
 
 export default function CategoryPage({ params }: PageProps<"/kategori/[slug]">) {
   return (

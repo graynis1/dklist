@@ -1,5 +1,13 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Yazarlar",
+  description: "DKList'teki yazarları keşfet, puanla, yorum yap.",
+  path: "/yazarlar",
+});
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";

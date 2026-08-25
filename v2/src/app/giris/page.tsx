@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { LoginForm } from "@/components/dklist/login-form";
 import { AuthVisualPanel, AuthMobileTeaser } from "@/components/dklist/auth-visual-panel";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Giriş Yap",
+  description: "DKList hesabına giriş yap, okuma durumunu ve kitaplığını yönet.",
+  path: "/giris",
+});
 
 const BOOKS: [
   { title: string; author: string; tone: "oxblood" },

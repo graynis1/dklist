@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
@@ -9,7 +10,20 @@ import { getPublisherBySlug, getBooksByPublisher } from "@/db/queries/publishers
 import { isPublisherLiked, getPublisherLikeCount } from "@/db/queries/likes";
 import { JsonLd } from "@/components/dklist/json-ld";
 import { auth } from "@/auth";
+import { pageMetadata } from "@/lib/seo";
 import { togglePublisherLikeAction } from "./actions";
+
+export async function generateMetadata({ params }: PageProps<"/yayinevi/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const publisher = await getPublisherBySlug(slug);
+  if (!publisher) return {};
+
+  return pageMetadata({
+    title: `${publisher.name} (Yayınevi)`,
+    description: `${publisher.name} yayınevine ait kitapları DKList'te keşfet, okuma durumunu takip et, puanla.`,
+    path: `/yayinevi/${publisher.slug}`,
+  });
+}
 
 export default function PublisherPage({ params }: PageProps<"/yayinevi/[slug]">) {
   return (

@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Tüm Kitaplar",
+  description: "Binlerce kitabı ara, filtrele, okuma durumunu takip et, puanla.",
+  path: "/kitaplar",
+});
 import Link from "next/link";
 import { auth } from "@/auth";
 import { SiteHeader } from "@/components/dklist/site-header";

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -8,6 +9,20 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
 import { getListBySlug } from "@/db/queries/reading-lists";
 import { RemoveFromListButton } from "@/components/dklist/remove-from-list-button";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
+
+export async function generateMetadata({ params }: PageProps<"/liste/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const list = await getListBySlug(slug);
+  if (!list) return {};
+
+  return pageMetadata({
+    title: `${list.title} - @${list.ownerUsername}`,
+    description: truncateDescription(list.description || `@${list.ownerUsername}'in "${list.title}" okuma listesi DKList'te.`),
+    path: `/liste/${list.slug}`,
+    noIndex: !list.isPublic,
+  });
+}
 
 export default function ListDetailPage({ params }: PageProps<"/liste/[slug]">) {
   return (

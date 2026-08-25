@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { StoreFavoriteButton } from "@/components/dklist/store-favorite-button";
@@ -23,6 +25,20 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Verildi",
   cancelled: "İptal Edildi",
 };
+
+export async function generateMetadata({ params }: PageProps<"/askida-kitap/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const listing = await getStoreBySlug(slug);
+  if (!listing) return {};
+
+  return pageMetadata({
+    title: listing.title,
+    description: truncateDescription(listing.content || listing.title),
+    path: `/askida-kitap/${listing.slug}`,
+    // Tamamlanmış/iptal edilmiş ilanlar arama sonuçlarında kalmasın.
+    noIndex: listing.status !== "active",
+  });
+}
 
 export default function StoreDetailPage({ params }: PageProps<"/askida-kitap/[slug]">) {
   return (

@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "DKList Premium",
+  description: "Reklamsız deneyim ve ek ayrıcalıklarla DKList Premium'a geç.",
+  path: "/premium",
+});
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getPremiumSettings, isUserPremium, getPremiumExpiry } from "@/db/queries/premium";

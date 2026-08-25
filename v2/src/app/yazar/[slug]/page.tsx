@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
@@ -24,6 +26,17 @@ import {
   addWriterReplyAction,
   shareWriterCommentAction,
 } from "./actions";
+
+export async function generateMetadata({ params }: PageProps<"/yazar/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const writer = await getWriterBySlug(slug);
+  if (!writer) return {};
+
+  const description = truncateDescription(
+    writer.biyo || `${writer.name} - kitapları, puanı ve yorumları DKList'te.`,
+  );
+  return pageMetadata({ title: `${writer.name} (Yazar)`, description, path: `/yazar/${writer.slug}` });
+}
 
 export default function WriterPage({ params }: PageProps<"/yazar/[slug]">) {
   return (

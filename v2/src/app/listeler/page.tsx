@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Okuma Listeleri",
+  description: "Topluluğun paylaştığı okuma listelerini keşfet.",
+  path: "/listeler",
+});
 import { connection } from "next/server";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";

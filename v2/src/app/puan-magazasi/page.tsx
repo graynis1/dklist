@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Puan Mağazası",
+  description: "DKList'te kazandığın puanları ödüllerle değiştir.",
+  path: "/puan-magazasi",
+});
 import { auth } from "@/auth";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";

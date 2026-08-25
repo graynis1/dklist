@@ -28,9 +28,39 @@ const fraunces = Fraunces({
   axes: ["opsz", "SOFT", "WONK"],
 });
 
+const SITE_NAME = "DKList";
+const SITE_DESCRIPTION =
+  "DKList - Kitap severlerin buluştuğu adres. Kitap keşfet, okuma durumunu takip et, puanla, yorum yap, kitap kulüplerine katıl.";
+
 export const metadata: Metadata = {
-  title: "DKList",
-  description: "DK List - Kitap Severlerin Buluştuğu Adres",
+  metadataBase: new URL("https://dklist.com"),
+  title: {
+    default: `${SITE_NAME} - Kitap Severlerin Buluştuğu Adres`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: ["kitap", "kitap okuma", "kitap kulübü", "kitap yorumu", "kitap tavsiyesi", "okuma listesi", "dklist"],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} - Kitap Severlerin Buluştuğu Adres`,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} - Kitap Severlerin Buluştuğu Adres`,
+    description: SITE_DESCRIPTION,
+  },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

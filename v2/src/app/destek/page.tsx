@@ -1,8 +1,16 @@
+import type { Metadata } from "next";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { FaqSection } from "@/components/dklist/faq-section";
 import { SupportTicketForm } from "@/components/dklist/support-ticket-form";
 import { FAQ_CATEGORIES } from "@/db/queries/support";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Destek",
+  description: "Sıkça sorulan sorular ve DKList destek ekibiyle iletişim.",
+  path: "/destek",
+});
 
 export default function SupportPage() {
   return (

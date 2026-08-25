@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
@@ -6,6 +7,13 @@ import { SiteFeedList } from "@/components/dklist/site-feed";
 import { getSiteFeed } from "@/db/queries/feed";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Akış",
+  description: "DKList topluluğunda son yaşanan okuma, puanlama, yorum ve daha fazlası.",
+  path: "/akis",
+});
 
 export default function FeedPage({ searchParams }: PageProps<"/akis">) {
   return (

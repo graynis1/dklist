@@ -1,4 +1,10 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { NOINDEX_METADATA } from "@/lib/seo";
+
+// Tek kullanımlık, token'a bağlı bir işlem sayfası - aranabilir bir
+// değeri yok, hesap doğrulama linkleri arama sonuçlarında görünmemeli.
+export const metadata: Metadata = NOINDEX_METADATA;
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

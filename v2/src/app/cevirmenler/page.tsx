@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Çevirmenler",
+  description: "DKList'teki çevirmenleri keşfet, puanla, yorum yap.",
+  path: "/cevirmenler",
+});
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";

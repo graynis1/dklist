@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Ayın Kitabı",
+  description: "DKList topluluğunun bu ayki öne çıkan kitabı.",
+  path: "/ayin-kitabi",
+});
 import Link from "next/link";
 import { auth } from "@/auth";
 import { SiteHeader } from "@/components/dklist/site-header";

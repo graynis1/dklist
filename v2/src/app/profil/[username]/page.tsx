@@ -1,6 +1,8 @@
 import { Suspense, type ReactNode } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 import {
   UsersIcon,
   UserPlusIcon,
@@ -104,6 +106,22 @@ const STATUS_TINTS: Record<(typeof READ_STATUSES)[number], keyof typeof SECTION_
   okuyacagim: "violet",
   "yarida-birakildi": "rose",
 };
+
+export async function generateMetadata({ params }: PageProps<"/profil/[username]">): Promise<Metadata> {
+  const { username } = await params;
+  const profile = await getProfileByUsername(username);
+  if (!profile) return {};
+
+  return pageMetadata({
+    title: `@${profile.username}`,
+    description: truncateDescription(profile.biyo || `@${profile.username} DKList'te - okuma durumu, kitaplığı ve etkinliği.`),
+    path: `/profil/${profile.username}`,
+    // Gizli hesaplar arama motorunda hiç görünmesin - okuma geçmişi/
+    // kitaplığı zaten sadece takipçilere açık, ama profil sayfasının
+    // kendisi de aranabilir kalmamalı.
+    noIndex: profile.privacy,
+  });
+}
 
 export default function ProfilePage({ params }: PageProps<"/profil/[username]">) {
   return (

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
@@ -6,6 +7,13 @@ import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { searchBooks, searchWriters, searchTranslators, searchPublishers, searchUsers } from "@/db/queries/search";
 import { semanticSearchBooks } from "@/db/queries/book-embedding";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Keşfet",
+  description: "DKList'te kitap, yazar, çevirmen, yayınevi ve üye ara.",
+  path: "/ara",
+});
 
 export default function SearchPage({ searchParams }: PageProps<"/ara">) {
   return (

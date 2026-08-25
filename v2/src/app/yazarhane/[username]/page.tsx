@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,6 +13,19 @@ import { getFollowCounts, isFollowing } from "@/db/queries/profile";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { AuthorPostForm } from "@/components/dklist/author-post-form";
 import { AuthorPostRow } from "@/components/dklist/author-post-row";
+
+export async function generateMetadata({ params }: PageProps<"/yazarhane/[username]">): Promise<Metadata> {
+  const { username } = await params;
+  const hub = await getAuthorHubByUsername(username);
+  if (!hub) return {};
+
+  const name = hub.writerName ?? hub.username;
+  return pageMetadata({
+    title: `${name} - Yazarhane`,
+    description: truncateDescription(hub.writerBiyo || hub.biyo || `${name} - DKList Yazarhanesi'nde yazarın kendi köşesi.`),
+    path: `/yazarhane/${hub.username}`,
+  });
+}
 
 export default function AuthorHubPage({ params }: PageProps<"/yazarhane/[username]">) {
   return (

@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Puan Tablosu",
+  description: "Bu haftanın ve tüm zamanların en aktif DKList okurları.",
+  path: "/puan-tablosu",
+});
 import { connection } from "next/server";
 import Link from "next/link";
 import { auth } from "@/auth";

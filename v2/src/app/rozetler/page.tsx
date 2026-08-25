@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Rozetler",
+  description: "DKList'te aktifliğinle kazanabileceğin rozetleri keşfet.",
+  path: "/rozetler",
+});
 import { connection } from "next/server";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";

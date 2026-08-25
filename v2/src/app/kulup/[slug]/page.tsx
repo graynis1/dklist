@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,19 @@ import {
 import { ClubJoinButton } from "@/components/dklist/club-join-button";
 import { ClubManageBook } from "@/components/dklist/club-manage-book";
 import { ClubDeleteButton } from "@/components/dklist/club-delete-button";
+
+export async function generateMetadata({ params }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const club = await getClubBySlug(slug);
+  if (!club) return {};
+
+  return pageMetadata({
+    title: `${club.name} (Kitap Kulübü)`,
+    description: truncateDescription(club.description || `${club.name} kitap kulübüne DKList'te katıl.`),
+    path: `/kulup/${club.slug}`,
+    noIndex: club.visibility !== "public",
+  });
+}
 
 export default function BookClubDetailPage({ params }: PageProps<"/kulup/[slug]">) {
   return (

@@ -1,4 +1,12 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Yazarhane",
+  description: "Gerçek yazarlardan gönderiler - Yazarhane, DKList'teki yazarların kendi köşesi.",
+  path: "/yazarhane",
+});
 import { connection } from "next/server";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
