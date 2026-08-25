@@ -5,22 +5,22 @@ import { Button } from "@/components/ui/button";
 import { TONE_STYLE, type BookCoverTone } from "@/components/dklist/book-cover";
 
 const STATUS_LABEL: Record<string, string> = {
-  okuyorum: "Şu an okuyorum",
-  okudum: "Okudum",
-  "yarida-birakildi": "Yarıda bıraktım",
+  currentRead: "Şu an okuyorum",
+  finishRead: "Okudum",
+  "dropRead": "Yarıda bıraktım",
 };
 
 /**
  * Third "paylaşım" share card - per-book reading status, not a profile-wide
  * summary like ReadingScoreCard/PointsShareCard. Deliberately does NOT show
- * a fake completion percentage for "okuyorum" (currently reading) - there's
+ * a fake completion percentage for "currentRead" (currently reading) - there's
  * no real page-by-page progress tracking in this schema (read.dropPercentage
  * only exists for the "yarıda bıraktım" status), and a made-up progress bar
  * would be exactly the kind of dishonest AI-adjacent shortcut this project
  * has deliberately avoided elsewhere (book summaries, support answers).
  * Shows the one number that IS real for each status instead: the rating
- * for "okudum", the real drop percentage for "yarıda bıraktım", nothing
- * invented for "okuyorum".
+ * for "finishRead", the real drop percentage for "yarıda bıraktım", nothing
+ * invented for "currentRead".
  */
 export function ReadingProgressShareCard({
   bookTitle,
@@ -33,7 +33,7 @@ export function ReadingProgressShareCard({
   bookTitle: string;
   author: string;
   tone: BookCoverTone;
-  status: "okuyorum" | "okudum" | "yarida-birakildi";
+  status: "currentRead" | "finishRead" | "dropRead";
   rating?: number | null;
   dropPercentage?: number | null;
 }) {
@@ -107,14 +107,14 @@ export function ReadingProgressShareCard({
 
     // the one real, honest number for this status
     y += 110;
-    if (status === "okudum" && rating != null) {
+    if (status === "finishRead" && rating != null) {
       ctx.font = "400 26px system-ui, sans-serif";
       ctx.globalAlpha = 0.7;
       ctx.fillText("VERDİĞİM PUAN", 80, y);
       ctx.globalAlpha = 1;
       ctx.font = "700 100px system-ui, sans-serif";
       ctx.fillText(`${rating.toFixed(1)}/10`, 80, y + 100);
-    } else if (status === "yarida-birakildi" && dropPercentage != null) {
+    } else if (status === "dropRead" && dropPercentage != null) {
       ctx.font = "400 26px system-ui, sans-serif";
       ctx.globalAlpha = 0.7;
       ctx.fillText("BIRAKTIĞIM NOKTA", 80, y);

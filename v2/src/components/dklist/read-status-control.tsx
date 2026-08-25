@@ -18,10 +18,10 @@ import {
 } from "@/lib/reading-status";
 
 const STATUS_LABELS: Record<ReadStatus, string> = {
-  okudum: "Okudum",
-  okuyorum: "Okuyorum",
-  okuyacagim: "Okuyacağım",
-  "yarida-birakildi": "Yarıda Bıraktım",
+  finishRead: "Okudum",
+  currentRead: "Okuyorum",
+  targetRead: "Okuyacağım",
+  "dropRead": "Yarıda Bıraktım",
 };
 
 interface ReadStatusControlProps {
@@ -50,7 +50,7 @@ export function ReadStatusControl({
       const result = await addReadingMinutesAction(bookId, minutes);
       if (result.status) {
         setMinutesLogged(minutes);
-        if (!current) setCurrent({ status: "okuyorum", dropReason: null, dropPercentage: null });
+        if (!current) setCurrent({ status: "currentRead", dropReason: null, dropPercentage: null });
       }
     });
   }
@@ -68,7 +68,7 @@ export function ReadStatusControl({
   }
 
   function pick(status: ReadStatus) {
-    if (status === "yarida-birakildi") {
+    if (status === "dropRead") {
       setShowDropForm(true);
       return;
     }
@@ -83,12 +83,12 @@ export function ReadStatusControl({
     startTransition(async () => {
       const result = await setReadStatusAction(
         bookId,
-        "yarida-birakildi",
+        "dropRead",
         dropReason,
         dropPercentage,
       );
       if (result.status) {
-        setCurrent({ status: "yarida-birakildi", dropReason, dropPercentage });
+        setCurrent({ status: "dropRead", dropReason, dropPercentage });
         setShowDropForm(false);
       }
     });
@@ -141,7 +141,7 @@ export function ReadStatusControl({
         )}
       </div>
 
-      {current?.status === "yarida-birakildi" && !showDropForm && (
+      {current?.status === "dropRead" && !showDropForm && (
         <p className="text-xs text-muted-foreground">
           %{current.dropPercentage} noktasında bıraktınız
           {current.dropReason && ` · ${DROP_REASON_LABELS[current.dropReason]}`}

@@ -58,17 +58,17 @@ import { getTotalReadingMinutes } from "@/db/queries/reading-status";
 import { isUserPremium } from "@/db/queries/premium";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
-  okudum: "Okudum",
-  okuyorum: "Okuyorum",
-  okuyacagim: "Okuyacağım",
-  "yarida-birakildi": "Yarıda Bıraktım",
+  finishRead: "Okudum",
+  currentRead: "Okuyorum",
+  targetRead: "Okuyacağım",
+  "dropRead": "Yarıda Bıraktım",
 };
 
 const STATUS_ICONS: Record<(typeof READ_STATUSES)[number], typeof BookOpenIcon> = {
-  okudum: CheckCircle2Icon,
-  okuyorum: BookOpenIcon,
-  okuyacagim: BookmarkIcon,
-  "yarida-birakildi": XCircleIcon,
+  finishRead: CheckCircle2Icon,
+  currentRead: BookOpenIcon,
+  targetRead: BookmarkIcon,
+  "dropRead": XCircleIcon,
 };
 
 const SECTION_TINTS = {
@@ -101,10 +101,10 @@ const SECTION_WASHES: Record<keyof typeof SECTION_TINTS, string> = {
 };
 
 const STATUS_TINTS: Record<(typeof READ_STATUSES)[number], keyof typeof SECTION_TINTS> = {
-  okudum: "emerald",
-  okuyorum: "blue",
-  okuyacagim: "violet",
-  "yarida-birakildi": "rose",
+  finishRead: "emerald",
+  currentRead: "blue",
+  targetRead: "violet",
+  "dropRead": "rose",
 };
 
 export async function generateMetadata({ params }: PageProps<"/profil/[username]">): Promise<Metadata> {
@@ -221,8 +221,8 @@ async function ProfileContent({
   // çıkar - kitaplığım'a düşerse aşağıdaki Kitaplığım rafıyla birebir
   // aynı tek kitabı iki kez göstermiş oluyorduk (gerçek bir tekrar hatası,
   // "aynı kitap iki kez" ekran görüntüsüyle bulundu).
-  const featuredBook = booksByStatus.okuyorum[0] ?? booksByStatus.okudum[0] ?? null;
-  const featuredLabel = booksByStatus.okuyorum[0] ? "Şu An Okuyor" : "Son Okuduğu";
+  const featuredBook = booksByStatus.currentRead[0] ?? booksByStatus.finishRead[0] ?? null;
+  const featuredLabel = booksByStatus.currentRead[0] ? "Şu An Okuyor" : "Son Okuduğu";
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-10 sm:py-16">

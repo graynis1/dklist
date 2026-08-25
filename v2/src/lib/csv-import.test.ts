@@ -87,9 +87,9 @@ describe("parseGoodreadsExport", () => {
 
 describe("mapGoodreadsShelf", () => {
   it("maps all three real Goodreads shelf values to this app's reading-status enum", () => {
-    expect(mapGoodreadsShelf("read")).toBe("okudum");
-    expect(mapGoodreadsShelf("currently-reading")).toBe("okuyorum");
-    expect(mapGoodreadsShelf("to-read")).toBe("okuyacagim");
+    expect(mapGoodreadsShelf("read")).toBe("finishRead");
+    expect(mapGoodreadsShelf("currently-reading")).toBe("currentRead");
+    expect(mapGoodreadsShelf("to-read")).toBe("targetRead");
   });
 
   it("returns null for a custom/unmapped shelf name rather than guessing", () => {

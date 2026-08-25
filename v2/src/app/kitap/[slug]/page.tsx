@@ -35,10 +35,10 @@ import { getActiveStoreListingsForBook } from "@/db/queries/store";
 import { addCommentAction, addReplyAction, shareCommentAction } from "./actions";
 
 const READER_STATUS_LABELS: Record<string, string> = {
-  okudum: "okudu",
-  okuyorum: "okuyor",
-  okuyacagim: "okuyacak",
-  "yarida-birakildi": "yarıda bıraktı",
+  finishRead: "okudu",
+  currentRead: "okuyor",
+  targetRead: "okuyacak",
+  dropRead: "yarıda bıraktı",
 };
 
 export async function generateMetadata({ params }: PageProps<"/kitap/[slug]">): Promise<Metadata> {
@@ -331,12 +331,12 @@ async function BookDetailContent({
               initialStatus={currentStatus}
             />
 
-            {currentStatus && currentStatus.status !== "okuyacagim" && (
+            {currentStatus && currentStatus.status !== "targetRead" && (
               <ReadingProgressShareCard
                 bookTitle={detail.name}
                 author={writerNames}
                 tone={tone}
-                status={currentStatus.status as "okuyorum" | "okudum" | "yarida-birakildi"}
+                status={currentStatus.status as "currentRead" | "finishRead" | "dropRead"}
                 rating={userRating}
                 dropPercentage={currentStatus.dropPercentage}
               />

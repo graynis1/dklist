@@ -10,6 +10,7 @@ import { updateCommentAction, deleteCommentAction, updateSubCommentAction, delet
 import { ShareButton } from "@/components/dklist/share-button";
 import { HashtagText } from "@/components/dklist/hashtag-text";
 import { QuoteCard } from "@/components/dklist/quote-card";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 
 /** v1's CommentComponent `notice()` - a silent fire-and-forget report that
  * just hides itself after sending, no confirmation modal (comment reports
@@ -217,7 +218,9 @@ function ReplyItem({
   const isOwn = viewerId !== undefined && reply.authorUserId === viewerId;
 
   return (
-    <li className="flex flex-col gap-1 border-l-2 border-border pl-3">
+    <li className="flex gap-2.5 border-l-2 border-border pl-3">
+      <EntityAvatar id={reply.authorUserId} name={reply.authorUsername} size="size-7" className="mt-0.5 shrink-0" />
+      <div className="flex flex-1 flex-col gap-1">
       <div className="flex items-center gap-2 text-sm">
         <span className="font-medium">@{reply.authorUsername}</span>
       </div>
@@ -282,6 +285,7 @@ function ReplyItem({
           ))}
         </ul>
       )}
+      </div>
     </li>
   );
 }
@@ -530,7 +534,9 @@ export function EntityComments({
             const isOwn = viewerId !== undefined && c.authorUserId === viewerId;
             const isEditing = editingCommentId === c.id;
             return (
-              <li key={c.id} className="flex flex-col gap-1 border-b border-border pb-4">
+              <li key={c.id} className="flex gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <EntityAvatar id={c.authorUserId} name={c.authorUsername} size="size-9" className="mt-0.5 shrink-0" />
+              <div className="flex flex-1 flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-medium">@{c.authorUsername}</span>
                   <span className="text-muted-foreground">{c.date}</span>
@@ -632,6 +638,7 @@ export function EntityComments({
                     ))}
                   </ul>
                 )}
+              </div>
               </li>
             );
           })}

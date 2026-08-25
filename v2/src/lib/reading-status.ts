@@ -4,11 +4,22 @@
 // directly in a client component pulls in mysql2 and breaks the client bundle
 // (confirmed by a real build failure, not a hypothetical).
 
+// Real bug found and fixed (2026-08-25): this was originally typed with
+// guessed Turkish literals ("okudum"/"okuyorum"/"okuyacagim") against a
+// `read.status` column that actually stores v1's real ReadStatusEnum
+// values - confirmed both by querying real production data (39 finishRead/
+// 69 targetRead/3 currentRead rows, zero okudum/okuyorum/okuyacagim) and by
+// reading `backend/src/Enums/ReadStatusEnum.php` directly. Every reading-
+// status feature (profile shelves, book readers list, reading goals, the
+// weekly "book_read" point award) silently matched zero real rows against
+// production. "yarida-birakildi" (dropped) has no v1 equivalent at all -
+// a genuinely new v2 feature - renamed to `dropRead` only for naming
+// consistency with the other three, not because of a real-data conflict.
 export const READ_STATUSES = [
-  "okudum",
-  "okuyorum",
-  "okuyacagim",
-  "yarida-birakildi",
+  "finishRead",
+  "currentRead",
+  "targetRead",
+  "dropRead",
 ] as const;
 export type ReadStatus = (typeof READ_STATUSES)[number];
 

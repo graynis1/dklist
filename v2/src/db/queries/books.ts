@@ -142,8 +142,8 @@ export interface RecommendedBook extends CategoryBookListItem {
  * past preference/history), not just static category browsing." Built as
  * plain collaborative filtering (no AI/paid API needed, matching the
  * standing no-paid-services constraint): find "neighbor" readers who share
- * at least one "okudum" book with the viewer, then recommend whichever of
- * THEIR "okudum" books the viewer hasn't read yet, ranked by how many
+ * at least one "finishRead" book with the viewer, then recommend whichever of
+ * THEIR "finishRead" books the viewer hasn't read yet, ranked by how many
  * neighbors read it. Same underlying overlap technique as
  * getFollowSuggestions() (profile.ts), applied to books instead of people.
  * Not cached - genuinely per-viewer.
@@ -169,12 +169,12 @@ export async function getRecommendedBooks(viewerId: number, limit = 8): Promise<
       neighborRead,
       and(
         eq(viewerRead.bookId, neighborRead.bookId),
-        eq(viewerRead.status, "okudum"),
-        eq(neighborRead.status, "okudum"),
+        eq(viewerRead.status, "finishRead"),
+        eq(neighborRead.status, "finishRead"),
         sql`${neighborRead.userId} != ${viewerId}`,
       ),
     )
-    .innerJoin(candidateRead, and(eq(candidateRead.userId, neighborRead.userId), eq(candidateRead.status, "okudum")))
+    .innerJoin(candidateRead, and(eq(candidateRead.userId, neighborRead.userId), eq(candidateRead.status, "finishRead")))
     .innerJoin(book, eq(candidateRead.bookId, book.id))
     .leftJoin(
       viewerHasCandidate,
@@ -278,8 +278,8 @@ export async function getBookList(
     // getAllBooksForClient(), which only takes the InnoDB-estimate shortcut
     // when neither search nor readQuery is active.
     const whereClause = searchCondition
-      ? and(eq(read.userId, onlyReadByUserId), eq(read.status, "okudum"), searchCondition)
-      : and(eq(read.userId, onlyReadByUserId), eq(read.status, "okudum"));
+      ? and(eq(read.userId, onlyReadByUserId), eq(read.status, "finishRead"), searchCondition)
+      : and(eq(read.userId, onlyReadByUserId), eq(read.status, "finishRead"));
 
     const [countRow] = await db
       .select({ count: sql<number>`count(*)` })

@@ -349,7 +349,7 @@ async function notifyWishlistersOfNewListing(bookId: number, listingOwnerId: num
   const wishlisters = await db
     .select({ userId: read.userId })
     .from(read)
-    .where(and(eq(read.bookId, bookId), eq(read.status, "okuyacagim")));
+    .where(and(eq(read.bookId, bookId), eq(read.status, "targetRead")));
 
   if (wishlisters.length === 0) return;
 

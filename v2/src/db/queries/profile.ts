@@ -369,10 +369,10 @@ export async function getBooksByStatus(
   const withWriters = await attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 
   const grouped: Record<string, ProfileBookItem[]> = {
-    okudum: [],
-    okuyorum: [],
-    okuyacagim: [],
-    "yarida-birakildi": [],
+    finishRead: [],
+    currentRead: [],
+    targetRead: [],
+    "dropRead": [],
   };
   for (const row of withWriters) {
     (grouped[row.status] ??= []).push({ id: row.id, name: row.name, slug: row.slug, hasImage: row.hasImage, writers: row.writers });
@@ -384,7 +384,7 @@ export async function getBooksByStatus(
  * Customer's ask: a "shared-interest indicator" when visiting another
  * user's profile - commonly-read books between the viewer and the profile
  * owner, 1000kitap-style. Both sides must have actually finished the book
- * ("okudum") - a self-join on `read` rather than a new table, since this is
+ * ("finishRead") - a self-join on `read` rather than a new table, since this is
  * a pure intersection query over data that already exists. Not cached
  * (like other viewer-specific profile data) - it's a two-person
  * intersection, not a shared aggregate worth caching per-owner.
@@ -412,9 +412,9 @@ export async function getSharedReadBooks(
     .where(
       and(
         eq(viewerRead.userId, viewerId),
-        eq(viewerRead.status, "okudum"),
+        eq(viewerRead.status, "finishRead"),
         eq(ownerRead.userId, profileOwnerId),
-        eq(ownerRead.status, "okudum"),
+        eq(ownerRead.status, "finishRead"),
       ),
     )
     .limit(limit);
@@ -432,7 +432,7 @@ export interface FollowSuggestion {
  * Customer's ask: "reader-follow suggestions". Same overlap idea as
  * getSharedReadBooks() but the other direction - instead of showing shared
  * books with ONE known profile, this finds WHICH other users share the most
- * "okudum" books with the viewer, excluding people already followed (and
+ * "finishRead" books with the viewer, excluding people already followed (and
  * the viewer themselves), ranked by overlap size. Not cached - genuinely
  * per-viewer, not a shared aggregate.
  */
@@ -457,8 +457,8 @@ export async function getFollowSuggestions(viewerId: number, limit = 6): Promise
     .where(
       and(
         eq(viewerRead.userId, viewerId),
-        eq(viewerRead.status, "okudum"),
-        eq(otherRead.status, "okudum"),
+        eq(viewerRead.status, "finishRead"),
+        eq(otherRead.status, "finishRead"),
         sql`${otherRead.userId} != ${viewerId}`,
         sql`${existingFollow.id} IS NULL`,
       ),
@@ -524,7 +524,7 @@ export async function getCurrentReadingGoal(userId: number): Promise<ReadingGoal
     db
       .select({ n: sql<number>`count(*)` })
       .from(read)
-      .where(and(eq(read.userId, userId), eq(read.year, year), eq(read.status, "okudum"))),
+      .where(and(eq(read.userId, userId), eq(read.year, year), eq(read.status, "finishRead"))),
   ]);
 
   if (!purposeRow) return null;
@@ -578,7 +578,7 @@ export async function getPastReadingGoals(userId: number): Promise<PastReadingGo
   const counts = await db
     .select({ year: read.year, n: sql<number>`count(*)` })
     .from(read)
-    .where(and(eq(read.userId, userId), eq(read.status, "okudum")))
+    .where(and(eq(read.userId, userId), eq(read.status, "finishRead")))
     .groupBy(read.year);
 
   const countByYear = new Map(counts.map((c) => [c.year, c.n]));
@@ -620,7 +620,7 @@ export async function getReadingScoreStats(userId: number, year: string): Promis
     .where(and(eq(read.userId, userId), eq(read.year, year)));
 
   const totalMinutes = readRows.reduce((sum, r) => sum + r.minutesRead, 0);
-  const bookIds = readRows.filter((r) => r.status === "okudum").map((r) => r.bookId);
+  const bookIds = readRows.filter((r) => r.status === "finishRead").map((r) => r.bookId);
   if (bookIds.length === 0) {
     return { year, booksRead: 0, totalPages: 0, totalMinutes, topCategory: null, topWriter: null };
   }
@@ -663,7 +663,7 @@ export interface TopReader {
 
 /**
  * v1's UserController::getTopUsers() - top 20 by total `read` row count
- * (any status, not just "okudum" - matches v1's unfiltered left-joined
+ * (any status, not just "finishRead" - matches v1's unfiltered left-joined
  * count exactly).
  */
 export async function getTopReaders(limit = 20): Promise<TopReader[]> {

@@ -86,14 +86,14 @@ export function parseGoodreadsExport(csvText: string): GoodreadsRow[] {
 /** Goodreads' three real shelf values map onto this app's reading-status
  * enum; anything else (a custom shelf name) is left unmapped - imported as
  * a library addition only, no status guessed. */
-export function mapGoodreadsShelf(shelf: string): "okudum" | "okuyorum" | "okuyacagim" | null {
+export function mapGoodreadsShelf(shelf: string): "finishRead" | "currentRead" | "targetRead" | null {
   switch (shelf) {
     case "read":
-      return "okudum";
+      return "finishRead";
     case "currently-reading":
-      return "okuyorum";
+      return "currentRead";
     case "to-read":
-      return "okuyacagim";
+      return "targetRead";
     default:
       return null;
   }

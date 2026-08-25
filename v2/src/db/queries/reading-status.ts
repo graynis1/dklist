@@ -34,7 +34,7 @@ export interface SetReadStatusInput {
 export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   const { userId, bookId, status, dropReason, dropPercentage } = input;
 
-  if (status === "yarida-birakildi" && !dropReason) {
+  if (status === "dropRead" && !dropReason) {
     throw new Error("dropReason is required when status is yarida-birakildi");
   }
 
@@ -44,8 +44,8 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
     bookId,
     status,
     year,
-    dropReason: status === "yarida-birakildi" ? (dropReason ?? null) : null,
-    dropPercentage: status === "yarida-birakildi" ? (dropPercentage ?? null) : null,
+    dropReason: status === "dropRead" ? (dropReason ?? null) : null,
+    dropPercentage: status === "dropRead" ? (dropPercentage ?? null) : null,
   };
 
   await db
@@ -63,7 +63,7 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   updateTag(`profile-books:${userId}`);
   updateTag(`book-readers:${bookId}`);
 
-  if (status === "okudum") {
+  if (status === "finishRead") {
     await awardPoints(userId, (await getPointSettings()).bookRead, "book_read", `read:book:${bookId}`);
   }
 }
@@ -73,7 +73,7 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
  * dropped-status ask, easy to miss - caught on a second, closer pass of the
  * requirements). No session/timer infra exists or is planned - a manual
  * "log N minutes" entry is the honest minimal version, cumulative on the
- * existing `read` row. Creates an "okuyorum" row if none exists yet
+ * existing `read` row. Creates an "currentRead" row if none exists yet
  * (logging time implies active reading), otherwise just adds to whatever
  * status/year is already there rather than overwriting it.
  */
@@ -85,7 +85,7 @@ export async function addReadingMinutes(userId: number, bookId: number, minutes:
   const year = String(new Date().getFullYear());
   await db
     .insert(read)
-    .values({ userId, bookId, status: "okuyorum", year, minutesRead: minutes })
+    .values({ userId, bookId, status: "currentRead", year, minutesRead: minutes })
     .onDuplicateKeyUpdate({ set: { minutesRead: sql`${read.minutesRead} + ${minutes}` } });
 
   updateTag(`profile-books:${userId}`);
@@ -159,7 +159,7 @@ export async function getBookDropStats(bookId: number): Promise<BookDropStats> {
       avgPct: sql<number | null>`avg(${read.dropPercentage})`,
     })
     .from(read)
-    .where(and(eq(read.bookId, bookId), eq(read.status, "yarida-birakildi")))
+    .where(and(eq(read.bookId, bookId), eq(read.status, "dropRead")))
     .groupBy(read.dropReason);
 
   const reasonCounts: Partial<Record<DropReason, number>> = {};
