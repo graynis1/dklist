@@ -26,7 +26,7 @@ export function RecentlyViewedShelf() {
   if (!books || books.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-5xl px-6 py-10">
+    <section className="mx-auto max-w-6xl px-6 py-10">
       <SectionLabel>Son Baktıkların</SectionLabel>
       <div className="mt-4 flex flex-wrap gap-4">
         {books.map((b) => (

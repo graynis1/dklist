@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   pointTransaction,
@@ -12,7 +12,11 @@ import {
   store,
   bookClub,
   follow,
+  feedPost,
 } from "@/db/schema";
+import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
+import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
+import { getRepliesForComments, type CommentReply, type SubCommentParentType } from "@/db/queries/comments";
 
 /**
  * Site-wide activity feed ("akış") - the customer explicitly called the
@@ -41,6 +45,7 @@ const FEED_REASONS = [
   "author_post",
   "club_join",
   "library_add",
+  "feed_post",
 ] as const;
 
 export type FeedReason = (typeof FEED_REASONS)[number];
@@ -57,6 +62,33 @@ export interface FeedItem {
   targetLabel: string | null;
   targetHref: string | null;
   excerpt: string | null;
+  /** Only set when entityKind is "book" - lets the feed card show a real
+   * cover/typeset jacket thumbnail instead of reading as a plain text log,
+   * the concrete difference between a notification list and something that
+   * reads like an actual community feed. */
+  bookCover: { id: number; hasImage: boolean } | null;
+  /** Writer/translator comment/quote targets don't have a photo cover to
+   * show, but still deserve more visual weight than plain text - the real
+   * entity id lets the card render the same tone-colored EntityAvatar used
+   * everywhere else on the site instead of nothing. */
+  entityAvatarId: number | null;
+  /** Set only for reason "comment" - lets the feed card offer a real like
+   * button (reusing the same comment_like system EntityComments already
+   * uses) instead of a static, non-interactive post, per the maintainer's
+   * explicit ask for /akis to read as a genuine social/forum feed. */
+  commentId: number | null;
+  likeState: CommentLikeState | null;
+  /** Set only for reason "feed_post" - the standalone status-update post's
+   * own image (if any) and its independent like system (feed_post_like,
+   * a separate table from comment_like since posts aren't comments). */
+  feedPostId: number | null;
+  feedPostImage: string | null;
+  postLikeState: FeedPostLikeState | null;
+  /** Real inline reply thread + composer target, for both "comment" posts
+   * and standalone "feed_post" posts - the maintainer's explicit ask for a
+   * genuine social-media feed, not just a link away to reply elsewhere. */
+  replyTarget: { parentType: SubCommentParentType; parentId: number } | null;
+  replies: CommentReply[];
 }
 
 function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedItem["entityKind"]; entityId: number | null } {
@@ -84,6 +116,8 @@ function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedIt
       return { entityKind: null, entityId: null }; // resolved via actor's own username
     case "club_join":
       return { entityKind: "club", entityId: Number(parts[parts.length - 1]) || null };
+    case "feed_post":
+      return { entityKind: null, entityId: Number(parts[1]) || null }; // resolved via feed_post row
     default:
       return { entityKind: null, entityId: null };
   }
@@ -155,9 +189,11 @@ export async function getSiteFeed(opts: {
   const storeIds = new Set<number>();
   const clubIds = new Set<number>();
   const commentIds = new Set<number>();
+  const feedPostIds = new Set<number>();
 
   for (const r of parsed) {
     if (r.reason === "comment" && r.entityId) commentIds.add(r.entityId);
+    else if (r.reason === "feed_post" && r.entityId) feedPostIds.add(r.entityId);
     else if (r.entityKind === "book" && r.entityId) bookIds.add(r.entityId);
     else if (r.entityKind === "writer" && r.entityId) writerIds.add(r.entityId);
     else if (r.entityKind === "translator" && r.entityId) translatorIds.add(r.entityId);
@@ -181,14 +217,40 @@ export async function getSiteFeed(opts: {
   }
   const commentById = new Map(commentRows.map((c) => [c.id, c]));
 
-  const [bookRows, writerRows, translatorRows, userRows, blogRows, storeRows, clubRows] = await Promise.all([
-    bookIds.size ? db.select({ id: book.id, name: book.name, slug: book.slug }).from(book).where(inArray(book.id, [...bookIds])) : Promise.resolve([]),
+  const feedPostRows = feedPostIds.size
+    ? await db.select({ id: feedPost.id, text: feedPost.text, image: feedPost.image }).from(feedPost).where(inArray(feedPost.id, [...feedPostIds]))
+    : [];
+  const feedPostById = new Map(feedPostRows.map((p) => [p.id, p]));
+
+  const [
+    bookRows,
+    writerRows,
+    translatorRows,
+    userRows,
+    blogRows,
+    storeRows,
+    clubRows,
+    likeStates,
+    postLikeStates,
+    repliesByComment,
+    repliesByPost,
+  ] = await Promise.all([
+    bookIds.size
+      ? db
+          .select({ id: book.id, name: book.name, slug: book.slug, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` })
+          .from(book)
+          .where(inArray(book.id, [...bookIds]))
+      : Promise.resolve([]),
     writerIds.size ? db.select({ id: writer.id, name: writer.name, slug: writer.slug }).from(writer).where(inArray(writer.id, [...writerIds])) : Promise.resolve([]),
     translatorIds.size ? db.select({ id: translator.id, name: translator.name, slug: translator.slug }).from(translator).where(inArray(translator.id, [...translatorIds])) : Promise.resolve([]),
     userIds.size ? db.select({ id: user.id, username: user.username }).from(user).where(inArray(user.id, [...userIds])) : Promise.resolve([]),
     blogIds.size ? db.select({ id: blog.id, title: blog.title, slug: blog.slug }).from(blog).where(inArray(blog.id, [...blogIds])) : Promise.resolve([]),
     storeIds.size ? db.select({ id: store.id, title: store.title, slug: store.slug }).from(store).where(inArray(store.id, [...storeIds])) : Promise.resolve([]),
     clubIds.size ? db.select({ id: bookClub.id, name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(inArray(bookClub.id, [...clubIds])) : Promise.resolve([]),
+    getCommentLikeStates(opts.viewerId ?? null, [...commentIds]),
+    getFeedPostLikeStates(opts.viewerId ?? null, [...feedPostIds]),
+    getRepliesForComments([...commentIds]),
+    getRepliesForPosts([...feedPostIds]),
   ]);
 
   const bookMap = new Map(bookRows.map((b) => [b.id, b]));
@@ -207,28 +269,78 @@ export async function getSiteFeed(opts: {
       actorUsername: r.actorUsername,
       actorImage: r.actorImage,
       reason: r.reason as FeedReason,
+      bookCover: null as FeedItem["bookCover"],
+      entityAvatarId: null as FeedItem["entityAvatarId"],
+      commentId: null as FeedItem["commentId"],
+      likeState: null as FeedItem["likeState"],
+      feedPostId: null as FeedItem["feedPostId"],
+      feedPostImage: null as FeedItem["feedPostImage"],
+      postLikeState: null as FeedItem["postLikeState"],
+      replyTarget: null as FeedItem["replyTarget"],
+      replies: [] as FeedItem["replies"],
     };
+
+    if (r.reason === "feed_post" && r.entityId) {
+      const p = feedPostById.get(r.entityId);
+      if (!p) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
+      return {
+        ...base,
+        entityKind: null,
+        isQuote: false,
+        targetLabel: null,
+        targetHref: null,
+        excerpt: p.text,
+        feedPostId: p.id,
+        feedPostImage: p.image,
+        postLikeState: postLikeStates[p.id] ?? { count: 0, liked: false },
+        replyTarget: { parentType: "feedPost", parentId: p.id },
+        replies: repliesByPost.get(p.id) ?? [],
+      };
+    }
 
     if (r.reason === "comment" && r.entityId) {
       const c = commentById.get(r.entityId);
       if (!c) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
+      base.commentId = c.id;
+      base.likeState = likeStates[c.id] ?? { count: 0, liked: false };
+      base.replyTarget = { parentType: "comment", parentId: c.id };
+      base.replies = repliesByComment.get(c.id) ?? [];
       const isQuote = c.commentType === "quotation";
-      const excerpt = c.comment.length > 140 ? `${c.comment.slice(0, 140)}...` : c.comment;
+      // 400, not the old 140 - a forum-style feed post needs to actually
+      // show real content, not a stub; matches v1's own Akış (which showed
+      // up to 200 chars before a client-side "devamını gör" expand).
+      const excerpt = c.comment.length > 400 ? `${c.comment.slice(0, 400)}...` : c.comment;
       if (c.type === "book") {
         const b = bookMap.get(Number(c.targetId));
-        return { ...base, entityKind: "book", isQuote, targetLabel: b?.name ?? null, targetHref: b ? `/kitap/${b.slug}` : null, excerpt };
+        return {
+          ...base,
+          entityKind: "book",
+          isQuote,
+          targetLabel: b?.name ?? null,
+          targetHref: b ? `/kitap/${b.slug}` : null,
+          excerpt,
+          bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage) } : null,
+        };
       }
       if (c.type === "writer") {
         const w = writerMap.get(Number(c.targetId));
-        return { ...base, entityKind: "writer", isQuote, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt };
+        return { ...base, entityKind: "writer", isQuote, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt, entityAvatarId: w?.id ?? null };
       }
       const t = translatorMap.get(Number(c.targetId));
-      return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt };
+      return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt, entityAvatarId: t?.id ?? null };
     }
 
     if ((r.reason === "book_read" || r.reason === "library_add" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
       const b = bookMap.get(r.entityId);
-      return { ...base, entityKind: "book", isQuote: false, targetLabel: b?.name ?? null, targetHref: b ? `/kitap/${b.slug}` : null, excerpt: null };
+      return {
+        ...base,
+        entityKind: "book",
+        isQuote: false,
+        targetLabel: b?.name ?? null,
+        targetHref: b ? `/kitap/${b.slug}` : null,
+        excerpt: null,
+        bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage) } : null,
+      };
     }
 
     if ((r.reason === "rating" || r.reason === "like") && r.entityKind === "writer" && r.entityId) {
@@ -271,7 +383,9 @@ export async function getSiteFeed(opts: {
   // Rows whose target was deleted after the fact (book/comment/etc removed)
   // resolve to a null href - drop them from the rendered feed rather than
   // showing a broken/dead sentence.
-  const visible = items.filter((i) => i.targetHref !== null || i.reason === "author_post");
+  const visible = items.filter(
+    (i) => i.targetHref !== null || i.reason === "author_post" || (i.reason === "feed_post" && i.feedPostId !== null),
+  );
 
   return { items: visible, nextCursor: hasMore ? page[page.length - 1].id : null };
 }

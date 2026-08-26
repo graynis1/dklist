@@ -38,7 +38,7 @@ export default function PublisherPage({ params }: PageProps<"/yayinevi/[slug]">)
 
 function PublisherSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10 h-10 w-64 animate-pulse rounded bg-muted" />
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 lg:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -70,7 +70,7 @@ async function PublisherContent({
   ]);
 
   return (
-    <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+    <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
       <JsonLd
         data={{
           "@context": "https://schema.org",

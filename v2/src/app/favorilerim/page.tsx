@@ -14,7 +14,7 @@ export default function MyFavoritesPage() {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-5xl px-6 py-16">
+      <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="mb-8 flex flex-col gap-2">
           <SectionLabel>Hesabım</SectionLabel>
           <h1 className="font-heading text-3xl font-medium tracking-tight">Favorilerim</h1>

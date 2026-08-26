@@ -49,7 +49,7 @@ export default function TranslatorPage({ params }: PageProps<"/cevirmen/[slug]">
 
 function TranslatorSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10 flex items-center gap-4">
         <div className="size-20 animate-pulse rounded-full bg-muted" />
         <div className="h-10 w-64 animate-pulse rounded bg-muted" />
@@ -95,7 +95,7 @@ async function TranslatorContent({
   ]);
   const repliesByQuoteObj = Object.fromEntries(repliesByQuote);
   return (
-    <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+    <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center">
         <EntityAvatar id={translator.id} name={translator.name} size="size-20" className="text-xl" />
         <div className="flex flex-col gap-2">

@@ -4,18 +4,18 @@ import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import type { BookComment, CommentReply, SubCommentParentType } from "@/db/queries/comments";
 import type { CommentLikeState } from "@/db/queries/comment-likes";
-import { toggleCommentLikeAction } from "@/actions/comment-likes";
 import { reportCommentAction } from "@/actions/notices";
 import { updateCommentAction, deleteCommentAction, updateSubCommentAction, deleteSubCommentAction } from "@/actions/comment-edit";
 import { ShareButton } from "@/components/dklist/share-button";
 import { HashtagText } from "@/components/dklist/hashtag-text";
 import { QuoteCard } from "@/components/dklist/quote-card";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
+import { CommentLikeButton } from "@/components/dklist/comment-like-button";
 
 /** v1's CommentComponent `notice()` - a silent fire-and-forget report that
  * just hides itself after sending, no confirmation modal (comment reports
  * carry no reason, unlike the profile report-user flow). */
-function ReportCommentButton({ commentId, parentType }: { commentId: number; parentType: SubCommentParentType }) {
+function ReportCommentButton({ commentId, parentType }: { commentId: number; parentType: "comment" | "subComment" }) {
   const [sent, setSent] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -36,41 +36,6 @@ function ReportCommentButton({ commentId, parentType }: { commentId: number; par
       className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
     >
       Şikayet Et
-    </button>
-  );
-}
-
-function CommentLikeButton({
-  commentId,
-  signedIn,
-  initialState,
-}: {
-  commentId: number;
-  signedIn: boolean;
-  initialState: CommentLikeState;
-}) {
-  const [state, setState] = useState(initialState);
-  const [isPending, startTransition] = useTransition();
-
-  return (
-    <button
-      type="button"
-      disabled={!signedIn || isPending}
-      onClick={() =>
-        startTransition(async () => {
-          const result = await toggleCommentLikeAction(commentId);
-          if (result.status && result.liked !== undefined) {
-            setState((prev) => ({
-              liked: result.liked!,
-              count: prev.count + (result.liked ? 1 : -1),
-            }));
-          }
-        })
-      }
-      className="w-fit text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-    >
-      <span className={state.liked ? "text-primary" : ""}>{state.liked ? "♥" : "♡"}</span>{" "}
-      {state.count > 0 ? state.count : "Beğen"}
     </button>
   );
 }

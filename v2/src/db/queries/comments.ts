@@ -16,7 +16,7 @@ import { isLikelyAbusive } from "@/lib/moderation";
  * admin review. Either signal (keyword match OR the local embedding-
  * similarity check) rejects the post outright, before it's ever written.
  */
-async function checkModerationOrThrow(text: string): Promise<void> {
+export async function checkModerationOrThrow(text: string): Promise<void> {
   if (findFlaggedWords(text).length > 0) {
     throw new Error("İçeriğiniz topluluk kurallarına aykırı görünüyor, lütfen düzenleyip tekrar deneyin.");
   }
@@ -112,7 +112,7 @@ export async function getEntityComments(
  * layered on the plain color-coding `HashtagText` already renders. Only
  * tags matching a real, non-self username fire anything.
  */
-async function notifyHashtaggedReaders(text: string, taggerUserId: number): Promise<void> {
+export async function notifyHashtaggedReaders(text: string, taggerUserId: number): Promise<void> {
   const tags = extractHashtagTags(text);
   if (tags.length === 0) return;
 
@@ -268,7 +268,12 @@ export async function addBookComment(
   return addEntityComment(userId, bookId, "book", text, commentType);
 }
 
-export type SubCommentParentType = "comment" | "subComment";
+// "feedPost" added for the standalone social-feed post replies (see
+// feed-posts.ts) - addSubComment()/the sub_comment table were already
+// generic enough (parentType/parentId, no FK tying it to `comment`
+// specifically) that no schema change was needed to support a second root
+// content type.
+export type SubCommentParentType = "comment" | "subComment" | "feedPost";
 
 export interface CommentReply {
   id: number;

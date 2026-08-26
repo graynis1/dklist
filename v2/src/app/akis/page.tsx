@@ -4,6 +4,8 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { SiteFeedList } from "@/components/dklist/site-feed";
+import { FeedComposer } from "@/components/dklist/feed-composer";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { getSiteFeed } from "@/db/queries/feed";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
@@ -19,7 +21,7 @@ export default function FeedPage({ searchParams }: PageProps<"/akis">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-2xl px-6 py-16">
+      <div className="mx-auto max-w-3xl px-6 py-16">
         <div className="mb-8 flex flex-col gap-2">
           <SectionLabel>Topluluk</SectionLabel>
           <h1 className="font-heading text-3xl font-medium tracking-tight">Akış</h1>
@@ -63,6 +65,9 @@ async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">[
 
   return (
     <div className="flex flex-col gap-6">
+      {viewerId && session?.user && (
+        <FeedComposer userId={viewerId} username={session.user.name ?? "?"} userImage={session.user.image ?? null} />
+      )}
       {viewerId && (
         <div className="flex w-fit gap-1 rounded-full bg-muted p-1 text-sm">
           <TabLink href="/akis" active={scope === "everyone"}>
@@ -73,7 +78,16 @@ async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">[
           </TabLink>
         </div>
       )}
-      <SiteFeedList initialItems={page.items} initialCursor={page.nextCursor} followingOnly={followingOnly} />
+      <Suspense fallback={null}>
+        <AdSlot placement="akis" className="max-w-none px-0" />
+      </Suspense>
+      <SiteFeedList
+        initialItems={page.items}
+        initialCursor={page.nextCursor}
+        followingOnly={followingOnly}
+        signedIn={Boolean(viewerId)}
+        viewerId={viewerId}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { getWriterList } from "@/db/queries/writers";
 
 export default function WriterListPage({ searchParams }: PageProps<"/yazarlar">) {
@@ -61,6 +62,10 @@ async function WriterList({
           Ara
         </Button>
       </form>
+
+      <Suspense fallback={null}>
+        <AdSlot placement="yazarlar-listesi" className="mb-8 max-w-none px-0" />
+      </Suspense>
 
       {items.length === 0 ? (
         <p className="text-muted-foreground">{search ? "Bu aramaya uyan yazar yok." : "Henüz yazar yok."}</p>

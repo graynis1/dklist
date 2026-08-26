@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { getBookList, getTopCategories, type BookSortBy } from "@/db/queries/books";
 
 const SORT_OPTIONS: { value: BookSortBy; label: string }[] = [
@@ -27,7 +28,7 @@ export default function BookListPage({ searchParams }: PageProps<"/kitaplar">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-5xl px-6 py-16">
+      <div className="mx-auto max-w-6xl px-6 py-16">
         <div className="mb-10 flex flex-col gap-2">
           <SectionLabel>Katalog</SectionLabel>
           <h1 className="font-heading text-3xl font-medium tracking-tight">Tüm Kitaplar</h1>
@@ -116,6 +117,10 @@ async function BookListContent({
           Filtrele
         </Button>
       </form>
+
+      <Suspense fallback={null}>
+        <AdSlot placement="kitaplar-listesi" className="mb-8 max-w-none px-0" />
+      </Suspense>
 
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">

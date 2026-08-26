@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getPendingBookSubmissions } from "@/db/queries/book-admin";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { BookSubmissionActions } from "@/components/dklist/book-submission-actions";
 
@@ -15,7 +14,6 @@ const VIEW_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 export default function BookApprovalsPage() {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
         <BookApprovalsContent />
       </Suspense>

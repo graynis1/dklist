@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getCategoryList } from "@/db/queries/category-admin";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ const ADMIN_ONLY = [USER_TYPES.Admin];
 export default function AdminCategoriesPage({ searchParams }: PageProps<"/admin/kategoriler">) {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
         <AdminCategoriesContent searchParams={searchParams} />
       </Suspense>

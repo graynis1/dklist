@@ -51,3 +51,7 @@ export function translatorImageUrl(filename: string): string {
 export function sitePopupImageUrl(filename: string): string {
   return `/api/site-popup-image/${filename}`;
 }
+
+export function feedPostImageUrl(filename: string): string {
+  return `/api/feed-post-image/${filename}`;
+}

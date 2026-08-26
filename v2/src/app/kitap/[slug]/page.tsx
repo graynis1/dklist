@@ -68,7 +68,7 @@ export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
 
 function BookDetailSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl animate-pulse px-6 py-20">
+    <div className="mx-auto max-w-6xl animate-pulse px-6 py-20">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
         <div className="aspect-[2/3] w-full max-w-[280px] rounded-[0.35rem] bg-muted" />
         <div className="flex flex-col gap-4">
@@ -185,7 +185,7 @@ async function BookDetailContent({
         hasImage={detail.hasImage}
         writers={detail.writers.map((w) => w.name)}
       />
-      <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+      <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
           <BookCover
             title={detail.name}
@@ -403,7 +403,7 @@ async function BookDetailContent({
       {(workEditions.sameLanguage.length > 0 || Object.keys(workEditions.otherLanguages).length > 0) && (
         <>
           <Separator />
-          <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+          <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
             <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
               Diğer Baskılar
             </h2>
@@ -467,7 +467,7 @@ async function BookDetailContent({
       {similarBooks.length > 0 && (
         <>
           <Separator />
-          <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+          <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
             <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
               Benzer Kitaplar
             </h2>
@@ -498,7 +498,7 @@ async function BookDetailContent({
       {readers.length > 0 && (
         <>
           <Separator />
-          <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+          <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
             <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
               Bu Kitabı Okuyan Üyeler
             </h2>
@@ -523,7 +523,7 @@ async function BookDetailContent({
 
       <Separator />
 
-      <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+      <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
         <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
           Yorumlar
         </h2>
@@ -542,7 +542,7 @@ async function BookDetailContent({
 
       <Separator />
 
-      <section className="mx-auto max-w-5xl px-6 py-16 lg:py-20">
+      <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
         <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
           Alıntılar
         </h2>

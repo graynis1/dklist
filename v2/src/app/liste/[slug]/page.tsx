@@ -37,7 +37,7 @@ export default function ListDetailPage({ params }: PageProps<"/liste/[slug]">) {
 
 function ListSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10 h-10 w-64 animate-pulse rounded bg-muted" />
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 lg:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -66,7 +66,7 @@ async function ListDetailContent({
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10 flex flex-col gap-2">
         <SectionLabel>Liste</SectionLabel>
         <h1 className="font-heading text-4xl font-medium tracking-tight">{list.title}</h1>

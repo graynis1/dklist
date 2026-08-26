@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { getWeeklyLeaderboard, getWeeklyWinner, getPastWeeklyWinners } from "@/db/queries/points";
@@ -20,7 +19,6 @@ const ADMIN_ONLY = [USER_TYPES.Admin];
 export default function AdminWeeklyWinnerPage() {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-2xl px-6 py-16" />}>
         <AdminWeeklyWinnerContent />
       </Suspense>

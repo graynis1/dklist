@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { listAllOrdersAdmin } from "@/db/queries/store-order";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 
 const VIEW_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
@@ -22,7 +21,6 @@ const STATUS_LABELS: Record<string, string> = {
 export default function AdminOrdersPage() {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
         <AdminOrdersContent />
       </Suspense>

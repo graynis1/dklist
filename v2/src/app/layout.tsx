@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { PublicChrome } from "@/components/dklist/public-chrome";
 import { SiteFooter } from "@/components/dklist/site-footer";
 import { MobileBottomNav } from "@/components/dklist/mobile-bottom-nav";
 import { FloatingChatWidget } from "@/components/dklist/floating-chat-widget";
@@ -73,10 +75,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col pb-14 md:pb-0">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
-          <SiteFooter />
-          <MobileBottomNav />
-          <FloatingChatWidget />
-          <SitePopupModal />
+          <Suspense fallback={null}>
+            <PublicChrome>
+              <SiteFooter />
+              <MobileBottomNav />
+              <FloatingChatWidget />
+              <SitePopupModal />
+            </PublicChrome>
+          </Suspense>
           <DailyVisitTracker />
           <PwaRegister />
           <RealtimeRefresherGate />

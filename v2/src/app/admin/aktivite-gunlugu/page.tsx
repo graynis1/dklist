@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getRecentAdminActions, getAdminActionCountsByPerson } from "@/db/queries/admin-log";
-import { SiteHeader } from "@/components/dklist/site-header";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 
 const ALLOWED = [USER_TYPES.Admin, USER_TYPES.Mod];
@@ -11,7 +10,6 @@ const ALLOWED = [USER_TYPES.Admin, USER_TYPES.Mod];
 export default function AdminActivityLogPage() {
   return (
     <div className="flex-1 bg-background">
-      <SiteHeader />
       <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-16" />}>
         <AdminActivityLogContent />
       </Suspense>

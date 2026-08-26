@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { XIcon, BookOpenIcon, TagIcon, SendIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { sendMessageAction, fetchThreadAction, deleteMessageAction } from "@/app/mesajlar/actions";
+import { formatRelativeTime } from "@/lib/utils";
 import type { MessageItem } from "@/db/queries/messages";
 
 /**
@@ -77,45 +79,79 @@ export function MessageThread({
   }
 
   return (
-    <div className="flex h-[28rem] flex-col">
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">Henüz mesaj yok - ilk mesajı sen gönder.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {messages.map((m) => {
+          <ul className="flex flex-col gap-3">
+            {messages.map((m, i) => {
               const mine = m.senderId === currentUserId;
+              const prev = messages[i - 1];
+              const grouped = prev && prev.senderId === m.senderId;
               return (
-                <li key={m.id} className={`group flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
-                  {mine && (
-                    <button
-                      type="button"
-                      onClick={() => removeMessage(m.id)}
-                      className="text-xs text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
-                      aria-label="Mesajı sil"
-                    >
-                      ✕
-                    </button>
-                  )}
-                  <span
-                    className={`flex max-w-[75%] flex-col gap-2 rounded-2xl px-3 py-2 text-sm ${
-                      mine ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-                    }`}
-                  >
-                    {m.attachment && (
-                      <a
-                        href={`/${m.type === "book" ? "kitap" : "askida-kitap"}/${m.attachment.slug}`}
-                        className="flex items-center gap-2 rounded-lg bg-background/20 p-1.5 hover:bg-background/30"
+                <li
+                  key={m.id}
+                  className={`group flex flex-col gap-0.5 ${mine ? "items-end" : "items-start"} ${grouped ? "-mt-2" : ""}`}
+                >
+                  <div className={`flex items-center gap-1.5 ${mine ? "flex-row-reverse" : ""}`}>
+                    {mine && (
+                      <button
+                        type="button"
+                        onClick={() => removeMessage(m.id)}
+                        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                        aria-label="Mesajı sil"
                       >
-                        {m.attachment.image && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={m.attachment.image} alt="" className="size-10 rounded object-cover" />
-                        )}
-                        <span className="text-xs font-medium">{m.attachment.title}</span>
-                      </a>
+                        <XIcon className="size-3.5" />
+                      </button>
                     )}
-                    {m.text}
-                  </span>
+                    <div
+                      className={`flex max-w-[19rem] flex-col gap-2 rounded-2xl px-3.5 py-2.5 text-sm ${
+                        mine
+                          ? "rounded-br-md bg-primary text-primary-foreground"
+                          : "rounded-bl-md bg-secondary text-secondary-foreground"
+                      }`}
+                    >
+                      {m.attachment && (
+                        <a
+                          href={`/${m.type === "book" ? "kitap" : "askida-kitap"}/${m.attachment.slug}`}
+                          className="flex items-center gap-2.5 rounded-lg border border-border bg-card p-2 text-card-foreground transition-colors hover:bg-accent"
+                        >
+                          {m.attachment.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={m.attachment.image}
+                              alt=""
+                              className="size-10 shrink-0 rounded object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded bg-muted">
+                              {m.type === "book" ? (
+                                <BookOpenIcon className="size-4 text-muted-foreground" />
+                              ) : (
+                                <TagIcon className="size-4 text-muted-foreground" />
+                              )}
+                            </span>
+                          )}
+                          <span className="flex min-w-0 flex-col gap-0.5">
+                            <span className="text-[0.65rem] font-medium text-muted-foreground uppercase">
+                              {m.type === "book" ? "Kitap" : "İlan"}
+                            </span>
+                            <span className="truncate text-xs font-medium">{m.attachment.title}</span>
+                          </span>
+                        </a>
+                      )}
+                      {m.text && <p className="leading-relaxed break-words">{m.text}</p>}
+                    </div>
+                  </div>
+                  {m.createdAt && (
+                    <span className="px-1 text-[0.65rem] text-muted-foreground/70">
+                      {formatRelativeTime(m.createdAt)}
+                    </span>
+                  )}
                 </li>
               );
             })}
@@ -123,18 +159,15 @@ export function MessageThread({
         )}
         <div ref={bottomRef} />
       </div>
-      <form
-        action={submit}
-        className="flex gap-2 border-t border-border p-3"
-      >
+      <form action={submit} className="flex gap-2 border-t border-border p-3">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Mesaj yaz..."
-          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+          className="flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-ring"
         />
-        <Button type="submit" disabled={isPending || !text.trim()}>
-          Gönder
+        <Button type="submit" size="icon" disabled={isPending || !text.trim()} aria-label="Gönder">
+          <SendIcon className="size-4" />
         </Button>
       </form>
     </div>
