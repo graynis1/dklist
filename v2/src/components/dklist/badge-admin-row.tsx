@@ -10,6 +10,7 @@ import {
   deleteBadgeAction,
 } from "@/app/admin/rozetler/actions";
 import type { BadgeListItem } from "@/db/queries/badge-admin";
+import { badgeImageUrl } from "@/lib/image-urls";
 
 /** One editable row in the /admin/rozetler CRUD table - each text field
  * saves independently on blur (matches v1's real BadgeController::update()
@@ -58,7 +59,7 @@ export function BadgeAdminRow({ badge }: { badge: BadgeListItem }) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/api/badge-image/${badge.img}`}
+          src={badgeImageUrl(badge.img)}
           alt={badge.name}
           className="size-14 rounded-full border border-border object-cover"
         />

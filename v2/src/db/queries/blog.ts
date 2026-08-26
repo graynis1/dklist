@@ -8,12 +8,10 @@ import { blog, user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { saveUploadedImage } from "@/lib/image-upload";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { blogImageUrl } from "@/lib/image-urls";
+export { blogImageUrl } from "@/lib/image-urls";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "blog");
-
-export function blogImageUrl(image: string | null): string | null {
-  return image ? `/api/blog-image/${image}` : null;
-}
 
 function slugifyBlogTitle(title: string, username: string): string {
   // Turkish-character map runs BEFORE toLowerCase() - see book-admin.ts's

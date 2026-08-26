@@ -11,6 +11,7 @@ import {
   deleteWriterAction,
 } from "@/app/admin/yazarlar/actions";
 import type { WriterListItem } from "@/db/queries/writer-admin";
+import { writerImageUrl } from "@/lib/image-urls";
 
 export function WriterAdminRow({ writer }: { writer: WriterListItem }) {
   const router = useRouter();
@@ -60,7 +61,7 @@ export function WriterAdminRow({ writer }: { writer: WriterListItem }) {
           {writer.img ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`/api/writer-image/${writer.img}`}
+              src={writerImageUrl(writer.img)}
               alt={writer.name}
               className="size-14 rounded-full border border-border object-cover"
             />
