@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   BookOpenIcon,
@@ -14,14 +15,18 @@ import {
   PenLineIcon,
   UsersIcon,
   LibraryIcon,
+  Trash2Icon,
 } from "lucide-react";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { CommentLikeButton } from "@/components/dklist/comment-like-button";
+import { FeedPostLikeButton } from "@/components/dklist/feed-post-like-button";
+import { FeedReplyThread } from "@/components/dklist/feed-reply-thread";
 import { ShareButton } from "@/components/dklist/share-button";
 import { Button } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/utils";
-import { loadMoreFeedAction } from "@/app/akis/actions";
+import { feedPostImageUrl } from "@/lib/image-urls";
+import { loadMoreFeedAction, deleteFeedPostAction } from "@/app/akis/actions";
 import type { FeedItem } from "@/db/queries/feed";
 
 const ICON_BY_REASON = {
@@ -35,6 +40,7 @@ const ICON_BY_REASON = {
   store_listing: TagIcon,
   author_post: PenLineIcon,
   club_join: UsersIcon,
+  feed_post: MessageSquareIcon,
 } as const;
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -71,26 +77,32 @@ function describe(item: FeedItem): { verb: string; target: string | null } {
       return { verb: "Yazarhane'de yeni bir yazı paylaştı", target: null };
     case "club_join":
       return { verb: "kulübüne katıldı", target };
+    case "feed_post":
+      return { verb: "bir gönderi paylaştı", target: null };
   }
 }
 
 /**
- * Comments/quotes get the full two-column "forum post" treatment (v1's own
- * Akış reused its book-page CommentComponent wholesale: avatar/text/action-
- * row on the left, a real cover-sized image with a score badge on the
- * right) - the maintainer directly compared v2's first pass unfavorably to
- * that layout ("v1'de olandan da kötü"), so this rebuilds the same shape
- * rather than a smaller decorative tweak: real post text (not a stub),
- * like + share + a link to the full discussion, and a large entity visual
- * instead of a 56px thumbnail buried in a muted box. Everything else (a
- * rating, a follow, a library add) stays a compact single-line card, same
- * as before - v1's Akış never showed those at all, so there's no "worse
- * than v1" comparison to make for that half of the feed.
+ * Comments/quotes/standalone posts all get the full "forum post" treatment
+ * (v1's own Akış reused its book-page CommentComponent wholesale: avatar/
+ * text/action-row, a real cover-sized image on the right) - the maintainer
+ * directly compared v2's first pass unfavorably to that layout, then asked
+ * for the feed to become a genuine social-media surface. Real post text (not
+ * a stub), like + reply-thread + share, a large entity visual for catalog
+ * comments, and the post's own photo for standalone posts. Everything else
+ * (a rating, a follow, a library add) stays a compact single-line card -
+ * v1's Akış never showed those at all.
  */
-export function FeedItemRow({ item, signedIn }: { item: FeedItem; signedIn: boolean }) {
+export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; signedIn: boolean; viewerId: number | null }) {
+  const router = useRouter();
+  const [deleted, setDeleted] = useState(false);
+  const [isDeleting, startDelete] = useTransition();
   const Icon = item.reason === "comment" && item.isQuote ? QuoteIcon : ICON_BY_REASON[item.reason];
   const { verb, target } = describe(item);
-  const isPost = item.reason === "comment" && Boolean(item.excerpt);
+  const isPost = (item.reason === "comment" && Boolean(item.excerpt)) || item.reason === "feed_post";
+  const isOwnPost = item.reason === "feed_post" && viewerId != null && viewerId === item.actorId;
+
+  if (deleted) return null;
 
   const header = (
     <div className="flex items-center gap-2.5">
@@ -108,6 +120,26 @@ export function FeedItemRow({ item, signedIn }: { item: FeedItem; signedIn: bool
           {formatRelativeTime(item.createdAt)}
         </span>
       </div>
+      {isOwnPost && (
+        <button
+          type="button"
+          disabled={isDeleting}
+          onClick={() => {
+            if (!window.confirm("Bu gönderiyi silmek istediğinizden emin misiniz?")) return;
+            startDelete(async () => {
+              const result = await deleteFeedPostAction(item.feedPostId!);
+              if (result.status) {
+                setDeleted(true);
+                router.refresh();
+              }
+            });
+          }}
+          className="ml-auto shrink-0 text-muted-foreground/60 transition-colors hover:text-destructive disabled:opacity-50"
+          aria-label="Gönderiyi sil"
+        >
+          <Trash2Icon className="size-4" />
+        </button>
+      )}
     </div>
   );
 
@@ -118,11 +150,21 @@ export function FeedItemRow({ item, signedIn }: { item: FeedItem; signedIn: bool
         {header}
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-foreground/90">
-              {item.isQuote && <QuoteIcon className="mr-1.5 inline size-4 -translate-y-0.5 text-muted-foreground/50" />}
-              {item.excerpt}
-            </p>
-            <div className="flex items-center gap-4">
+            {item.excerpt && (
+              <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-foreground/90">
+                {item.isQuote && <QuoteIcon className="mr-1.5 inline size-4 -translate-y-0.5 text-muted-foreground/50" />}
+                {item.excerpt}
+              </p>
+            )}
+            {item.reason === "feed_post" && item.feedPostImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={feedPostImageUrl(item.feedPostImage)}
+                alt=""
+                className="max-h-[28rem] w-full rounded-lg border border-border object-cover"
+              />
+            )}
+            <div className="flex flex-wrap items-center gap-4">
               {item.commentId && (
                 <CommentLikeButton
                   commentId={item.commentId}
@@ -131,7 +173,14 @@ export function FeedItemRow({ item, signedIn }: { item: FeedItem; signedIn: bool
                   size="md"
                 />
               )}
-              {item.targetHref && (
+              {item.feedPostId && (
+                <FeedPostLikeButton
+                  postId={item.feedPostId}
+                  signedIn={signedIn}
+                  initialState={item.postLikeState ?? { count: 0, liked: false }}
+                />
+              )}
+              {item.reason === "comment" && item.targetHref && (
                 <Link
                   href={item.targetHref}
                   className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -140,10 +189,16 @@ export function FeedItemRow({ item, signedIn }: { item: FeedItem; signedIn: bool
                   Tartışmayı Gör
                 </Link>
               )}
-              {item.excerpt && (
-                <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} size="sm" />
-              )}
+              {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} size="sm" />}
             </div>
+            {item.replyTarget && (
+              <FeedReplyThread
+                parentType={item.replyTarget.parentType}
+                parentId={item.replyTarget.parentId}
+                initialReplies={item.replies}
+                signedIn={signedIn}
+              />
+            )}
           </div>
 
           {item.targetHref && (item.bookCover || item.entityAvatarId) && (
@@ -204,11 +259,13 @@ export function SiteFeedList({
   initialCursor,
   followingOnly,
   signedIn,
+  viewerId,
 }: {
   initialItems: FeedItem[];
   initialCursor: number | null;
   followingOnly: boolean;
   signedIn: boolean;
+  viewerId: number | null;
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
@@ -225,7 +282,7 @@ export function SiteFeedList({
   return (
     <div className="flex flex-col gap-3">
       {items.map((item) => (
-        <FeedItemRow key={item.id} item={item} signedIn={signedIn} />
+        <FeedItemRow key={item.id} item={item} signedIn={signedIn} viewerId={viewerId} />
       ))}
       {cursor && (
         <div className="flex justify-center pt-4">

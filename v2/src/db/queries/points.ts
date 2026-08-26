@@ -42,6 +42,9 @@ export const POINT_VALUES = {
   // action, not content creation) - naturally idempotent per (user, club)
   // via the reasonKey, same as those two.
   clubJoin: 1,
+  // Standalone social-feed post (see feed-posts.ts) - same tier as
+  // comment/blogPublished/authorPost, all genuine content-creation actions.
+  feedPost: 5,
 } as const;
 
 /**
@@ -59,6 +62,9 @@ export const POINT_VALUES = {
 export const DAILY_CAP_DEFAULTS = {
   dailyCommentCap: 10,
   dailyRatingCap: 20,
+  // Same spam-resistance reasoning as dailyCommentCap - every genuinely new
+  // post always earns (feed_post:<new id>), so needs its own daily ceiling.
+  dailyFeedPostCap: 10,
 } as const;
 
 export type PointSettingKey = keyof typeof POINT_VALUES | keyof typeof DAILY_CAP_DEFAULTS;

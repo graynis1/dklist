@@ -1043,3 +1043,36 @@ export const bookClubMember = mysqlTable("book_club_member", {
 	index("idx_book_club_member_user").on(table.userId),
 	primaryKey({ columns: [table.id], name: "book_club_member_id" }),
 ]);
+
+// Maintainer's explicit ask: turn /akis into a real social-media platform,
+// not just a richer view of catalog comments - `feed_post` is a genuine
+// standalone status update (text and/or an image), independent of any
+// book/writer/translator, the one first-class "post" concept the app never
+// had. Feeds into the SAME `point_transaction`-driven activity stream as
+// every other feed reason (reason "feed_post", reasonKey `feed_post:<id>`)
+// rather than a separately-paginated/merged stream - reuses the already-
+// correct keyset pagination in getSiteFeed() instead of inventing a second
+// one. Replies reuse the existing generic `sub_comment` table (parentType
+// "feedPost") - see comments.ts's SubCommentParentType.
+export const feedPost = mysqlTable("feed_post", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	text: longtext(),
+	image: varchar({ length: 255 }),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	index("idx_feed_post_user").on(table.userId),
+	primaryKey({ columns: [table.id], name: "feed_post_id" }),
+]);
+
+export const feedPostLike = mysqlTable("feed_post_like", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	postId: int("post_id").notNull().references(() => feedPost.id, { onDelete: "cascade" }),
+},
+(table) => [
+	unique("uniq_feed_post_like").on(table.userId, table.postId),
+	index("idx_feed_post_like_post").on(table.postId),
+	primaryKey({ columns: [table.id], name: "feed_post_like_id" }),
+]);

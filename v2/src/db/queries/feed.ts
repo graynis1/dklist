@@ -12,8 +12,11 @@ import {
   store,
   bookClub,
   follow,
+  feedPost,
 } from "@/db/schema";
 import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
+import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
+import { getRepliesForComments, type CommentReply, type SubCommentParentType } from "@/db/queries/comments";
 
 /**
  * Site-wide activity feed ("akış") - the customer explicitly called the
@@ -42,6 +45,7 @@ const FEED_REASONS = [
   "author_post",
   "club_join",
   "library_add",
+  "feed_post",
 ] as const;
 
 export type FeedReason = (typeof FEED_REASONS)[number];
@@ -74,6 +78,17 @@ export interface FeedItem {
    * explicit ask for /akis to read as a genuine social/forum feed. */
   commentId: number | null;
   likeState: CommentLikeState | null;
+  /** Set only for reason "feed_post" - the standalone status-update post's
+   * own image (if any) and its independent like system (feed_post_like,
+   * a separate table from comment_like since posts aren't comments). */
+  feedPostId: number | null;
+  feedPostImage: string | null;
+  postLikeState: FeedPostLikeState | null;
+  /** Real inline reply thread + composer target, for both "comment" posts
+   * and standalone "feed_post" posts - the maintainer's explicit ask for a
+   * genuine social-media feed, not just a link away to reply elsewhere. */
+  replyTarget: { parentType: SubCommentParentType; parentId: number } | null;
+  replies: CommentReply[];
 }
 
 function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedItem["entityKind"]; entityId: number | null } {
@@ -101,6 +116,8 @@ function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedIt
       return { entityKind: null, entityId: null }; // resolved via actor's own username
     case "club_join":
       return { entityKind: "club", entityId: Number(parts[parts.length - 1]) || null };
+    case "feed_post":
+      return { entityKind: null, entityId: Number(parts[1]) || null }; // resolved via feed_post row
     default:
       return { entityKind: null, entityId: null };
   }
@@ -172,9 +189,11 @@ export async function getSiteFeed(opts: {
   const storeIds = new Set<number>();
   const clubIds = new Set<number>();
   const commentIds = new Set<number>();
+  const feedPostIds = new Set<number>();
 
   for (const r of parsed) {
     if (r.reason === "comment" && r.entityId) commentIds.add(r.entityId);
+    else if (r.reason === "feed_post" && r.entityId) feedPostIds.add(r.entityId);
     else if (r.entityKind === "book" && r.entityId) bookIds.add(r.entityId);
     else if (r.entityKind === "writer" && r.entityId) writerIds.add(r.entityId);
     else if (r.entityKind === "translator" && r.entityId) translatorIds.add(r.entityId);
@@ -198,7 +217,24 @@ export async function getSiteFeed(opts: {
   }
   const commentById = new Map(commentRows.map((c) => [c.id, c]));
 
-  const [bookRows, writerRows, translatorRows, userRows, blogRows, storeRows, clubRows, likeStates] = await Promise.all([
+  const feedPostRows = feedPostIds.size
+    ? await db.select({ id: feedPost.id, text: feedPost.text, image: feedPost.image }).from(feedPost).where(inArray(feedPost.id, [...feedPostIds]))
+    : [];
+  const feedPostById = new Map(feedPostRows.map((p) => [p.id, p]));
+
+  const [
+    bookRows,
+    writerRows,
+    translatorRows,
+    userRows,
+    blogRows,
+    storeRows,
+    clubRows,
+    likeStates,
+    postLikeStates,
+    repliesByComment,
+    repliesByPost,
+  ] = await Promise.all([
     bookIds.size
       ? db
           .select({ id: book.id, name: book.name, slug: book.slug, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` })
@@ -212,6 +248,9 @@ export async function getSiteFeed(opts: {
     storeIds.size ? db.select({ id: store.id, title: store.title, slug: store.slug }).from(store).where(inArray(store.id, [...storeIds])) : Promise.resolve([]),
     clubIds.size ? db.select({ id: bookClub.id, name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(inArray(bookClub.id, [...clubIds])) : Promise.resolve([]),
     getCommentLikeStates(opts.viewerId ?? null, [...commentIds]),
+    getFeedPostLikeStates(opts.viewerId ?? null, [...feedPostIds]),
+    getRepliesForComments([...commentIds]),
+    getRepliesForPosts([...feedPostIds]),
   ]);
 
   const bookMap = new Map(bookRows.map((b) => [b.id, b]));
@@ -234,13 +273,38 @@ export async function getSiteFeed(opts: {
       entityAvatarId: null as FeedItem["entityAvatarId"],
       commentId: null as FeedItem["commentId"],
       likeState: null as FeedItem["likeState"],
+      feedPostId: null as FeedItem["feedPostId"],
+      feedPostImage: null as FeedItem["feedPostImage"],
+      postLikeState: null as FeedItem["postLikeState"],
+      replyTarget: null as FeedItem["replyTarget"],
+      replies: [] as FeedItem["replies"],
     };
+
+    if (r.reason === "feed_post" && r.entityId) {
+      const p = feedPostById.get(r.entityId);
+      if (!p) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
+      return {
+        ...base,
+        entityKind: null,
+        isQuote: false,
+        targetLabel: null,
+        targetHref: null,
+        excerpt: p.text,
+        feedPostId: p.id,
+        feedPostImage: p.image,
+        postLikeState: postLikeStates[p.id] ?? { count: 0, liked: false },
+        replyTarget: { parentType: "feedPost", parentId: p.id },
+        replies: repliesByPost.get(p.id) ?? [],
+      };
+    }
 
     if (r.reason === "comment" && r.entityId) {
       const c = commentById.get(r.entityId);
       if (!c) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
       base.commentId = c.id;
       base.likeState = likeStates[c.id] ?? { count: 0, liked: false };
+      base.replyTarget = { parentType: "comment", parentId: c.id };
+      base.replies = repliesByComment.get(c.id) ?? [];
       const isQuote = c.commentType === "quotation";
       // 400, not the old 140 - a forum-style feed post needs to actually
       // show real content, not a stub; matches v1's own Akış (which showed
@@ -319,7 +383,9 @@ export async function getSiteFeed(opts: {
   // Rows whose target was deleted after the fact (book/comment/etc removed)
   // resolve to a null href - drop them from the rendered feed rather than
   // showing a broken/dead sentence.
-  const visible = items.filter((i) => i.targetHref !== null || i.reason === "author_post");
+  const visible = items.filter(
+    (i) => i.targetHref !== null || i.reason === "author_post" || (i.reason === "feed_post" && i.feedPostId !== null),
+  );
 
   return { items: visible, nextCursor: hasMore ? page[page.length - 1].id : null };
 }

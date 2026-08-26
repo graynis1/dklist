@@ -15,7 +15,7 @@ import { CommentLikeButton } from "@/components/dklist/comment-like-button";
 /** v1's CommentComponent `notice()` - a silent fire-and-forget report that
  * just hides itself after sending, no confirmation modal (comment reports
  * carry no reason, unlike the profile report-user flow). */
-function ReportCommentButton({ commentId, parentType }: { commentId: number; parentType: SubCommentParentType }) {
+function ReportCommentButton({ commentId, parentType }: { commentId: number; parentType: "comment" | "subComment" }) {
   const [sent, setSent] = useState(false);
   const [isPending, startTransition] = useTransition();
 

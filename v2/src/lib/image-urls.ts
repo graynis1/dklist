@@ -10,3 +10,7 @@
 export function advertisementImageUrl(filename: string): string {
   return `/api/advertisement-image/${filename}`;
 }
+
+export function feedPostImageUrl(filename: string): string {
+  return `/api/feed-post-image/${filename}`;
+}

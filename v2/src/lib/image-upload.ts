@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, unlink } from "node:fs/promises";
 
 /**
  * Shared local-disk image save helper - v1's ImageManager::saveImage() is
@@ -39,4 +39,11 @@ export async function saveUploadedImage(subdir: string, file: File): Promise<str
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, filename), bytes);
   return filename;
+}
+
+/** Best-effort delete (a missing file is not an error worth surfacing) -
+ * most existing upload features (ads, store listings) hand-roll this exact
+ * one-liner per feature; kept here too so a new one doesn't have to. */
+export async function deleteUploadedImage(subdir: string, filename: string): Promise<void> {
+  await unlink(path.join(process.cwd(), "uploads", subdir, filename)).catch(() => {});
 }
