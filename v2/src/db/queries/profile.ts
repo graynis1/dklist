@@ -24,6 +24,7 @@ import { isBlockedEitherWay } from "@/db/queries/blocks";
 import { addNotification } from "@/db/queries/notifications";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 import { attachWriterNames } from "@/db/queries/books";
+import { assertContentLength } from "@/lib/content-validation";
 
 export interface EditableProfile {
   name: string;
@@ -146,9 +147,7 @@ export async function updateProfile(userId: number, input: UpdateProfileInput): 
   };
 
   if (password) {
-    if (password.length < 6) {
-      throw new Error("Şifre en az 6 karakter olmalıdır.");
-    }
+    assertContentLength(password, "Şifre", { min: 6 });
     values.password = await bcrypt.hash(password, 10);
   }
 

@@ -8,6 +8,7 @@ import { addNotification } from "@/db/queries/notifications";
 import { extractHashtagTags } from "@/lib/hashtag";
 import { findFlaggedWords } from "@/lib/dirty-controller";
 import { isLikelyAbusive } from "@/lib/moderation";
+import { assertContentLength } from "@/lib/content-validation";
 
 /**
  * Real AI-based content blocking, on top of (not instead of) the existing
@@ -162,9 +163,7 @@ export async function shareEntityComment(
   commentary: string,
 ): Promise<number> {
   const trimmed = commentary.trim();
-  if (trimmed.length > 2000) {
-    throw new Error("Yorum en fazla 2000 karakter olabilir.");
-  }
+  assertContentLength(trimmed, "Yorum", { max: 2000 });
 
   const [original] = await db
     .select({
@@ -225,12 +224,7 @@ export async function addEntityComment(
   commentType: CommentType = "comment",
 ): Promise<number> {
   const trimmed = text.trim();
-  if (trimmed.length < 2) {
-    throw new Error("Yorum en az 2 karakter olmalıdır.");
-  }
-  if (trimmed.length > 2000) {
-    throw new Error("Yorum en fazla 2000 karakter olabilir.");
-  }
+  assertContentLength(trimmed, "Yorum", { min: 2, max: 2000 });
   await checkModerationOrThrow(trimmed);
 
   const [result] = await db.insert(comment).values({
@@ -368,12 +362,7 @@ export async function addSubComment(
   text: string,
 ): Promise<number> {
   const trimmed = text.trim();
-  if (trimmed.length < 2) {
-    throw new Error("Yanıt en az 2 karakter olmalıdır.");
-  }
-  if (trimmed.length > 2000) {
-    throw new Error("Yanıt en fazla 2000 karakter olabilir.");
-  }
+  assertContentLength(trimmed, "Yanıt", { min: 2, max: 2000 });
   await checkModerationOrThrow(trimmed);
 
   const [result] = await db.insert(subComment).values({
@@ -395,8 +384,7 @@ export async function addSubComment(
  */
 export async function updateComment(userId: number, commentId: number, newText: string): Promise<void> {
   const trimmed = newText.trim();
-  if (trimmed.length < 2) throw new Error("Yorum en az 2 karakter olmalıdır.");
-  if (trimmed.length > 2000) throw new Error("Yorum en fazla 2000 karakter olabilir.");
+  assertContentLength(trimmed, "Yorum", { min: 2, max: 2000 });
 
   const [row] = await db
     .select({ userId: comment.userId, targetId: comment.targetId, type: comment.type, commentType: comment.commentType })
@@ -447,8 +435,7 @@ export async function deleteComment(userId: number, commentId: number): Promise<
 
 export async function updateSubComment(userId: number, subCommentId: number, newText: string): Promise<void> {
   const trimmed = newText.trim();
-  if (trimmed.length < 2) throw new Error("Yanıt en az 2 karakter olmalıdır.");
-  if (trimmed.length > 2000) throw new Error("Yanıt en fazla 2000 karakter olabilir.");
+  assertContentLength(trimmed, "Yanıt", { min: 2, max: 2000 });
 
   const [row] = await db.select({ userId: subComment.userId }).from(subComment).where(eq(subComment.id, subCommentId)).limit(1);
   if (!row) throw new Error("Yanıt bulunamadı.");
