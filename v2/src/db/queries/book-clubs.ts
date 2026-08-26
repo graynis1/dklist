@@ -6,6 +6,7 @@ import { bookClub, bookClubMember, user, book, writerBook, writer } from "@/db/s
 import { isDuplicateKeyError } from "@/lib/db-errors";
 import { hasRole, USER_TYPES } from "@/lib/roles";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { assertContentLength } from "@/lib/content-validation";
 
 /**
  * Book clubs / group reading - maintainer's explicit ask, built from scratch
@@ -60,7 +61,7 @@ export interface CreateClubInput {
 
 export async function createBookClub(ownerId: number, input: CreateClubInput): Promise<{ id: number; slug: string }> {
   const name = input.name.trim();
-  if (name.length < 3) throw new Error("Kulüp adı en az 3 karakter olmalıdır.");
+  assertContentLength(name, "Kulüp adı", { min: 3 });
   const description = input.description.trim();
   if (!description) throw new Error("Kulüp açıklaması zorunludur.");
 

@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { isMailConfigured, sendVerificationEmail, sendPasswordResetEmail, sendNewPasswordEmail } from "@/lib/mailer";
+import { assertContentLength } from "@/lib/content-validation";
 
 const TOKEN_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -58,9 +59,7 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
   if (!name.trim() || !surname.trim() || !username.trim() || !mail.trim() || !birthDate.trim() || !sex.trim()) {
     throw new Error("Eksik bilgi gönderildi.");
   }
-  if (password.length < 6) {
-    throw new Error("Şifre en az 6 karakter olmalıdır.");
-  }
+  assertContentLength(password, "Şifre", { min: 6 });
 
   for (const text of [name, surname, username, mail]) {
     if (isDirty(text)) {

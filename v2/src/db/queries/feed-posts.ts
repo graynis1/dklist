@@ -5,6 +5,7 @@ import { feedPost, feedPostLike, subComment, user, pointTransaction } from "@/db
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { checkModerationOrThrow, notifyHashtaggedReaders, type CommentReply } from "@/db/queries/comments";
 import { saveUploadedImage, deleteUploadedImage } from "@/lib/image-upload";
+import { assertContentLength } from "@/lib/content-validation";
 
 /**
  * The one genuine "post" concept the app never had - a standalone status
@@ -23,9 +24,7 @@ export async function createFeedPost(userId: number, text: string, image: File |
   if (!trimmed && (!image || image.size === 0)) {
     throw new Error("Bir metin yazın veya bir görsel ekleyin.");
   }
-  if (trimmed.length > 2000) {
-    throw new Error("Gönderi en fazla 2000 karakter olabilir.");
-  }
+  assertContentLength(trimmed, "Gönderi", { max: 2000 });
   if (trimmed) await checkModerationOrThrow(trimmed);
 
   const imageFilename = image && image.size > 0 ? await saveUploadedImage("feed-post", image) : null;
