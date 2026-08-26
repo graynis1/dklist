@@ -63,6 +63,11 @@ export interface FeedItem {
    * the concrete difference between a notification list and something that
    * reads like an actual community feed. */
   bookCover: { id: number; hasImage: boolean } | null;
+  /** Writer/translator comment/quote targets don't have a photo cover to
+   * show, but still deserve more visual weight than plain text - the real
+   * entity id lets the card render the same tone-colored EntityAvatar used
+   * everywhere else on the site instead of nothing. */
+  entityAvatarId: number | null;
   /** Set only for reason "comment" - lets the feed card offer a real like
    * button (reusing the same comment_like system EntityComments already
    * uses) instead of a static, non-interactive post, per the maintainer's
@@ -226,6 +231,7 @@ export async function getSiteFeed(opts: {
       actorImage: r.actorImage,
       reason: r.reason as FeedReason,
       bookCover: null as FeedItem["bookCover"],
+      entityAvatarId: null as FeedItem["entityAvatarId"],
       commentId: null as FeedItem["commentId"],
       likeState: null as FeedItem["likeState"],
     };
@@ -236,7 +242,10 @@ export async function getSiteFeed(opts: {
       base.commentId = c.id;
       base.likeState = likeStates[c.id] ?? { count: 0, liked: false };
       const isQuote = c.commentType === "quotation";
-      const excerpt = c.comment.length > 140 ? `${c.comment.slice(0, 140)}...` : c.comment;
+      // 400, not the old 140 - a forum-style feed post needs to actually
+      // show real content, not a stub; matches v1's own Akış (which showed
+      // up to 200 chars before a client-side "devamını gör" expand).
+      const excerpt = c.comment.length > 400 ? `${c.comment.slice(0, 400)}...` : c.comment;
       if (c.type === "book") {
         const b = bookMap.get(Number(c.targetId));
         return {
@@ -251,10 +260,10 @@ export async function getSiteFeed(opts: {
       }
       if (c.type === "writer") {
         const w = writerMap.get(Number(c.targetId));
-        return { ...base, entityKind: "writer", isQuote, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt };
+        return { ...base, entityKind: "writer", isQuote, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt, entityAvatarId: w?.id ?? null };
       }
       const t = translatorMap.get(Number(c.targetId));
-      return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt };
+      return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt, entityAvatarId: t?.id ?? null };
     }
 
     if ((r.reason === "book_read" || r.reason === "library_add" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
