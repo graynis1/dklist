@@ -5,6 +5,7 @@ import { eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { writer } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
+import { containsPattern } from "@/lib/sql-like";
 import { saveUploadedImage } from "@/lib/image-upload";
 import { deleteCommentTreeForTarget } from "@/db/queries/entity-delete-cascade";
 
@@ -35,7 +36,7 @@ export async function getWriterAdminList(page = 1, pageSize = 20, search = ""): 
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
-    ? like(sql`LOWER(${writer.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    ? like(sql`LOWER(${writer.name})`, sql`LOWER(${containsPattern(trimmedSearch)})`)
     : undefined;
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(writer).where(whereClause);
   const total = Number(countRow?.count ?? 0);

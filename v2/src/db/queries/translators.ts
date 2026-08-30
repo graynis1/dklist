@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { eq, desc, asc, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { translator, translatorBook, book } from "@/db/schema";
+import { containsPattern } from "@/lib/sql-like";
 
 export interface TranslatorDetail {
   id: number;
@@ -59,7 +60,7 @@ export async function getTranslatorList(
   // Both sides go through MySQL's own LOWER(), not JS's - see publishers.ts's
   // getPublisherList for why (Turkish İ lowercases differently in JS vs
   // MySQL, a real bug caught via testing).
-  const whereClause = like(sql`LOWER(${translator.name})`, sql`LOWER(${`%${trimmedSearch}%`})`);
+  const whereClause = like(sql`LOWER(${translator.name})`, sql`LOWER(${containsPattern(trimmedSearch)})`);
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(translator).where(whereClause);
   const total = Number(countRow?.count ?? 0);

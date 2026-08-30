@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/db";
 import { category as categoryTable, writer, writerBook, book, read } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
+import { prefixPattern } from "@/lib/sql-like";
 
 export interface CategoryBookListItem {
   id: number;
@@ -266,7 +267,7 @@ export async function getBookList(
   const direction = orderBy === "asc" ? asc : desc;
 
   const searchCondition = trimmedSearch
-    ? or(like(book.name, `${trimmedSearch}%`), like(book.orgName, `${trimmedSearch}%`))
+    ? or(like(book.name, prefixPattern(trimmedSearch)), like(book.orgName, prefixPattern(trimmedSearch)))
     : undefined;
 
   let total: number;

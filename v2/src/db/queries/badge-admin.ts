@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { badges, userBadges } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { saveUploadedImage } from "@/lib/image-upload";
+import { containsPattern } from "@/lib/sql-like";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "badge");
 
@@ -43,7 +44,7 @@ export async function getBadgeList(
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
-    ? like(sql`LOWER(${badges.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    ? like(sql`LOWER(${badges.name})`, sql`LOWER(${containsPattern(trimmedSearch)})`)
     : undefined;
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(badges).where(whereClause);

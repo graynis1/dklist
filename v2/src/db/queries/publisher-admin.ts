@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { book, publisher } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { deleteBookCascade } from "@/db/queries/entity-delete-cascade";
+import { containsPattern } from "@/lib/sql-like";
 
 function slugify(input: string): string {
   const map: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", İ: "i", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u" };
@@ -24,7 +25,7 @@ export async function getPublisherAdminList(page = 1, pageSize = 20, search = ""
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
-    ? like(sql`LOWER(${publisher.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    ? like(sql`LOWER(${publisher.name})`, sql`LOWER(${containsPattern(trimmedSearch)})`)
     : undefined;
 
   let total: number;

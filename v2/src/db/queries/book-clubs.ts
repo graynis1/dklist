@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { bookClub, bookClubMember, user, book, writerBook, writer } from "@/db/schema";
 import { isDuplicateKeyError } from "@/lib/db-errors";
 import { hasRole, USER_TYPES } from "@/lib/roles";
+import { containsPattern } from "@/lib/sql-like";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 /**
@@ -99,7 +100,7 @@ export async function getClubList(page = 1, pageSize = 20, search = ""): Promise
   const safeSize = Math.min(50, Math.max(1, pageSize));
   const trimmed = search.trim();
   const whereClause = trimmed
-    ? and(eq(bookClub.visibility, "public"), like(sql`LOWER(${bookClub.name})`, sql`LOWER(${`%${trimmed}%`})`))
+    ? and(eq(bookClub.visibility, "public"), like(sql`LOWER(${bookClub.name})`, sql`LOWER(${containsPattern(trimmed)})`))
     : eq(bookClub.visibility, "public");
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(bookClub).where(whereClause);

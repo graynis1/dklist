@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { eq, desc, asc, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { writer, writerBook, book } from "@/db/schema";
+import { containsPattern } from "@/lib/sql-like";
 
 export interface WriterDetail {
   id: number;
@@ -76,7 +77,7 @@ export async function getWriterList(
   // getPublisherList for why (Turkish İ lowercases differently in JS vs
   // MySQL, a real bug caught via testing).
   const whereClause = trimmedSearch
-    ? like(sql`LOWER(${writer.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    ? like(sql`LOWER(${writer.name})`, sql`LOWER(${containsPattern(trimmedSearch)})`)
     : undefined;
 
   let total: number;

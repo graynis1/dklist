@@ -2,6 +2,7 @@ import "server-only";
 import { desc, eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { newsletter } from "@/db/schema";
+import { containsPattern } from "@/lib/sql-like";
 
 // v1's NewsletterController - a public, auth-free footer email signup ("e-bülten"),
 // distinct from any user account. Admin-only listing/delete.
@@ -38,7 +39,7 @@ export async function getNewsletterSubscribers(
 ): Promise<{ items: NewsletterSubscriber[]; total: number; page: number; lastPage: number }> {
   const safeSize = Math.min(500, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
-  const whereClause = trimmedSearch ? like(newsletter.mail, `%${trimmedSearch}%`) : undefined;
+  const whereClause = trimmedSearch ? like(newsletter.mail, containsPattern(trimmedSearch)) : undefined;
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(newsletter).where(whereClause);
   const total = Number(countRow?.count ?? 0);

@@ -4,6 +4,7 @@ import { eq, desc, asc, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { publisher, book } from "@/db/schema";
 import { attachWriterNames } from "@/db/queries/books";
+import { containsPattern } from "@/lib/sql-like";
 
 export interface PublisherDetail {
   id: number;
@@ -54,7 +55,7 @@ export async function getPublisherList(
   // silently broke every search containing İ (a genuine bug, caught via
   // real testing - "İletişim" never matched "İletişim Yayınları").
   const whereClause = trimmedSearch
-    ? like(sql`LOWER(${publisher.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
+    ? like(sql`LOWER(${publisher.name})`, sql`LOWER(${containsPattern(trimmedSearch)})`)
     : undefined;
 
   let total: number;

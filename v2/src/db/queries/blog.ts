@@ -8,6 +8,7 @@ import { blog, user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { saveUploadedImage } from "@/lib/image-upload";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { containsPattern } from "@/lib/sql-like";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "blog");
 
@@ -80,9 +81,9 @@ export async function getBlogList(
     ? and(
         eq(blog.approved, 1),
         or(
-          like(blog.title, `%${trimmedSearch}%`),
-          like(blog.preview, `%${trimmedSearch}%`),
-          like(blog.content, `%${trimmedSearch}%`),
+          like(blog.title, containsPattern(trimmedSearch)),
+          like(blog.preview, containsPattern(trimmedSearch)),
+          like(blog.content, containsPattern(trimmedSearch)),
         ),
       )
     : eq(blog.approved, 1);
@@ -444,9 +445,9 @@ export async function getAdminBlogList(
 
   const whereClause = trimmedSearch
     ? or(
-        like(blog.title, `%${trimmedSearch}%`),
-        like(blog.preview, `%${trimmedSearch}%`),
-        like(blog.content, `%${trimmedSearch}%`),
+        like(blog.title, containsPattern(trimmedSearch)),
+        like(blog.preview, containsPattern(trimmedSearch)),
+        like(blog.content, containsPattern(trimmedSearch)),
       )
     : undefined;
 

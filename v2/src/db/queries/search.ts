@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { attachWriterNames } from "@/db/queries/books";
+import { prefixPattern } from "@/lib/sql-like";
 
 export interface SearchResultBook {
   id: number;
@@ -39,7 +40,7 @@ export async function searchBooks(
     SELECT b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
       (b.image IS NOT NULL AND b.image != '') AS hasImage
     FROM book b
-    WHERE b.name LIKE ${trimmed + "%"}
+    WHERE b.name LIKE ${prefixPattern(trimmed)}
     ORDER BY b.view_count DESC
     LIMIT ${limit}
   `))[0] as unknown as Omit<SearchResultBook, "writers">[];
@@ -68,7 +69,7 @@ export async function searchWriters(term: string, limit = 5): Promise<SearchResu
   if (trimmed.length < 2) return [];
 
   return (await db.execute(sql`
-    SELECT id, name, slug FROM writer WHERE name LIKE ${trimmed + "%"} LIMIT ${limit}
+    SELECT id, name, slug FROM writer WHERE name LIKE ${prefixPattern(trimmed)} LIMIT ${limit}
   `))[0] as unknown as SearchResultEntity[];
 }
 
@@ -81,7 +82,7 @@ export async function searchTranslators(term: string, limit = 5): Promise<Search
   if (trimmed.length < 2) return [];
 
   return (await db.execute(sql`
-    SELECT id, name, slug FROM translator WHERE name LIKE ${trimmed + "%"} LIMIT ${limit}
+    SELECT id, name, slug FROM translator WHERE name LIKE ${prefixPattern(trimmed)} LIMIT ${limit}
   `))[0] as unknown as SearchResultEntity[];
 }
 
@@ -94,7 +95,7 @@ export async function searchPublishers(term: string, limit = 5): Promise<SearchR
   if (trimmed.length < 2) return [];
 
   return (await db.execute(sql`
-    SELECT id, name, slug FROM publisher WHERE name LIKE ${trimmed + "%"} LIMIT ${limit}
+    SELECT id, name, slug FROM publisher WHERE name LIKE ${prefixPattern(trimmed)} LIMIT ${limit}
   `))[0] as unknown as SearchResultEntity[];
 }
 
@@ -112,6 +113,6 @@ export async function searchUsers(term: string, limit = 5): Promise<SearchResult
   if (trimmed.length < 2) return [];
 
   return (await db.execute(sql`
-    SELECT id, username FROM user WHERE username LIKE ${trimmed + "%"} LIMIT ${limit}
+    SELECT id, username FROM user WHERE username LIKE ${prefixPattern(trimmed)} LIMIT ${limit}
   `))[0] as unknown as SearchResultUser[];
 }
