@@ -2,9 +2,10 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
 import { SiteFeedList } from "@/components/dklist/site-feed";
 import { FeedComposer } from "@/components/dklist/feed-composer";
+import { CommunitySidebarNav } from "@/components/dklist/community-sidebar-nav";
+import { CommunityRightRail } from "@/components/dklist/community-right-rail";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { getSiteFeed } from "@/db/queries/feed";
 import { auth } from "@/auth";
@@ -17,21 +18,44 @@ export const metadata: Metadata = pageMetadata({
   path: "/akis",
 });
 
+/**
+ * Three-column Facebook/Reddit-shaped layout - maintainer's explicit ask,
+ * screenshots of both included for reference. Left rail is real site
+ * navigation (shortcuts to every "topluluk" destination), right rail is
+ * real trending/social-proof/leaderboard widgets, center is the feed
+ * itself - the same structural shape those platforms use, built from this
+ * site's own already-real data rather than inventing anything.
+ */
 export default function FeedPage({ searchParams }: PageProps<"/akis">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="mb-8 flex flex-col gap-2">
-          <SectionLabel>Topluluk</SectionLabel>
-          <h1 className="font-heading text-3xl font-medium tracking-tight">Akış</h1>
-          <p className="text-muted-foreground">
-            DKList topluluğunda son yaşanan okuma, puanlama, yorum ve daha fazlası.
-          </p>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_1fr_300px]">
+          <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-fit">
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
+              <CommunitySidebarNav />
+            </Suspense>
+          </aside>
+
+          <main className="min-w-0">
+            <div className="mb-6 flex flex-col gap-1">
+              <h1 className="font-heading text-2xl font-medium tracking-tight">Akış</h1>
+              <p className="text-sm text-muted-foreground">
+                DKList topluluğunda son yaşanan okuma, puanlama, yorum ve daha fazlası.
+              </p>
+            </div>
+            <Suspense fallback={<FeedSkeleton />}>
+              <FeedContent searchParams={searchParams} />
+            </Suspense>
+          </main>
+
+          <aside className="hidden xl:sticky xl:top-20 xl:block xl:h-fit">
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
+              <CommunityRightRail />
+            </Suspense>
+          </aside>
         </div>
-        <Suspense fallback={<FeedSkeleton />}>
-          <FeedContent searchParams={searchParams} />
-        </Suspense>
       </div>
     </div>
   );
