@@ -1,20 +1,21 @@
 "use server";
 
 import { auth } from "@/auth";
-import { toggleCommentLike } from "@/db/queries/comment-likes";
+import { setCommentReaction } from "@/db/queries/comment-likes";
 
 // Shared across book/writer/translator pages (EntityComments imports this
-// directly) - comment likes aren't scoped to any one entity type, so unlike
-// the other actions.ts files (bound per-page for their entity id/slug), this
-// one needs no binding at all.
-export async function toggleCommentLikeAction(
+// directly) - comment reactions aren't scoped to any one entity type, so
+// unlike the other actions.ts files (bound per-page for their entity id/
+// slug), this one needs no binding at all.
+export async function setCommentReactionAction(
   commentId: number,
-): Promise<{ status: boolean; liked?: boolean; message?: string }> {
+  value: 1 | -1,
+): Promise<{ status: boolean; reaction?: 1 | -1 | null; message?: string }> {
   const session = await auth();
   if (!session?.user?.id) {
     return { status: false, message: "Giriş yapmalısınız." };
   }
 
-  const result = await toggleCommentLike(Number(session.user.id), commentId);
-  return { status: true, liked: result.liked };
+  const result = await setCommentReaction(Number(session.user.id), commentId, value);
+  return { status: true, reaction: result.reaction };
 }

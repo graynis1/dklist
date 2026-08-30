@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { feedPost, feedPostLike, subComment, user, pointTransaction } from "@/db/schema";
+import { feedPost, feedPostLike, subComment, user, pointTransaction, book } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { checkModerationOrThrow, notifyHashtaggedReaders, type CommentReply } from "@/db/queries/comments";
 import { saveUploadedImage, deleteUploadedImage } from "@/lib/image-upload";
@@ -18,15 +18,25 @@ import { saveUploadedImage, deleteUploadedImage } from "@/lib/image-upload";
  * ledger entry AND the row getSiteFeed() joins back against, so no second
  * feed/pagination system was needed for the new content type to show up.
  */
-export async function createFeedPost(userId: number, text: string, image: File | null): Promise<number> {
+export async function createFeedPost(
+  userId: number,
+  text: string,
+  image: File | null,
+  bookId?: number | null,
+): Promise<number> {
   const trimmed = text.trim();
-  if (!trimmed && (!image || image.size === 0)) {
-    throw new Error("Bir metin yazın veya bir görsel ekleyin.");
+  if (!trimmed && (!image || image.size === 0) && !bookId) {
+    throw new Error("Bir metin yazın, bir görsel ekleyin veya bir kitap seçin.");
   }
   if (trimmed.length > 2000) {
     throw new Error("Gönderi en fazla 2000 karakter olabilir.");
   }
   if (trimmed) await checkModerationOrThrow(trimmed);
+
+  if (bookId) {
+    const [b] = await db.select({ id: book.id }).from(book).where(eq(book.id, bookId)).limit(1);
+    if (!b) throw new Error("Seçilen kitap bulunamadı.");
+  }
 
   const imageFilename = image && image.size > 0 ? await saveUploadedImage("feed-post", image) : null;
 
@@ -34,6 +44,7 @@ export async function createFeedPost(userId: number, text: string, image: File |
     userId,
     text: trimmed || null,
     image: imageFilename,
+    bookId: bookId || null,
     createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
   });
 
@@ -73,38 +84,56 @@ export async function deleteFeedPost(userId: number, postId: number): Promise<vo
 export interface FeedPostLikeState {
   count: number;
   liked: boolean;
+  dislikeCount: number;
+  disliked: boolean;
 }
 
 export async function getFeedPostLikeStates(userId: number | null, postIds: number[]): Promise<Record<number, FeedPostLikeState>> {
   if (postIds.length === 0) return {};
 
-  const [counts, liked] = await Promise.all([
-    db.select({ postId: feedPostLike.postId, n: sql<number>`count(*)` }).from(feedPostLike).where(inArray(feedPostLike.postId, postIds)).groupBy(feedPostLike.postId),
+  const [counts, own] = await Promise.all([
+    db
+      .select({
+        postId: feedPostLike.postId,
+        likes: sql<number>`sum(case when ${feedPostLike.value} = 1 then 1 else 0 end)`,
+        dislikes: sql<number>`sum(case when ${feedPostLike.value} = -1 then 1 else 0 end)`,
+      })
+      .from(feedPostLike)
+      .where(inArray(feedPostLike.postId, postIds))
+      .groupBy(feedPostLike.postId),
     userId
-      ? db.select({ postId: feedPostLike.postId }).from(feedPostLike).where(and(eq(feedPostLike.userId, userId), inArray(feedPostLike.postId, postIds)))
+      ? db.select({ postId: feedPostLike.postId, value: feedPostLike.value }).from(feedPostLike).where(and(eq(feedPostLike.userId, userId), inArray(feedPostLike.postId, postIds)))
       : Promise.resolve([]),
   ]);
 
-  const countMap = new Map(counts.map((r) => [r.postId, r.n]));
-  const likedSet = new Set(liked.map((r) => r.postId));
+  const countMap = new Map(counts.map((r) => [r.postId, { likes: Number(r.likes), dislikes: Number(r.dislikes) }]));
+  const ownMap = new Map(own.map((r) => [r.postId, r.value as 1 | -1]));
 
   const result: Record<number, FeedPostLikeState> = {};
   for (const id of postIds) {
-    result[id] = { count: Number(countMap.get(id) ?? 0), liked: likedSet.has(id) };
+    const c = countMap.get(id) ?? { likes: 0, dislikes: 0 };
+    const reaction = ownMap.get(id);
+    result[id] = { count: c.likes, liked: reaction === 1, dislikeCount: c.dislikes, disliked: reaction === -1 };
   }
   return result;
 }
 
-export async function toggleFeedPostLike(userId: number, postId: number): Promise<{ liked: boolean }> {
-  const [existing] = await db.select({ id: feedPostLike.id }).from(feedPostLike).where(and(eq(feedPostLike.userId, userId), eq(feedPostLike.postId, postId))).limit(1);
+/** Sets the caller's reaction (1 = like, -1 = dislike) - re-sending the same
+ * value clears it, matching setCommentReaction()'s same real-toggle shape. */
+export async function setFeedPostReaction(userId: number, postId: number, value: 1 | -1): Promise<{ reaction: 1 | -1 | null }> {
+  const [existing] = await db.select({ id: feedPostLike.id, value: feedPostLike.value }).from(feedPostLike).where(and(eq(feedPostLike.userId, userId), eq(feedPostLike.postId, postId))).limit(1);
 
   if (existing) {
-    await db.delete(feedPostLike).where(eq(feedPostLike.id, existing.id));
-    return { liked: false };
+    if (existing.value === value) {
+      await db.delete(feedPostLike).where(eq(feedPostLike.id, existing.id));
+      return { reaction: null };
+    }
+    await db.update(feedPostLike).set({ value }).where(eq(feedPostLike.id, existing.id));
+    return { reaction: value };
   }
 
-  await db.insert(feedPostLike).values({ userId, postId });
-  return { liked: true };
+  await db.insert(feedPostLike).values({ userId, postId, value });
+  return { reaction: value };
 }
 
 /**

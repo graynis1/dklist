@@ -206,7 +206,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
                   <CommentLikeButton
                     commentId={item.commentId}
                     signedIn={signedIn}
-                    initialState={item.likeState ?? { count: 0, liked: false }}
+                    initialState={item.likeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
                     size="md"
                   />
                 )}
@@ -214,7 +214,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
                   <FeedPostLikeButton
                     postId={item.feedPostId}
                     signedIn={signedIn}
-                    initialState={item.postLikeState ?? { count: 0, liked: false }}
+                    initialState={item.postLikeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
                   />
                 )}
                 {item.reason === "comment" && item.targetHref && (
@@ -262,12 +262,14 @@ export function SiteFeedList({
   followingOnly,
   signedIn,
   viewerId,
+  mode = "posts",
 }: {
   initialItems: FeedItem[];
   initialCursor: number | null;
   followingOnly: boolean;
   signedIn: boolean;
   viewerId: number | null;
+  mode?: "posts" | "activity";
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
@@ -276,7 +278,11 @@ export function SiteFeedList({
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        {followingOnly ? "Takip ettiklerinden henüz bir etkinlik yok." : "Henüz bir etkinlik yok."}
+        {mode === "activity"
+          ? "Henüz okuma etkinliği yok."
+          : followingOnly
+            ? "Takip ettiklerinden henüz bir gönderi yok."
+            : "Henüz bir gönderi yok."}
       </p>
     );
   }
@@ -293,7 +299,7 @@ export function SiteFeedList({
             disabled={isPending}
             onClick={() =>
               startTransition(async () => {
-                const page = await loadMoreFeedAction(cursor, followingOnly);
+                const page = await loadMoreFeedAction(cursor, followingOnly, mode);
                 setItems((prev) => [...prev, ...page.items]);
                 setCursor(page.nextCursor);
               })

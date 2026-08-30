@@ -80,28 +80,36 @@ function FeedSkeleton() {
 async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">["searchParams"] }) {
   const params = await searchParams;
   const scope = params.scope === "following" ? "following" : "everyone";
+  // Maintainer's explicit correction: real posts and passive reading
+  // activity ("kitabı okudu", "kitaplığına ekledi"...) don't belong in the
+  // same timeline - "okuma falan onları başka alana taşı." Separate tab,
+  // not a separate page, so it's still one click away.
+  const view = params.view === "activity" ? "activity" : "posts";
 
   const session = await auth();
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
   const followingOnly = scope === "following";
 
-  const page = await getSiteFeed({ followingOnly, viewerId });
+  const page = await getSiteFeed({ followingOnly, viewerId, mode: view });
 
   return (
     <div className="flex flex-col gap-6">
-      {viewerId && session?.user && (
+      {viewerId && session?.user && view === "posts" && (
         <FeedComposer userId={viewerId} username={session.user.name ?? "?"} userImage={session.user.image ?? null} />
       )}
-      {viewerId && (
-        <div className="flex w-fit gap-1 rounded-full bg-muted p-1 text-sm">
-          <TabLink href="/akis" active={scope === "everyone"}>
-            Herkes
-          </TabLink>
-          <TabLink href="/akis?scope=following" active={scope === "following"}>
+      <div className="flex w-fit flex-wrap gap-1 rounded-full bg-muted p-1 text-sm">
+        <TabLink href="/akis" active={view === "posts" && scope === "everyone"}>
+          Gönderiler
+        </TabLink>
+        {viewerId && (
+          <TabLink href="/akis?scope=following" active={view === "posts" && scope === "following"}>
             Takip Ettiklerim
           </TabLink>
-        </div>
-      )}
+        )}
+        <TabLink href="/akis?view=activity" active={view === "activity"}>
+          Okuma Etkinliği
+        </TabLink>
+      </div>
       <Suspense fallback={null}>
         <AdSlot placement="akis" className="max-w-none px-0" />
       </Suspense>
@@ -111,6 +119,7 @@ async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">[
         followingOnly={followingOnly}
         signedIn={Boolean(viewerId)}
         viewerId={viewerId}
+        mode={view}
       />
     </div>
   );

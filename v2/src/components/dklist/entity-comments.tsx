@@ -528,7 +528,7 @@ export function EntityComments({
                     <CommentLikeButton
                       commentId={c.id}
                       signedIn={signedIn}
-                      initialState={commentLikes[c.id] ?? { count: 0, liked: false }}
+                      initialState={commentLikes[c.id] ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
                     />
                     {signedIn && (
                       <button

@@ -173,6 +173,10 @@ export const commentLike = mysqlTable("comment_like", {
 	id: int().autoincrement().notNull(),
 	userId: int("user_id").notNull().references(() => user.id),
 	commentId: int("comment_id").notNull().references(() => comment.id),
+	// 1 = like, -1 = dislike - added for the maintainer's explicit "beğenmeme
+	// butonları" ask. Existing rows default to 1 (a real like), which is
+	// exactly what every pre-existing row actually was.
+	value: tinyint().notNull().default(1),
 },
 (table) => [
 	index("IDX_8A55E25FA76ED395").on(table.userId),
@@ -1059,6 +1063,10 @@ export const feedPost = mysqlTable("feed_post", {
 	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
 	text: longtext(),
 	image: varchar({ length: 255 }),
+	// Optional attached book ("kitapları ekleyebilecekleri") - a real
+	// catalog reference alongside the free text, not just a mention in
+	// prose. Null when the post isn't about a specific book.
+	bookId: int("book_id").references(() => book.id, { onDelete: "set null" }),
 	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
 },
 (table) => [
@@ -1070,6 +1078,8 @@ export const feedPostLike = mysqlTable("feed_post_like", {
 	id: int().autoincrement().notNull(),
 	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
 	postId: int("post_id").notNull().references(() => feedPost.id, { onDelete: "cascade" }),
+	// 1 = like, -1 = dislike - see comment_like's own `value` column.
+	value: tinyint().notNull().default(1),
 },
 (table) => [
 	unique("uniq_feed_post_like").on(table.userId, table.postId),
