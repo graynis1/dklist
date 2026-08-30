@@ -12,6 +12,7 @@ import {
 } from "@/lib/iyzico";
 import { storeImageUrl } from "@/db/queries/store";
 import { addNotification } from "@/db/queries/notifications";
+import { calculateOrderSplit } from "@/lib/order-pricing";
 
 export type StoreOrderStatus =
   | "pending_payment" | "paid" | "shipped" | "completed" | "cancelled" | "refunded" | "failed";
@@ -81,9 +82,7 @@ export async function createCheckout(
     throw new Error("Teslimat bilgilerini eksiksiz doldurmanız gerekiyor.");
   }
 
-  const amountKurus = Math.round(storeRow.price * 100);
-  const commissionKurus = Math.round(amountKurus * (marketplace.commissionRate / 100));
-  const sellerPayoutKurus = amountKurus - commissionKurus;
+  const { amountKurus, commissionKurus, sellerPayoutKurus } = calculateOrderSplit(storeRow.price, marketplace.commissionRate);
 
   let stockReserved = false;
   if (storeRow.stock !== null) {
