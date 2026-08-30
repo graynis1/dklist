@@ -14,6 +14,13 @@ import type { CommentReply, SubCommentParentType } from "@/db/queries/comments";
  * Single level only in this view (the underlying sub_comment data already
  * supports a second nested level, rendered on the entity's own page) - a
  * deliberate scope cut, not a data limitation.
+ *
+ * Returns a Fragment, not a wrapping <div> - the toggle button is meant to
+ * sit inline as just another pill in the card's action row (see
+ * site-feed.tsx), with the expanded panel below it forced onto its own
+ * line via `w-full` on a `flex-wrap` parent, rather than in a separate,
+ * differently-styled row of its own (the maintainer's direct "bu kart çok
+ * kötü ve butonlar berbat yerleşmiş" complaint about exactly this).
  */
 export function FeedReplyThread({
   parentType,
@@ -48,18 +55,18 @@ export function FeedReplyThread({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <>
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
       >
         <MessageSquareIcon className="size-4" />
         {replies.length > 0 ? `${replies.length} yanıt` : "Yanıtla"}
       </button>
 
       {expanded && (
-        <div className="flex flex-col gap-2.5 border-l-2 border-border py-1 pl-3">
+        <div className="flex w-full flex-col gap-2.5 border-l-2 border-border py-1 pl-3">
           {replies.map((r) => (
             <div key={r.id} className="flex gap-2">
               <EntityAvatar id={r.authorUserId} name={r.authorUsername} size="size-6" className="mt-0.5 shrink-0" />
@@ -97,6 +104,6 @@ export function FeedReplyThread({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }

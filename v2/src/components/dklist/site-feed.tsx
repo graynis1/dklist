@@ -201,7 +201,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
                   className="max-h-[28rem] w-full rounded-lg border border-border object-cover"
                 />
               )}
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center gap-2">
                 {item.commentId && (
                   <CommentLikeButton
                     commentId={item.commentId}
@@ -217,25 +217,25 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
                     initialState={item.postLikeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
                   />
                 )}
+                {item.replyTarget && (
+                  <FeedReplyThread
+                    parentType={item.replyTarget.parentType}
+                    parentId={item.replyTarget.parentId}
+                    initialReplies={item.replies}
+                    signedIn={signedIn}
+                  />
+                )}
                 {item.reason === "comment" && item.targetHref && (
                   <Link
                     href={item.targetHref}
-                    className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
                   >
                     <MessageSquareIcon className="size-4" />
                     Tartışmayı Gör
                   </Link>
                 )}
-                {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} size="sm" />}
+                {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} />}
               </div>
-              {item.replyTarget && (
-                <FeedReplyThread
-                  parentType={item.replyTarget.parentType}
-                  parentId={item.replyTarget.parentId}
-                  initialReplies={item.replies}
-                  signedIn={signedIn}
-                />
-              )}
             </>
           ) : (
             item.targetHref && (

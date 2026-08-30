@@ -47,10 +47,13 @@ export function CommentLikeButton({
   }
 
   const iconSize = size === "sm" ? "size-3.5" : "size-4";
-  const textSize = size === "sm" ? "text-xs" : "text-sm";
+  const pill = cn(
+    "flex items-center gap-1.5 rounded-full border border-border font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground disabled:opacity-50",
+    size === "sm" ? "px-2 py-1 text-xs" : "px-3 py-1.5 text-sm",
+  );
 
   return (
-    <div className="flex items-center gap-3">
+    <>
       <button
         type="button"
         disabled={!signedIn || isPending}
@@ -59,12 +62,9 @@ export function CommentLikeButton({
           e.stopPropagation();
           react(1);
         }}
-        className={cn(
-          "flex w-fit items-center gap-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
-          textSize,
-        )}
+        className={cn(pill, state.liked && "border-primary/40 text-primary")}
       >
-        <ThumbsUpIcon className={cn(iconSize, state.liked && "fill-primary text-primary")} />
+        <ThumbsUpIcon className={cn(iconSize, state.liked && "fill-primary")} />
         {state.count > 0 ? state.count : "Beğen"}
       </button>
       <button
@@ -75,14 +75,11 @@ export function CommentLikeButton({
           e.stopPropagation();
           react(-1);
         }}
-        className={cn(
-          "flex w-fit items-center gap-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
-          textSize,
-        )}
+        className={cn(pill, state.disliked && "border-destructive/40 text-destructive")}
       >
-        <ThumbsDownIcon className={cn(iconSize, state.disliked && "fill-destructive text-destructive")} />
+        <ThumbsDownIcon className={cn(iconSize, state.disliked && "fill-destructive")} />
         {state.dislikeCount > 0 ? state.dislikeCount : ""}
       </button>
-    </div>
+    </>
   );
 }

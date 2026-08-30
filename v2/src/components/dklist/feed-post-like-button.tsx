@@ -44,8 +44,11 @@ export function FeedPostLikeButton({
     });
   }
 
+  const pill =
+    "flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground disabled:opacity-50";
+
   return (
-    <div className="flex items-center gap-3">
+    <>
       <button
         type="button"
         disabled={!signedIn || isPending}
@@ -54,9 +57,9 @@ export function FeedPostLikeButton({
           e.stopPropagation();
           react(1);
         }}
-        className="flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+        className={cn(pill, state.liked && "border-primary/40 text-primary")}
       >
-        <ThumbsUpIcon className={cn("size-4", state.liked && "fill-primary text-primary")} />
+        <ThumbsUpIcon className={cn("size-4", state.liked && "fill-primary")} />
         {state.count > 0 ? state.count : "Beğen"}
       </button>
       <button
@@ -67,11 +70,11 @@ export function FeedPostLikeButton({
           e.stopPropagation();
           react(-1);
         }}
-        className="flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+        className={cn(pill, state.disliked && "border-destructive/40 text-destructive")}
       >
-        <ThumbsDownIcon className={cn("size-4", state.disliked && "fill-destructive text-destructive")} />
+        <ThumbsDownIcon className={cn("size-4", state.disliked && "fill-destructive")} />
         {state.dislikeCount > 0 ? state.dislikeCount : ""}
       </button>
-    </div>
+    </>
   );
 }
