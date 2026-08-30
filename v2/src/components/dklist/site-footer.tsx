@@ -6,7 +6,7 @@ import { NewsletterForm } from "@/components/dklist/newsletter-form";
 export function SiteFooter() {
   return (
     <footer className="border-t border-border">
-      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 sm:grid-cols-3">
+      <div className="mx-auto grid max-w-[100rem] gap-8 px-6 py-12 sm:grid-cols-3">
         <div className="flex flex-col gap-3">
           <span className="font-heading text-xl font-medium tracking-tight">DKList</span>
           <p className="text-sm text-muted-foreground">Kitapseverlerin Buluşma Noktası</p>

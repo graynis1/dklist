@@ -128,6 +128,47 @@ export async function getBlogList(
   return { items, total, page: effectivePage, lastPage };
 }
 
+/**
+ * "Diğer Yazılar" sidebar on the article detail page - the maintainer's
+ * "yanlar bomboş olmayacak" complaint about the reading page's narrow,
+ * empty-sided column. A few other real recent posts, not a fake widget.
+ */
+export async function getRecentBlogPosts(limit: number, excludeId?: number): Promise<BlogListItem[]> {
+  const rows = await db
+    .select({
+      id: blog.id,
+      title: blog.title,
+      preview: blog.preview,
+      slug: blog.slug,
+      createdDate: blog.createdDate,
+      image: blog.image,
+      ownerId: user.id,
+      ownerUsername: user.username,
+      ownerMailAuth: user.mailAuth,
+      ownerDisable: user.disable,
+    })
+    .from(blog)
+    .leftJoin(user, eq(blog.ownerId, user.id))
+    .where(eq(blog.approved, 1))
+    .orderBy(desc(blog.id))
+    .limit(limit + (excludeId ? 1 : 0));
+
+  return rows
+    .filter((r) => r.id !== excludeId)
+    .filter((r) => !r.ownerUsername || (r.ownerMailAuth && !r.ownerDisable))
+    .slice(0, limit)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      preview: r.preview,
+      slug: r.slug,
+      createdDate: r.createdDate,
+      ownerId: r.ownerId,
+      ownerUsername: r.ownerUsername,
+      img: blogImageUrl(r.image),
+    }));
+}
+
 export interface OwnerBlogItem {
   id: number;
   title: string;

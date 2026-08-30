@@ -44,11 +44,11 @@ async function AuthStatusContent() {
         href={`/profil/${session.user.name}`}
         className="flex items-center gap-2"
       >
-        <Avatar className="size-8">
+        <Avatar className="size-9">
           <AvatarImage src={avatarUrl(session.user.image ?? null) ?? undefined} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
-        <span className="hidden text-sm font-medium sm:inline">
+        <span className="hidden text-[0.95rem] font-medium sm:inline">
           {session.user.name}
         </span>
       </Link>

@@ -30,9 +30,9 @@ export default function FeedPage({ searchParams }: PageProps<"/akis">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_1fr_300px]">
-          <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-fit">
+      <div className="mx-auto max-w-[100rem] px-4 py-10 sm:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_320px]">
+          <aside className="hidden min-w-0 lg:sticky lg:top-20 lg:block lg:h-fit">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
               <CommunitySidebarNav />
             </Suspense>
@@ -50,7 +50,7 @@ export default function FeedPage({ searchParams }: PageProps<"/akis">) {
             </Suspense>
           </main>
 
-          <aside className="hidden xl:sticky xl:top-20 xl:block xl:h-fit">
+          <aside className="hidden min-w-0 xl:sticky xl:top-20 xl:block xl:h-fit">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
               <CommunityRightRail />
             </Suspense>
