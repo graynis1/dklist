@@ -65,17 +65,29 @@ export const AUTO_APPROVE_ROLES: UserType[] = [USER_TYPES.Admin, USER_TYPES.Mod]
 /**
  * v1's Permission::checkPermission(): `SuperAdmin` always passes regardless
  * of the allowed-list passed in; every other type must be explicitly listed.
- * `Kurucu` is deliberately NOT given this same blanket pass - the customer's
- * spec only calls Kurucu "full permissions" in the sense of what an Admin
- * already has, not a SuperAdmin-equivalent escape hatch; giving it an
- * unconditional bypass here would make the un-revocable protection below
- * meaningless (anyone with Kurucu could then bypass any role-management
- * check written against `hasRole`). This is the one place the SuperAdmin
- * rule lives - every caller goes through this rather than re-deriving it.
+ * `Kurucu` is deliberately NOT given that same unconditional bypass - the
+ * customer's spec only calls Kurucu "full permissions" in the sense of what
+ * an Admin already has, not a SuperAdmin-equivalent escape hatch.
+ *
+ * Real bug found via testing (not code-reading): the real production
+ * "admin" account is actually typed `Kurucu`, not `Admin` - and every one of
+ * the ~30 admin-panel pages/actions across this codebase hardcodes its own
+ * `[USER_TYPES.Admin, ...]` allow-list. Without Kurucu explicitly folded in
+ * here, the site's actual founder account was silently redirected away from
+ * nearly the entire admin panel (confirmed live: /admin/bloglar bounced
+ * "admin" straight back to "/") - the maintainer's "tıklayınca açılmıyor"
+ * report was this, not a performance issue. Rather than hand-editing every
+ * allow-list across the codebase (easy to miss one, and a future new admin
+ * page would reintroduce the same gap), Kurucu passes here whenever Admin
+ * is in the allowed list - it does NOT change isProtectedFromRoleChange()
+ * below, which is a separate, target-based check that still blocks anyone
+ * (Kurucu included) from demoting a Kurucu account regardless of how
+ * permissive this function is for the actor.
  */
 export function hasRole(userType: string | null | undefined, allowed: UserType[]): boolean {
   if (!userType) return false;
   if (userType === USER_TYPES.SuperAdmin) return true;
+  if (userType === USER_TYPES.Kurucu && allowed.includes(USER_TYPES.Admin)) return true;
   return allowed.includes(userType as UserType);
 }
 

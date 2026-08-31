@@ -16,6 +16,7 @@ import {
   UsersIcon,
   LibraryIcon,
   Trash2Icon,
+  ChevronRightIcon,
 } from "lucide-react";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
@@ -47,6 +48,16 @@ const SOURCE_LABEL: Record<string, string> = {
   book: "Kitap",
   writer: "Yazar",
   translator: "Çevirmen",
+};
+
+const GO_TO_LABEL: Record<string, string> = {
+  book: "Kitaba Git",
+  writer: "Yazara Git",
+  translator: "Çevirmene Git",
+  user: "Profile Git",
+  blog: "Yazıyı Oku",
+  store: "İlanı Gör",
+  club: "Kulübe Git",
 };
 
 function describe(item: FeedItem): { verb: string; target: string | null } {
@@ -83,15 +94,17 @@ function describe(item: FeedItem): { verb: string; target: string | null } {
 }
 
 /**
- * Comments/quotes/standalone posts all get the full "forum post" treatment
- * (v1's own Akış reused its book-page CommentComponent wholesale: avatar/
- * text/action-row, a real cover-sized image on the right) - the maintainer
- * directly compared v2's first pass unfavorably to that layout, then asked
- * for the feed to become a genuine social-media surface. Real post text (not
- * a stub), like + reply-thread + share, a large entity visual for catalog
- * comments, and the post's own photo for standalone posts. Everything else
- * (a rating, a follow, a library add) stays a compact single-line card -
- * v1's Akış never showed those at all.
+ * Every feed item renders as a real post card now - the maintainer's blunt
+ * correction ("gönderi tarzında olacak lan bu ne") after a first pass that
+ * only gave comments/quotes/standalone posts the full card treatment and
+ * left everything else (a rating, a "kitaplığına ekledi", a follow) as a
+ * thin single-line row with a 40px thumbnail - next to real posts, a whole
+ * feed of those in a row genuinely does read as a notification-log dump,
+ * not a social feed. Same card shell, same header, same size cover for
+ * every reason now; only the middle body differs (excerpt+actions+replies
+ * for comments/posts, a plain but properly-sized verb+target line for
+ * everything else) - and that cover always renders at real size (BookCover
+ * "md", not squeezed into a 40px corner icon).
  */
 export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; signedIn: boolean; viewerId: number | null }) {
   const router = useRouter();
@@ -101,6 +114,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
   const { verb, target } = describe(item);
   const isPost = (item.reason === "comment" && Boolean(item.excerpt)) || item.reason === "feed_post";
   const isOwnPost = item.reason === "feed_post" && viewerId != null && viewerId === item.actorId;
+  const sourceLabel = item.entityKind ? SOURCE_LABEL[item.entityKind] : null;
 
   if (deleted) return null;
 
@@ -143,13 +157,87 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
     </div>
   );
 
-  if (isPost) {
-    const sourceLabel = item.entityKind ? SOURCE_LABEL[item.entityKind] : null;
-    return (
-      <article className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/15 sm:p-5">
-        {header}
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
+  // Compact, inline "referenced item" chip - replaces the old fixed-width
+  // side column that stretched to the row's full height and left most of
+  // its own space empty on anything but a long comment ("bomboş... orantısız
+  // bir kart"). Reads like a link-preview/quote-card embedded in the flow
+  // instead of a separate layout column competing with the text for space.
+  const attachmentChip = (item.bookCover || item.entityAvatarId) && item.targetHref && (
+    <Link
+      href={item.targetHref}
+      className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-2.5 transition-colors hover:border-foreground/25 hover:bg-muted/60"
+    >
+      {item.bookCover ? (
+        <BookCover
+          title={item.targetLabel ?? ""}
+          author=""
+          tone={toneForId(item.bookCover.id)}
+          bookId={item.bookCover.id}
+          hasImage={item.bookCover.hasImage}
+          size="sm"
+          className="h-16 w-11 shrink-0"
+        />
+      ) : (
+        item.entityAvatarId != null && (
+          <EntityAvatar id={item.entityAvatarId} name={item.targetLabel ?? "?"} size="size-11" className="shrink-0" />
+        )
+      )}
+      <div className="min-w-0 flex-1">
+        {item.targetLabel && <p className="truncate text-sm font-medium">{item.targetLabel}</p>}
+        {sourceLabel && <p className="text-xs text-muted-foreground">Kaynak: {sourceLabel}</p>}
+      </div>
+      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40" />
+    </Link>
+  );
+
+  // One toolbar row, visually separated from the content above it by a hairline
+  // - the maintainer's direct complaint ("butonlar berbat yerleşmiş") was that
+  // actions floated loosely under the content with no structure; a top border
+  // plus a tighter, consistent gap reads as one deliberate control strip.
+  const actionRow = (item.commentId || item.feedPostId || item.replyTarget || (item.reason === "comment" && item.targetHref) || item.excerpt) && (
+    <div className="flex flex-wrap items-center gap-1.5 border-t border-border/70 pt-3">
+      {item.commentId && (
+        <CommentLikeButton
+          commentId={item.commentId}
+          signedIn={signedIn}
+          initialState={item.likeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
+          size="md"
+        />
+      )}
+      {item.feedPostId && (
+        <FeedPostLikeButton
+          postId={item.feedPostId}
+          signedIn={signedIn}
+          initialState={item.postLikeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
+        />
+      )}
+      {item.replyTarget && (
+        <FeedReplyThread
+          parentType={item.replyTarget.parentType}
+          parentId={item.replyTarget.parentId}
+          initialReplies={item.replies}
+          signedIn={signedIn}
+        />
+      )}
+      {item.reason === "comment" && item.targetHref && (
+        <Link
+          href={item.targetHref}
+          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+        >
+          <MessageSquareIcon className="size-4" />
+          Tartışmayı Gör
+        </Link>
+      )}
+      {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} />}
+    </div>
+  );
+
+  return (
+    <article className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/15 sm:p-5">
+      {header}
+      <div className="flex flex-col gap-3">
+        {isPost ? (
+          <>
             {item.excerpt && (
               <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-foreground/90">
                 {item.isQuote && <QuoteIcon className="mr-1.5 inline size-4 -translate-y-0.5 text-muted-foreground/50" />}
@@ -164,93 +252,26 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
                 className="max-h-[28rem] w-full rounded-lg border border-border object-cover"
               />
             )}
-            <div className="flex flex-wrap items-center gap-4">
-              {item.commentId && (
-                <CommentLikeButton
-                  commentId={item.commentId}
-                  signedIn={signedIn}
-                  initialState={item.likeState ?? { count: 0, liked: false }}
-                  size="md"
-                />
-              )}
-              {item.feedPostId && (
-                <FeedPostLikeButton
-                  postId={item.feedPostId}
-                  signedIn={signedIn}
-                  initialState={item.postLikeState ?? { count: 0, liked: false }}
-                />
-              )}
-              {item.reason === "comment" && item.targetHref && (
+            {attachmentChip}
+            {actionRow}
+          </>
+        ) : (
+          <>
+            {attachmentChip ?? (
+              item.targetHref && (
                 <Link
                   href={item.targetHref}
-                  className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <MessageSquareIcon className="size-4" />
-                  Tartışmayı Gör
+                  <Icon className="size-4" />
+                  {(item.entityKind && GO_TO_LABEL[item.entityKind]) ?? "Detayları Gör"}
                 </Link>
-              )}
-              {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} size="sm" />}
-            </div>
-            {item.replyTarget && (
-              <FeedReplyThread
-                parentType={item.replyTarget.parentType}
-                parentId={item.replyTarget.parentId}
-                initialReplies={item.replies}
-                signedIn={signedIn}
-              />
+              )
             )}
-          </div>
-
-          {item.targetHref && (item.bookCover || item.entityAvatarId) && (
-            <Link href={item.targetHref} className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
-              {item.bookCover ? (
-                <BookCover
-                  title={item.targetLabel ?? ""}
-                  author=""
-                  tone={toneForId(item.bookCover.id)}
-                  bookId={item.bookCover.id}
-                  hasImage={item.bookCover.hasImage}
-                  size="md"
-                  className="w-16 shrink-0 sm:w-full"
-                />
-              ) : (
-                item.entityAvatarId != null && (
-                  <EntityAvatar id={item.entityAvatarId} name={item.targetLabel ?? "?"} size="size-16" className="shrink-0 sm:size-20" />
-                )
-              )}
-              <div className="flex min-w-0 flex-col sm:items-center">
-                {item.targetLabel && <p className="truncate text-sm font-medium sm:w-full">{item.targetLabel}</p>}
-                {sourceLabel && <p className="text-xs text-muted-foreground">Kaynak: {sourceLabel}</p>}
-              </div>
-            </Link>
-          )}
-        </div>
-      </article>
-    );
-  }
-
-  const compactBody = (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/15">
-      {header}
-      {item.bookCover && (
-        <BookCover
-          title={item.targetLabel ?? ""}
-          author=""
-          tone={toneForId(item.bookCover.id)}
-          bookId={item.bookCover.id}
-          hasImage={item.bookCover.hasImage}
-          size="sm"
-          className="ml-auto w-10 shrink-0"
-        />
-      )}
-    </div>
-  );
-
-  if (!item.targetHref) return compactBody;
-  return (
-    <Link href={item.targetHref} className="block">
-      {compactBody}
-    </Link>
+          </>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -260,12 +281,14 @@ export function SiteFeedList({
   followingOnly,
   signedIn,
   viewerId,
+  mode = "posts",
 }: {
   initialItems: FeedItem[];
   initialCursor: number | null;
   followingOnly: boolean;
   signedIn: boolean;
   viewerId: number | null;
+  mode?: "posts" | "activity";
 }) {
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
@@ -274,7 +297,11 @@ export function SiteFeedList({
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        {followingOnly ? "Takip ettiklerinden henüz bir etkinlik yok." : "Henüz bir etkinlik yok."}
+        {mode === "activity"
+          ? "Henüz okuma etkinliği yok."
+          : followingOnly
+            ? "Takip ettiklerinden henüz bir gönderi yok."
+            : "Henüz bir gönderi yok."}
       </p>
     );
   }
@@ -291,7 +318,7 @@ export function SiteFeedList({
             disabled={isPending}
             onClick={() =>
               startTransition(async () => {
-                const page = await loadMoreFeedAction(cursor, followingOnly);
+                const page = await loadMoreFeedAction(cursor, followingOnly, mode);
                 setItems((prev) => [...prev, ...page.items]);
                 setCursor(page.nextCursor);
               })

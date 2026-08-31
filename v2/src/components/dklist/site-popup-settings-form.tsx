@@ -57,7 +57,7 @@ export function SitePopupSettingsForm({ popup }: { popup: SitePopupView }) {
       )}
       <label className="flex flex-col gap-1 text-sm">
         Görsel (opsiyonel, yüklersen mevcut görseli değiştirir)
-        <input type="file" name="image" accept="image/png,image/jpeg,image/webp" className="text-sm" disabled={isPending} />
+        <input type="file" name="image" accept="image/*" className="text-sm" disabled={isPending} />
       </label>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {success && <p className="text-sm text-emerald-700">Kaydedildi.</p>}

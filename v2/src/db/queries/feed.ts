@@ -50,6 +50,20 @@ const FEED_REASONS = [
 
 export type FeedReason = (typeof FEED_REASONS)[number];
 
+/**
+ * Maintainer's explicit correction: real posts (a review, a quote, a
+ * standalone status update) belong in the main feed; passive derived
+ * activity ("X kitabı okudu", "X kitaplığına ekledi", "X takip etmeye
+ * başladı"...) reads as notification-log noise mixed in with them and
+ * "başka bir alana taşınmalı" - moved to its own tab instead
+ * (getSiteFeed's `mode` param), not deleted - it's still real, useful
+ * signal, just not what belongs in a "gönderiler" timeline.
+ */
+const POST_REASONS = ["comment", "feed_post"] as const satisfies readonly FeedReason[];
+const ACTIVITY_REASONS = FEED_REASONS.filter(
+  (r) => !(POST_REASONS as readonly string[]).includes(r),
+) as FeedReason[];
+
 export interface FeedItem {
   id: number;
   createdAt: string;
@@ -141,9 +155,14 @@ export async function getSiteFeed(opts: {
   cursor?: number | null;
   followingOnly?: boolean;
   viewerId?: number | null;
+  /** "posts" (default) = comments/quotes/standalone posts only, the real
+   * social-feed timeline. "activity" = everything else (reading status,
+   * ratings, follows, library adds...), shown on its own separate tab. */
+  mode?: "posts" | "activity";
 }): Promise<FeedPage> {
   const limit = opts.limit ?? 25;
-  const conditions = [inArray(pointTransaction.reason, FEED_REASONS as unknown as string[])];
+  const reasons = opts.mode === "activity" ? ACTIVITY_REASONS : POST_REASONS;
+  const conditions = [inArray(pointTransaction.reason, reasons as unknown as string[])];
   if (opts.cursor) conditions.push(lt(pointTransaction.id, opts.cursor));
 
   if (opts.followingOnly) {
@@ -218,9 +237,15 @@ export async function getSiteFeed(opts: {
   const commentById = new Map(commentRows.map((c) => [c.id, c]));
 
   const feedPostRows = feedPostIds.size
-    ? await db.select({ id: feedPost.id, text: feedPost.text, image: feedPost.image }).from(feedPost).where(inArray(feedPost.id, [...feedPostIds]))
+    ? await db
+        .select({ id: feedPost.id, text: feedPost.text, image: feedPost.image, bookId: feedPost.bookId })
+        .from(feedPost)
+        .where(inArray(feedPost.id, [...feedPostIds]))
     : [];
   const feedPostById = new Map(feedPostRows.map((p) => [p.id, p]));
+  for (const p of feedPostRows) {
+    if (p.bookId) bookIds.add(p.bookId);
+  }
 
   const [
     bookRows,
@@ -283,16 +308,21 @@ export async function getSiteFeed(opts: {
     if (r.reason === "feed_post" && r.entityId) {
       const p = feedPostById.get(r.entityId);
       if (!p) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
+      // Optional attached book ("kitapları ekleyebilecekleri") - reuses the
+      // exact same cover/link rendering the comment branch below uses, so
+      // no separate UI was needed for this.
+      const attachedBook = p.bookId ? bookMap.get(p.bookId) : null;
       return {
         ...base,
-        entityKind: null,
+        entityKind: attachedBook ? "book" : null,
         isQuote: false,
-        targetLabel: null,
-        targetHref: null,
+        targetLabel: attachedBook?.name ?? null,
+        targetHref: attachedBook ? `/kitap/${attachedBook.slug}` : null,
+        bookCover: attachedBook ? { id: attachedBook.id, hasImage: Boolean(attachedBook.hasImage) } : null,
         excerpt: p.text,
         feedPostId: p.id,
         feedPostImage: p.image,
-        postLikeState: postLikeStates[p.id] ?? { count: 0, liked: false },
+        postLikeState: postLikeStates[p.id] ?? { count: 0, liked: false, dislikeCount: 0, disliked: false },
         replyTarget: { parentType: "feedPost", parentId: p.id },
         replies: repliesByPost.get(p.id) ?? [],
       };
@@ -302,7 +332,7 @@ export async function getSiteFeed(opts: {
       const c = commentById.get(r.entityId);
       if (!c) return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
       base.commentId = c.id;
-      base.likeState = likeStates[c.id] ?? { count: 0, liked: false };
+      base.likeState = likeStates[c.id] ?? { count: 0, liked: false, dislikeCount: 0, disliked: false };
       base.replyTarget = { parentType: "comment", parentId: c.id };
       base.replies = repliesByComment.get(c.id) ?? [];
       const isQuote = c.commentType === "quotation";

@@ -11,8 +11,17 @@ import { awardPoints, getPointSettings } from "@/db/queries/points";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "blog");
 
+/** `blog.image` holds two different real shapes: a bare local filename
+ * (posts uploaded through this app's own /blog/yeni flow) and, for older/
+ * imported posts, a full external URL (Cloudinary) - found via a real
+ * screenshot showing every blog cover as a broken image, because this
+ * always wrapped the value as `/api/blog-image/<value>` even when
+ * <value> was already a complete https:// URL. Pass a full URL straight
+ * through instead of double-wrapping it. */
 export function blogImageUrl(image: string | null): string | null {
-  return image ? `/api/blog-image/${image}` : null;
+  if (!image) return null;
+  if (/^https?:\/\//i.test(image)) return image;
+  return `/api/blog-image/${image}`;
 }
 
 function slugifyBlogTitle(title: string, username: string): string {
@@ -35,6 +44,7 @@ export interface BlogListItem {
   preview: string;
   slug: string;
   createdDate: string;
+  ownerId: number | null;
   ownerUsername: string | null;
   img: string | null;
 }
@@ -90,6 +100,7 @@ export async function getBlogList(
       slug: blog.slug,
       createdDate: blog.createdDate,
       image: blog.image,
+      ownerId: user.id,
       ownerUsername: user.username,
       ownerMailAuth: user.mailAuth,
       ownerDisable: user.disable,
@@ -109,11 +120,53 @@ export async function getBlogList(
       preview: r.preview,
       slug: r.slug,
       createdDate: r.createdDate,
+      ownerId: r.ownerId,
       ownerUsername: r.ownerUsername,
       img: blogImageUrl(r.image),
     }));
 
   return { items, total, page: effectivePage, lastPage };
+}
+
+/**
+ * "Diğer Yazılar" sidebar on the article detail page - the maintainer's
+ * "yanlar bomboş olmayacak" complaint about the reading page's narrow,
+ * empty-sided column. A few other real recent posts, not a fake widget.
+ */
+export async function getRecentBlogPosts(limit: number, excludeId?: number): Promise<BlogListItem[]> {
+  const rows = await db
+    .select({
+      id: blog.id,
+      title: blog.title,
+      preview: blog.preview,
+      slug: blog.slug,
+      createdDate: blog.createdDate,
+      image: blog.image,
+      ownerId: user.id,
+      ownerUsername: user.username,
+      ownerMailAuth: user.mailAuth,
+      ownerDisable: user.disable,
+    })
+    .from(blog)
+    .leftJoin(user, eq(blog.ownerId, user.id))
+    .where(eq(blog.approved, 1))
+    .orderBy(desc(blog.id))
+    .limit(limit + (excludeId ? 1 : 0));
+
+  return rows
+    .filter((r) => r.id !== excludeId)
+    .filter((r) => !r.ownerUsername || (r.ownerMailAuth && !r.ownerDisable))
+    .slice(0, limit)
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      preview: r.preview,
+      slug: r.slug,
+      createdDate: r.createdDate,
+      ownerId: r.ownerId,
+      ownerUsername: r.ownerUsername,
+      img: blogImageUrl(r.image),
+    }));
 }
 
 export interface OwnerBlogItem {

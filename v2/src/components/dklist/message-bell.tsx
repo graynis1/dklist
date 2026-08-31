@@ -23,7 +23,7 @@ async function MessageBellContent() {
   return (
     <Link
       href="/mesajlar"
-      className="relative flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+      className="relative flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
       aria-label="Mesajlar"
     >
       <MessageCircleIcon className="size-5" />

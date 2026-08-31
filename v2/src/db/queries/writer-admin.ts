@@ -1,6 +1,7 @@
 import "server-only";
 import path from "node:path";
 import { unlink } from "node:fs/promises";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { writer } from "@/db/schema";
@@ -32,13 +33,31 @@ export interface WriterListItem {
 }
 
 export async function getWriterAdminList(page = 1, pageSize = 20, search = ""): Promise<{ items: WriterListItem[]; total: number; page: number; lastPage: number }> {
+  // Was an unconditional `count(*)` over ~11.3M rows on every single page
+  // load, no cache at all - same "tıklayınca çok donuyor" class of bug as
+  // the book admin list (book-admin.ts), same fix: an InnoDB row estimate
+  // for the common unfiltered case, plus a short cache so repeat browsing
+  // doesn't re-pay the cold-disk cost every time.
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("admin-writer-list");
+
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
     ? like(sql`LOWER(${writer.name})`, sql`LOWER(${`%${trimmedSearch}%`})`)
     : undefined;
-  const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(writer).where(whereClause);
-  const total = Number(countRow?.count ?? 0);
+
+  let total: number;
+  if (!trimmedSearch) {
+    const rows = (await db.execute(
+      sql`SELECT TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'writer'`,
+    ))[0] as unknown as { TABLE_ROWS: number }[];
+    total = Number(rows[0]?.TABLE_ROWS ?? 0);
+  } else {
+    const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(writer).where(whereClause);
+    total = Number(countRow?.count ?? 0);
+  }
   const lastPage = Math.max(1, Math.ceil(total / safeSize));
   const safePage = Math.min(Math.max(1, page), lastPage);
   const items = await db.select({ id: writer.id, name: writer.name, biyo: writer.biyo, date: writer.date, img: writer.img })
@@ -73,6 +92,7 @@ export async function createWriter(input: CreateWriterInput): Promise<WriterList
     viewCount: "0",
     score: 0,
   });
+  updateTag("admin-writer-list");
   return { id: result.insertId, name, biyo, date: input.date || null, img };
 }
 
@@ -87,12 +107,14 @@ export async function updateWriterField(writerId: number, mode: WriterUpdateMode
     if (!(value instanceof File) || value.size === 0) throw new Error("Geçerli bir görsel yüklemelisiniz.");
     const filename = await saveUploadedImage("writer", value);
     await db.update(writer).set({ img: filename }).where(eq(writer.id, writerId));
+    updateTag("admin-writer-list");
     return;
   }
 
   if (mode === "removeImage") {
     if (existing.img) await deleteWriterImageFile(existing.img);
     await db.update(writer).set({ img: null }).where(eq(writer.id, writerId));
+    updateTag("admin-writer-list");
     return;
   }
 
@@ -111,6 +133,7 @@ export async function updateWriterField(writerId: number, mode: WriterUpdateMode
       await db.update(writer).set({ date: text || null }).where(eq(writer.id, writerId));
       break;
   }
+  updateTag("admin-writer-list");
 }
 
 async function deleteWriterRow(writerId: number): Promise<{ name: string; img: string | null } | null> {
@@ -125,6 +148,7 @@ async function deleteWriterRow(writerId: number): Promise<{ name: string; img: s
 export async function deleteWriter(writerId: number): Promise<void> {
   const deleted = await deleteWriterRow(writerId);
   if (!deleted) throw new Error("Yazar bulunamadı.");
+  updateTag("admin-writer-list");
 }
 
 export async function deleteWriters(writerIds: number[]): Promise<{ success: number; fail: number }> {
@@ -132,5 +156,6 @@ export async function deleteWriters(writerIds: number[]): Promise<{ success: num
   for (const id of writerIds) {
     if (await deleteWriterRow(id)) success++;
   }
+  updateTag("admin-writer-list");
   return { success, fail: writerIds.length - success };
 }

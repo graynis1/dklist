@@ -95,6 +95,26 @@ export async function setActiveProfileFrame(userId: number, rewardValue: string 
   await db.update(user).set({ profileFrame: rewardValue }).where(eq(user.id, userId));
 }
 
+/** Unpaginated brief list of the frame-type rewards, for the user-admin
+ * panel's "force-assign a frame" picker - same small-admin-curated-set
+ * reasoning as getAllBadgesBrief(). */
+export async function getFrameRewardsBrief(): Promise<{ id: number; name: string; rewardValue: string }[]> {
+  return db
+    .select({ id: pointReward.id, name: pointReward.name, rewardValue: pointReward.rewardValue })
+    .from(pointReward)
+    .where(eq(pointReward.rewardType, "profile_frame"))
+    .orderBy(asc(pointReward.sortOrder));
+}
+
+/** Admin override - directly sets a user's equipped frame regardless of
+ * whether they've ever redeemed it (no points check, no ownership check).
+ * Deliberately does NOT insert a point_redemption row - this is a manual
+ * grant, not the user "buying" it, so it doesn't fabricate a ledger entry
+ * that never happened. Pass null to unequip. */
+export async function setUserFrameAdmin(userId: number, rewardValue: string | null): Promise<void> {
+  await db.update(user).set({ profileFrame: rewardValue }).where(eq(user.id, userId));
+}
+
 export interface CreateRewardInput {
   name: string;
   description?: string;

@@ -2,9 +2,10 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { SectionLabel } from "@/components/dklist/star-rating";
 import { SiteFeedList } from "@/components/dklist/site-feed";
 import { FeedComposer } from "@/components/dklist/feed-composer";
+import { CommunitySidebarNav } from "@/components/dklist/community-sidebar-nav";
+import { CommunityRightRail } from "@/components/dklist/community-right-rail";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { getSiteFeed } from "@/db/queries/feed";
 import { auth } from "@/auth";
@@ -17,21 +18,44 @@ export const metadata: Metadata = pageMetadata({
   path: "/akis",
 });
 
+/**
+ * Three-column Facebook/Reddit-shaped layout - maintainer's explicit ask,
+ * screenshots of both included for reference. Left rail is real site
+ * navigation (shortcuts to every "topluluk" destination), right rail is
+ * real trending/social-proof/leaderboard widgets, center is the feed
+ * itself - the same structural shape those platforms use, built from this
+ * site's own already-real data rather than inventing anything.
+ */
 export default function FeedPage({ searchParams }: PageProps<"/akis">) {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="mb-8 flex flex-col gap-2">
-          <SectionLabel>Topluluk</SectionLabel>
-          <h1 className="font-heading text-3xl font-medium tracking-tight">Akış</h1>
-          <p className="text-muted-foreground">
-            DKList topluluğunda son yaşanan okuma, puanlama, yorum ve daha fazlası.
-          </p>
+      <div className="mx-auto max-w-[100rem] px-4 py-10 sm:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_320px]">
+          <aside className="hidden min-w-0 lg:sticky lg:top-20 lg:block lg:h-fit">
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
+              <CommunitySidebarNav />
+            </Suspense>
+          </aside>
+
+          <main className="min-w-0">
+            <div className="mb-6 flex flex-col gap-1">
+              <h1 className="font-heading text-2xl font-medium tracking-tight">Akış</h1>
+              <p className="text-sm text-muted-foreground">
+                DKList topluluğunda son yaşanan okuma, puanlama, yorum ve daha fazlası.
+              </p>
+            </div>
+            <Suspense fallback={<FeedSkeleton />}>
+              <FeedContent searchParams={searchParams} />
+            </Suspense>
+          </main>
+
+          <aside className="hidden min-w-0 xl:sticky xl:top-20 xl:block xl:h-fit">
+            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
+              <CommunityRightRail />
+            </Suspense>
+          </aside>
         </div>
-        <Suspense fallback={<FeedSkeleton />}>
-          <FeedContent searchParams={searchParams} />
-        </Suspense>
       </div>
     </div>
   );
@@ -56,28 +80,36 @@ function FeedSkeleton() {
 async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">["searchParams"] }) {
   const params = await searchParams;
   const scope = params.scope === "following" ? "following" : "everyone";
+  // Maintainer's explicit correction: real posts and passive reading
+  // activity ("kitabı okudu", "kitaplığına ekledi"...) don't belong in the
+  // same timeline - "okuma falan onları başka alana taşı." Separate tab,
+  // not a separate page, so it's still one click away.
+  const view = params.view === "activity" ? "activity" : "posts";
 
   const session = await auth();
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
   const followingOnly = scope === "following";
 
-  const page = await getSiteFeed({ followingOnly, viewerId });
+  const page = await getSiteFeed({ followingOnly, viewerId, mode: view });
 
   return (
     <div className="flex flex-col gap-6">
-      {viewerId && session?.user && (
+      {viewerId && session?.user && view === "posts" && (
         <FeedComposer userId={viewerId} username={session.user.name ?? "?"} userImage={session.user.image ?? null} />
       )}
-      {viewerId && (
-        <div className="flex w-fit gap-1 rounded-full bg-muted p-1 text-sm">
-          <TabLink href="/akis" active={scope === "everyone"}>
-            Herkes
-          </TabLink>
-          <TabLink href="/akis?scope=following" active={scope === "following"}>
+      <div className="flex w-fit flex-wrap gap-1 rounded-full bg-muted p-1 text-sm">
+        <TabLink href="/akis" active={view === "posts" && scope === "everyone"}>
+          Gönderiler
+        </TabLink>
+        {viewerId && (
+          <TabLink href="/akis?scope=following" active={view === "posts" && scope === "following"}>
             Takip Ettiklerim
           </TabLink>
-        </div>
-      )}
+        )}
+        <TabLink href="/akis?view=activity" active={view === "activity"}>
+          Okuma Etkinliği
+        </TabLink>
+      </div>
       <Suspense fallback={null}>
         <AdSlot placement="akis" className="max-w-none px-0" />
       </Suspense>
@@ -87,6 +119,7 @@ async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">[
         followingOnly={followingOnly}
         signedIn={Boolean(viewerId)}
         viewerId={viewerId}
+        mode={view}
       />
     </div>
   );

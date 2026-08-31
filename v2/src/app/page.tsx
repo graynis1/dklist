@@ -594,7 +594,7 @@ export default function Home() {
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(circle_at_15%_20%,oklch(0.58_0.16_42/0.18),transparent_45%),radial-gradient(circle_at_85%_0%,oklch(0.58_0.16_42/0.12),transparent_40%)]"
         />
-        <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:py-28">
+        <div className="relative mx-auto grid max-w-[100rem] grid-cols-1 items-center gap-12 px-6 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:py-28">
           <div className="flex flex-col gap-6">
             <SectionLabel>Türkiye&apos;nin Kitap Topluluğu</SectionLabel>
             <h1 className="font-heading max-w-xl text-5xl leading-[1.05] font-medium tracking-tight text-balance sm:text-6xl">
@@ -642,7 +642,7 @@ export default function Home() {
       </div>
 
       {/* Featured */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-10 flex flex-col gap-2">
           <SectionLabel>Öne Çıkanlar</SectionLabel>
           <h2 className="font-heading text-3xl font-medium tracking-tight">
@@ -657,7 +657,7 @@ export default function Home() {
 
       {/* Stat band */}
       <section className="bg-primary py-16 text-primary-foreground">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-[100rem] px-6">
           <p className="font-heading max-w-2xl text-3xl leading-snug font-medium tracking-tight text-balance">
             &ldquo;Bir kitabı bitirmek, bir sonrakine başlamanın en güzel
             sebebidir.&rdquo;
@@ -669,7 +669,7 @@ export default function Home() {
       </section>
 
       {/* Categories */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex flex-col gap-2">
           <SectionLabel>Keşfet</SectionLabel>
           <h2 className="font-heading text-3xl font-medium tracking-tight">
@@ -685,7 +685,7 @@ export default function Home() {
       <Separator />
 
       {/* Shelf row */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div className="flex flex-col gap-2">
             <SectionLabel>Rafı Karıştır</SectionLabel>
@@ -706,7 +706,7 @@ export default function Home() {
       <Separator />
 
       {/* "Trend Kitaplar" - a new discovery widget, most-discussed-this-week. */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div className="flex flex-col gap-2">
             <SectionLabel>Keşfet</SectionLabel>
@@ -724,7 +724,7 @@ export default function Home() {
       <Separator />
 
       {/* Top readers */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex flex-col gap-2">
           <SectionLabel>Topluluk</SectionLabel>
           <h2 className="font-heading text-3xl font-medium tracking-tight">
@@ -744,7 +744,7 @@ export default function Home() {
           winning the week's free-book prize. Customer's ask for a
           dedicated "bu haftanın top 10/top 20" area - top 3 here, full
           top 10/20 (with toggle) at /puan-tablosu. */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex items-center justify-between gap-2">
           <div className="flex flex-col gap-2">
             <SectionLabel>Etkileşim</SectionLabel>
@@ -766,7 +766,7 @@ export default function Home() {
 
       {/* "Ayın Kitabı" - community-read pick, sixth item from the "what else
           could be added" brainstorm list. */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex items-center justify-between gap-2">
           <div className="flex flex-col gap-2">
             <SectionLabel>Topluluk</SectionLabel>
@@ -788,7 +788,7 @@ export default function Home() {
 
       {/* Recent activity feed - comments/quotes referencing a book pull that
           book's cover thumbnail in, 1000kitap-style. */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-2">
             <SectionLabel>Akış</SectionLabel>
@@ -813,7 +813,7 @@ export default function Home() {
 
       {/* Reader-follow suggestions - customer's ask, ranked by shared
           "okudum" books with people not yet followed. */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex flex-col gap-2">
           <SectionLabel>Keşfet</SectionLabel>
           <h2 className="font-heading text-3xl font-medium tracking-tight">
@@ -830,7 +830,7 @@ export default function Home() {
 
       {/* Personalized recommendations - collaborative filtering via shared
           "okudum" overlap, no AI/paid API needed. */}
-      <section className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
+      <section className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
         <div className="mb-8 flex flex-col gap-2">
           <SectionLabel>Senin İçin</SectionLabel>
           <h2 className="font-heading text-3xl font-medium tracking-tight">

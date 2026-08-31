@@ -78,7 +78,7 @@ async function NewBlogContent({
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
               Kapak Resmi
-              <input name="image" type="file" accept=".png,.jpg,.jpeg,.webp" required className="text-sm" />
+              <input name="image" type="file" accept="image/*" required className="text-sm" />
             </label>
             <Button type="submit">Yayınla</Button>
           </form>

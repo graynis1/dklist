@@ -6,7 +6,17 @@ import { createStore, toggleStoreFavorite, deleteStore, updateStoreStatus } from
 import { getBookList } from "@/db/queries/books";
 import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
 
-export async function createStoreAction(formData: FormData) {
+/**
+ * Used to redirect back to the form with `?error=...` on failure - a full
+ * page navigation that wiped every field the user had already filled in
+ * ("uyarı verince her şeyi siliyor ilanı tekrar giriyorsun"). Now returns a
+ * result object instead; the client form (CreateStoreForm) calls this
+ * directly without a native form submission, so an error never navigates
+ * away and every field (including the file input's already-picked images)
+ * stays exactly as the user left it. Success still redirects, which is
+ * fine - there's nothing to preserve once the listing actually exists.
+ */
+export async function createStoreAction(formData: FormData): Promise<{ status: boolean; message?: string; slug?: string }> {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/giris");
@@ -16,14 +26,13 @@ export async function createStoreAction(formData: FormData) {
   const bookIdRaw = String(formData.get("bookId") ?? "").trim();
   const listingType = String(formData.get("listingType") ?? "free") === "paid" ? "paid" : "free";
 
-  let slug: string;
   try {
     if (listingType === "paid") {
       const marketplace = await getMarketplaceStatus();
       if (!marketplace.active) throw new Error("Ücretli ilan özelliği şu anda kapalı.");
     }
 
-    slug = await createStore(Number(session.user.id), {
+    const slug = await createStore(Number(session.user.id), {
       title: String(formData.get("title") ?? ""),
       content: String(formData.get("content") ?? ""),
       location: String(formData.get("location") ?? ""),
@@ -35,11 +44,10 @@ export async function createStoreAction(formData: FormData) {
       price: listingType === "paid" ? Number(formData.get("price") ?? 0) : undefined,
       stock: listingType === "paid" ? Number(formData.get("stock") ?? 0) : undefined,
     });
+    return { status: true, slug };
   } catch (err) {
-    redirect(`/askida-kitap/yeni?error=${encodeURIComponent((err as Error).message)}`);
+    return { status: false, message: (err as Error).message };
   }
-
-  redirect(`/askida-kitap/${slug}`);
 }
 
 /**

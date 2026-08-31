@@ -40,7 +40,7 @@ export function CreateTranslatorForm() {
           <Input type="date" name="deathDate" />
         </label>
       </div>
-      <input type="file" name="image" accept="image/png,image/jpeg,image/webp" className="text-sm" />
+      <input type="file" name="image" accept="image/*" className="text-sm" />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={isPending} className="w-fit">
         Ekle

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
+import { SunIcon, MoonIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const subscribeNever = () => () => {};
@@ -23,10 +24,11 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
+      className="size-10 rounded-full"
       aria-label="Tema değiştir"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
-      {mounted && resolvedTheme === "dark" ? "☀️" : "🌙"}
+      {mounted && resolvedTheme === "dark" ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
     </Button>
   );
 }

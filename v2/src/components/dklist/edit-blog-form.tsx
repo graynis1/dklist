@@ -63,7 +63,7 @@ export function EditBlogForm({
       </label>
       <label className="flex flex-col gap-1.5 text-sm">
         Kapak Resmi (değiştirmek için seçin, boş bırakabilirsiniz)
-        <input name="image" type="file" accept=".png,.jpg,.jpeg,.webp" className="text-sm" />
+        <input name="image" type="file" accept="image/*" className="text-sm" />
       </label>
       {status && (
         <p className={`text-sm ${status.ok ? "text-muted-foreground" : "text-destructive"}`}>{status.message}</p>

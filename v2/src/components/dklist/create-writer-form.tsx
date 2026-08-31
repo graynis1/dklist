@@ -34,7 +34,7 @@ export function CreateWriterForm() {
         Doğum Tarihi
         <Input type="date" name="date" />
       </label>
-      <input type="file" name="image" accept="image/png,image/jpeg,image/webp" className="text-sm" />
+      <input type="file" name="image" accept="image/*" className="text-sm" />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={isPending} className="w-fit">
         Ekle

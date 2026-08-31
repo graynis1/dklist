@@ -25,7 +25,7 @@ async function NotificationBellContent() {
   return (
     <Link
       href="/bildirimler"
-      className="relative flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
+      className="relative flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
       aria-label="Bildirimler"
     >
       <BellIcon className="size-5" />
