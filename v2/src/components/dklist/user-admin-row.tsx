@@ -11,7 +11,11 @@ import {
   updateUserPublisherAction,
   updateUserWriterAction,
   deleteUserAccountAction,
+  getUserAssignmentPanelDataAction,
+  updateUserBadgesAction,
+  setUserFrameAdminAction,
 } from "@/app/admin/kullanicilar/actions";
+import { UserAssignmentPanel } from "@/components/dklist/user-assignment-panel";
 import { searchPublishersAction, searchWritersAction } from "@/app/kitap/yeni/actions";
 import { EntityLinkControl } from "@/components/dklist/entity-link-control";
 import type { UserAdminListItem } from "@/db/queries/user-admin";
@@ -33,6 +37,7 @@ export function UserAdminRow({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [showAssignPanel, setShowAssignPanel] = useState(false);
 
   function changeRole(newType: string) {
     setError(null);
@@ -63,7 +68,8 @@ export function UserAdminRow({
   }
 
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-border p-4">
+    <li className="flex flex-col gap-3 rounded-lg border border-border p-4">
+    <div className="flex items-center gap-3">
       <div className="flex-1">
         <p className="font-medium">
           {user.username}
@@ -119,10 +125,26 @@ export function UserAdminRow({
         {user.disabled ? "Aktif Et" : "Devre Dışı Bırak"}
       </Button>
 
+      {canMutate && (
+        <Button variant="outline" size="sm" onClick={() => setShowAssignPanel((s) => !s)}>
+          Rozet &amp; Çerçeve
+        </Button>
+      )}
+
       {canDelete && (
         <Button variant="ghost" size="sm" className="text-destructive" disabled={isPending} onClick={deleteAccount}>
           Hesabı Sil
         </Button>
+      )}
+    </div>
+
+      {showAssignPanel && canMutate && (
+        <UserAssignmentPanel
+          userId={user.id}
+          loadData={() => getUserAssignmentPanelDataAction(user.id)}
+          onSaveBadges={(ids) => updateUserBadgesAction(user.id, ids)}
+          onSaveFrame={(value) => setUserFrameAdminAction(user.id, value)}
+        />
       )}
     </li>
   );

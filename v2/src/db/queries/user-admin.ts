@@ -89,6 +89,28 @@ export async function updateUserPublisher(userId: number, publisherId: number | 
   await db.update(user).set({ publisherId }).where(eq(user.id, userId));
 }
 
+/** Fetched lazily (only when the admin actually opens the badge/frame panel
+ * for one row) rather than batched into getUserAdminList() - avoids an
+ * extra join/query on every single page load of a list that's mostly just
+ * being browsed, not edited. */
+export async function getUserBadgeIds(userId: number): Promise<number[]> {
+  const rows = await db.select({ badgesId: userBadges.badgesId }).from(userBadges).where(eq(userBadges.userId, userId));
+  return rows.map((r) => r.badgesId);
+}
+
+/**
+ * Real gap found via the maintainer's explicit "rozet çerçeve her şeyin
+ * yönetimi olsun" ask: updateUserBadges() (below) already existed in this
+ * file but had zero action/UI wired to it anywhere - a real v1-parity
+ * comment on badge-admin.ts even documented this as "genuinely admin-
+ * defined-but-manually-assigned-outside-the-app", matching v1's own
+ * behavior rather than filling the gap. Wired up for real now, alongside a
+ * new admin-only frame override (setUserFrameAdmin in point-store.ts) that
+ * bypasses the normal points-cost/ownership check a self-service redemption
+ * requires - an admin assigning a reward directly is a different action
+ * from a user earning one, matching the same "admin can override anything"
+ * spirit as the existing manual verified-badge toggle.
+ */
 export async function updateUserBadges(userId: number, badgeIds: number[]): Promise<void> {
   const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
   if (!target) throw new Error("Kullanıcı bulunamadı.");
