@@ -63,7 +63,10 @@ export default function RegisterPage({ searchParams }: PageProps<"/kayit-ol">) {
                     <SelectItem value="belirtmek-istemiyorum">Belirtmek istemiyorum</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input name="birthDate" type="date" required />
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  Doğum Tarihi
+                  <Input name="birthDate" type="date" required />
+                </label>
               </div>
               <Input name="password" type="password" placeholder="Şifre (en az 6 karakter)" required minLength={6} />
               <Suspense fallback={null}>

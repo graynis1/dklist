@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { UserPlusIcon, LibraryIcon, Share2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SiteHeader } from "@/components/dklist/site-header";
@@ -605,12 +606,21 @@ export default function Home() {
               ve yayınevlerini tek bir rafta buluşturuyor.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Button size="lg" className="text-base">
-                Keşfetmeye Başla
-              </Button>
-              <Button size="lg" variant="outline" className="text-base">
-                Nasıl Çalışır?
-              </Button>
+              {/* Real bug reported live: both buttons were plain decorative
+                  <Button>s with no href/onClick at all - fixed with a real
+                  destination each, and a real "Nasıl Çalışır?" section
+                  further down the page (previously nothing on-site actually
+                  explained how the site works). */}
+              <Link href="/ara">
+                <Button size="lg" className="text-base">
+                  Keşfetmeye Başla
+                </Button>
+              </Link>
+              <Link href="#nasil-calisir">
+                <Button size="lg" variant="outline" className="text-base">
+                  Nasıl Çalışır?
+                </Button>
+              </Link>
             </div>
 
             <dl className="mt-6 grid grid-cols-2 gap-6 border-t border-border pt-6 sm:grid-cols-4">
@@ -628,6 +638,32 @@ export default function Home() {
           </div>
 
           <HeroShelf />
+        </div>
+      </section>
+
+      {/* "Nasıl Çalışır?" hero button previously pointed nowhere - this is
+          its real destination, not just a link to an unrelated page. */}
+      <section id="nasil-calisir" className="mx-auto max-w-[100rem] px-6 py-20 lg:py-28">
+        <div className="mb-10 flex flex-col gap-2">
+          <SectionLabel>Nasıl Çalışır?</SectionLabel>
+          <h2 className="font-heading text-3xl font-medium tracking-tight">
+            Üç adımda DKList
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+          {[
+            { icon: UserPlusIcon, title: "Üye Ol", text: "Bir dakikada hesabını oluştur, okuma zevkine göre kişiselleştirilmiş bir deneyime başla." },
+            { icon: LibraryIcon, title: "Kitaplığını Oluştur", text: "Okuduğun, okuyacağın ve okumak istediğin kitapları işaretle, puanla, yorum yap." },
+            { icon: Share2Icon, title: "Keşfet & Paylaş", text: "Benzer zevklere sahip okurları bul, önerileri keşfet, düşüncelerini toplulukla paylaş." },
+          ].map((step) => (
+            <div key={step.title} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-6">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <step.icon className="size-5" />
+              </div>
+              <h3 className="font-heading text-lg font-medium">{step.title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{step.text}</p>
+            </div>
+          ))}
         </div>
       </section>
 
