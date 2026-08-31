@@ -121,7 +121,7 @@ async function WriterContent({
           </h1>
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={writer.score} />
-            <span className="font-medium">{writer.score.toFixed(2)}/10</span>
+            <span className="font-medium">{writer.score.toFixed(1)}/10</span>
             <span className="text-muted-foreground">
               · {books.length} kitap
             </span>

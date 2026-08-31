@@ -5,6 +5,7 @@ import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { XIcon, ArrowUpRightIcon, MegaphoneIcon } from "lucide-react";
 import { getSitePopupAction } from "@/actions/site-popup";
+import { sitePopupImageUrl } from "@/lib/image-urls";
 
 const SESSION_KEY = "dklist-site-popup-shown";
 
@@ -51,9 +52,12 @@ export function SitePopupModal() {
             {popup.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`/api/site-popup-image/${popup.image}`}
+                src={sitePopupImageUrl(popup.image)}
                 alt=""
                 className="aspect-[16/10] w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
               />
             ) : (
               <div className="flex aspect-[16/10] w-full items-center justify-center bg-gradient-to-br from-primary/25 via-secondary to-primary/10">
