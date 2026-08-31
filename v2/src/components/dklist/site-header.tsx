@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
@@ -22,20 +23,31 @@ const NAV = [
   { href: "/yayinevleri", label: "Yayınevleri" },
 ];
 
+/**
+ * Taller (h-20, was h-16), heavier logo, larger nav type and icon buttons -
+ * maintainer's direct complaint: "header da genel olarak çok kötü... bu
+ * büyüklükteki bir sisteme yakışan bir şey değil." The old header read as
+ * a small-app default; every element here (logo weight, nav tracking, the
+ * search field's own icon, the icon-button sizes matching the bumped
+ * NotificationBell/MessageBell/ThemeToggle) is deliberately a size class up
+ * from before, and the container now stretches to max-w-[100rem] instead of
+ * 7xl so the header's content band actually reaches the same edges the
+ * wide-viewport page content now does.
+ */
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
+      <div className="mx-auto flex h-20 max-w-[100rem] items-center gap-8 px-4 sm:px-8">
         <MobileNavDrawer />
 
         <Link
           href="/"
-          className="font-heading text-xl font-semibold tracking-tight italic"
+          className="font-heading text-2xl font-semibold tracking-tight italic"
         >
           DKList
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
+        <nav className="hidden items-center gap-7 text-[0.95rem] font-medium text-muted-foreground md:flex">
           {NAV.map((item) => (
             <Link
               key={item.label}
@@ -50,11 +62,12 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <form action="/ara" className="hidden lg:block">
+          <form action="/ara" className="relative hidden lg:block">
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               name="q"
               placeholder="Kitap ara…"
-              className="w-56 bg-secondary/60"
+              className="h-10 w-64 rounded-full bg-secondary/60 pl-9"
             />
           </form>
           <MessageBell />

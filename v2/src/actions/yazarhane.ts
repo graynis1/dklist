@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
-import { createAuthorPost, deleteAuthorPost } from "@/db/queries/yazarhane";
+import { createAuthorPost, deleteAuthorPost, submitWriterApplication } from "@/db/queries/yazarhane";
 
 export async function createAuthorPostAction(
   formData: FormData,
@@ -22,6 +22,19 @@ export async function createAuthorPostAction(
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
+}
+
+export async function submitWriterApplicationAction(formData: FormData): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+
+  const message = String(formData.get("message") ?? "");
+  const proposedWriterIdRaw = String(formData.get("proposedWriterId") ?? "").trim();
+  const proposedWriterId = proposedWriterIdRaw ? Number(proposedWriterIdRaw) : null;
+
+  const result = await submitWriterApplication(Number(session.user.id), message, proposedWriterId);
+  if (result.status) revalidatePath("/yazarhane");
+  return result;
 }
 
 export async function deleteAuthorPostAction(

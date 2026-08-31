@@ -89,23 +89,31 @@
 }
 
 .dark {
-  --background: oklch(0.16 0.012 55);
-  --foreground: oklch(0.96 0.006 75);
-  --card: oklch(0.21 0.014 55);
-  --card-foreground: oklch(0.96 0.006 75);
-  --popover: oklch(0.21 0.014 55);
-  --popover-foreground: oklch(0.96 0.006 75);
+  /* Real contrast between each surface tier, not a wash of near-identical
+   * darks - the maintainer's direct "hala berbat" reaction to a screenshot
+   * where cards/header were barely distinguishable from the page
+   * background (0.16 -> 0.21 lightness is far too small a step to read as
+   * a distinct surface once actually rendered). Four clear tiers now:
+   * background(0.14) < card/popover(0.24) < secondary/muted(0.30) <
+   * accent(0.34) - each a real step up, plus more visible border/input
+   * opacity so edges don't disappear against near-black. */
+  --background: oklch(0.14 0.012 55);
+  --foreground: oklch(0.97 0.006 75);
+  --card: oklch(0.24 0.015 55);
+  --card-foreground: oklch(0.97 0.006 75);
+  --popover: oklch(0.24 0.015 55);
+  --popover-foreground: oklch(0.97 0.006 75);
   --primary: oklch(0.68 0.17 45);
-  --primary-foreground: oklch(0.16 0.01 55);
-  --secondary: oklch(0.27 0.014 55);
-  --secondary-foreground: oklch(0.96 0.006 75);
-  --muted: oklch(0.27 0.014 55);
-  --muted-foreground: oklch(0.68 0.02 60);
-  --accent: oklch(0.3 0.03 50);
-  --accent-foreground: oklch(0.96 0.01 75);
+  --primary-foreground: oklch(0.14 0.01 55);
+  --secondary: oklch(0.3 0.015 55);
+  --secondary-foreground: oklch(0.97 0.006 75);
+  --muted: oklch(0.3 0.015 55);
+  --muted-foreground: oklch(0.72 0.02 60);
+  --accent: oklch(0.34 0.035 50);
+  --accent-foreground: oklch(0.97 0.01 75);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.68 0.17 45);
   --chart-1: oklch(0.68 0.17 45);
   --chart-2: oklch(0.7 0.12 145);

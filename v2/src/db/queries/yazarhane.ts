@@ -1,9 +1,15 @@
 import "server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { user, writer, yazarhanePost } from "@/db/schema";
+import { user, writer, yazarhanePost, writerApplication } from "@/db/schema";
 import { USER_TYPES } from "@/lib/roles";
-import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { awardPoints, getPointSettings, resolveSystemSenderId } from "@/db/queries/points";
+import { isDirty } from "@/lib/dirty-controller";
+import { addNotification } from "@/db/queries/notifications";
+
+function nowSql(): string {
+  return new Date().toISOString().slice(0, 19).replace("T", " ");
+}
 
 /**
  * "Yazarhane" (author's lounge/hub) - the customer's own notes explicitly
@@ -185,4 +191,136 @@ export async function deleteAuthorPost(postId: number, requestingUserId: number,
   if (!row) throw new Error("Paylaşım bulunamadı.");
   if (row.userId !== requestingUserId && !isAdmin) throw new Error("Bu paylaşımı silme yetkiniz yok.");
   await db.delete(yazarhanePost).where(eq(yazarhanePost.id, postId));
+}
+
+/**
+ * Self-service "Yazarhane'de yazmak istiyorum" application - the maintainer's
+ * explicit ask ("yazacak yazarlar için başvuru formu vs ekle"). The `Yazar`
+ * role already exists for exactly this (author members who can post here),
+ * so no new user type was added - what was missing was a real request path
+ * instead of "an Admin has to already know to promote you".
+ */
+export interface WriterApplicationStatus {
+  id: number;
+  status: "pending" | "approved" | "rejected";
+  reviewerNote: string | null;
+  submittedAt: string;
+}
+
+export async function getMyWriterApplication(userId: number): Promise<WriterApplicationStatus | null> {
+  const [row] = await db
+    .select({ id: writerApplication.id, status: writerApplication.status, reviewerNote: writerApplication.reviewerNote, submittedAt: writerApplication.submittedAt })
+    .from(writerApplication)
+    .where(eq(writerApplication.userId, userId))
+    .orderBy(desc(writerApplication.id))
+    .limit(1);
+  return row ? { ...row, status: row.status as WriterApplicationStatus["status"] } : null;
+}
+
+export async function submitWriterApplication(
+  userId: number,
+  message: string,
+  proposedWriterId?: number | null,
+): Promise<{ status: boolean; message?: string }> {
+  const [target] = await db.select({ userType: user.userType }).from(user).where(eq(user.id, userId)).limit(1);
+  if (!target) return { status: false, message: "Kullanıcı bulunamadı." };
+  if (target.userType === USER_TYPES.Yazar) return { status: false, message: "Zaten bir yazar üyesisiniz." };
+
+  const existing = await getMyWriterApplication(userId);
+  if (existing?.status === "pending") return { status: false, message: "Zaten inceleme bekleyen bir başvurunuz var." };
+
+  const trimmed = message.trim();
+  if (!trimmed) return { status: false, message: "Neden Yazarhane'de yazmak istediğinizi kısaca anlatın." };
+  if (isDirty(trimmed)) return { status: false, message: "Hakaret içeren içerik ekleyemezsiniz." };
+
+  if (proposedWriterId) {
+    const [w] = await db.select({ id: writer.id }).from(writer).where(eq(writer.id, proposedWriterId)).limit(1);
+    if (!w) return { status: false, message: "Böyle bir yazar kaydı yok." };
+  }
+
+  await db.insert(writerApplication).values({
+    userId,
+    message: trimmed,
+    proposedWriterId: proposedWriterId || null,
+    status: "pending",
+    submittedAt: nowSql(),
+  });
+
+  return { status: true };
+}
+
+export interface PendingWriterApplication {
+  id: number;
+  userId: number;
+  username: string;
+  message: string;
+  proposedWriterId: number | null;
+  proposedWriterName: string | null;
+  submittedAt: string;
+}
+
+export async function getPendingWriterApplications(): Promise<PendingWriterApplication[]> {
+  const rows = await db
+    .select({
+      id: writerApplication.id,
+      userId: writerApplication.userId,
+      username: user.username,
+      message: writerApplication.message,
+      proposedWriterId: writerApplication.proposedWriterId,
+      proposedWriterName: writer.name,
+      submittedAt: writerApplication.submittedAt,
+    })
+    .from(writerApplication)
+    .innerJoin(user, eq(writerApplication.userId, user.id))
+    .leftJoin(writer, eq(writerApplication.proposedWriterId, writer.id))
+    .where(eq(writerApplication.status, "pending"))
+    .orderBy(writerApplication.id);
+  return rows;
+}
+
+async function notifyWriterApplicationDecision(userId: number, approved: boolean, reviewerNote?: string): Promise<void> {
+  const senderId = await resolveSystemSenderId();
+  if (!senderId) return;
+  const message = approved
+    ? "Yazarhane başvurun onaylandı - artık Yazarhane'de paylaşım yapabilirsin."
+    : `Yazarhane başvurun reddedildi.${reviewerNote ? ` Sebep: ${reviewerNote}` : ""}`;
+  await addNotification(userId, senderId, message, message);
+}
+
+export async function approveWriterApplication(applicationId: number, reviewerId: number): Promise<void> {
+  const [app] = await db
+    .select({ userId: writerApplication.userId, proposedWriterId: writerApplication.proposedWriterId, status: writerApplication.status })
+    .from(writerApplication)
+    .where(eq(writerApplication.id, applicationId))
+    .limit(1);
+  if (!app) throw new Error("Başvuru bulunamadı.");
+  if (app.status !== "pending") throw new Error("Bu başvuru zaten sonuçlandırılmış.");
+
+  await db
+    .update(writerApplication)
+    .set({ status: "approved", reviewedAt: nowSql(), reviewedBy: reviewerId })
+    .where(eq(writerApplication.id, applicationId));
+  await db.update(user).set({ userType: USER_TYPES.Yazar, writerId: app.proposedWriterId }).where(eq(user.id, app.userId));
+
+  await notifyWriterApplicationDecision(app.userId, true);
+}
+
+export async function rejectWriterApplication(applicationId: number, reviewerId: number, reviewerNote: string): Promise<void> {
+  const [app] = await db
+    .select({ userId: writerApplication.userId, status: writerApplication.status })
+    .from(writerApplication)
+    .where(eq(writerApplication.id, applicationId))
+    .limit(1);
+  if (!app) throw new Error("Başvuru bulunamadı.");
+  if (app.status !== "pending") throw new Error("Bu başvuru zaten sonuçlandırılmış.");
+
+  const trimmedNote = reviewerNote.trim();
+  if (isDirty(trimmedNote)) throw new Error("Hakaret içeren içerik ekleyemezsiniz.");
+
+  await db
+    .update(writerApplication)
+    .set({ status: "rejected", reviewedAt: nowSql(), reviewedBy: reviewerId, reviewerNote: trimmedNote || null })
+    .where(eq(writerApplication.id, applicationId));
+
+  await notifyWriterApplicationDecision(app.userId, false, trimmedNote);
 }

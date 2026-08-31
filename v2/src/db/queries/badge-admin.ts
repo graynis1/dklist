@@ -69,6 +69,13 @@ export async function getBadgeList(
   return { items, total, page: safePage, lastPage };
 }
 
+/** Unpaginated {id,name} list for the user-admin panel's badge-assignment
+ * picker - badge TYPE definitions are a small admin-curated set (nothing
+ * like the book/writer catalog's scale), a plain full list is fine. */
+export async function getAllBadgesBrief(): Promise<{ id: number; name: string }[]> {
+  return db.select({ id: badges.id, name: badges.name }).from(badges).orderBy(badges.id);
+}
+
 export interface CreateBadgeInput {
   name: string;
   comment: string;

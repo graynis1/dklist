@@ -42,10 +42,15 @@ async function AdminBlogContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <AdminPageHeader
-        title="Blog Moderasyonu"
-        description={`Onay bekleyen ve yayındaki tüm yazılar - toplam ${total} kayıt.`}
-      />
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <AdminPageHeader
+          title="Blog Moderasyonu"
+          description={`Onay bekleyen ve yayındaki tüm yazılar - toplam ${total} kayıt.`}
+        />
+        <Link href="/admin/bloglar/yeni" className="shrink-0">
+          <Button>Yeni Yazı</Button>
+        </Link>
+      </div>
 
       <form action="/admin/bloglar" className="mb-6 flex gap-2">
         <Input name="search" defaultValue={search} placeholder="Başlık, önizleme veya içerikte ara..." />

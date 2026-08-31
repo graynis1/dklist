@@ -10,20 +10,23 @@ export const metadata: Metadata = pageMetadata({
 import { connection } from "next/server";
 import Link from "next/link";
 import { PenLineIcon } from "lucide-react";
+import { auth } from "@/auth";
+import { USER_TYPES } from "@/lib/roles";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { CommunitySidebarNav } from "@/components/dklist/community-sidebar-nav";
 import { CommunityRightRail } from "@/components/dklist/community-right-rail";
+import { WriterApplicationForm } from "@/components/dklist/writer-application-form";
 import { formatRelativeTime } from "@/lib/utils";
-import { getAuthorMembers, getRecentAuthorPosts } from "@/db/queries/yazarhane";
+import { getAuthorMembers, getRecentAuthorPosts, getMyWriterApplication } from "@/db/queries/yazarhane";
 
 export default function YazarhanePage() {
   return (
     <div className="flex-1 bg-background">
       <SiteHeader />
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_1fr_300px]">
-          <aside className="hidden lg:sticky lg:top-20 lg:block lg:h-fit">
+      <div className="mx-auto max-w-[100rem] px-4 py-10 sm:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_320px]">
+          <aside className="hidden min-w-0 lg:sticky lg:top-20 lg:block lg:h-fit">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
               <CommunitySidebarNav />
             </Suspense>
@@ -41,7 +44,7 @@ export default function YazarhanePage() {
             </Suspense>
           </main>
 
-          <aside className="hidden xl:sticky xl:top-20 xl:block xl:h-fit">
+          <aside className="hidden min-w-0 xl:sticky xl:top-20 xl:block xl:h-fit">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
               <CommunityRightRail />
             </Suspense>
@@ -64,10 +67,23 @@ function YazarhaneSkeleton() {
 
 async function YazarhaneContent() {
   await connection();
-  const [members, posts] = await Promise.all([getAuthorMembers(), getRecentAuthorPosts(20)]);
+  const session = await auth();
+  const userType = session?.user?.userType;
+  const authorLikeRoles: string[] = [USER_TYPES.Yazar, USER_TYPES.Mod, USER_TYPES.Admin, USER_TYPES.Kurucu, USER_TYPES.SuperAdmin];
+  const isAlreadyAuthor = userType ? authorLikeRoles.includes(userType) : false;
+
+  const [members, posts, myApplication] = await Promise.all([
+    getAuthorMembers(),
+    getRecentAuthorPosts(20),
+    session?.user?.id && !isAlreadyAuthor ? getMyWriterApplication(Number(session.user.id)) : Promise.resolve(null),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
+      {session?.user?.id && !isAlreadyAuthor && (
+        <WriterApplicationForm existingApplication={myApplication} />
+      )}
+
       {members.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Yazarlar</h2>

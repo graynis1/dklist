@@ -33,7 +33,7 @@ export default function CategoryPage({ params }: PageProps<"/kategori/[slug]">) 
 
 function CategorySkeleton() {
   return (
-    <div className="mx-auto max-w-7xl px-6 py-16">
+    <div className="mx-auto max-w-[100rem] px-6 py-16">
       <div className="mb-10 h-10 w-64 animate-pulse rounded bg-muted" />
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 lg:grid-cols-5">
         {Array.from({ length: 10 }).map((_, i) => (
@@ -59,7 +59,7 @@ async function CategoryContent({
   const books = await getBooksByCategory(cat.id, 40);
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-16 lg:py-20">
+    <section className="mx-auto max-w-[100rem] px-6 py-16 lg:py-20">
       <div className="mb-10 flex flex-col gap-2">
         <SectionLabel>Kategori</SectionLabel>
         <h1 className="font-heading text-4xl font-medium tracking-tight">

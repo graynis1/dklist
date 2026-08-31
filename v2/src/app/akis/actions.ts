@@ -2,16 +2,20 @@
 
 import { auth } from "@/auth";
 import { getSiteFeed, type FeedPage } from "@/db/queries/feed";
-import { createFeedPost, deleteFeedPost, toggleFeedPostLike } from "@/db/queries/feed-posts";
+import { createFeedPost, deleteFeedPost, setFeedPostReaction } from "@/db/queries/feed-posts";
 import { addSubComment, type SubCommentParentType, type CommentReply } from "@/db/queries/comments";
 
-export async function loadMoreFeedAction(cursor: number, followingOnly: boolean): Promise<FeedPage> {
+export async function loadMoreFeedAction(
+  cursor: number,
+  followingOnly: boolean,
+  mode: "posts" | "activity" = "posts",
+): Promise<FeedPage> {
   // Always resolved (not just for followingOnly) - getSiteFeed also needs
   // viewerId to report each comment/quote's real like state for the signed-
   // in viewer, regardless of which tab they're on.
   const session = await auth();
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
-  return getSiteFeed({ cursor, followingOnly, viewerId });
+  return getSiteFeed({ cursor, followingOnly, viewerId, mode });
 }
 
 interface ActionResult {
@@ -26,7 +30,9 @@ export async function createFeedPostAction(formData: FormData): Promise<ActionRe
   try {
     const text = String(formData.get("text") ?? "");
     const image = formData.get("image");
-    const postId = await createFeedPost(Number(session.user.id), text, image instanceof File ? image : null);
+    const bookIdRaw = String(formData.get("bookId") ?? "").split(",")[0];
+    const bookId = bookIdRaw ? Number(bookIdRaw) : null;
+    const postId = await createFeedPost(Number(session.user.id), text, image instanceof File ? image : null, bookId);
     return { status: true, postId };
   } catch (err) {
     return { status: false, message: (err as Error).message };
@@ -45,12 +51,15 @@ export async function deleteFeedPostAction(postId: number): Promise<ActionResult
   }
 }
 
-export async function toggleFeedPostLikeAction(postId: number): Promise<ActionResult & { liked?: boolean }> {
+export async function setFeedPostReactionAction(
+  postId: number,
+  value: 1 | -1,
+): Promise<ActionResult & { reaction?: 1 | -1 | null }> {
   const session = await auth();
   if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
 
-  const result = await toggleFeedPostLike(Number(session.user.id), postId);
-  return { status: true, liked: result.liked };
+  const result = await setFeedPostReaction(Number(session.user.id), postId, value);
+  return { status: true, reaction: result.reaction };
 }
 
 /**

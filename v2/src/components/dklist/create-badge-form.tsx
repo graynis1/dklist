@@ -36,7 +36,7 @@ export function CreateBadgeForm() {
         <Input name="comment" placeholder="Açıklama" required />
         <Input name="commentUs" placeholder="Açıklama (EN, opsiyonel)" />
       </div>
-      <input type="file" name="image" accept="image/png,image/jpeg,image/webp" required className="text-sm" />
+      <input type="file" name="image" accept="image/*" required className="text-sm" />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={isPending} className="w-fit">
         Ekle

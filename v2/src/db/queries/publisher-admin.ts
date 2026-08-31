@@ -1,5 +1,6 @@
 import "server-only";
-import { eq, like, sql } from "drizzle-orm";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { eq, inArray, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
@@ -21,6 +22,16 @@ export interface PublisherListItem {
 }
 
 export async function getPublisherAdminList(page = 1, pageSize = 20, search = ""): Promise<{ items: PublisherListItem[]; total: number; page: number; lastPage: number }> {
+  // Same "çok donuyor" bug class, plus a real N+1: this used to run one
+  // extra `count(*) FROM book WHERE publisher_id = ?` per row in the page
+  // (20 separate round-trips against the ~98.5M-row book table) instead of
+  // one batched GROUP BY - each of those 20 paid the same cold-disk cost the
+  // book-admin list was fixed for, sequentially. Also now cached like every
+  // other admin list in this sweep.
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("admin-publisher-list");
+
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
@@ -43,12 +54,17 @@ export async function getPublisherAdminList(page = 1, pageSize = 20, search = ""
   const rows = await db.select({ id: publisher.id, name: publisher.name })
     .from(publisher).where(whereClause).orderBy(publisher.id).limit(safeSize).offset((safePage - 1) * safeSize);
 
-  const items: PublisherListItem[] = [];
-  for (const row of rows) {
-    const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(book).where(eq(book.publisherId, row.id));
-    items.push({ id: row.id, name: row.name, bookCount: Number(countRow?.count ?? 0) });
-  }
+  if (rows.length === 0) return { items: [], total, page: safePage, lastPage };
 
+  const publisherIds = rows.map((r) => r.id);
+  const countRows = await db
+    .select({ publisherId: book.publisherId, count: sql<number>`count(*)` })
+    .from(book)
+    .where(inArray(book.publisherId, publisherIds))
+    .groupBy(book.publisherId);
+  const countByPublisher = new Map(countRows.map((r) => [r.publisherId, Number(r.count)]));
+
+  const items = rows.map((row) => ({ id: row.id, name: row.name, bookCount: countByPublisher.get(row.id) ?? 0 }));
   return { items, total, page: safePage, lastPage };
 }
 
@@ -59,6 +75,7 @@ export async function createPublisher(name: string): Promise<PublisherListItem> 
   const [existing] = await db.select({ id: publisher.id }).from(publisher).where(eq(publisher.name, trimmed)).limit(1);
   if (existing) throw new Error(`${trimmed} isimli yayınevi zaten var.`);
   const [result] = await db.insert(publisher).values({ name: trimmed, slug: slugify(trimmed) });
+  updateTag("admin-publisher-list");
   return { id: result.insertId, name: trimmed, bookCount: 0 };
 }
 
@@ -69,6 +86,7 @@ export async function updatePublisherName(publisherId: number, newName: string):
   if (!text) throw new Error("Yayınevi ismi boş bırakılamaz.");
   if (isDirty(text)) throw new Error("Hakaret içeren içerik ekleyemezsiniz.");
   await db.update(publisher).set({ name: text, slug: slugify(text) }).where(eq(publisher.id, publisherId));
+  updateTag("admin-publisher-list");
 }
 
 /**
@@ -93,4 +111,5 @@ export async function deletePublisher(publisherId: number): Promise<void> {
     await deleteBookCascade(b.id);
   }
   await db.delete(publisher).where(eq(publisher.id, publisherId));
+  updateTag("admin-publisher-list");
 }
