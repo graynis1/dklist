@@ -9,7 +9,12 @@ describe("hasRole", () => {
 
   it("does NOT give Kurucu an unconditional bypass like SuperAdmin", () => {
     expect(hasRole(USER_TYPES.Kurucu, [])).toBe(false);
-    expect(hasRole(USER_TYPES.Kurucu, [USER_TYPES.Admin])).toBe(false);
+    expect(hasRole(USER_TYPES.Kurucu, [USER_TYPES.Member])).toBe(false);
+  });
+
+  it("passes Kurucu wherever Admin passes - real bug found live: the actual production founder account is typed Kurucu, and every admin-panel allow-list only listed Admin, silently locking it out of nearly the whole panel", () => {
+    expect(hasRole(USER_TYPES.Kurucu, [USER_TYPES.Admin])).toBe(true);
+    expect(hasRole(USER_TYPES.Kurucu, [USER_TYPES.Admin, USER_TYPES.Mod])).toBe(true);
   });
 
   it("passes when the user type is explicitly in the allowed list", () => {
