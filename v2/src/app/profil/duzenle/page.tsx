@@ -13,10 +13,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { auth } from "@/auth";
 import { getEditableProfile } from "@/db/queries/profile";
+import { getMyLatestVerificationRequest } from "@/db/queries/identity-verification";
 import { avatarUrl } from "@/db/queries/avatar";
 import { updateProfileAction } from "@/app/profil/[username]/actions";
 import { TwoFactorToggle } from "@/components/dklist/two-factor-toggle";
 import { PrivacyToggle } from "@/components/dklist/privacy-toggle";
+import { VerificationRequestForm } from "@/components/dklist/verification-request-form";
 
 export default function EditProfilePage({ searchParams }: PageProps<"/profil/duzenle">) {
   return (
@@ -46,7 +48,11 @@ async function EditProfileContent({
   }
 
   const { error } = await searchParams;
-  const profile = await getEditableProfile(Number(session.user.id));
+  const userId = Number(session.user.id);
+  const [profile, latestVerificationRequest] = await Promise.all([
+    getEditableProfile(userId),
+    getMyLatestVerificationRequest(userId),
+  ]);
 
   if (!profile) {
     redirect("/giris");
@@ -56,6 +62,7 @@ async function EditProfileContent({
     <div className="flex flex-col gap-6">
       <TwoFactorToggle initialEnabled={profile.twoFactorEnabled} />
       <PrivacyToggle initialPrivate={profile.privacy} />
+      <VerificationRequestForm verified={profile.verified} latestRequest={latestVerificationRequest} />
       <Link href="/profil/engellenenler" className="text-sm text-muted-foreground hover:underline">
         Engellenen Kullanıcılar →
       </Link>

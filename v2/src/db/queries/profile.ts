@@ -38,6 +38,7 @@ export interface EditableProfile {
   image: string | null;
   twoFactorEnabled: boolean;
   privacy: boolean;
+  verified: boolean;
 }
 
 /** Deliberately uncached and keyed by id, not username - this backs the
@@ -58,11 +59,12 @@ export async function getEditableProfile(userId: number): Promise<EditableProfil
       image: user.image,
       twoFactorEnabled: user.twoFactorEnabled,
       privacy: user.privacy,
+      verified: user.verified,
     })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
-  return row ? { ...row, twoFactorEnabled: row.twoFactorEnabled === 1, privacy: row.privacy === 1 } : null;
+  return row ? { ...row, twoFactorEnabled: row.twoFactorEnabled === 1, privacy: row.privacy === 1, verified: row.verified === 1 } : null;
 }
 
 /**
