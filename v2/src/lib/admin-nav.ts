@@ -31,6 +31,7 @@ export const ADMIN_CATEGORIES: AdminCategory[] = [
       { href: "/admin/reklam-talepleri", label: "Reklam Talepleri", description: "/reklam-ver üzerinden gelen işbirliği talepleri", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "openAdInquiries" },
       { href: "/admin/destek-talepleri", label: "Destek Talepleri", description: "/destek üzerinden gelen kullanıcı destek talepleri", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "openSupportTickets" },
       { href: "/admin/dogrulama", label: "Doğrulanmış Okur Başvuruları", description: "Kimlik doğrulama başvurularını incele, onayla/reddet", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "pendingVerificationRequests" },
+      { href: "/admin/yazar-basvurulari", label: "Yazarhane Başvuruları", description: "Yazarhane'de yazmak isteyen üyelerin başvurularını incele", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "pendingWriterApplications" },
     ],
   },
   {
