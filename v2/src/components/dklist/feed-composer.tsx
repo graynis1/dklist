@@ -74,7 +74,7 @@ export function FeedComposer({
           name="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Aklından ne geçiyor? Bir kitap önerisi, bir düşünce paylaş..."
+          placeholder="Aklından ne geçiyor? Bir kitap önerisi, bir düşünce paylaş... (Paylaşımlar kitap/okumayla ilgili olmalı)"
           rows={2}
           maxLength={2000}
           className="w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
@@ -105,7 +105,7 @@ export function FeedComposer({
               ref={fileInputRef}
               type="file"
               name="image"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/*"
               className="hidden"
               onChange={(e) => pickImage(e.target.files?.[0])}
             />

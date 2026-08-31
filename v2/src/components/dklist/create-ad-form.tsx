@@ -48,7 +48,7 @@ export function CreateAdForm() {
       <Input name="language" placeholder="Dil hedefleme (opsiyonel, örn: tr, en - boş = tüm diller)" />
       <Input name="linkUrl" placeholder="Bağlantı URL'si (opsiyonel)" />
       <Input type="number" name="sortOrder" placeholder="Sıra (küçük önce gösterilir)" defaultValue={0} />
-      <input type="file" name="image" accept="image/png,image/jpeg,image/webp" required className="text-sm" />
+      <input type="file" name="image" accept="image/*" required className="text-sm" />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={isPending} className="w-fit">
         Ekle

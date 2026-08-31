@@ -5,6 +5,7 @@ import { store, storeFavorite, storePicture, user, book, read } from "@/db/schem
 import { saveUploadedImage } from "@/lib/image-upload";
 import { awardPoints, getPointSettings, resolveSystemSenderId } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
+import { checkModerationOrThrow } from "@/db/queries/comments";
 
 /**
  * Askıda Kitap (Phase 3 marketplace) - ported from StoreController.php.
@@ -293,6 +294,14 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
   if (input.images.length === 0) {
     throw new Error("En az bir fotoğraf eklemelisiniz.");
   }
+  // Real gap found while wiring up the book-topic AI check elsewhere: this
+  // listing flow had NO moderation at all (no keyword filter, no AI check) -
+  // every other free-text creation path in the app already goes through
+  // checkModerationOrThrow(). A store listing IS a book-for-sale ad by
+  // definition, so the book-relevance check applies unconditionally here
+  // (unlike a feed post's caption, which can skip it once a real bookId is
+  // already attached).
+  await checkModerationOrThrow(`${title} ${content}`, { requireBookRelated: true });
 
   const listingType = input.listingType === "paid" ? "paid" : "free";
   if (listingType === "paid") {

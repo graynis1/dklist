@@ -69,7 +69,7 @@ export function VerificationRequestForm({
             <input
               name="document"
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/*"
               required
               className="text-sm"
             />

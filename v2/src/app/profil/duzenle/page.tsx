@@ -88,7 +88,7 @@ async function EditProfileContent({
                 id="avatar"
                 name="avatar"
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/*"
                 className="text-sm"
               />
             </div>

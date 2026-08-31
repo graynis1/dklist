@@ -19,7 +19,16 @@ const nextConfig: NextConfig = {
   // bundling entirely (real Node require() at runtime, same as any other
   // node_modules package) fixes it - see next.config.ts docs for
   // serverExternalPackages.
-  serverExternalPackages: ["iyzipay"],
+  //
+  // `sharp` (added for saveUploadedImage()'s any-format-to-webp conversion)
+  // needs the same treatment for a different reason: it's a native addon
+  // (a .node binary alongside its own bundled libvips DLLs on Windows) -
+  // letting Turbopack pull it into its own module graph broke its relative
+  // DLL lookup entirely (`ERR_DLOPEN_FAILED`/Windows error 127) even though
+  // a plain `require("sharp")` outside Next works fine. serverExternalPackages
+  // keeps it a real runtime require() from its own node_modules location,
+  // where its DLL search path is intact.
+  serverExternalPackages: ["iyzipay", "sharp"],
 };
 
 export default nextConfig;

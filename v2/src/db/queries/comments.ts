@@ -7,7 +7,7 @@ import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
 import { extractHashtagTags } from "@/lib/hashtag";
 import { findFlaggedWords } from "@/lib/dirty-controller";
-import { isLikelyAbusive } from "@/lib/moderation";
+import { isLikelyAbusive, isOffTopicFromBooks } from "@/lib/moderation";
 
 /**
  * Real AI-based content blocking, on top of (not instead of) the existing
@@ -16,12 +16,21 @@ import { isLikelyAbusive } from "@/lib/moderation";
  * admin review. Either signal (keyword match OR the local embedding-
  * similarity check) rejects the post outright, before it's ever written.
  */
-export async function checkModerationOrThrow(text: string): Promise<void> {
+export async function checkModerationOrThrow(
+  text: string,
+  options?: { requireBookRelated?: boolean },
+): Promise<void> {
   if (findFlaggedWords(text).length > 0) {
     throw new Error("İçeriğiniz topluluk kurallarına aykırı görünüyor, lütfen düzenleyip tekrar deneyin.");
   }
   if (await isLikelyAbusive(text)) {
     throw new Error("İçeriğiniz topluluk kurallarına aykırı görünüyor, lütfen düzenleyip tekrar deneyin.");
+  }
+  // Only enabled for genuinely free-form surfaces (feed posts, Askıda Kitap
+  // listings) - see isOffTopicFromBooks()'s own doc comment for why this
+  // isn't a blanket check on every comment.
+  if (options?.requireBookRelated && (await isOffTopicFromBooks(text))) {
+    throw new Error("Paylaşımlar kitap ve okumayla ilgili olmalıdır - bu içerik konu dışı görünüyor.");
   }
 }
 
