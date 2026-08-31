@@ -16,6 +16,7 @@ import { uploadAvatar } from "@/db/queries/avatar";
 import { reportUser } from "@/db/queries/notices";
 import { blockUser, unblockUser, isBlockedByMe } from "@/db/queries/blocks";
 import { requireRole, USER_TYPES } from "@/lib/permission";
+import { submitVerificationRequest } from "@/db/queries/identity-verification";
 
 export async function toggleFollowAction(
   targetUserId: number,
@@ -98,6 +99,19 @@ export async function setProfilePrivacyAction(isPrivate: boolean): Promise<{ sta
   if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
   await setProfilePrivacy(Number(session.user.id), isPrivate);
   return { status: true };
+}
+
+export async function submitVerificationRequestAction(formData: FormData): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+
+  const document = formData.get("document");
+  const note = String(formData.get("note") ?? "");
+  if (!(document instanceof File)) {
+    return { status: false, message: "Bir kimlik belgesi görseli yüklemelisiniz." };
+  }
+
+  return submitVerificationRequest(Number(session.user.id), document, note);
 }
 
 export async function setTwoFactorEnabledAction(

@@ -260,6 +260,7 @@ export async function approveBookSubmission(bookId: number): Promise<void> {
   await db.update(book).set({ approve: 1 }).where(eq(book.id, bookId));
   updateTag("pending-book-submissions");
   updateTag("latest-books");
+  updateTag("admin-book-list");
 
   const [bookRow] = await db.select({ name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
   const writerRows = await db.select({ writerId: writerBook.writerId }).from(writerBook).where(eq(writerBook.bookId, bookId));
@@ -276,6 +277,7 @@ export async function rejectBookSubmission(bookId: number): Promise<void> {
   await db.delete(translatorBook).where(eq(translatorBook.bookId, bookId));
   await db.delete(book).where(and(eq(book.id, bookId), eq(book.approve, 0)));
   updateTag("pending-book-submissions");
+  updateTag("admin-book-list");
 }
 
 export interface BookAdminListItem {
@@ -301,6 +303,18 @@ export async function getBookAdminList(
   pageSize = 20,
   search = "",
 ): Promise<{ items: BookAdminListItem[]; total: number; page: number; lastPage: number }> {
+  // Same root cause as the public /kitaplar slowness ("tıklayınca açılmıyor
+  // veya çok donuyor") - this queue re-ran the TABLE_ROWS estimate plus a
+  // real ORDER BY over the ~98.5M-row book table (with no supporting index
+  // on `approve`, so MySQL filesorts) on every single admin page load, cold
+  // disk every time. A short cacheLife keeps admin edits feeling near-
+  // immediate (every mutation below calls updateTag on the same tag) while
+  // killing the repeated cold full scan for the common case of just
+  // browsing/paging through the list.
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("admin-book-list");
+
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
   const whereClause = trimmedSearch
@@ -465,10 +479,12 @@ export async function updateBookAdminField(
       updateTag("latest-books");
       break;
   }
+  updateTag("admin-book-list");
 }
 
 export async function deleteBookAdmin(bookId: number): Promise<void> {
   await deleteBookCascade(bookId);
+  updateTag("admin-book-list");
 }
 
 export async function deleteBooksAdmin(bookIds: number[]): Promise<{ success: number; fail: number }> {
@@ -480,5 +496,6 @@ export async function deleteBooksAdmin(bookIds: number[]): Promise<{ success: nu
       success++;
     }
   }
+  updateTag("admin-book-list");
   return { success, fail: bookIds.length - success };
 }

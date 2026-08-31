@@ -10,12 +10,15 @@ export const metadata: Metadata = pageMetadata({
 import { connection } from "next/server";
 import Link from "next/link";
 import { PenLineIcon } from "lucide-react";
+import { auth } from "@/auth";
+import { USER_TYPES } from "@/lib/roles";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { CommunitySidebarNav } from "@/components/dklist/community-sidebar-nav";
 import { CommunityRightRail } from "@/components/dklist/community-right-rail";
+import { WriterApplicationForm } from "@/components/dklist/writer-application-form";
 import { formatRelativeTime } from "@/lib/utils";
-import { getAuthorMembers, getRecentAuthorPosts } from "@/db/queries/yazarhane";
+import { getAuthorMembers, getRecentAuthorPosts, getMyWriterApplication } from "@/db/queries/yazarhane";
 
 export default function YazarhanePage() {
   return (
@@ -64,10 +67,23 @@ function YazarhaneSkeleton() {
 
 async function YazarhaneContent() {
   await connection();
-  const [members, posts] = await Promise.all([getAuthorMembers(), getRecentAuthorPosts(20)]);
+  const session = await auth();
+  const userType = session?.user?.userType;
+  const authorLikeRoles: string[] = [USER_TYPES.Yazar, USER_TYPES.Mod, USER_TYPES.Admin, USER_TYPES.Kurucu, USER_TYPES.SuperAdmin];
+  const isAlreadyAuthor = userType ? authorLikeRoles.includes(userType) : false;
+
+  const [members, posts, myApplication] = await Promise.all([
+    getAuthorMembers(),
+    getRecentAuthorPosts(20),
+    session?.user?.id && !isAlreadyAuthor ? getMyWriterApplication(Number(session.user.id)) : Promise.resolve(null),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
+      {session?.user?.id && !isAlreadyAuthor && (
+        <WriterApplicationForm existingApplication={myApplication} />
+      )}
+
       {members.length > 0 && (
         <section>
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Yazarlar</h2>

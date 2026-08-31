@@ -16,6 +16,7 @@ import {
   UsersIcon,
   LibraryIcon,
   Trash2Icon,
+  ChevronRightIcon,
 } from "lucide-react";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
@@ -156,8 +157,16 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
     </div>
   );
 
-  const cover = (item.bookCover || item.entityAvatarId) && (
-    <div className="flex shrink-0 flex-row items-center gap-3 sm:w-32 sm:flex-col sm:text-center">
+  // Compact, inline "referenced item" chip - replaces the old fixed-width
+  // side column that stretched to the row's full height and left most of
+  // its own space empty on anything but a long comment ("bomboş... orantısız
+  // bir kart"). Reads like a link-preview/quote-card embedded in the flow
+  // instead of a separate layout column competing with the text for space.
+  const attachmentChip = (item.bookCover || item.entityAvatarId) && item.targetHref && (
+    <Link
+      href={item.targetHref}
+      className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-2.5 transition-colors hover:border-foreground/25 hover:bg-muted/60"
+    >
       {item.bookCover ? (
         <BookCover
           title={item.targetLabel ?? ""}
@@ -165,92 +174,102 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
           tone={toneForId(item.bookCover.id)}
           bookId={item.bookCover.id}
           hasImage={item.bookCover.hasImage}
-          size="md"
-          className="w-16 shrink-0 sm:w-full"
+          size="sm"
+          className="h-16 w-11 shrink-0"
         />
       ) : (
         item.entityAvatarId != null && (
-          <EntityAvatar id={item.entityAvatarId} name={item.targetLabel ?? "?"} size="size-16" className="shrink-0 sm:size-20" />
+          <EntityAvatar id={item.entityAvatarId} name={item.targetLabel ?? "?"} size="size-11" className="shrink-0" />
         )
       )}
-      <div className="flex min-w-0 flex-col sm:items-center">
-        {item.targetLabel && <p className="truncate text-sm font-medium sm:w-full">{item.targetLabel}</p>}
+      <div className="min-w-0 flex-1">
+        {item.targetLabel && <p className="truncate text-sm font-medium">{item.targetLabel}</p>}
         {sourceLabel && <p className="text-xs text-muted-foreground">Kaynak: {sourceLabel}</p>}
       </div>
+      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40" />
+    </Link>
+  );
+
+  // One toolbar row, visually separated from the content above it by a hairline
+  // - the maintainer's direct complaint ("butonlar berbat yerleşmiş") was that
+  // actions floated loosely under the content with no structure; a top border
+  // plus a tighter, consistent gap reads as one deliberate control strip.
+  const actionRow = (item.commentId || item.feedPostId || item.replyTarget || (item.reason === "comment" && item.targetHref) || item.excerpt) && (
+    <div className="flex flex-wrap items-center gap-1.5 border-t border-border/70 pt-3">
+      {item.commentId && (
+        <CommentLikeButton
+          commentId={item.commentId}
+          signedIn={signedIn}
+          initialState={item.likeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
+          size="md"
+        />
+      )}
+      {item.feedPostId && (
+        <FeedPostLikeButton
+          postId={item.feedPostId}
+          signedIn={signedIn}
+          initialState={item.postLikeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
+        />
+      )}
+      {item.replyTarget && (
+        <FeedReplyThread
+          parentType={item.replyTarget.parentType}
+          parentId={item.replyTarget.parentId}
+          initialReplies={item.replies}
+          signedIn={signedIn}
+        />
+      )}
+      {item.reason === "comment" && item.targetHref && (
+        <Link
+          href={item.targetHref}
+          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+        >
+          <MessageSquareIcon className="size-4" />
+          Tartışmayı Gör
+        </Link>
+      )}
+      {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} />}
     </div>
   );
 
   return (
-    <article className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/15 sm:p-5">
+    <article className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/15 sm:p-5">
       {header}
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          {isPost ? (
-            <>
-              {item.excerpt && (
-                <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-foreground/90">
-                  {item.isQuote && <QuoteIcon className="mr-1.5 inline size-4 -translate-y-0.5 text-muted-foreground/50" />}
-                  {item.excerpt}
-                </p>
-              )}
-              {item.reason === "feed_post" && item.feedPostImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={feedPostImageUrl(item.feedPostImage)}
-                  alt=""
-                  className="max-h-[28rem] w-full rounded-lg border border-border object-cover"
-                />
-              )}
-              <div className="flex flex-wrap items-center gap-2">
-                {item.commentId && (
-                  <CommentLikeButton
-                    commentId={item.commentId}
-                    signedIn={signedIn}
-                    initialState={item.likeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
-                    size="md"
-                  />
-                )}
-                {item.feedPostId && (
-                  <FeedPostLikeButton
-                    postId={item.feedPostId}
-                    signedIn={signedIn}
-                    initialState={item.postLikeState ?? { count: 0, liked: false, dislikeCount: 0, disliked: false }}
-                  />
-                )}
-                {item.replyTarget && (
-                  <FeedReplyThread
-                    parentType={item.replyTarget.parentType}
-                    parentId={item.replyTarget.parentId}
-                    initialReplies={item.replies}
-                    signedIn={signedIn}
-                  />
-                )}
-                {item.reason === "comment" && item.targetHref && (
-                  <Link
-                    href={item.targetHref}
-                    className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
-                  >
-                    <MessageSquareIcon className="size-4" />
-                    Tartışmayı Gör
-                  </Link>
-                )}
-                {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} />}
-              </div>
-            </>
-          ) : (
-            item.targetHref && (
-              <Link
-                href={item.targetHref}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Icon className="size-4" />
-                {(item.entityKind && GO_TO_LABEL[item.entityKind]) ?? "Detayları Gör"}
-              </Link>
-            )
-          )}
-        </div>
-
-        {item.targetHref ? <Link href={item.targetHref}>{cover}</Link> : cover}
+      <div className="flex flex-col gap-3">
+        {isPost ? (
+          <>
+            {item.excerpt && (
+              <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-foreground/90">
+                {item.isQuote && <QuoteIcon className="mr-1.5 inline size-4 -translate-y-0.5 text-muted-foreground/50" />}
+                {item.excerpt}
+              </p>
+            )}
+            {item.reason === "feed_post" && item.feedPostImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={feedPostImageUrl(item.feedPostImage)}
+                alt=""
+                className="max-h-[28rem] w-full rounded-lg border border-border object-cover"
+              />
+            )}
+            {attachmentChip}
+            {actionRow}
+          </>
+        ) : (
+          <>
+            {attachmentChip ?? (
+              item.targetHref && (
+                <Link
+                  href={item.targetHref}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Icon className="size-4" />
+                  {(item.entityKind && GO_TO_LABEL[item.entityKind]) ?? "Detayları Gör"}
+                </Link>
+              )
+            )}
+          </>
+        )}
       </div>
     </article>
   );

@@ -31,7 +31,11 @@ export async function createFeedPost(
   if (trimmed.length > 2000) {
     throw new Error("Gönderi en fazla 2000 karakter olabilir.");
   }
-  if (trimmed) await checkModerationOrThrow(trimmed);
+  // Only require the book-topic check when no real book is already
+  // attached - a bookId already anchors the post to the catalog, so a
+  // short caption on top of it ("bunu bugün aldım") shouldn't need to
+  // independently read as book-related on its own.
+  if (trimmed) await checkModerationOrThrow(trimmed, { requireBookRelated: !bookId });
 
   if (bookId) {
     const [b] = await db.select({ id: book.id }).from(book).where(eq(book.id, bookId)).limit(1);

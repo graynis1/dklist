@@ -66,7 +66,7 @@ export function BadgeAdminRow({ badge }: { badge: BadgeListItem }) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/*"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

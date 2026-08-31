@@ -1,10 +1,12 @@
 "use server";
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
-import { updateUserRole, toggleUserDisabled, updateUserPublisher } from "@/db/queries/user-admin";
+import { updateUserRole, toggleUserDisabled, updateUserPublisher, updateUserBadges, getUserBadgeIds } from "@/db/queries/user-admin";
 import { deleteUserAccount } from "@/db/queries/user-delete";
 import { logAdminAction } from "@/db/queries/admin-log";
 import { linkUserToWriter } from "@/db/queries/yazarhane";
+import { getAllBadgesBrief } from "@/db/queries/badge-admin";
+import { getFrameRewardsBrief, setUserFrameAdmin, getUserActiveFrame } from "@/db/queries/point-store";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 // v1's real deleteUserAdmin() passes an EMPTY permission allow-list -
@@ -54,6 +56,54 @@ export async function updateUserWriterAction(userId: number, writerId: number | 
     const actor = await requireRole(ADMIN_ONLY);
     await linkUserToWriter(userId, writerId);
     await logAdminAction(actor.id, "user:writer-link", "user", userId, `writer=${writerId ?? "none"}`);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
+  }
+}
+
+/** Loads everything the badge/frame assignment panel needs in one call,
+ * fetched lazily when an admin actually opens it for one row (see
+ * getUserBadgeIds()'s own doc comment for why this isn't batched into the
+ * list page itself). */
+export async function getUserAssignmentPanelDataAction(userId: number): Promise<{
+  status: boolean;
+  message?: string;
+  badges?: { id: number; name: string }[];
+  assignedBadgeIds?: number[];
+  frames?: { id: number; name: string; rewardValue: string }[];
+  activeFrame?: string | null;
+}> {
+  try {
+    await requireRole(ADMIN_ONLY);
+    const [allBadges, assignedBadgeIds, frames, activeFrame] = await Promise.all([
+      getAllBadgesBrief(),
+      getUserBadgeIds(userId),
+      getFrameRewardsBrief(),
+      getUserActiveFrame(userId),
+    ]);
+    return { status: true, badges: allBadges, assignedBadgeIds, frames, activeFrame };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Yüklenemedi." };
+  }
+}
+
+export async function updateUserBadgesAction(userId: number, badgeIds: number[]): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    await updateUserBadges(userId, badgeIds);
+    await logAdminAction(actor.id, "user:badges-assign", "user", userId, `badges=[${badgeIds.join(",")}]`);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
+  }
+}
+
+export async function setUserFrameAdminAction(userId: number, rewardValue: string | null): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    await setUserFrameAdmin(userId, rewardValue);
+    await logAdminAction(actor.id, "user:frame-assign", "user", userId, rewardValue ?? "none");
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };

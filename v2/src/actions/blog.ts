@@ -18,6 +18,13 @@ const BLOG_AUTHOR_ROLES = [USER_TYPES.Blogger, USER_TYPES.Mod, USER_TYPES.Admin]
 const BLOG_APPROVE_ROLES = [USER_TYPES.Admin];
 
 export async function createBlogAction(formData: FormData) {
+  // Both the public /blog/yeni composer and the admin panel's own
+  // /admin/bloglar/yeni page post to this same action - a hidden "from"
+  // field (defaults to the public route for back-compat) lets an error
+  // send the author back to whichever composer they were actually using,
+  // instead of always bouncing an admin out of the panel to the public page.
+  const from = String(formData.get("from") ?? "/blog/yeni");
+
   const session = await auth();
   if (!session?.user?.id) redirect("/giris");
   if (!hasRole(session.user.userType, BLOG_AUTHOR_ROLES)) redirect("/bloglar");
@@ -25,7 +32,7 @@ export async function createBlogAction(formData: FormData) {
   try {
     await requireRole(BLOG_AUTHOR_ROLES);
   } catch (err) {
-    redirect(`/blog/yeni?error=${encodeURIComponent((err as Error).message)}`);
+    redirect(`${from}?error=${encodeURIComponent((err as Error).message)}`);
   }
 
   const title = String(formData.get("title") ?? "");
@@ -43,7 +50,7 @@ export async function createBlogAction(formData: FormData) {
   );
 
   if (!result.status) {
-    redirect(`/blog/yeni?error=${encodeURIComponent(result.message ?? "Bir hata oluştu.")}`);
+    redirect(`${from}?error=${encodeURIComponent(result.message ?? "Bir hata oluştu.")}`);
   }
   redirect(`/blog/${result.slug}?created=1`);
 }

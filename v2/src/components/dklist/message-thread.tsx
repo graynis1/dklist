@@ -1,11 +1,120 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { XIcon, BookOpenIcon, TagIcon, SendIcon } from "lucide-react";
+import { XIcon, BookOpenIcon, TagIcon, SendIcon, PaperclipIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { sendMessageAction, fetchThreadAction, deleteMessageAction } from "@/app/mesajlar/actions";
+import {
+  sendMessageAction,
+  fetchThreadAction,
+  deleteMessageAction,
+  searchBooksForAttachAction,
+  searchStoreForAttachAction,
+} from "@/app/mesajlar/actions";
 import { formatRelativeTime } from "@/lib/utils";
 import type { MessageItem } from "@/db/queries/messages";
+
+interface AttachOption {
+  id: number;
+  label: string;
+}
+
+/**
+ * Inline attach popover for the composer itself - separate from the
+ * "Paylaş" share button (which sends from a book/store's own page). Search
+ * result is sent immediately on click, same one-step feel as picking an
+ * emoji, rather than accumulating a selection to submit later.
+ */
+function AttachPopover({ onSend, disabled }: { onSend: (type: "book" | "store", id: number, label: string) => void; disabled: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"book" | "store">("book");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<AttachOption[]>([]);
+  const [, startSearchTransition] = useTransition();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    if (query.trim().length < 2) {
+      // Same startTransition-wrapped pattern EntitySearchPicker already uses
+      // for this exact case - a bare setState here would otherwise trip
+      // react-hooks/set-state-in-effect (synchronous setState in an effect
+      // body can cascade renders).
+      startSearchTransition(() => setResults([]));
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const search = kind === "book" ? searchBooksForAttachAction : searchStoreForAttachAction;
+      search(query).then(setResults);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, kind, open]);
+
+  return (
+    <div className="relative">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Kitap veya ilan ekle"
+      >
+        <PaperclipIcon className="size-4" />
+      </Button>
+      {open && (
+        <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-xl border border-border bg-card p-3 shadow-lg">
+          <div className="mb-2 flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => { setKind("book"); setQuery(""); setResults([]); }}
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium ${kind === "book" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+            >
+              Kitap
+            </button>
+            <button
+              type="button"
+              onClick={() => { setKind("store"); setQuery(""); setResults([]); }}
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-medium ${kind === "store" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+            >
+              Askıda Kitap
+            </button>
+          </div>
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={kind === "book" ? "Kitap adı ara..." : "İlan başlığı ara..."}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+          />
+          {results.length > 0 && (
+            <ul className="mt-2 max-h-48 overflow-y-auto">
+              {results.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSend(kind, r.id, r.label);
+                      setOpen(false);
+                      setQuery("");
+                      setResults([]);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent"
+                  >
+                    {kind === "book" ? <BookOpenIcon className="size-4 shrink-0 text-muted-foreground" /> : <TagIcon className="size-4 shrink-0 text-muted-foreground" />}
+                    <span className="truncate">{r.label}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Polls for new messages while the tab is visible - v1 itself has no
@@ -74,6 +183,20 @@ export function MessageThread({
             attachment: null,
           },
         ]);
+      }
+    });
+  }
+
+  function sendAttachment(kind: "book" | "store", id: number, label: string) {
+    const defaultText = kind === "book" ? `Bu kitaba göz atar mısın? "${label}"` : `Bu ilana göz atar mısın? "${label}"`;
+    startTransition(async () => {
+      const result = await sendMessageAction(otherUsername, defaultText, kind, id);
+      if (result.status) {
+        // Refetch rather than hand-build the attachment shape - the server
+        // already resolves the full snapshot (image/slug/title) via
+        // buildAttachment(), no reason to duplicate that logic here.
+        const refreshed = await fetchThreadAction(otherUsername);
+        if (refreshed.status && refreshed.messages) setMessages(refreshed.messages);
       }
     });
   }
@@ -160,6 +283,7 @@ export function MessageThread({
         <div ref={bottomRef} />
       </div>
       <form action={submit} className="flex gap-2 border-t border-border p-3">
+        <AttachPopover onSend={sendAttachment} disabled={isPending} />
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}

@@ -1,9 +1,9 @@
 "use server";
 
 import { auth } from "@/auth";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, like } from "drizzle-orm";
 import { db } from "@/db";
-import { user } from "@/db/schema";
+import { user, store } from "@/db/schema";
 import {
   sendMessage,
   deleteMessage,
@@ -13,6 +13,7 @@ import {
   type MessageItem,
   type MessageType,
 } from "@/db/queries/messages";
+import { searchBooks } from "@/db/queries/search";
 
 async function requireUserId(): Promise<number> {
   const session = await auth();
@@ -112,6 +113,33 @@ export async function acceptRequestAction(otherUsername: string): Promise<{ stat
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }
+}
+
+/**
+ * Search results for the thread's own attach-picker ("Mesajların içerisinden
+ * kitap seçip gönderme de olmalı") - previously the only way to send a book/
+ * store attachment was the "Paylaş" button on that item's own page
+ * (shareAttachmentAction below), which meant starting from the item, not
+ * from the conversation. Both return the generic {id,label} shape
+ * EntitySearchPicker-style pickers expect.
+ */
+export async function searchBooksForAttachAction(query: string): Promise<{ id: number; label: string }[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+  const results = await searchBooks(trimmed, 8);
+  return results.map((b) => ({ id: b.id, label: b.name }));
+}
+
+export async function searchStoreForAttachAction(query: string): Promise<{ id: number; label: string }[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+  const rows = await db
+    .select({ id: store.id, title: store.title })
+    .from(store)
+    .where(and(eq(store.isActive, 1), like(store.title, `${trimmed}%`)))
+    .orderBy(desc(store.viewCount))
+    .limit(8);
+  return rows.map((r) => ({ id: r.id, label: r.title }));
 }
 
 /** Polled from the client to pick up new incoming messages - matches v1's

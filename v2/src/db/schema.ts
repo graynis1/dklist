@@ -730,6 +730,47 @@ export const pointRedemption = mysqlTable("point_redemption", {
 	unique("uniq_point_redemption_user_reward").on(table.userId, table.rewardId),
 ]);
 
+/** Doğrulanmış Okur ("verified reader") request/review queue - user.verified
+ * itself already existed (blue-check marker, previously only ever set by a
+ * bare admin toggle with no real process behind it). This is that process:
+ * a user submits an ID photo + optional note, an Admin/Kurucu reviews it. */
+export const identityVerification = mysqlTable("identity_verification", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id),
+	status: varchar({ length: 20 }).notNull().default("pending"),
+	documentImage: varchar("document_image", { length: 255 }).notNull(),
+	note: varchar({ length: 255 }),
+	reviewerNote: varchar("reviewer_note", { length: 255 }),
+	submittedAt: datetime("submitted_at", { mode: 'string' }).notNull(),
+	reviewedAt: datetime("reviewed_at", { mode: 'string' }),
+	reviewedBy: int("reviewed_by").references(() => user.id),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "identity_verification_id" }),
+	index("idx_identity_verification_status").on(table.status),
+	index("idx_identity_verification_user").on(table.userId),
+]);
+
+/** Self-service "become a Yazarhane author" application - previously the
+ * only path to the Yazar role was an Admin manually changing a user's role
+ * in /admin/kullanicilar, with no request/review process behind it. */
+export const writerApplication = mysqlTable("writer_application", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id),
+	message: varchar({ length: 1000 }).notNull(),
+	proposedWriterId: int("proposed_writer_id").references(() => writer.id),
+	status: varchar({ length: 20 }).notNull().default("pending"),
+	reviewerNote: varchar("reviewer_note", { length: 255 }),
+	submittedAt: datetime("submitted_at", { mode: 'string' }).notNull(),
+	reviewedAt: datetime("reviewed_at", { mode: 'string' }),
+	reviewedBy: int("reviewed_by").references(() => user.id),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "writer_application_id" }),
+	index("idx_writer_application_status").on(table.status),
+	index("idx_writer_application_user").on(table.userId),
+]);
+
 export const readingList = mysqlTable("reading_list", {
 	id: int().autoincrement().notNull(),
 	ownerId: int("owner_id").notNull().references(() => user.id),
