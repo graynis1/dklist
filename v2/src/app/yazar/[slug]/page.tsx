@@ -127,7 +127,12 @@ async function WriterContent({
               <span className="text-muted-foreground">({ratingCount} oy)</span>
             )}
             <span className="text-muted-foreground">
-              · {books.length} kitap
+              {/* Real customer example: "610 kitap" (every edition/
+                  translation counted separately) reads as wrong - a
+                  reader wants the writer's real number of distinct
+                  works, matching the same originalBookId grouping
+                  WriterBookGrid now uses below. */}
+              · {new Set(books.map((b) => b.originalBookId ?? b.id)).size} kitap
             </span>
           </div>
         </div>
