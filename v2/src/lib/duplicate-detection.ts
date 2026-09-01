@@ -119,6 +119,56 @@ export function stringSimilarity(a: string, b: string): number {
   return base + prefixLen * 0.1 * (1 - base);
 }
 
+/**
+ * Levenshtein edit distance (single-character insert/delete/substitute
+ * count) - the other classical string-distance algorithm PLAN.md's Phase 5
+ * spec names explicitly alongside Jaro-Winkler ("title+author fuzzy
+ * similarity (Levenshtein/Jaro-Winkler/trigram, ~95% threshold)") but which
+ * was never actually built - `stringSimilarity()` above only implements the
+ * Jaro-Winkler half. Deliberately NOT wired into `titleAuthorSimilarity()`
+ * here (that function, and every open duplicate-detection PR touching it,
+ * is Jaro-Winkler-only today) - this is additive groundwork for a future
+ * ensemble/second-opinion pass, not a behavior change to the existing
+ * matching pipeline. Standard O(n*m) dynamic-programming implementation,
+ * single-row rolling array (no need to materialize the full matrix).
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  let prevRow = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const currRow = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      currRow[j] = Math.min(
+        prevRow[j] + 1, // deletion
+        currRow[j - 1] + 1, // insertion
+        prevRow[j - 1] + cost, // substitution
+      );
+    }
+    prevRow = currRow;
+  }
+  return prevRow[b.length];
+}
+
+/**
+ * Levenshtein distance normalized to a 0-1 similarity score (1 = identical,
+ * 0 = no characters in common with the length-appropriate edit budget),
+ * dividing by the longer string's length - the same normalization scheme
+ * `stringSimilarity()`'s Jaro-Winkler score already uses, so the two are
+ * directly comparable/combinable. Unlike Jaro-Winkler's prefix boost
+ * (rewards a shared *start*), plain edit distance treats a difference
+ * anywhere in the string equally - useful as a second signal for a typo/
+ * OCR-error variant where the differing character isn't near the start.
+ */
+export function levenshteinSimilarity(a: string, b: string): number {
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  return 1 - levenshteinDistance(a, b) / maxLen;
+}
+
 /** Combined title+author fuzzy score - both normalized titles AND at least
  * one shared/similar author name are required, matching PLAN.md's
  * "title+author fuzzy similarity" stage (title alone is too weak a signal
