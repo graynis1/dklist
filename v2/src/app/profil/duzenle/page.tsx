@@ -119,12 +119,15 @@ async function EditProfileContent({
                 <SelectItem value="belirtmek-istemiyorum">Belirtmek istemiyorum</SelectItem>
               </SelectContent>
             </Select>
-            <Input
-              name="birthDate"
-              type="date"
-              defaultValue={profile.birthDate}
-              required
-            />
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              Doğum Tarihi
+              <Input
+                name="birthDate"
+                type="date"
+                defaultValue={profile.birthDate}
+                required
+              />
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getPublisherAdminList } from "@/db/queries/publisher-admin";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
+import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CreatePublisherForm } from "@/components/dklist/create-publisher-form";
@@ -65,19 +65,11 @@ async function AdminPublishersContent({
         </ul>
       )}
 
-      {lastPage > 1 && (
-        <div className="mt-8 flex justify-center gap-2 text-sm">
-          {Array.from({ length: lastPage }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={`/admin/yayinevleri?page=${p}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
-              className={`rounded-md px-2.5 py-1 ${p === page ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-            >
-              {p}
-            </Link>
-          ))}
-        </div>
-      )}
+      <PaginationNav
+        page={page}
+        lastPage={lastPage}
+        hrefForPage={(pn) => `/admin/yayinevleri?page=${pn}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
+      />
     </div>
   );
 }

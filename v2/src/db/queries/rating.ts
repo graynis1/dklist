@@ -204,3 +204,22 @@ export async function getBookRatingCount(bookId: number): Promise<number> {
     .where(and(eq(score.targetId, bookId), eq(score.targetType, BOOK_TARGET_TYPE)));
   return Number(row?.count ?? 0);
 }
+
+/** Same as getBookRatingCount(), for writer/translator pages - customer's
+ * explicit ask ("puanların yanında kaç kişi oy kullandı verisi
+ * eklenebilir mi") applied everywhere a score is shown, not just books. */
+export async function getWriterRatingCount(writerId: number): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(score)
+    .where(and(eq(score.targetId, writerId), eq(score.targetType, WRITER_TARGET_TYPE)));
+  return Number(row?.count ?? 0);
+}
+
+export async function getTranslatorRatingCount(translatorId: number): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(score)
+    .where(and(eq(score.targetId, translatorId), eq(score.targetType, TRANSLATOR_TARGET_TYPE)));
+  return Number(row?.count ?? 0);
+}

@@ -252,15 +252,32 @@ async function BookDetailContent({
               </p>
             )}
 
+            {/* Real customer ask: the pooled ("ortak") score across every
+                edition should read as the dominant number - readers care
+                about the book's overall reputation first, then which
+                specific edition/baskı is best, "arayış sıralamasında"
+                (search-priority order) reversed from how this used to
+                render. Also fixed to a single decimal place everywhere
+                (was .toFixed(2) here specifically, e.g. "9,83/10" - every
+                other score on the site already uses one digit). */}
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <StarRating value={detail.score} />
+              <StarRating value={workPooledScore ? workPooledScore.avgScore : detail.score} />
               <span className="font-medium">
-                {workPooledScore ? "Bu baskı " : ""}
-                {detail.score.toFixed(2)}/10
+                {workPooledScore
+                  ? `Ortak kitap puanı ${workPooledScore.avgScore.toFixed(1)}/10 (${workPooledScore.editionCount} baskı)`
+                  : `${detail.score.toFixed(1)}/10`}
               </span>
+              {/* Real gap found while wiring this up: ratingCount was
+                  already fetched but only ever used in the invisible
+                  JSON-LD SEO block below, never shown to a real visitor -
+                  customer's explicit ask ("kaç kişi oy kullandı verisi
+                  eklenebilir mi"). */}
+              {ratingCount > 0 && (
+                <span className="text-muted-foreground">({ratingCount} oy)</span>
+              )}
               {workPooledScore && (
                 <span className="text-muted-foreground">
-                  · Ortak kitap puanı {workPooledScore.avgScore.toFixed(2)}/10 ({workPooledScore.editionCount} baskı)
+                  · Bu baskının puanı {detail.score.toFixed(1)}/10
                 </span>
               )}
               <span className="text-muted-foreground">
@@ -509,7 +526,7 @@ async function BookDetailContent({
                   href={`/profil/${r.username}`}
                   className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm hover:bg-accent"
                 >
-                  <EntityAvatar id={r.id} name={r.username} size="size-6" className="text-[10px]" />
+                  <EntityAvatar id={r.id} name={r.username} image={r.image} size="size-6" className="text-[10px]" />
                   {r.username}
                   <span className="text-xs text-muted-foreground">
                     {READER_STATUS_LABELS[r.status] ?? r.status}

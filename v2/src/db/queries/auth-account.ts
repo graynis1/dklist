@@ -103,10 +103,58 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
 
   const mailSent = isMailConfigured();
   if (mailSent) {
-    await sendVerificationEmail(mail, username, verificationCode);
+    // Fire-and-forget, not awaited - registration itself (the DB insert
+    // above) is already done and must not be held hostage by an SMTP round
+    // trip on top of the bcrypt hash + immediate credentials sign-in this
+    // same request also does. Real customer report ("bir denemeye kalktım
+    // internette sorun oldu" - tried once, got some network error) is
+    // consistent with all of that stacking up serially on a slow mobile
+    // connection; `mailSent` here was always just "is mail configured", not
+    // "confirmed delivered", so this loses no real information the caller
+    // had before. Safe because this app is a long-lived Node process
+    // (`next start`), not a serverless function that could be torn down
+    // mid-promise - same reasoning already used for the book-embedding
+    // fire-and-forget in book-admin.ts.
+    void sendVerificationEmail(mail, username, verificationCode).catch((err) => {
+      console.error("[register] verification email failed to send:", err);
+    });
   }
 
   return { userId: result.insertId, verificationCode, mailSent };
+}
+
+export interface ResendVerificationResult {
+  verificationCode: string;
+  mailSent: boolean;
+}
+
+/**
+ * Real customer-reported gap: "onay kodu gelmedi... kontrol şansımız var
+ * mı?" (verification code never arrived, can we check?) - a real SMTP send
+ * test confirmed Brevo genuinely accepts and queues the mail (SPF/DKIM/
+ * DMARC all correctly configured on the sending domain too), so this isn't
+ * a broken mail pipeline - most likely a one-off delivery hiccup or the
+ * recipient's spam filter. Either way, /dogrula had no way to try again -
+ * a fresh account was permanently stuck needing a re-registration. This
+ * regenerates the pending code and re-sends it (or returns it for the
+ * dev-mode on-screen fallback, same as registerUser()).
+ */
+export async function resendVerificationCode(userId: number): Promise<ResendVerificationResult> {
+  const [row] = await db.select({ mail: user.mail, username: user.username, mailAuth: user.mailAuth }).from(user).where(eq(user.id, userId)).limit(1);
+  if (!row) throw new Error("Kullanıcı bulunamadı.");
+  if (row.mailAuth === 1) throw new Error("Hesabınız zaten doğrulanmış.");
+
+  const verificationCode = generateToken(5);
+  await db.update(user).set({ pendingCode: verificationCode }).where(eq(user.id, userId));
+
+  const mailSent = isMailConfigured();
+  if (mailSent) {
+    void sendVerificationEmail(row.mail, row.username, verificationCode).catch((err) => {
+      console.error("[resend-verification] email failed to send:", err);
+    });
+  }
+
+  return { verificationCode, mailSent };
 }
 
 export async function verifyMailCode(userId: number, code: string): Promise<void> {
@@ -148,7 +196,10 @@ export async function requestPasswordReset(target: string): Promise<ResetPasswor
 
   const mailSent = isMailConfigured();
   if (mailSent) {
-    await sendPasswordResetEmail(row.mail, row.username, resetCode);
+    // Fire-and-forget - same reasoning as registerUser()'s verification email.
+    void sendPasswordResetEmail(row.mail, row.username, resetCode).catch((err) => {
+      console.error("[password-reset] email failed to send:", err);
+    });
   }
 
   return { userId: row.id, resetCode, mailSent };
@@ -189,7 +240,9 @@ export async function confirmPasswordReset(userId: number, code: string): Promis
 
   const mailSent = isMailConfigured();
   if (mailSent) {
-    await sendNewPasswordEmail(row.mail, row.username, newPassword);
+    void sendNewPasswordEmail(row.mail, row.username, newPassword).catch((err) => {
+      console.error("[password-reset] new-password email failed to send:", err);
+    });
   }
 
   return { newPassword, mailSent };

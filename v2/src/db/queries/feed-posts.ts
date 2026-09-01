@@ -156,6 +156,7 @@ export async function getRepliesForPosts(postIds: number[]): Promise<Map<number,
       text: subComment.comment,
       authorUsername: user.username,
       authorUserId: user.id,
+      authorImage: user.image,
       parentId: subComment.parentId,
     })
     .from(subComment)
@@ -172,6 +173,7 @@ export async function getRepliesForPosts(postIds: number[]): Promise<Map<number,
           text: subComment.comment,
           authorUsername: user.username,
           authorUserId: user.id,
+          authorImage: user.image,
           parentId: subComment.parentId,
         })
         .from(subComment)

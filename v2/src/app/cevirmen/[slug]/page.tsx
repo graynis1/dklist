@@ -13,7 +13,7 @@ import { EntityComments } from "@/components/dklist/entity-comments";
 import { Separator } from "@/components/ui/separator";
 import { getTranslatorBySlug, getBooksByTranslator } from "@/db/queries/translators";
 import { isTranslatorLiked, getTranslatorLikeCount } from "@/db/queries/likes";
-import { getUserTranslatorRating } from "@/db/queries/rating";
+import { getUserTranslatorRating, getTranslatorRatingCount } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { auth } from "@/auth";
@@ -72,11 +72,12 @@ async function TranslatorContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount, userRating, comments] = await Promise.all([
+  const [books, liked, likeCount, userRating, ratingCount, comments] = await Promise.all([
     getBooksByTranslator(translator.id),
     userId ? isTranslatorLiked(userId, translator.id) : Promise.resolve(false),
     getTranslatorLikeCount(translator.id),
     userId ? getUserTranslatorRating(userId, translator.id) : Promise.resolve(null),
+    getTranslatorRatingCount(translator.id),
     getEntityComments(translator.id, "translator"),
   ]);
   const quotes = await getEntityComments(translator.id, "translator", "quotation");
@@ -105,7 +106,10 @@ async function TranslatorContent({
           </h1>
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={translator.score} />
-            <span className="font-medium">{translator.score.toFixed(2)}/10</span>
+            <span className="font-medium">{translator.score.toFixed(1)}/10</span>
+            {ratingCount > 0 && (
+              <span className="text-muted-foreground">({ratingCount} oy)</span>
+            )}
             <span className="text-muted-foreground">
               · {books.length} çeviri
             </span>

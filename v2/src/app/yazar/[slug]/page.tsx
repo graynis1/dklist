@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { BookCover, toneForId } from "@/components/dklist/book-cover";
+import { WriterBookGrid } from "@/components/dklist/writer-book-grid";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { EntityLikeButton } from "@/components/dklist/entity-like-button";
@@ -13,7 +13,7 @@ import { EntityComments } from "@/components/dklist/entity-comments";
 import { Separator } from "@/components/ui/separator";
 import { getWriterBySlug, getBooksByWriter } from "@/db/queries/writers";
 import { isWriterLiked, getWriterLikeCount } from "@/db/queries/likes";
-import { getUserWriterRating } from "@/db/queries/rating";
+import { getUserWriterRating, getWriterRatingCount } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { getAuthorMemberForWriter } from "@/db/queries/yazarhane";
@@ -79,11 +79,12 @@ async function WriterContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount, userRating, comments, authorMember] = await Promise.all([
+  const [books, liked, likeCount, userRating, ratingCount, comments, authorMember] = await Promise.all([
     getBooksByWriter(writer.id),
     userId ? isWriterLiked(userId, writer.id) : Promise.resolve(false),
     getWriterLikeCount(writer.id),
     userId ? getUserWriterRating(userId, writer.id) : Promise.resolve(null),
+    getWriterRatingCount(writer.id),
     getEntityComments(writer.id, "writer"),
     getAuthorMemberForWriter(writer.id),
   ]);
@@ -121,9 +122,17 @@ async function WriterContent({
           </h1>
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={writer.score} />
-            <span className="font-medium">{writer.score.toFixed(2)}/10</span>
+            <span className="font-medium">{writer.score.toFixed(1)}/10</span>
+            {ratingCount > 0 && (
+              <span className="text-muted-foreground">({ratingCount} oy)</span>
+            )}
             <span className="text-muted-foreground">
-              · {books.length} kitap
+              {/* Real customer example: "610 kitap" (every edition/
+                  translation counted separately) reads as wrong - a
+                  reader wants the writer's real number of distinct
+                  works, matching the same originalBookId grouping
+                  WriterBookGrid now uses below. */}
+              · {new Set(books.map((b) => b.originalBookId ?? b.id)).size} kitap
             </span>
           </div>
         </div>
@@ -170,34 +179,7 @@ async function WriterContent({
           Bu yazara ait kitap bulunmuyor.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 lg:grid-cols-5">
-          {books.map((book) => (
-            <Link
-              key={book.id}
-              href={`/kitap/${book.slug}`}
-              className="flex flex-col gap-3"
-            >
-              <BookCover
-                title={book.name}
-                author={writer.name}
-                tone={toneForId(book.id)}
-                bookId={book.id}
-                hasImage={book.hasImage}
-                size="md"
-                className="w-full"
-              />
-              <div className="flex flex-col gap-0.5">
-                <p className="truncate text-sm font-medium">{book.name}</p>
-                <div className="flex items-center gap-1 text-xs">
-                  <StarRating value={book.score} />
-                  <span className="text-muted-foreground">
-                    {book.score.toFixed(1)}/10
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <WriterBookGrid books={books} writerName={writer.name} />
       )}
 
       <Separator className="my-16" />

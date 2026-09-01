@@ -63,6 +63,7 @@ export interface BookComment {
   date: string;
   authorUsername: string;
   authorUserId: number;
+  authorImage: string | null;
   sharedFrom: SharedFromInfo | null;
 }
 
@@ -88,6 +89,7 @@ export async function getEntityComments(
       date: comment.date,
       authorUsername: user.username,
       authorUserId: user.id,
+      authorImage: user.image,
       sharedFromCommentId: comment.sharedFromCommentId,
     })
     .from(comment)
@@ -289,6 +291,7 @@ export interface CommentReply {
   text: string;
   authorUsername: string;
   authorUserId: number;
+  authorImage: string | null;
   parentType: SubCommentParentType;
   parentId: number;
   replies: CommentReply[];
@@ -314,6 +317,7 @@ export async function getRepliesForComments(
       text: subComment.comment,
       authorUsername: user.username,
       authorUserId: user.id,
+      authorImage: user.image,
       parentId: subComment.parentId,
     })
     .from(subComment)
@@ -336,6 +340,7 @@ export async function getRepliesForComments(
           text: subComment.comment,
           authorUsername: user.username,
           authorUserId: user.id,
+          authorImage: user.image,
           parentId: subComment.parentId,
         })
         .from(subComment)

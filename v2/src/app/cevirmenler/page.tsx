@@ -13,6 +13,7 @@ import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
+import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { getTranslatorList } from "@/db/queries/translators";
 
 export default function TranslatorListPage({ searchParams }: PageProps<"/cevirmenler">) {
@@ -85,27 +86,13 @@ async function TranslatorList({
             ))}
           </div>
 
-          {lastPage > 1 && (
-            <div className="mt-8 flex flex-wrap justify-center gap-2 text-sm">
-              {pageWindow(page, lastPage).map((p) => (
-                <Link
-                  key={p}
-                  href={`/cevirmenler?page=${p}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
-                  className={`rounded-md px-2.5 py-1 ${p === page ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-                >
-                  {p}
-                </Link>
-              ))}
-            </div>
-          )}
+          <PaginationNav
+            page={page}
+            lastPage={lastPage}
+            hrefForPage={(p) => `/cevirmenler?page=${p}${search ? `&search=${encodeURIComponent(search)}` : ""}`}
+          />
         </>
       )}
     </div>
   );
-}
-
-function pageWindow(page: number, lastPage: number, size = 20): number[] {
-  const start = Math.max(1, Math.min(page - Math.floor(size / 2), lastPage - size + 1));
-  const end = Math.min(lastPage, start + size - 1);
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }

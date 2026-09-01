@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { sql, eq, inArray, desc, asc, and, or, like, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/db";
-import { category as categoryTable, writer, writerBook, book, read } from "@/db/schema";
+import { category as categoryTable, writer, writerBook, book, read, bookCategory } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
 
 export interface CategoryBookListItem {
@@ -17,37 +17,118 @@ export interface CategoryBookListItem {
 }
 
 /**
- * Books in a category, ranked by view count. Ported from v1's raw-SQL fix for a
- * catastrophic query plan (MySQL's optimizer otherwise flattens the category
- * EXISTS check back into a join-then-filesort over the category's full row set -
- * confirmed via a fresh EXPLAIN against the live 98.5M-row book table on
- * 2026-08-20: STRAIGHT_JOIN + FORCE INDEX yields a backward index scan on
- * idx_book_viewcount with zero filesort, `rows` bounded by LIMIT). Do not
- * rewrite this with Drizzle's query builder / relational API - the builder
- * does not expose STRAIGHT_JOIN or FORCE INDEX, and a "cleaner" rewrite here
- * is exactly the kind of change that reintroduces the original incident.
+ * Books in a category, ranked by view count, Turkish editions first (real
+ * customer ask: "Kategorilerde Türkçe en ilk sırada listelenmişti daha önce
+ * uygulamada çok iyi olur" - restoring a v1 behavior). Ported from v1's
+ * raw-SQL fix for a catastrophic query plan (MySQL's optimizer otherwise
+ * flattens the category EXISTS check back into a join-then-filesort over the
+ * category's full row set - confirmed via a fresh EXPLAIN against the live
+ * 98.5M-row book table on 2026-08-20: STRAIGHT_JOIN + FORCE INDEX yields a
+ * backward index scan on idx_book_viewcount with zero filesort, `rows`
+ * bounded by LIMIT). Do not rewrite this with Drizzle's query builder /
+ * relational API - the builder does not expose STRAIGHT_JOIN or FORCE INDEX,
+ * and a "cleaner" rewrite here is exactly the kind of change that
+ * reintroduces the original incident.
+ *
+ * Real complication found while adding this: a single `ORDER BY (lang='tr')
+ * DESC, view_count DESC` reintroduces exactly that catastrophic plan - some
+ * categories have 2M+ books (confirmed on prod: category 31 has 2,215,001),
+ * and EXPLAIN confirmed that compound sort forces "Using temporary; Using
+ * filesort" over the whole category (millions of rows) since no index can
+ * satisfy it. Fixed by running two separate FORCE-INDEX queries (Turkish-
+ * only, then everything else), each individually still hitting the same
+ * fast backward-index-scan plan (confirmed via EXPLAIN: adding `AND
+ * b.lang = 'tr'` to the existing WHERE does NOT break the index scan), and
+ * splicing pages across the boundary using the cached Turkish count below -
+ * zero filesort at any point.
  */
 export async function getBooksByCategory(
   categoryId: number,
-  limit = 40,
-): Promise<CategoryBookListItem[]> {
+  page = 1,
+  pageSize = 40,
+): Promise<{ items: CategoryBookListItem[]; total: number; trCount: number; lastPage: number }> {
   "use cache";
   cacheLife("hours");
   cacheTag(`category-books:${categoryId}`);
 
-  const rows = (await db.execute(sql`
-    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-      (b.image IS NOT NULL AND b.image != '') AS hasImage
-    FROM book b FORCE INDEX (idx_book_viewcount)
-    WHERE EXISTS (
-      SELECT 1 FROM book_category bc
-      WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-    )
-    ORDER BY b.view_count DESC
-    LIMIT ${limit}
-  `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
+  const safeSize = Math.min(100, Math.max(1, pageSize));
+  const [total, trCount] = await Promise.all([
+    getCategoryBookCount(categoryId),
+    getCategoryTurkishCount(categoryId),
+  ]);
+  const lastPage = Math.max(1, Math.ceil(total / safeSize));
+  const safePage = Math.min(Math.max(1, page), lastPage);
+  const offset = (safePage - 1) * safeSize;
 
-  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
+  const items: Omit<CategoryBookListItem, "writers">[] = [];
+
+  if (offset < trCount) {
+    const trRows = (await db.execute(sql`
+      SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+        (b.image IS NOT NULL AND b.image != '') AS hasImage
+      FROM book b FORCE INDEX (idx_book_viewcount)
+      WHERE EXISTS (
+        SELECT 1 FROM book_category bc
+        WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+      ) AND b.lang = 'tr'
+      ORDER BY b.view_count DESC
+      LIMIT ${safeSize} OFFSET ${offset}
+    `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
+    items.push(...trRows);
+  }
+
+  if (items.length < safeSize) {
+    const remaining = safeSize - items.length;
+    const nonTrOffset = Math.max(0, offset - trCount);
+    const otherRows = (await db.execute(sql`
+      SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+        (b.image IS NOT NULL AND b.image != '') AS hasImage
+      FROM book b FORCE INDEX (idx_book_viewcount)
+      WHERE EXISTS (
+        SELECT 1 FROM book_category bc
+        WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+      ) AND b.lang != 'tr'
+      ORDER BY b.view_count DESC
+      LIMIT ${remaining} OFFSET ${nonTrOffset}
+    `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
+    items.push(...otherRows);
+  }
+
+  const withWriters = await attachWriterNames(items.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
+  return { items: withWriters, total, trCount, lastPage };
+}
+
+/** Cheap - book_category has a covering index on category_id, no join to
+ * `book` needed at all (confirmed via EXPLAIN: "Using index", ~350ms even on
+ * the largest real category at 2.2M rows). */
+export async function getCategoryBookCount(categoryId: number): Promise<number> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(`category-book-count:${categoryId}`);
+
+  const [row] = await db.select({ n: sql<number>`count(*)` }).from(bookCategory).where(eq(bookCategory.categoryId, categoryId));
+  return Number(row?.n ?? 0);
+}
+
+/**
+ * Real trap found via direct testing: counting Turkish books in a category
+ * needs a join to `book` (book_category alone doesn't carry `lang`), and
+ * that join is a genuine `book`-table random-access lookup per row - timed
+ * out past 60s on category 31's 2.2M rows on this HDD-backed instance, the
+ * same disk-IO cost class already documented elsewhere in this file. Cached
+ * with a long `days` life so that expensive join only ever runs cold once
+ * per category per cache period, never per-request.
+ */
+export async function getCategoryTurkishCount(categoryId: number): Promise<number> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(`category-tr-count:${categoryId}`);
+
+  const rows = (await db.execute(sql`
+    SELECT COUNT(*) AS n FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
+    WHERE bc.category_id = ${categoryId} AND b.lang = 'tr'
+  `))[0] as unknown as { n: number }[];
+  return Number(rows[0]?.n ?? 0);
 }
 
 export interface CategorySummary {

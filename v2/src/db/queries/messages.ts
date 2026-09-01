@@ -32,6 +32,7 @@ async function userFollows(followerId: number, followedId: number): Promise<bool
 export interface ConversationItem {
   otherUserId: number;
   otherUsername: string;
+  otherImage: string | null;
   lastMessagePreview: string | null;
   lastMessageAt: string | null;
   unreadCount: number;
@@ -49,6 +50,7 @@ export async function getConversations(userId: number): Promise<ConversationItem
       hiddenForFirstUser: chat.hiddenForFirstUser,
       hiddenForSecondUser: chat.hiddenForSecondUser,
       otherUsername: user.username,
+      otherImage: user.image,
     })
     .from(chat)
     .innerJoin(
@@ -79,6 +81,7 @@ export async function getConversations(userId: number): Promise<ConversationItem
     conversations.push({
       otherUserId: isFirst ? row.secondUserId : row.firstUserId,
       otherUsername: row.otherUsername,
+      otherImage: row.otherImage,
       lastMessagePreview: row.lastMessagePreview,
       lastMessageAt: row.lastMessageAt,
       unreadCount,
@@ -101,6 +104,7 @@ export async function getMessageRequests(userId: number): Promise<ConversationIt
       lastMessagePreview: chat.lastMessagePreview,
       lastMessageAt: chat.lastMessageAt,
       otherUsername: user.username,
+      otherImage: user.image,
     })
     .from(chat)
     .innerJoin(user, eq(user.id, chat.firstUserId))
@@ -117,6 +121,7 @@ export async function getMessageRequests(userId: number): Promise<ConversationIt
     requests.push({
       otherUserId: row.firstUserId,
       otherUsername: row.otherUsername,
+      otherImage: row.otherImage,
       lastMessagePreview: row.lastMessagePreview,
       lastMessageAt: row.lastMessageAt,
       unreadCount,

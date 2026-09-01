@@ -184,7 +184,20 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
       )}
       <div className="min-w-0 flex-1">
         {item.targetLabel && <p className="truncate text-sm font-medium">{item.targetLabel}</p>}
-        {sourceLabel && <p className="text-xs text-muted-foreground">Kaynak: {sourceLabel}</p>}
+        <div className="flex items-center gap-1.5">
+          {sourceLabel && <p className="text-xs text-muted-foreground">Kaynak: {sourceLabel}</p>}
+          {/* Real customer ask: show the book's puan right on the feed
+              attachment ("Altın sarısı yada kendi uygun renk ile kitabın
+              puanını görselin uygun yerinde... paylaşsak çok güzel olur")
+              - reinforces the points/rating system visually every time a
+              book shows up in the feed, not just on its own detail page. */}
+          {item.bookCover && item.bookCover.score > 0 && (
+            <span className="flex items-center gap-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <StarIcon className="size-3 fill-current" />
+              {item.bookCover.score.toFixed(1)}
+            </span>
+          )}
+        </div>
       </div>
       <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40" />
     </Link>
@@ -245,12 +258,24 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
               </p>
             )}
             {item.reason === "feed_post" && item.feedPostImage && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={feedPostImageUrl(item.feedPostImage)}
-                alt=""
-                className="max-h-[28rem] w-full rounded-lg border border-border object-cover"
-              />
+              // Real customer report: "resmin bir bölümünü aktardığı için
+              // dışarıdan anlaşılmaz kaldı" - a tall/portrait photo (a book
+              // held up, very commonly not landscape) rendered with
+              // object-cover and only a max-height was getting its bottom
+              // silently cropped off, since object-cover only crops to fit
+              // a container's own size, not to a max-height cap. A fixed
+              // aspect ratio + object-contain (letterboxed on a neutral
+              // fill, never cropped) - "sabit bir ölçüye çekip paylaşsa
+              // daha güzel olur" - guarantees the whole photo is always
+              // visible regardless of its original orientation.
+              <div className="w-full overflow-hidden rounded-lg border border-border bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={feedPostImageUrl(item.feedPostImage)}
+                  alt=""
+                  className="aspect-[4/5] w-full object-contain"
+                />
+              </div>
             )}
             {attachmentChip}
             {actionRow}
