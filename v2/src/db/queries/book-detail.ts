@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { and, desc, eq, gt, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
@@ -271,37 +271,65 @@ export interface SimilarBook {
 }
 
 /**
+ * The expensive part of "Benzer Kitaplar", split out so it can be cached
+ * purely by categoryId - shared across every book in the category, not
+ * re-run per book viewed. A real prod incident (2026-09-02) caught the
+ * previous version joining bookCategory->book with no STRAIGHT_JOIN/FORCE
+ * INDEX and ORDER BY book.score DESC: for a large category (~4.5M rows)
+ * MySQL chose to scan the whole join result into a temp table and filesort
+ * it rather than use idx_book_score, and because `bookId` (the *excluded*
+ * book) was itself a parameter of the old cached function, every distinct
+ * book page produced a fresh cache miss - the same catastrophic query
+ * fired concurrently for every book in a popular category and queued up
+ * against this HDD-backed instance for 20-35 minutes each, stalling the
+ * whole site. Forcing the scan to start from `book` via idx_book_score
+ * (verified via EXPLAIN: backward index scan, rows≈limit, no filesort)
+ * fixes the plan; excluding the current book in JS instead of SQL is what
+ * makes the query cacheable by categoryId alone.
+ */
+async function getCategoryCandidatePool(
+  categoryId: number,
+  poolSize: number,
+): Promise<Omit<SimilarBook, "writers">[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`similar-books:${categoryId}`);
+
+  const rows = (await db.execute(sql`
+    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+      (b.image IS NOT NULL AND b.image != '') AS hasImage
+    FROM book b FORCE INDEX (idx_book_score)
+    WHERE EXISTS (
+      SELECT 1 FROM book_category bc
+      WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+    )
+    ORDER BY b.score DESC
+    LIMIT ${poolSize}
+  `))[0] as unknown as Omit<SimilarBook, "writers">[];
+
+  return rows.map((row) => ({ ...row, hasImage: Boolean(row.hasImage) }));
+}
+
+/**
  * "Benzer Kitaplar" - starts from the same first-category+score candidate
  * pool as before (anonymous visitors too, no personalization needed), then
  * re-ranks by actual content/theme similarity ("Book DNA" - local ONNX
  * embeddings, see src/lib/embeddings.ts) whenever both the target book and
  * a candidate have one computed. Falls back to the plain score ordering
  * for any candidate still missing an embedding - most books do until
- * they're re-saved/re-approved, this isn't a backfilled dataset yet.
- * Cached like the rank query it's paired with - this is a hot per-book-
- * page query, not a one-off.
+ * they're re-saved/re-approved, this isn't a backfilled dataset yet. The
+ * candidate-pool query is cached by categoryId (see getCategoryCandidatePool);
+ * this outer function stays uncached since it's cheap once that pool is
+ * warm (filter + rerank over ≤limit*4 rows, one writer lookup).
  */
 export async function getSimilarBooks(bookId: number, categoryId: number, limit = 6): Promise<SimilarBook[]> {
-  "use cache";
-  cacheLife("hours");
-  cacheTag(`similar-books:${categoryId}`);
-
   // Pull a wider candidate pool than needed so the content re-rank below
-  // has real room to reorder, not just the same top-6-by-score every time.
-  const rows = await db
-    .select({
-      id: book.id,
-      name: book.name,
-      slug: book.slug,
-      score: book.score,
-      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
-    })
-    .from(bookCategory)
-    .innerJoin(book, eq(bookCategory.bookId, book.id))
-    .where(and(eq(bookCategory.categoryId, categoryId), ne(book.id, bookId)))
-    .orderBy(desc(book.score))
-    .limit(limit * 4)
-    .then((r) => r.map((row) => ({ ...row, hasImage: Boolean(row.hasImage) })));
+  // has real room to reorder, not just the same top-6-by-score every time,
+  // plus a small margin since the current book (excluded below, not in SQL
+  // so the pool query stays cacheable across every book in this category)
+  // might itself be one of the top results.
+  const pool = await getCategoryCandidatePool(categoryId, limit * 4 + 4);
+  const rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
 
   if (rows.length === 0) return [];
 
