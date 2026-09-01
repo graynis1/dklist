@@ -16,7 +16,7 @@ import { getRecentBookActivity } from "@/db/queries/activity";
 import { HashtagText } from "@/components/dklist/hashtag-text";
 import { currentISOWeek } from "@/lib/iso-week";
 import { connection } from "next/server";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { auth } from "@/auth";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
@@ -207,9 +207,7 @@ async function TopReadersShelf() {
           href={`/profil/${r.username}`}
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm transition-colors hover:bg-accent"
         >
-          <Avatar className="size-7 text-xs">
-            <AvatarFallback>{r.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
+          <EntityAvatar id={r.id} name={r.username} image={r.image} size="size-7" className="shrink-0" />
           @{r.username}
           <span className="text-xs text-muted-foreground">{r.readCount} kitap</span>
         </Link>
@@ -252,9 +250,7 @@ async function WeeklyLeaderWidget() {
           className="flex items-center gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
         >
           <span className="text-2xl">{MEDALS[i]}</span>
-          <Avatar className="size-10 text-sm">
-            <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
+          <EntityAvatar id={entry.userId} name={entry.username} image={entry.image} size="size-10" className="shrink-0" />
           <div className="flex flex-col truncate">
             <span className="truncate font-medium">@{entry.username}</span>
             <span className="text-sm text-muted-foreground">{entry.points} puan</span>
@@ -420,9 +416,7 @@ async function FollowSuggestionsWidget() {
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-2 pl-1 text-sm"
         >
           <Link href={`/profil/${s.username}`} className="flex items-center gap-2 hover:underline">
-            <Avatar className="size-7 text-xs">
-              <AvatarFallback>{s.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
+            <EntityAvatar id={s.id} name={s.username} image={s.image} size="size-7" className="shrink-0" />
             @{s.username}
           </Link>
           <span className="text-xs text-muted-foreground">{s.sharedBookCount} ortak kitap</span>

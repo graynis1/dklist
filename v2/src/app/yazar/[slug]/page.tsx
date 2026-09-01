@@ -13,7 +13,7 @@ import { EntityComments } from "@/components/dklist/entity-comments";
 import { Separator } from "@/components/ui/separator";
 import { getWriterBySlug, getBooksByWriter } from "@/db/queries/writers";
 import { isWriterLiked, getWriterLikeCount } from "@/db/queries/likes";
-import { getUserWriterRating } from "@/db/queries/rating";
+import { getUserWriterRating, getWriterRatingCount } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { getAuthorMemberForWriter } from "@/db/queries/yazarhane";
@@ -79,11 +79,12 @@ async function WriterContent({
 
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
-  const [books, liked, likeCount, userRating, comments, authorMember] = await Promise.all([
+  const [books, liked, likeCount, userRating, ratingCount, comments, authorMember] = await Promise.all([
     getBooksByWriter(writer.id),
     userId ? isWriterLiked(userId, writer.id) : Promise.resolve(false),
     getWriterLikeCount(writer.id),
     userId ? getUserWriterRating(userId, writer.id) : Promise.resolve(null),
+    getWriterRatingCount(writer.id),
     getEntityComments(writer.id, "writer"),
     getAuthorMemberForWriter(writer.id),
   ]);
@@ -122,6 +123,9 @@ async function WriterContent({
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={writer.score} />
             <span className="font-medium">{writer.score.toFixed(1)}/10</span>
+            {ratingCount > 0 && (
+              <span className="text-muted-foreground">({ratingCount} oy)</span>
+            )}
             <span className="text-muted-foreground">
               · {books.length} kitap
             </span>

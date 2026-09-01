@@ -267,6 +267,14 @@ async function BookDetailContent({
                   ? `Ortak kitap puanı ${workPooledScore.avgScore.toFixed(1)}/10 (${workPooledScore.editionCount} baskı)`
                   : `${detail.score.toFixed(1)}/10`}
               </span>
+              {/* Real gap found while wiring this up: ratingCount was
+                  already fetched but only ever used in the invisible
+                  JSON-LD SEO block below, never shown to a real visitor -
+                  customer's explicit ask ("kaç kişi oy kullandı verisi
+                  eklenebilir mi"). */}
+              {ratingCount > 0 && (
+                <span className="text-muted-foreground">({ratingCount} oy)</span>
+              )}
               {workPooledScore && (
                 <span className="text-muted-foreground">
                   · Bu baskının puanı {detail.score.toFixed(1)}/10
@@ -518,7 +526,7 @@ async function BookDetailContent({
                   href={`/profil/${r.username}`}
                   className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm hover:bg-accent"
                 >
-                  <EntityAvatar id={r.id} name={r.username} size="size-6" className="text-[10px]" />
+                  <EntityAvatar id={r.id} name={r.username} image={r.image} size="size-6" className="text-[10px]" />
                   {r.username}
                   <span className="text-xs text-muted-foreground">
                     {READER_STATUS_LABELS[r.status] ?? r.status}
