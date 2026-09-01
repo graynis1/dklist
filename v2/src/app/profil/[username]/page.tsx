@@ -56,6 +56,7 @@ import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
 import { getTotalReadingMinutes } from "@/db/queries/reading-status";
 import { isUserPremium } from "@/db/queries/premium";
+import { ExpandableShelf } from "@/components/dklist/expandable-shelf";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
   finishRead: "Okudum",
@@ -655,7 +656,7 @@ function BookShelf({
   books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
 }) {
   return (
-    <div className="flex flex-wrap gap-4">
+    <ExpandableShelf>
       {books.map((b) => (
         <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 flex-col gap-1">
           <BookCover
@@ -677,7 +678,7 @@ function BookShelf({
           <p className="truncate text-[0.7rem] text-muted-foreground">{b.writers.join(", ") || "Yazar bilinmiyor"}</p>
         </Link>
       ))}
-    </div>
+    </ExpandableShelf>
   );
 }
 
@@ -689,7 +690,7 @@ function EntityChipShelf({
   hrefPrefix: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-2.5">
+    <ExpandableShelf className="flex flex-wrap gap-2.5" limit={12}>
       {items.map((item) => (
         <Link
           key={item.id}
@@ -700,6 +701,6 @@ function EntityChipShelf({
           <span className="whitespace-nowrap">{item.name}</span>
         </Link>
       ))}
-    </div>
+    </ExpandableShelf>
   );
 }

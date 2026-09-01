@@ -39,6 +39,7 @@ export interface WriterBookItem {
   score: number;
   viewCount: number;
   hasImage: boolean;
+  originalBookId: number | null;
 }
 
 export interface WriterListItem {
@@ -117,6 +118,7 @@ export async function getBooksByWriter(writerId: number): Promise<WriterBookItem
       score: book.score,
       viewCount: book.viewCount,
       hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+      originalBookId: book.originalBookId,
     })
     .from(writerBook)
     .innerJoin(book, eq(writerBook.bookId, book.id))

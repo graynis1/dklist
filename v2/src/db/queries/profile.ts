@@ -427,6 +427,7 @@ export async function getSharedReadBooks(
 export interface FollowSuggestion {
   id: number;
   username: string;
+  image: string | null;
   sharedBookCount: number;
 }
 
@@ -447,6 +448,7 @@ export async function getFollowSuggestions(viewerId: number, limit = 6): Promise
     .select({
       id: user.id,
       username: user.username,
+      image: user.image,
       sharedBookCount: sql<number>`count(*)`,
     })
     .from(viewerRead)
@@ -660,6 +662,7 @@ export async function getReadingScoreStats(userId: number, year: string): Promis
 export interface TopReader {
   id: number;
   username: string;
+  image: string | null;
   readCount: number;
 }
 
@@ -674,7 +677,7 @@ export async function getTopReaders(limit = 20): Promise<TopReader[]> {
   cacheTag("top-readers");
 
   const rows = await db
-    .select({ id: user.id, username: user.username, readCount: sql<number>`count(${read.id})` })
+    .select({ id: user.id, username: user.username, image: user.image, readCount: sql<number>`count(${read.id})` })
     .from(user)
     .leftJoin(read, eq(read.userId, user.id))
     .groupBy(user.id)

@@ -46,6 +46,7 @@ export interface BlogListItem {
   createdDate: string;
   ownerId: number | null;
   ownerUsername: string | null;
+  ownerImage: string | null;
   img: string | null;
 }
 
@@ -102,6 +103,7 @@ export async function getBlogList(
       image: blog.image,
       ownerId: user.id,
       ownerUsername: user.username,
+      ownerImage: user.image,
       ownerMailAuth: user.mailAuth,
       ownerDisable: user.disable,
     })
@@ -122,6 +124,7 @@ export async function getBlogList(
       createdDate: r.createdDate,
       ownerId: r.ownerId,
       ownerUsername: r.ownerUsername,
+      ownerImage: r.ownerImage,
       img: blogImageUrl(r.image),
     }));
 
@@ -144,6 +147,7 @@ export async function getRecentBlogPosts(limit: number, excludeId?: number): Pro
       image: blog.image,
       ownerId: user.id,
       ownerUsername: user.username,
+      ownerImage: user.image,
       ownerMailAuth: user.mailAuth,
       ownerDisable: user.disable,
     })
@@ -165,6 +169,7 @@ export async function getRecentBlogPosts(limit: number, excludeId?: number): Pro
       createdDate: r.createdDate,
       ownerId: r.ownerId,
       ownerUsername: r.ownerUsername,
+      ownerImage: r.ownerImage,
       img: blogImageUrl(r.image),
     }));
 }
@@ -209,6 +214,7 @@ export interface BlogDetail {
   img: string | null;
   ownerId: number | null;
   ownerUsername: string | null;
+  ownerImage: string | null;
   hasPendingRevision: boolean;
   pendingTitle: string | null;
   pendingContent: string | null;
@@ -243,6 +249,7 @@ export async function getBlogBySlug(slug: string): Promise<BlogDetail | null> {
       image: blog.image,
       ownerId: blog.ownerId,
       ownerUsername: user.username,
+      ownerImage: user.image,
       hasPendingRevision: blog.hasPendingRevision,
       pendingTitle: blog.pendingTitle,
       pendingContent: blog.pendingContent,
@@ -266,6 +273,7 @@ export async function getBlogBySlug(slug: string): Promise<BlogDetail | null> {
     img: blogImageUrl(row.image),
     ownerId: row.ownerId,
     ownerUsername: row.ownerUsername,
+    ownerImage: row.ownerImage,
     hasPendingRevision: Boolean(row.hasPendingRevision),
     pendingTitle: row.pendingTitle,
     pendingContent: row.pendingContent,

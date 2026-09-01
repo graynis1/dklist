@@ -87,6 +87,7 @@ export async function addFeedReplyAction(
         text: text.trim(),
         authorUsername: session.user.name ?? "?",
         authorUserId: userId,
+        authorImage: session.user.image ?? null,
         parentType,
         parentId,
         replies: [],

@@ -1,10 +1,10 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { user } from "@/db/schema";
+import { saveUploadedImage } from "@/lib/image-upload";
 
 // v1's ImageManager falls back to local-disk storage (an `/uploads`
 // directory + `/image/{name}` route) whenever Cloudinary isn't configured -
@@ -16,41 +16,22 @@ import { user } from "@/db/schema";
 // actual data loss, not just a cache miss.
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "avatars");
 
-const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
-
-// Magic-byte signatures - Node has no getimagesize() equivalent built in, so
-// this checks the file's real content the same way v1's getimagesize() call
-// does, rather than trusting the client-supplied extension/MIME type (which
-// is exactly the kind of thing v1's own comment on this check warns about:
-// trivially spoofable by renaming any file).
-function looksLikeImage(bytes: Buffer): boolean {
-  if (bytes.length < 12) return false;
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return true; // PNG
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return true; // JPEG
-  if (bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP") return true; // WEBP
-  return false;
-}
-
+/**
+ * Real customer-reported bug: "profil resmi ekleyemedim, telden bakayım
+ * dedim" (couldn't add a profile picture, tried from my phone). Root cause:
+ * this had its OWN duplicated fixed-extension allowlist + magic-byte sniff,
+ * completely separate from saveUploadedImage() in image-upload.ts - so the
+ * any-format-to-webp fix built for the rest of the site (askıda kitap,
+ * blog, badges, etc.) never touched avatar uploads at all. A phone camera
+ * photo (very commonly HEIC on iPhone) was still rejected outright here.
+ * Fixed by routing through the same shared, sharp-based upload path -
+ * every filename this writes is now genuinely `.webp`, matching every
+ * other upload feature site-wide.
+ */
 export async function uploadAvatar(userId: number, file: File): Promise<string> {
-  const originalExt = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (!ALLOWED_EXTENSIONS.has(originalExt)) {
-    throw new Error("Sadece .png, .jpg ve .webp uzantılı resim dosyaları kabul edilir.");
-  }
-
-  const bytes = Buffer.from(await file.arrayBuffer());
-  if (!looksLikeImage(bytes)) {
-    throw new Error("Dosya geçerli bir resim değil.");
-  }
-  if (bytes.length > 5 * 1024 * 1024) {
-    throw new Error("Resim en fazla 5MB olabilir.");
-  }
-
   const [row] = await db.select({ image: user.image }).from(user).where(eq(user.id, userId)).limit(1);
 
-  const filename = `${randomUUID()}.${originalExt}`;
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  await writeFile(path.join(UPLOAD_DIR, filename), bytes);
-
+  const filename = await saveUploadedImage("avatars", file);
   await db.update(user).set({ image: filename }).where(eq(user.id, userId));
 
   if (row?.image) {

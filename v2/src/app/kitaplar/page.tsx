@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { getBookList, getTopCategories, type BookSortBy } from "@/db/queries/books";
 
 const SORT_OPTIONS: { value: BookSortBy; label: string }[] = [
@@ -154,28 +155,10 @@ async function BookListContent({
             ))}
           </div>
 
-          {lastPage > 1 && (
-            <div className="mt-8 flex flex-wrap justify-center gap-2 text-sm">
-              {pageWindow(page, lastPage).map((p) => (
-                <Link
-                  key={p}
-                  href={`/kitaplar?${qs({ page: String(p) })}`}
-                  className={`rounded-md px-2.5 py-1 ${p === page ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-                >
-                  {p}
-                </Link>
-              ))}
-            </div>
-          )}
+          <PaginationNav page={page} lastPage={lastPage} hrefForPage={(p) => `/kitaplar?${qs({ page: String(p) })}`} />
         </>
       )}
       {total > 0 && <p className="mt-4 text-xs text-muted-foreground">Toplam {total} kitap.</p>}
     </div>
   );
-}
-
-function pageWindow(page: number, lastPage: number, size = 20): number[] {
-  const start = Math.max(1, Math.min(page - Math.floor(size / 2), lastPage - size + 1));
-  const end = Math.min(lastPage, start + size - 1);
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }

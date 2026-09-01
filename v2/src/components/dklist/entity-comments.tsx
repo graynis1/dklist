@@ -184,7 +184,7 @@ function ReplyItem({
 
   return (
     <li className="flex gap-2.5 border-l-2 border-border pl-3">
-      <EntityAvatar id={reply.authorUserId} name={reply.authorUsername} size="size-7" className="mt-0.5 shrink-0" />
+      <EntityAvatar id={reply.authorUserId} name={reply.authorUsername} image={reply.authorImage} size="size-7" className="mt-0.5 shrink-0" />
       <div className="flex flex-1 flex-col gap-1">
       <div className="flex items-center gap-2 text-sm">
         <span className="font-medium">@{reply.authorUsername}</span>
@@ -392,6 +392,7 @@ export function EntityComments({
             date: new Date().toISOString().slice(0, 10),
             authorUsername: "siz",
             authorUserId: viewerId ?? -1,
+            authorImage: null,
             sharedFrom: { authorUsername: original.authorUsername, text: original.text },
           },
           ...prev,
@@ -418,6 +419,7 @@ export function EntityComments({
             date: new Date().toISOString().slice(0, 10),
             authorUsername: "siz",
             authorUserId: viewerId ?? -1,
+            authorImage: null,
             sharedFrom: null,
           },
           ...prev,
@@ -437,6 +439,7 @@ export function EntityComments({
           text,
           authorUsername: "siz",
           authorUserId: viewerId ?? -1,
+          authorImage: null,
           parentType,
           parentId,
           replies: [],
@@ -500,7 +503,7 @@ export function EntityComments({
             const isEditing = editingCommentId === c.id;
             return (
               <li key={c.id} className="flex gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-              <EntityAvatar id={c.authorUserId} name={c.authorUsername} size="size-9" className="mt-0.5 shrink-0" />
+              <EntityAvatar id={c.authorUserId} name={c.authorUsername} image={c.authorImage} size="size-9" className="mt-0.5 shrink-0" />
               <div className="flex flex-1 flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-medium">@{c.authorUsername}</span>

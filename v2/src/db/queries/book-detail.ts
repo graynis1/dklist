@@ -184,6 +184,7 @@ export async function getWorkEditions(workId: number, excludeBookId: number, cur
 export interface BookReader {
   id: number;
   username: string;
+  image: string | null;
   status: string;
 }
 
@@ -200,7 +201,7 @@ export async function getBookReaders(bookId: number, limit = 12): Promise<BookRe
   cacheTag(`book-readers:${bookId}`);
 
   return db
-    .select({ id: user.id, username: user.username, status: read.status })
+    .select({ id: user.id, username: user.username, image: user.image, status: read.status })
     .from(read)
     .innerJoin(user, eq(read.userId, user.id))
     .where(eq(read.bookId, bookId))

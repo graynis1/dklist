@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { SearchIcon } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { HeaderSearchBox } from "@/components/dklist/header-search";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
 import { NotificationBell } from "@/components/dklist/notification-bell";
@@ -62,14 +61,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <form action="/ara" className="relative hidden lg:block">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              name="q"
-              placeholder="Kitap ara…"
-              className="h-10 w-64 rounded-full bg-secondary/60 pl-9"
-            />
-          </form>
+          <HeaderSearchBox />
           <MessageBell />
           <NotificationBell />
           <ThemeToggle />

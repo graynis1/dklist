@@ -75,7 +75,7 @@ export async function CommunityRightRail() {
             {suggestions.map((s) => (
               <li key={s.id} className="flex items-center gap-2.5">
                 <Link href={`/profil/${s.username}`} className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <EntityAvatar id={s.id} name={s.username} size="size-8" className="shrink-0" />
+                  <EntityAvatar id={s.id} name={s.username} image={s.image} size="size-8" className="shrink-0" />
                   <div className="flex min-w-0 flex-col">
                     <span className="truncate text-sm font-medium">@{s.username}</span>
                     <span className="text-xs text-muted-foreground">{s.sharedBookCount} ortak kitap</span>
