@@ -41,7 +41,59 @@ export interface CategoryBookListItem {
  * b.lang = 'tr'` to the existing WHERE does NOT break the index scan), and
  * splicing pages across the boundary using the cached Turkish count below -
  * zero filesort at any point.
+ *
+ * Second real incident (2026-09-02): the book-first backward-index-scan
+ * plan above is only fast when the category is a large fraction of the
+ * table - MySQL walks `book` in view_count-descending order and stops once
+ * it collects LIMIT matches. For a small category (confirmed on prod:
+ * category 95900 has 15 books total, all non-Turkish) there aren't enough
+ * matches to ever satisfy the LIMIT, so MySQL scans the *entire* ~98.5M-row
+ * book table before concluding there's nothing left - stuck 24+ minutes in
+ * production, part of the same incident that also hit getSimilarBooks.
+ * Fixed by choosing the join order from the already-known subset size: for
+ * a small subset, start from `book_category` (index range scan on
+ * category_id, ~instant) and filesort the tiny result instead - confirmed
+ * via EXPLAIN + live timing (0.067s for category 95900) that a filesort
+ * over a few thousand rows is a non-issue, it's only catastrophic at
+ * millions of rows.
  */
+const LARGE_CATEGORY_SUBSET_THRESHOLD = 20_000;
+
+async function fetchCategoryPage(
+  categoryId: number,
+  lang: "tr" | "not-tr",
+  subsetCount: number,
+  limit: number,
+  offset: number,
+): Promise<Omit<CategoryBookListItem, "writers">[]> {
+  const langCondition = lang === "tr" ? sql`b.lang = 'tr'` : sql`b.lang != 'tr'`;
+
+  const rows =
+    subsetCount < LARGE_CATEGORY_SUBSET_THRESHOLD
+      ? (await db.execute(sql`
+          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+            (b.image IS NOT NULL AND b.image != '') AS hasImage
+          FROM book_category bc
+          INNER JOIN book b ON b.id = bc.book_id
+          WHERE bc.category_id = ${categoryId} AND ${langCondition}
+          ORDER BY b.view_count DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `))[0]
+      : (await db.execute(sql`
+          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+            (b.image IS NOT NULL AND b.image != '') AS hasImage
+          FROM book b FORCE INDEX (idx_book_viewcount)
+          WHERE EXISTS (
+            SELECT 1 FROM book_category bc
+            WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+          ) AND ${langCondition}
+          ORDER BY b.view_count DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `))[0];
+
+  return rows as unknown as Omit<CategoryBookListItem, "writers">[];
+}
+
 export async function getBooksByCategory(
   categoryId: number,
   page = 1,
@@ -59,38 +111,19 @@ export async function getBooksByCategory(
   const lastPage = Math.max(1, Math.ceil(total / safeSize));
   const safePage = Math.min(Math.max(1, page), lastPage);
   const offset = (safePage - 1) * safeSize;
+  const nonTrCount = total - trCount;
 
   const items: Omit<CategoryBookListItem, "writers">[] = [];
 
   if (offset < trCount) {
-    const trRows = (await db.execute(sql`
-      SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-        (b.image IS NOT NULL AND b.image != '') AS hasImage
-      FROM book b FORCE INDEX (idx_book_viewcount)
-      WHERE EXISTS (
-        SELECT 1 FROM book_category bc
-        WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-      ) AND b.lang = 'tr'
-      ORDER BY b.view_count DESC
-      LIMIT ${safeSize} OFFSET ${offset}
-    `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
+    const trRows = await fetchCategoryPage(categoryId, "tr", trCount, safeSize, offset);
     items.push(...trRows);
   }
 
   if (items.length < safeSize) {
     const remaining = safeSize - items.length;
     const nonTrOffset = Math.max(0, offset - trCount);
-    const otherRows = (await db.execute(sql`
-      SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-        (b.image IS NOT NULL AND b.image != '') AS hasImage
-      FROM book b FORCE INDEX (idx_book_viewcount)
-      WHERE EXISTS (
-        SELECT 1 FROM book_category bc
-        WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-      ) AND b.lang != 'tr'
-      ORDER BY b.view_count DESC
-      LIMIT ${remaining} OFFSET ${nonTrOffset}
-    `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
+    const otherRows = await fetchCategoryPage(categoryId, "not-tr", nonTrCount, remaining, nonTrOffset);
     items.push(...otherRows);
   }
 
