@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DUPLICATE_MATCH_THRESHOLD,
+  levenshteinDistance,
+  levenshteinSimilarity,
   normalizeIsbn,
   normalizeTitle,
   stringSimilarity,
@@ -61,6 +63,70 @@ describe("stringSimilarity (Jaro-Winkler)", () => {
   it("handles empty strings without throwing", () => {
     expect(stringSimilarity("", "")).toBe(1);
     expect(stringSimilarity("", "a")).toBe(0);
+  });
+});
+
+describe("levenshteinDistance", () => {
+  it("is 0 for identical strings, including two empty strings", () => {
+    expect(levenshteinDistance("simyacı", "simyacı")).toBe(0);
+    expect(levenshteinDistance("", "")).toBe(0);
+  });
+
+  it("equals the other string's length when one side is empty", () => {
+    expect(levenshteinDistance("", "kitap")).toBe(5);
+    expect(levenshteinDistance("kitap", "")).toBe(5);
+  });
+
+  it("counts a single substitution as distance 1", () => {
+    expect(levenshteinDistance("kitap", "kutap")).toBe(1);
+  });
+
+  it("counts a single insertion/deletion as distance 1", () => {
+    expect(levenshteinDistance("kitap", "kitaap")).toBe(1);
+    expect(levenshteinDistance("kitaap", "kitap")).toBe(1);
+  });
+
+  it("matches a known hand-computable example (kitten -> sitting = 3)", () => {
+    // The textbook Levenshtein example: k->s, e->i, insert g.
+    expect(levenshteinDistance("kitten", "sitting")).toBe(3);
+  });
+
+  it("is symmetric", () => {
+    expect(levenshteinDistance("dostoyevski", "dostoyevska")).toBe(
+      levenshteinDistance("dostoyevska", "dostoyevski"),
+    );
+  });
+});
+
+describe("levenshteinSimilarity", () => {
+  it("scores identical strings, including two empty strings, as 1", () => {
+    expect(levenshteinSimilarity("simyacı", "simyacı")).toBe(1);
+    expect(levenshteinSimilarity("", "")).toBe(1);
+  });
+
+  it("scores completely disjoint equal-length strings at 0", () => {
+    expect(levenshteinSimilarity("abcd", "wxyz")).toBe(0);
+  });
+
+  it("is normalized by the longer string's length, matching stringSimilarity's 0-1 scale", () => {
+    // 1-char edit out of a 5-char word -> 1 - 1/5.
+    expect(levenshteinSimilarity("kitap", "kutap")).toBeCloseTo(0.8, 5);
+  });
+
+  it("can score a single real character difference higher than Jaro-Winkler when repeated substrings confuse Jaro's greedy match window", () => {
+    // Jaro-Winkler's match-window algorithm is greedy and can misalign on
+    // strings with repeated characters/substrings, scoring some genuinely
+    // single-edit pairs lower than a plain edit-distance count would - this
+    // exact pair differs by exactly one substituted character (confirmed via
+    // levenshteinDistance below) but Jaro-Winkler's score comes out lower
+    // than a naive "1 edit out of 14 chars" expectation. This is the
+    // complementary-signal case documented in duplicate-detection.ts: a
+    // second, differently-biased algorithm can catch what the other one
+    // under- or over-scores.
+    const a = "ehdfgcfdegefef";
+    const b = "fhdfgcfdegefef";
+    expect(levenshteinDistance(a, b)).toBe(1);
+    expect(levenshteinSimilarity(a, b)).toBeGreaterThan(stringSimilarity(a, b));
   });
 });
 
