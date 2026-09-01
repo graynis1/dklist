@@ -4,6 +4,7 @@ import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
+import { getCategoryBookCount } from "@/db/queries/books";
 
 export interface BookDetail {
   id: number;
@@ -286,7 +287,22 @@ export interface SimilarBook {
  * (verified via EXPLAIN: backward index scan, rows≈limit, no filesort)
  * fixes the plan; excluding the current book in JS instead of SQL is what
  * makes the query cacheable by categoryId alone.
+ *
+ * Second incident, same day, same root disease: this book-first plan is
+ * itself only fast when the category is a meaningful fraction of the
+ * table - for a small/obscure category (confirmed on prod: several
+ * homepage recent-activity categories had as few as 16-290 books) there
+ * aren't enough matches for the backward index scan to ever satisfy
+ * `poolSize`, so it walks deep into the ~98.5M-row book table instead -
+ * the exact same failure already fixed for getBooksByCategory
+ * (books.ts), just missed here on the first pass since only a large
+ * category (31) was tested before shipping. Same fix: pick the join
+ * order from the already-known category size (getCategoryBookCount is
+ * a cheap index-only count, cached for days) - small categories start
+ * from book_category and filesort the tiny result instead.
  */
+const LARGE_CATEGORY_POOL_THRESHOLD = 20_000;
+
 async function getCategoryCandidatePool(
   categoryId: number,
   poolSize: number,
@@ -295,17 +311,31 @@ async function getCategoryCandidatePool(
   cacheLife("hours");
   cacheTag(`similar-books:${categoryId}`);
 
-  const rows = (await db.execute(sql`
-    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
-      (b.image IS NOT NULL AND b.image != '') AS hasImage
-    FROM book b FORCE INDEX (idx_book_score)
-    WHERE EXISTS (
-      SELECT 1 FROM book_category bc
-      WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-    )
-    ORDER BY b.score DESC
-    LIMIT ${poolSize}
-  `))[0] as unknown as Omit<SimilarBook, "writers">[];
+  const categorySize = await getCategoryBookCount(categoryId);
+
+  const rows = (
+    categorySize < LARGE_CATEGORY_POOL_THRESHOLD
+      ? (await db.execute(sql`
+          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+            (b.image IS NOT NULL AND b.image != '') AS hasImage
+          FROM book_category bc
+          INNER JOIN book b ON b.id = bc.book_id
+          WHERE bc.category_id = ${categoryId}
+          ORDER BY b.score DESC
+          LIMIT ${poolSize}
+        `))[0]
+      : (await db.execute(sql`
+          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+            (b.image IS NOT NULL AND b.image != '') AS hasImage
+          FROM book b FORCE INDEX (idx_book_score)
+          WHERE EXISTS (
+            SELECT 1 FROM book_category bc
+            WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+          )
+          ORDER BY b.score DESC
+          LIMIT ${poolSize}
+        `))[0]
+  ) as unknown as Omit<SimilarBook, "writers">[];
 
   return rows.map((row) => ({ ...row, hasImage: Boolean(row.hasImage) }));
 }
