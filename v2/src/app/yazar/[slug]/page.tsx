@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { BookCover, toneForId } from "@/components/dklist/book-cover";
+import { WriterBookGrid } from "@/components/dklist/writer-book-grid";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { EntityLikeButton } from "@/components/dklist/entity-like-button";
@@ -174,34 +174,7 @@ async function WriterContent({
           Bu yazara ait kitap bulunmuyor.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 lg:grid-cols-5">
-          {books.map((book) => (
-            <Link
-              key={book.id}
-              href={`/kitap/${book.slug}`}
-              className="flex flex-col gap-3"
-            >
-              <BookCover
-                title={book.name}
-                author={writer.name}
-                tone={toneForId(book.id)}
-                bookId={book.id}
-                hasImage={book.hasImage}
-                size="md"
-                className="w-full"
-              />
-              <div className="flex flex-col gap-0.5">
-                <p className="truncate text-sm font-medium">{book.name}</p>
-                <div className="flex items-center gap-1 text-xs">
-                  <StarRating value={book.score} />
-                  <span className="text-muted-foreground">
-                    {book.score.toFixed(1)}/10
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <WriterBookGrid books={books} writerName={writer.name} />
       )}
 
       <Separator className="my-16" />

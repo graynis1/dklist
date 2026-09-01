@@ -14,7 +14,6 @@ import { MessageRequestItem } from "@/components/dklist/message-request-item";
 import { auth } from "@/auth";
 import { getConversations, getMessages, getMessageRequests } from "@/db/queries/messages";
 import { getProfileByUsername } from "@/db/queries/profile";
-import { avatarUrl } from "@/db/queries/avatar";
 
 export default function MessagesPage({ searchParams }: PageProps<"/mesajlar">) {
   return (
@@ -98,7 +97,7 @@ async function MessagesContent({
               <EntityAvatar
                 id={activeProfile.id}
                 name={activeProfile.username}
-                image={avatarUrl(activeProfile.image) ?? undefined}
+                image={activeProfile.image}
                 size="size-8"
               />
               <Link href={`/profil/${activeProfile.username}`} className="font-medium hover:underline">

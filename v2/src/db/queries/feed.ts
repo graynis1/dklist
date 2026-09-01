@@ -80,7 +80,7 @@ export interface FeedItem {
    * cover/typeset jacket thumbnail instead of reading as a plain text log,
    * the concrete difference between a notification list and something that
    * reads like an actual community feed. */
-  bookCover: { id: number; hasImage: boolean } | null;
+  bookCover: { id: number; hasImage: boolean; score: number } | null;
   /** Writer/translator comment/quote targets don't have a photo cover to
    * show, but still deserve more visual weight than plain text - the real
    * entity id lets the card render the same tone-colored EntityAvatar used
@@ -262,7 +262,7 @@ export async function getSiteFeed(opts: {
   ] = await Promise.all([
     bookIds.size
       ? db
-          .select({ id: book.id, name: book.name, slug: book.slug, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` })
+          .select({ id: book.id, name: book.name, slug: book.slug, score: book.score, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` })
           .from(book)
           .where(inArray(book.id, [...bookIds]))
       : Promise.resolve([]),
@@ -318,7 +318,7 @@ export async function getSiteFeed(opts: {
         isQuote: false,
         targetLabel: attachedBook?.name ?? null,
         targetHref: attachedBook ? `/kitap/${attachedBook.slug}` : null,
-        bookCover: attachedBook ? { id: attachedBook.id, hasImage: Boolean(attachedBook.hasImage) } : null,
+        bookCover: attachedBook ? { id: attachedBook.id, hasImage: Boolean(attachedBook.hasImage), score: attachedBook.score } : null,
         excerpt: p.text,
         feedPostId: p.id,
         feedPostImage: p.image,
@@ -349,7 +349,7 @@ export async function getSiteFeed(opts: {
           targetLabel: b?.name ?? null,
           targetHref: b ? `/kitap/${b.slug}` : null,
           excerpt,
-          bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage) } : null,
+          bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage), score: b.score } : null,
         };
       }
       if (c.type === "writer") {
@@ -369,7 +369,7 @@ export async function getSiteFeed(opts: {
         targetLabel: b?.name ?? null,
         targetHref: b ? `/kitap/${b.slug}` : null,
         excerpt: null,
-        bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage) } : null,
+        bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage), score: b.score } : null,
       };
     }
 

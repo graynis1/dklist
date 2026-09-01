@@ -145,7 +145,7 @@ async function BlogList({
                 <p className="line-clamp-3 text-[0.95rem] leading-relaxed text-muted-foreground">{hero.preview}</p>
                 <div className="mt-1 flex items-center gap-2">
                   {hero.ownerUsername && hero.ownerId != null && (
-                    <EntityAvatar id={hero.ownerId} name={hero.ownerUsername} size="size-7" />
+                    <EntityAvatar id={hero.ownerId} name={hero.ownerUsername} image={hero.ownerImage} size="size-7" />
                   )}
                   <span className="text-sm text-muted-foreground">
                     {hero.ownerUsername ? `@${hero.ownerUsername} · ` : ""}
@@ -173,7 +173,7 @@ async function BlogList({
                   <p className="line-clamp-2 flex-1 text-sm leading-relaxed text-muted-foreground">{post!.preview}</p>
                   <div className="mt-1 flex items-center gap-2">
                     {post!.ownerUsername && post!.ownerId != null && (
-                      <EntityAvatar id={post!.ownerId} name={post!.ownerUsername} size="size-6" />
+                      <EntityAvatar id={post!.ownerId} name={post!.ownerUsername} image={post!.ownerImage} size="size-6" />
                     )}
                     <span className="text-xs text-muted-foreground">
                       {post!.ownerUsername ? `@${post!.ownerUsername} · ` : ""}

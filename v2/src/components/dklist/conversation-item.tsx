@@ -33,7 +33,7 @@ export function ConversationItem({
   return (
     <div className={`group flex items-center gap-3 p-3 transition-colors hover:bg-accent ${isActive ? "bg-accent" : ""}`}>
       <Link href={`/mesajlar?user=${conversation.otherUsername}`} className="flex min-w-0 flex-1 items-center gap-3">
-        <EntityAvatar id={conversation.otherUserId} name={conversation.otherUsername} size="size-9" />
+        <EntityAvatar id={conversation.otherUserId} name={conversation.otherUsername} image={conversation.otherImage} size="size-9" />
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium">@{conversation.otherUsername}</span>
           <span className="truncate text-xs text-muted-foreground">

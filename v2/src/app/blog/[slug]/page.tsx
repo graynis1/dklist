@@ -116,7 +116,7 @@ async function BlogDetailContent({
       </h1>
       <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
         {post.ownerUsername && post.ownerId != null && (
-          <EntityAvatar id={post.ownerId} name={post.ownerUsername} size="size-8" />
+          <EntityAvatar id={post.ownerId} name={post.ownerUsername} image={post.ownerImage} size="size-8" />
         )}
         <span>
           {post.ownerUsername ? (
