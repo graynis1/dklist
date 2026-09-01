@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { TrendingUpIcon, TrophyIcon } from "lucide-react";
 import { auth } from "@/auth";
@@ -109,7 +110,9 @@ export async function CommunityRightRail() {
         </RailCard>
       )}
 
-      <AdSlot placement="akis-sidebar" className="max-w-none px-0" />
+      <Suspense fallback={null}>
+        <AdSlot placement="akis-sidebar" className="max-w-none px-0" />
+      </Suspense>
     </div>
   );
 }
