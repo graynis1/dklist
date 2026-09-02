@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfileFrameRing } from "@/components/dklist/profile-frame-ring";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { avatarUrl } from "@/db/queries/avatar";
@@ -257,17 +258,21 @@ async function ProfileContent({
           </div>
 
           <div className="-mt-14 flex flex-col items-center gap-2.5 px-5 text-center">
-            <Avatar
-              className="size-24 text-2xl ring-4 ring-card"
-              style={{
-                backgroundColor: tone.bg,
-                color: tone.fg,
-                boxShadow: profile.profileFrame ? `0 0 0 3px ${profile.profileFrame}` : undefined,
-              }}
-            >
-              <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
-              <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
-            </Avatar>
+            {(() => {
+              const avatar = (
+                <Avatar className="size-24 text-2xl ring-4 ring-card" style={{ backgroundColor: tone.bg, color: tone.fg }}>
+                  <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
+                  <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
+                </Avatar>
+              );
+              return profile.profileFrame ? (
+                <ProfileFrameRing color={profile.profileFrame} size={96} ringWidth={5}>
+                  {avatar}
+                </ProfileFrameRing>
+              ) : (
+                avatar
+              );
+            })()}
             <h1 className="flex items-center gap-1 font-heading text-2xl font-medium tracking-tight">
               @{profile.username}
               {profile.verified && (
