@@ -10,6 +10,7 @@ import { SitePopupModal } from "@/components/dklist/site-popup-modal";
 import { DailyVisitTracker } from "@/components/dklist/daily-visit-tracker";
 import { PwaRegister } from "@/components/dklist/pwa-register";
 import { RealtimeRefresherGate } from "@/components/dklist/realtime-refresher-gate";
+import { SkyscraperAds } from "@/components/dklist/skyscraper-ads";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -87,6 +88,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <MobileBottomNav />
               <FloatingChatWidget />
               <SitePopupModal />
+              <SkyscraperAds />
             </PublicChrome>
           </Suspense>
           <DailyVisitTracker />

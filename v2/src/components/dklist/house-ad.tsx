@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { SparklesIcon, GiftIcon, UsersIcon, PenToolIcon, ShoppingBagIcon, AwardIcon, MessagesSquareIcon } from "lucide-react";
+import { SparklesIcon, GiftIcon, UsersIcon, PenToolIcon, ShoppingBagIcon, AwardIcon, MessagesSquareIcon, BookOpenIcon } from "lucide-react";
 import type { AdPlacementId } from "@/lib/ad-placements";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,37 @@ interface HouseAdSpec {
   accent: string;
   badgeIcon: string;
   tall?: boolean;
+  /** Very narrow, very tall "skyscraper" layout for the left/right viewport
+   * gutters (SkyscraperAds, wired site-wide in the root layout) - a
+   * completely different shape from `tall` (which is still a normal
+   * card-sized square-ish unit), so it gets its own rendering branch
+   * rather than reusing the same wrapper/className defaults. */
+  skyscraper?: boolean;
 }
+
+/**
+ * Real customer feedback ("çerçeveleri mükemmel hale getirmen lazım. Kötü
+ * görünüyor"): the original frame was a bare 1px border color-mixed from
+ * each ad's own `fg` at 20% opacity - too faint to read as a deliberate
+ * edge against some of the busier gradients, and plain flat-bordered-box
+ * looking rather than a polished, elevated card. Replaced with the same
+ * "glass card" edge treatment real premium ad units use: a bright 1px
+ * inset top highlight (catches the eye as a lit edge, not just an
+ * outline), a very subtle all-around inset hairline for definition at
+ * every corner, and a two-layer outer drop shadow for real depth/
+ * separation from the page background - one soft+wide, one tight+dark,
+ * which reads as "this card is sitting above the page" rather than
+ * "this is a flat rectangle painted onto the page". Deliberately colorless
+ * (white-based, not per-ad-color) so it looks identically crisp across
+ * all nine very different gradient palettes instead of needing one
+ * hand-tuned value per ad.
+ */
+const FRAME_SHADOW =
+  "inset 0 1px 0 0 rgb(255 255 255 / 0.28), inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 24px 48px -16px rgb(0 0 0 / 0.55), 0 8px 22px -10px rgb(0 0 0 / 0.4)";
+/** Same glass-edge language as FRAME_SHADOW, scaled down for the smaller
+ * icon badge/CTA pill so the whole card - not just its outer edge -
+ * reads as one deliberately-designed, cohesive piece. */
+const INSET_SHADOW = "inset 0 1px 0 0 rgb(255 255 255 / 0.35), 0 6px 16px -6px rgb(0 0 0 / 0.45)";
 
 const HOUSE_ADS: Record<AdPlacementId, HouseAdSpec> = {
   "homepage-banner": {
@@ -116,6 +146,32 @@ const HOUSE_ADS: Record<AdPlacementId, HouseAdSpec> = {
     accent: "oklch(0.8 0.11 160)",
     badgeIcon: "oklch(0.17 0.04 190)",
   },
+  "skyscraper-left": {
+    href: "/premium",
+    icon: SparklesIcon,
+    kicker: "Premium",
+    title: "Reklamsız Oku",
+    sub: "Temiz bir deneyim seni bekliyor.",
+    cta: "Keşfet",
+    bg: "linear-gradient(170deg, oklch(0.5 0.17 42), oklch(0.28 0.1 26), oklch(0.5 0.17 42))",
+    fg: "oklch(0.98 0.01 75)",
+    accent: "oklch(0.85 0.12 70)",
+    badgeIcon: "oklch(0.22 0.06 40)",
+    skyscraper: true,
+  },
+  "skyscraper-right": {
+    href: "/kulupler",
+    icon: BookOpenIcon,
+    kicker: "Kulüpler",
+    title: "Birlikte Oku",
+    sub: "Sana uygun bir kulüp bul.",
+    cta: "Katıl",
+    bg: "linear-gradient(170deg, oklch(0.48 0.08 150), oklch(0.26 0.05 150), oklch(0.48 0.08 150))",
+    fg: "oklch(0.97 0.01 100)",
+    accent: "oklch(0.78 0.13 130)",
+    badgeIcon: "oklch(0.18 0.04 140)",
+    skyscraper: true,
+  },
 };
 
 export function HouseAd({ placement, className }: { placement: string; className?: string }) {
@@ -123,18 +179,89 @@ export function HouseAd({ placement, className }: { placement: string; className
   if (!spec) return null;
   const Icon = spec.icon;
 
+  if (spec.skyscraper) {
+    return (
+      <div className={className}>
+        <Link
+          href={spec.href}
+          className="group relative flex h-full w-full flex-col items-center justify-between overflow-hidden rounded-xl p-4 text-center transition-transform duration-300 hover:-translate-y-1"
+          style={{
+            background: spec.bg,
+            backgroundSize: "200% 200%",
+            boxShadow: FRAME_SHADOW,
+            animation: "house-ad-drift 10s ease-in-out infinite",
+          }}
+        >
+          <span
+            className="pointer-events-none absolute top-2.5 left-1/2 z-10 -translate-x-1/2 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase"
+            style={{ color: spec.fg, background: "rgb(0 0 0 / 0.16)" }}
+          >
+            Reklam
+          </span>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -translate-y-full"
+            style={{
+              background: "linear-gradient(160deg, transparent 40%, rgb(255 255 255 / 0.16) 50%, transparent 60%)",
+              animation: "house-ad-sweep-v 6s ease-in-out infinite",
+            }}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute rounded-full opacity-10"
+            style={{
+              width: 160,
+              height: 160,
+              bottom: -60,
+              left: -50,
+              border: `2px solid ${spec.fg}`,
+              animation: "house-ad-float 7s ease-in-out infinite",
+            }}
+          />
+
+          <span
+            className="relative z-10 mt-4 flex size-14 shrink-0 items-center justify-center rounded-2xl"
+            style={{ background: spec.accent, boxShadow: INSET_SHADOW, animation: "house-ad-bob 3.5s ease-in-out infinite" }}
+          >
+            <Icon style={{ color: spec.badgeIcon, width: 28, height: 28 }} />
+          </span>
+
+          <div className="relative z-10 flex flex-col items-center gap-1.5">
+            <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: spec.accent }}>
+              {spec.kicker}
+            </span>
+            <h3 className="font-heading text-balance text-base leading-tight font-bold" style={{ color: spec.fg }}>
+              {spec.title}
+            </h3>
+            <p className="text-xs opacity-80" style={{ color: spec.fg }}>
+              {spec.sub}
+            </p>
+          </div>
+
+          <span
+            className="relative z-10 mb-4 inline-flex w-fit items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-transform group-hover:scale-105"
+            style={{ background: spec.accent, color: spec.badgeIcon, boxShadow: INSET_SHADOW }}
+          >
+            {spec.cta} →
+          </span>
+        </Link>
+        <HouseAdKeyframes />
+      </div>
+    );
+  }
+
   return (
     <div className={cn("mx-auto max-w-3xl px-6", className)}>
       <Link
         href={spec.href}
         className={cn(
-          "group relative flex overflow-hidden rounded-lg border shadow-sm transition-transform duration-300 hover:-translate-y-0.5",
+          "group relative flex overflow-hidden rounded-xl transition-transform duration-300 hover:-translate-y-1",
           spec.tall ? "aspect-[4/5] flex-col items-center justify-center gap-4 p-8 text-center" : "items-center gap-6 p-7",
         )}
         style={{
           background: spec.bg,
           backgroundSize: "200% 200%",
-          borderColor: "color-mix(in oklch, " + spec.fg + ", transparent 80%)",
+          boxShadow: FRAME_SHADOW,
           animation: "house-ad-drift 10s ease-in-out infinite",
         }}
       >
@@ -169,11 +296,12 @@ export function HouseAd({ placement, className }: { placement: string; className
         />
 
         <span
-          className="relative z-10 flex shrink-0 items-center justify-center rounded-2xl shadow-lg"
+          className="relative z-10 flex shrink-0 items-center justify-center rounded-2xl"
           style={{
             width: spec.tall ? 88 : 72,
             height: spec.tall ? 88 : 72,
             background: spec.accent,
+            boxShadow: INSET_SHADOW,
             animation: "house-ad-bob 3.5s ease-in-out infinite",
           }}
         >
@@ -199,8 +327,8 @@ export function HouseAd({ placement, className }: { placement: string; className
             {spec.sub}
           </p>
           <span
-            className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition-transform group-hover:scale-105"
-            style={{ background: spec.accent, color: spec.badgeIcon }}
+            className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-transform group-hover:scale-105"
+            style={{ background: spec.accent, color: spec.badgeIcon, boxShadow: INSET_SHADOW }}
           >
             {spec.cta}
             <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
@@ -209,28 +337,37 @@ export function HouseAd({ placement, className }: { placement: string; className
           </span>
         </div>
       </Link>
-
-      <style>{`
-        @keyframes house-ad-drift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        @keyframes house-ad-sweep {
-          0% { transform: translateX(-120%); }
-          35%, 100% { transform: translateX(220%); }
-        }
-        @keyframes house-ad-float {
-          0%, 100% { transform: translateY(0) scale(1); }
-          50% { transform: translateY(10px) scale(1.04); }
-        }
-        @keyframes house-ad-bob {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-5px) rotate(-3deg); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          a[style], span[style] { animation: none !important; }
-        }
-      `}</style>
+      <HouseAdKeyframes />
     </div>
+  );
+}
+
+function HouseAdKeyframes() {
+  return (
+    <style>{`
+      @keyframes house-ad-drift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      @keyframes house-ad-sweep {
+        0% { transform: translateX(-120%); }
+        35%, 100% { transform: translateX(220%); }
+      }
+      @keyframes house-ad-sweep-v {
+        0% { transform: translateY(-120%); }
+        35%, 100% { transform: translateY(220%); }
+      }
+      @keyframes house-ad-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(10px) scale(1.04); }
+      }
+      @keyframes house-ad-bob {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-5px) rotate(-3deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        a[style], span[style] { animation: none !important; }
+      }
+    `}</style>
   );
 }

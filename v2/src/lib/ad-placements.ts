@@ -16,6 +16,13 @@ export const AD_PLACEMENTS = [
   { id: "akis", label: "Akış (Topluluk Feed)" },
   { id: "akis-sidebar", label: "Akış - Yan Panel" },
   { id: "mesajlar", label: "Mesajlar Sayfası" },
+  // Customer's ask (2026-09-02): the empty left/right gutters visible on
+  // wide monitors (see site-header's own max-w-[100rem] vs. most content
+  // maxing out around max-w-6xl) should host real ad space too, sticky as
+  // you scroll - see SkyscraperAds, wired site-wide in the root layout,
+  // not per-page like the others above.
+  { id: "skyscraper-left", label: "Sol Kenar (Sticky, Geniş Ekran)" },
+  { id: "skyscraper-right", label: "Sağ Kenar (Sticky, Geniş Ekran)" },
 ] as const;
 
 export type AdPlacementId = (typeof AD_PLACEMENTS)[number]["id"];
