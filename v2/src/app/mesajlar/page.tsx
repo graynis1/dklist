@@ -12,6 +12,7 @@ import { MessageThread } from "@/components/dklist/message-thread";
 import { ConversationItem } from "@/components/dklist/conversation-item";
 import { MessageRequestItem } from "@/components/dklist/message-request-item";
 import { DeleteAllChatsButton } from "@/components/dklist/delete-all-chats-button";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { auth } from "@/auth";
 import { getConversations, getMessages, getMessageRequests } from "@/db/queries/messages";
 import { getProfileByUsername } from "@/db/queries/profile";
@@ -27,6 +28,13 @@ export default function MessagesPage({ searchParams }: PageProps<"/mesajlar">) {
         </div>
         <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-muted" />}>
           <MessagesContent searchParams={searchParams} />
+        </Suspense>
+        {/* Customer's ad-placement suggestion (2026-09-02). Own Suspense
+            boundary is required here - AdSlot reads auth() internally, and
+            a real production incident this same day was caused by exactly
+            this being skipped elsewhere (see PLAN.md). */}
+        <Suspense fallback={null}>
+          <AdSlot placement="mesajlar" className="mt-6 max-w-none px-0" />
         </Suspense>
       </div>
     </div>

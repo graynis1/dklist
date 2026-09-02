@@ -110,6 +110,24 @@ export const book = mysqlTable("book", {
 	primaryKey({ columns: [table.id], name: "book_id"}),
 ]);
 
+// Migration 0034 - "satın al" / commission-referral links, customer's ask.
+// Real partner terms (which retailers, revenue split) are still a business
+// decision, not made yet - this is just the plumbing so real links can be
+// added later without another schema change. Multiple retailers per book
+// supported deliberately (a book could reasonably link to more than one).
+export const bookPurchaseLink = mysqlTable("book_purchase_link", {
+	id: int().autoincrement().notNull(),
+	bookId: int("book_id").notNull().references(() => book.id, { onDelete: "cascade" }),
+	retailerName: varchar("retailer_name", { length: 100 }).notNull(),
+	url: varchar({ length: 500 }).notNull(),
+	sortOrder: int("sort_order").notNull().default(0),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	index("idx_book_purchase_link_book").on(table.bookId),
+	primaryKey({ columns: [table.id], name: "book_purchase_link_id"}),
+]);
+
 export const bookCategory = mysqlTable("book_category", {
 	bookId: int("book_id").notNull().references(() => book.id, { onDelete: "cascade" } ),
 	categoryId: int("category_id").notNull().references(() => category.id, { onDelete: "cascade" } ),
@@ -1037,6 +1055,30 @@ export const advertisement = mysqlTable("advertisement", {
 (table) => [
 	index("idx_advertisement_placement").on(table.placement, table.active),
 	primaryKey({ columns: [table.id], name: "advertisement_id" }),
+]);
+
+// Migration 0035 - real Google AdSense, admin-managed, alongside (not
+// replacing) the direct/personal ad system above. Deliberate single-row
+// table, defaults OFF (enabled=0) so nothing ever loads until a real,
+// approved AdSense account's publisher id is entered.
+export const adsenseSetting = mysqlTable("adsense_setting", {
+	id: int().notNull().default(1),
+	publisherId: varchar("publisher_id", { length: 50 }),
+	enabled: tinyint().notNull().default(0),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "adsense_setting_id" }),
+]);
+
+// Maps each placement string (see ad-placements.ts) to its own AdSense
+// ad-unit slot id - a placement with no row, or an empty slot_id, falls
+// back to the existing personal-ad system for that spot.
+export const adsensePlacement = mysqlTable("adsense_placement", {
+	placement: varchar({ length: 50 }).notNull(),
+	slotId: varchar("slot_id", { length: 50 }),
+},
+(table) => [
+	primaryKey({ columns: [table.placement], name: "adsense_placement_placement" }),
 ]);
 
 // Advertiser-facing lead capture for /reklam-ver - see
