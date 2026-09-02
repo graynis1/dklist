@@ -1,8 +1,10 @@
 import Script from "next/script";
 import { auth } from "@/auth";
 import { getActiveAd } from "@/db/queries/advertisements";
+import { isUserPremium } from "@/db/queries/premium";
 import { getAdSenseSettings, getAdSenseSlot } from "@/db/queries/adsense";
 import { advertisementImageUrl } from "@/lib/image-urls";
+import { HouseAd } from "@/components/dklist/house-ad";
 import { cn } from "@/lib/utils";
 
 /** Renders nothing for a premium viewer, nothing if no active ad exists
@@ -15,14 +17,15 @@ import { cn } from "@/lib/utils";
  * e.g. `"px-0"` when the slot already sits inside a page's own padded/
  * max-width container instead of a full-bleed section.
  *
- * Real Google AdSense (customer's ask, 2026-09-02) takes priority over the
- * direct/personal ad system when configured for this exact placement
- * (admin-managed, /admin/reklamlar) - checked first since it needs no
- * viewer/language targeting logic of its own (Google's own script picks
- * the actual ad content). Falls through to the existing personal-ad
- * lookup when AdSense isn't enabled or this specific placement has no
- * slot id configured, so every placement keeps working exactly as before
- * until an admin deliberately turns AdSense on for it. */
+ * Priority order (customer's asks, 2026-09-02, in the order they were
+ * made): real Google AdSense (admin-managed, /admin/reklamlar) first when
+ * configured for this exact placement, since it needs no viewer/language
+ * targeting logic of its own (Google's own script picks the actual ad
+ * content) - then a real admin-uploaded advertiser image (the original
+ * direct/personal-ad system, unchanged) - then, when neither exists, the
+ * built-in animated HTML house ad (HouseAd) as the permanent floor so no
+ * placement is ever genuinely empty. A real paid ad always outranks the
+ * house ad the moment one exists for that placement. */
 export async function AdSlot({
   placement,
   contentLanguage,
@@ -34,6 +37,15 @@ export async function AdSlot({
 }) {
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
+
+  // Real bug this fixes ahead of time: getActiveAd() returns null both for
+  // "premium viewer, show nothing" and "no ad configured for this
+  // placement" - those used to be indistinguishable, which was fine when
+  // "no ad" always meant an empty slot, but now that "no ad" falls back to
+  // the house ad, a premium user (whose one guaranteed benefit is
+  // ad-free) would incorrectly see the house ad too. Checked once, up
+  // front, gating every ad type (AdSense, real ad, house ad) the same way.
+  if (userId && (await isUserPremium(userId))) return null;
 
   const adsense = await getAdSenseSettings();
   if (adsense.enabled && adsense.publisherId) {
@@ -65,7 +77,7 @@ export async function AdSlot({
   }
 
   const ad = await getActiveAd(placement, userId, contentLanguage);
-  if (!ad) return null;
+  if (!ad) return <HouseAd placement={placement} className={className} />;
 
   // Real bug found via customer report: a flat image with text baked in
   // scales down proportionally with its container - a wide desktop-
