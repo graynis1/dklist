@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
+import { languageName } from "@/lib/languages";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -158,7 +159,7 @@ async function BookDetailContent({
     detail.workId
       ? getWorkEditions(detail.workId, detail.id, detail.lang)
       : Promise.resolve({ sameLanguage: [], otherLanguages: {} }),
-    detail.categories.length > 0 ? getSimilarBooks(detail.id, detail.categories[0].id) : Promise.resolve([]),
+    detail.categories.length > 0 ? getSimilarBooks(detail.id, detail.categories[0].id, 6, detail.lang) : Promise.resolve([]),
   ]);
 
   const quotes = await getBookComments(detail.id, "quotation");
@@ -313,6 +314,13 @@ async function BookDetailContent({
                   {ratingCount > 0 && ` (${ratingCount} oy)`}
                 </span>
               )}
+              {/* Real gap found via customer report: no book page ever
+                  showed which language the book is in - a real, useful
+                  piece of catalog information the customer expected to
+                  find and couldn't. */}
+              {languageName(detail.lang) && (
+                <span className="text-muted-foreground">· {languageName(detail.lang)}</span>
+              )}
               <span className="text-muted-foreground">
                 · {detail.viewCount.toLocaleString("tr-TR")} görüntülenme
               </span>
@@ -418,7 +426,7 @@ async function BookDetailContent({
                 signedIn={Boolean(userId)}
                 initialInLibrary={inLibrary}
               />
-              <Button variant="outline" render={<Link href="/askida-kitap/yeni" />} nativeButton={false}>
+              <Button variant="outline" render={<Link href={`/askida-kitap/yeni?bookId=${detail.id}`} />} nativeButton={false}>
                 Askıya Bırak
               </Button>
               <AddToListButton bookId={detail.id} signedIn={Boolean(userId)} />

@@ -11,6 +11,7 @@ import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { MessageThread } from "@/components/dklist/message-thread";
 import { ConversationItem } from "@/components/dklist/conversation-item";
 import { MessageRequestItem } from "@/components/dklist/message-request-item";
+import { DeleteAllChatsButton } from "@/components/dklist/delete-all-chats-button";
 import { auth } from "@/auth";
 import { getConversations, getMessages, getMessageRequests } from "@/db/queries/messages";
 import { getProfileByUsername } from "@/db/queries/profile";
@@ -70,13 +71,16 @@ async function MessagesContent({
         {conversations.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Henüz bir konuşman yok.</p>
         ) : (
-          conversations.map((c) => (
-            <ConversationItem
-              key={c.otherUserId}
-              conversation={c}
-              isActive={c.otherUsername === activeUsername}
-            />
-          ))
+          <>
+            {conversations.map((c) => (
+              <ConversationItem
+                key={c.otherUserId}
+                conversation={c}
+                isActive={c.otherUsername === activeUsername}
+              />
+            ))}
+            <DeleteAllChatsButton />
+          </>
         )}
         {messageRequests.length > 0 && (
           <div className="flex flex-col">

@@ -97,3 +97,11 @@ export async function deleteNotification(userId: number, notificationId: number)
     .where(and(eq(dknotifiaction.id, notificationId), eq(dknotifiaction.ownerUserId, userId)));
   updateTag(`unread-notifications:${userId}`);
 }
+
+/** v1 parity gap found via customer report: v1's notification/message
+ * pages both had a "tümünü sil" (delete all) option, v2 only ever had
+ * per-item delete. */
+export async function deleteAllNotifications(userId: number): Promise<void> {
+  await db.delete(dknotifiaction).where(eq(dknotifiaction.ownerUserId, userId));
+  updateTag(`unread-notifications:${userId}`);
+}

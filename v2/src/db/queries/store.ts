@@ -451,14 +451,37 @@ export interface MyStoreItem {
   title: string;
   slug: string;
   status: string;
+  image: string | null;
 }
 
+/**
+ * Real gap found via customer report: this never fetched a cover photo
+ * at all, so /ilanlarim rendered a bare text list while /favorilerim
+ * (same underlying store_picture data) showed real thumbnails - looked
+ * broken/unfinished by comparison, and made it hard to tell listings
+ * apart at a glance. Mirrors getMyFavoriteStores()'s first-picture
+ * lookup.
+ */
 export async function getMyStores(userId: number): Promise<MyStoreItem[]> {
-  return db
+  const rows = await db
     .select({ id: store.id, title: store.title, slug: store.slug, status: store.status })
     .from(store)
     .where(eq(store.ownerId, userId))
     .orderBy(desc(store.id));
+
+  const storeIds = rows.map((r) => r.id);
+  const pictures = storeIds.length
+    ? await db
+        .select({ advertId: storePicture.advertId, imageName: storePicture.imageName })
+        .from(storePicture)
+        .where(inArray(storePicture.advertId, storeIds))
+    : [];
+  const firstImageByStore = new Map<number, string>();
+  for (const p of pictures) {
+    if (!firstImageByStore.has(p.advertId)) firstImageByStore.set(p.advertId, p.imageName);
+  }
+
+  return rows.map((r) => ({ ...r, image: firstImageByStore.get(r.id) ?? null }));
 }
 
 export interface FavoriteStoreItem {

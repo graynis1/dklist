@@ -327,15 +327,27 @@ export interface SimilarBook {
  */
 const LARGE_CATEGORY_POOL_THRESHOLD = 20_000;
 
+/**
+ * `lang` is optional so the pool stays cacheable/reusable for the
+ * language-agnostic fallback call below - real customer report: "Benzer
+ * Kitaplar" on a Turkish book was showing foreign-language books with no
+ * apparent language awareness at all, because this query never filtered
+ * by language in the first place (the pool was purely category+score).
+ * Caching key includes `lang` (via the tag/args) so a Turkish and a
+ * non-Turkish request for the same category get separate, independently
+ * cached pools.
+ */
 async function getCategoryCandidatePool(
   categoryId: number,
   poolSize: number,
+  lang?: string,
 ): Promise<Omit<SimilarBook, "writers">[]> {
   "use cache";
   cacheLife("hours");
   cacheTag(`similar-books:${categoryId}`);
 
   const categorySize = await getCategoryBookCount(categoryId);
+  const langCondition = lang ? sql`AND b.lang = ${lang}` : sql``;
 
   const rows = (
     categorySize < LARGE_CATEGORY_POOL_THRESHOLD
@@ -344,7 +356,7 @@ async function getCategoryCandidatePool(
             (b.image IS NOT NULL AND b.image != '') AS hasImage
           FROM book_category bc
           INNER JOIN book b ON b.id = bc.book_id
-          WHERE bc.category_id = ${categoryId}
+          WHERE bc.category_id = ${categoryId} ${langCondition}
           ORDER BY b.score DESC
           LIMIT ${poolSize}
         `))[0]
@@ -355,7 +367,7 @@ async function getCategoryCandidatePool(
           WHERE EXISTS (
             SELECT 1 FROM book_category bc
             WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-          )
+          ) ${langCondition}
           ORDER BY b.score DESC
           LIMIT ${poolSize}
         `))[0]
@@ -372,18 +384,32 @@ async function getCategoryCandidatePool(
  * a candidate have one computed. Falls back to the plain score ordering
  * for any candidate still missing an embedding - most books do until
  * they're re-saved/re-approved, this isn't a backfilled dataset yet. The
- * candidate-pool query is cached by categoryId (see getCategoryCandidatePool);
- * this outer function stays uncached since it's cheap once that pool is
- * warm (filter + rerank over ≤limit*4 rows, one writer lookup).
+ * candidate-pool query is cached by categoryId+lang (see
+ * getCategoryCandidatePool); this outer function stays uncached since
+ * it's cheap once that pool is warm (filter + rerank over ≤limit*4 rows,
+ * one writer lookup).
+ *
+ * `lang`, when passed, tries a same-language pool first - real customer
+ * report: recommendations for a Turkish book showed foreign-language
+ * books with no apparent reason. Falls back to the language-agnostic
+ * pool if the same-language one doesn't have enough real candidates
+ * (a niche category might genuinely have too few Turkish editions to
+ * fill the list) - always showing *something* over an empty section.
  */
-export async function getSimilarBooks(bookId: number, categoryId: number, limit = 6): Promise<SimilarBook[]> {
+export async function getSimilarBooks(bookId: number, categoryId: number, limit = 6, lang?: string): Promise<SimilarBook[]> {
   // Pull a wider candidate pool than needed so the content re-rank below
   // has real room to reorder, not just the same top-6-by-score every time,
   // plus a small margin since the current book (excluded below, not in SQL
   // so the pool query stays cacheable across every book in this category)
   // might itself be one of the top results.
-  const pool = await getCategoryCandidatePool(categoryId, limit * 4 + 4);
-  const rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
+  const poolSize = limit * 4 + 4;
+  let pool = lang ? await getCategoryCandidatePool(categoryId, poolSize, lang) : [];
+  let rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
+
+  if (rows.length < limit) {
+    pool = await getCategoryCandidatePool(categoryId, poolSize);
+    rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
+  }
 
   if (rows.length === 0) return [];
 

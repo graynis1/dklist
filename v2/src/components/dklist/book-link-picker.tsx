@@ -14,11 +14,16 @@ interface BookMatch {
  * Kitap create form (customer's marketplace ask). Carries the chosen book's
  * id via a hidden input so the normal form action picks it up like any
  * other field - the catalog cover auto-pull and the book page's "İkinci El
- * Bulundu" link both key off this being set. */
-export function BookLinkPicker() {
+ * Bulundu" link both key off this being set.
+ *
+ * `initialBook`, when passed, pre-selects a book instead of showing the
+ * empty search box - real gap found via customer report: coming from a
+ * book page's "Askıya Ekle" button required re-searching for the exact
+ * same book from scratch even though it was already known. */
+export function BookLinkPicker({ initialBook }: { initialBook?: BookMatch | null }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<BookMatch[]>([]);
-  const [selected, setSelected] = useState<BookMatch | null>(null);
+  const [selected, setSelected] = useState<BookMatch | null>(initialBook ?? null);
   const [isPending, startTransition] = useTransition();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

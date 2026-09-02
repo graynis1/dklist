@@ -150,13 +150,14 @@ export interface ClubDetail {
   currentBookId: number | null;
   currentBookName: string | null;
   currentBookSlug: string | null;
+  currentBookHasImage: boolean;
   currentBookWriters: string[];
   memberCount: number;
   members: ClubMember[];
 }
 
 export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
-  const [club] = await db
+  const [row] = await db
     .select({
       id: bookClub.id,
       name: bookClub.name,
@@ -168,6 +169,10 @@ export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
       currentBookId: bookClub.currentBookId,
       currentBookName: book.name,
       currentBookSlug: book.slug,
+      // Real gap found via customer report: the club's current-book
+      // widget showed only name/author text, no cover - "daha görsel bir
+      // hava katmazmıydı?" (wouldn't it add a more visual feel?).
+      currentBookHasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(bookClub)
     .leftJoin(user, eq(bookClub.ownerId, user.id))
@@ -175,7 +180,8 @@ export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
     .where(eq(bookClub.slug, slug))
     .limit(1);
 
-  if (!club) return null;
+  if (!row) return null;
+  const club = { ...row, currentBookHasImage: Boolean(row.currentBookHasImage) };
 
   const memberRows = await db
     .select({ userId: bookClubMember.userId, username: user.username, role: bookClubMember.role, joinedAt: bookClubMember.joinedAt })
