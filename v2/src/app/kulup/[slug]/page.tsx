@@ -27,14 +27,23 @@ import { ClubJoinButton } from "@/components/dklist/club-join-button";
 import { ClubManageBook } from "@/components/dklist/club-manage-book";
 import { ClubDeleteButton } from "@/components/dklist/club-delete-button";
 
-export async function generateMetadata({ params }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const club = await getClubBySlug(slug);
   if (!club) return {};
 
+  // Real bug found via customer report: sharing a club comment on
+  // Facebook showed only this page's generic title/description, no
+  // trace of the actual comment - see share-button.tsx's `quote` prop.
+  // When present, use the real quoted text as the description instead.
+  const { alinti } = await searchParams;
+  const quote = typeof alinti === "string" ? alinti : undefined;
+
   return pageMetadata({
     title: `${club.name} (Kitap Kulübü)`,
-    description: truncateDescription(club.description || `${club.name} kitap kulübüne DKList'te katıl.`),
+    description: truncateDescription(
+      quote ? `"${quote}" - ${club.name} kitap kulübünde paylaşıldı.` : club.description || `${club.name} kitap kulübüne DKList'te katıl.`,
+    ),
     path: `/kulup/${club.slug}`,
     noIndex: club.visibility !== "public",
   });

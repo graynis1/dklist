@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 
 const SITE_NAME = "DKList";
+// Real bug found via customer report: no page ever set an og:image unless
+// it explicitly passed one, so most pages (and the bare domain's own link
+// preview - see layout.tsx) had NO image at all in their share preview.
+// Facebook's crawler has fallback heuristics that sometimes cover for this;
+// WhatsApp's does not, which is exactly the "Facebook works, WhatsApp
+// doesn't" split the customer saw. Falls back to the brand icon so every
+// page has at least a real, on-brand image rather than nothing.
+const DEFAULT_OG_IMAGE = "/manifest-icon-512.png";
 
 /**
  * Shared page-metadata builder - the site had a real, large SEO gap
@@ -23,6 +31,7 @@ export function pageMetadata({
   image?: string;
   noIndex?: boolean;
 }): Metadata {
+  const ogImage = image ?? DEFAULT_OG_IMAGE;
   return {
     title,
     description,
@@ -33,12 +42,13 @@ export function pageMetadata({
       description,
       url: path,
       type: "website",
-      ...(image ? { images: [{ url: image }] } : {}),
+      images: [{ url: ogImage }],
     },
     twitter: {
       card: "summary_large_image",
       title: `${title} | ${SITE_NAME}`,
       description,
+      images: [ogImage],
     },
   };
 }

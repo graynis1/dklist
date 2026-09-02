@@ -27,13 +27,18 @@ import {
   shareWriterCommentAction,
 } from "./actions";
 
-export async function generateMetadata({ params }: PageProps<"/yazar/[slug]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/yazar/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const writer = await getWriterBySlug(slug);
   if (!writer) return {};
 
+  // Same comment/quote-share preview fix as kitap/[slug] - see
+  // share-button.tsx's `quote` prop.
+  const { alinti } = await searchParams;
+  const quote = typeof alinti === "string" ? alinti : undefined;
+
   const description = truncateDescription(
-    writer.biyo || `${writer.name} - kitapları, puanı ve yorumları DKList'te.`,
+    quote ? `"${quote}" - ${writer.name} hakkında DKList'te paylaşıldı.` : writer.biyo || `${writer.name} - kitapları, puanı ve yorumları DKList'te.`,
   );
   return pageMetadata({ title: `${writer.name} (Yazar)`, description, path: `/yazar/${writer.slug}` });
 }

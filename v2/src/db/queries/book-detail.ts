@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user } from "@/db/schema";
+import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user, score } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
 import { getCategoryBookCount } from "@/db/queries/books";
 
@@ -102,30 +102,54 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
 export interface WorkPooledScore {
   avgScore: number;
   editionCount: number;
+  voteCount: number;
 }
 
 /**
  * Customer's rating/edition-model spec: show BOTH "bu baskı puanı" (this
- * edition's own score) and "ortak kitap puanı" (pooled across all editions/
- * translations of the same work) side by side. Only meaningful once
- * `work_id` is actually populated across editions - the real Phase 5
- * fuzzy-matching backfill hasn't run against prod yet (needs the isbn index
- * decision), so this returns null for any book still on its own island,
- * which is every book on the real site today. Built now so the UI is ready
- * the moment that backfill lands, rather than a follow-up feature later.
+ * edition's own score) and the pooled score across all editions/
+ * translations of the same work. Only meaningful once `work_id` is
+ * actually populated across editions - the real Phase 5 fuzzy-matching
+ * backfill hasn't run against prod yet (needs the isbn index decision),
+ * so this returns null for any book still on its own island, which is
+ * every book on the real site today. Built now so the UI is ready the
+ * moment that backfill lands, rather than a follow-up feature later.
+ *
+ * Real bug found and fixed (2026-09-02, live customer report): the first
+ * version did `avg(book.score)` grouped by workId - averaging each
+ * EDITION's own already-averaged score, unweighted by how many actual
+ * votes back it. A work with 7 editions where only one has ever been
+ * rated (say 8/10 from a single voter, the other 6 sitting at the
+ * unrated default of 0) would show avg(8,0,0,0,0,0,0) ≈ 1.1/10 instead
+ * of the correct 8/10 - silently punishing exactly the books that need
+ * pooling the most (thin per-edition vote counts). Fixed by averaging
+ * the raw `score` votes directly across every book row sharing this
+ * workId, so the result is a real vote-weighted mean, not a mean of
+ * means - and the count returned is real total votes cast, not edition
+ * count, per the customer's expectation ("toplam oy").
  */
 export async function getWorkPooledScore(workId: number): Promise<WorkPooledScore | null> {
   "use cache";
   cacheLife("hours");
   cacheTag(`work-score:${workId}`);
 
-  const [row] = await db
-    .select({ avgScore: sql<number>`avg(${book.score})`, editionCount: sql<number>`count(*)` })
-    .from(book)
-    .where(eq(book.workId, workId));
+  const [[editionRow], [voteRow]] = await Promise.all([
+    db.select({ editionCount: sql<number>`count(*)` }).from(book).where(eq(book.workId, workId)),
+    db
+      .select({ avgScore: sql<number>`avg(${score.score})`, voteCount: sql<number>`count(*)` })
+      .from(score)
+      .innerJoin(book, eq(score.targetId, book.id))
+      .where(and(eq(book.workId, workId), eq(score.targetType, "book"))),
+  ]);
 
-  if (!row || Number(row.editionCount) <= 1) return null;
-  return { avgScore: Number(row.avgScore), editionCount: Number(row.editionCount) };
+  if (!editionRow || Number(editionRow.editionCount) <= 1) return null;
+  if (!voteRow || Number(voteRow.voteCount) === 0) return null;
+
+  return {
+    avgScore: Number(voteRow.avgScore),
+    editionCount: Number(editionRow.editionCount),
+    voteCount: Number(voteRow.voteCount),
+  };
 }
 
 export interface WorkEdition {
