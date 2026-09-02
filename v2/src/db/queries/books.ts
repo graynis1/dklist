@@ -176,18 +176,40 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
  * degrades to the same near-full-table-scan already fixed for the
  * language-agnostic case - one real request stuck 12+ minutes. The actual
  * selectivity that matters is the (category, language) pair, not the
- * category alone - this answers that directly, same cached-days pattern.
+ * category alone.
+ *
+ * Second real incident, same day: the first version of this ran one COUNT
+ * query PER (category, language) pair - fine for a category with one or
+ * two languages, but a genuinely multilingual large category (confirmed
+ * on prod: category 31, ~2.2M rows) gets organic traffic across many
+ * distinct languages close together, and each *distinct* language was a
+ * fresh multi-minute cold join - several piled up concurrently and
+ * fought over the same disk repeatedly, not just once. Fixed by computing
+ * every language's count for a category in ONE pass (GROUP BY) and
+ * caching the whole breakdown per-category - the expensive join now runs
+ * at most once ever per category, regardless of how many distinct
+ * languages it contains, matching the true one-time-per-category cost the
+ * original getCategoryTurkishCount() precedent assumed.
  */
 export async function getCategoryLangCount(categoryId: number, lang: string): Promise<number> {
+  const breakdown = await getCategoryLangBreakdown(categoryId);
+  return breakdown[lang] ?? 0;
+}
+
+async function getCategoryLangBreakdown(categoryId: number): Promise<Record<string, number>> {
   "use cache";
   cacheLife("days");
-  cacheTag(`category-lang-count:${categoryId}:${lang}`);
+  cacheTag(`category-lang-breakdown:${categoryId}`);
 
   const rows = (await db.execute(sql`
-    SELECT COUNT(*) AS n FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
-    WHERE bc.category_id = ${categoryId} AND b.lang = ${lang}
-  `))[0] as unknown as { n: number }[];
-  return Number(rows[0]?.n ?? 0);
+    SELECT b.lang AS lang, COUNT(*) AS n FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
+    WHERE bc.category_id = ${categoryId}
+    GROUP BY b.lang
+  `))[0] as unknown as { lang: string; n: number }[];
+
+  const breakdown: Record<string, number> = {};
+  for (const row of rows) breakdown[row.lang] = Number(row.n);
+  return breakdown;
 }
 
 export interface CategorySummary {
