@@ -28,7 +28,7 @@ export function RewardAdminRow({ reward }: { reward: PointRewardItem }) {
 
   return (
     <li className="flex items-center gap-4 rounded-lg border border-border p-4">
-      <ProfileFrameRing color={reward.rewardValue} size={32} ringWidth={3}>
+      <ProfileFrameRing color={reward.rewardValue} size={32} ringWidth={3} pointCost={reward.pointCost}>
         <span className="block size-8 rounded-full bg-muted" />
       </ProfileFrameRing>
       <div className="flex-1">

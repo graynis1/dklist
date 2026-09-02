@@ -74,7 +74,7 @@ async function PointStoreContent() {
             const owned = ownedRewardIds.includes(r.id);
             return (
               <li key={r.id} className="flex items-center gap-4 rounded-lg border border-border p-4">
-                <ProfileFrameRing color={r.rewardValue} size={40} ringWidth={4}>
+                <ProfileFrameRing color={r.rewardValue} size={40} ringWidth={4} pointCost={r.pointCost}>
                   <span className="block size-10 rounded-full bg-muted" />
                 </ProfileFrameRing>
                 <div className="flex-1">

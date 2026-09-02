@@ -53,6 +53,7 @@ import {
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators, getLikedPublishers } from "@/db/queries/likes";
 import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap, getUserActivityStreak, getUserWeeklyRank } from "@/db/queries/points";
+import { getFramePointCost } from "@/db/queries/point-store";
 import { ActivityHeatmap } from "@/components/dklist/activity-heatmap";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
@@ -187,6 +188,7 @@ async function ProfileContent({
     viewerHasBlocked,
     activityStreak,
     weeklyRank,
+    framePointCost,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -209,6 +211,7 @@ async function ProfileContent({
     viewerId && !isOwnProfile ? isBlockedByMe(viewerId, profile.id) : Promise.resolve(false),
     getUserActivityStreak(profile.id),
     isOwnProfile ? getUserWeeklyRank(profile.id) : Promise.resolve(null),
+    profile.profileFrame ? getFramePointCost(profile.profileFrame) : Promise.resolve(null),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -276,7 +279,7 @@ async function ProfileContent({
                 </Avatar>
               );
               return profile.profileFrame ? (
-                <ProfileFrameRing color={profile.profileFrame} size={96} ringWidth={7}>
+                <ProfileFrameRing color={profile.profileFrame} size={96} ringWidth={7} pointCost={framePointCost}>
                   {avatar}
                 </ProfileFrameRing>
               ) : (

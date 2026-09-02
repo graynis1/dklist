@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, eq, and } from "drizzle-orm";
+import { asc, desc, eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { pointReward, pointRedemption, user } from "@/db/schema";
 import { getUserTotalPoints, awardPoints } from "@/db/queries/points";
@@ -38,6 +38,23 @@ export async function getUserRedeemedRewardIds(userId: number): Promise<number[]
 export async function getUserActiveFrame(userId: number): Promise<string | null> {
   const [row] = await db.select({ profileFrame: user.profileFrame }).from(user).where(eq(user.id, userId)).limit(1);
   return row?.profileFrame ?? null;
+}
+
+/** Looks up the point cost of the profile_frame reward that issues this
+ * exact color, so a rendered frame (which only stores the raw color on
+ * `user.profile_frame`) can be shown at its correct visual tier - see
+ * `frameTierFromPointCost`. The store/admin previews already have
+ * pointCost on hand directly from the reward row; this is only needed
+ * where a frame is rendered from `user.profileFrame` alone. Highest cost
+ * wins on the unlikely chance two rewards ever share a color. */
+export async function getFramePointCost(color: string): Promise<number | null> {
+  const [row] = await db
+    .select({ pointCost: pointReward.pointCost })
+    .from(pointReward)
+    .where(and(eq(pointReward.rewardValue, color), eq(pointReward.rewardType, "profile_frame")))
+    .orderBy(desc(pointReward.pointCost))
+    .limit(1);
+  return row?.pointCost ?? null;
 }
 
 /**
