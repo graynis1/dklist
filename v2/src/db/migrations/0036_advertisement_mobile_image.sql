@@ -1,0 +1,13 @@
+-- Real bug found via customer report (2026-09-02): ad banners are flat
+-- images with text baked in (advertisement.image) - the whole image
+-- scales down proportionally to fit its container's width, so on a
+-- narrow phone viewport a wide desktop-proportioned banner shrinks its
+-- baked-in text to near-illegible sizes. Real ad creative is normally
+-- produced in distinct desktop/mobile sizes for exactly this reason
+-- (IAB standard banner sizes include separate mobile formats) - this
+-- column lets each ad optionally carry a dedicated mobile-sized image
+-- with proportionally bigger text, swapped in below a breakpoint via a
+-- <picture> element. NULL for any existing/future ad means "no mobile
+-- variant yet" - AdSlot falls back to the desktop image at every size,
+-- exactly the current behavior, so this is purely additive.
+ALTER TABLE advertisement ADD COLUMN mobile_image VARCHAR(255) NULL;

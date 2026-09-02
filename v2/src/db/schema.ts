@@ -1042,6 +1042,9 @@ export const advertisement = mysqlTable("advertisement", {
 	placement: varchar({ length: 50 }).notNull(),
 	language: varchar({ length: 10 }),
 	image: varchar({ length: 255 }).notNull(),
+	// Migration 0036 - optional dedicated mobile-sized creative, see that
+	// migration's comment for why a flat image with baked-in text needs one.
+	mobileImage: varchar("mobile_image", { length: 255 }),
 	linkUrl: varchar("link_url", { length: 500 }),
 	active: tinyint().notNull(),
 	sortOrder: int("sort_order").notNull(),
