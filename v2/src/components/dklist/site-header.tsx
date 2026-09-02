@@ -15,8 +15,15 @@ import { MobileNavDrawer } from "@/components/dklist/mobile-nav-drawer";
 // inline with no wrapping, which both overflowed the viewport at ordinary
 // desktop widths and buried these four essentials in engagement-feature
 // clutter that only matters once someone's already a member.
+// "Akış" promoted to top-level (2026-09-02, customer report: felt buried
+// inside the "Topluluk" dropdown even though it's meant to be the site's
+// live, "canlı akan" community pulse - a first-time visitor would never
+// find it there). Kept right after "Keşfet" rather than first: an
+// anonymous visitor still needs a discovery entry point before a social
+// feed means anything to them, but it's no longer three clicks deep.
 const NAV = [
   { href: "/ara", label: "Keşfet" },
+  { href: "/akis", label: "Akış" },
   { href: "/kitaplar", label: "Kitaplar" },
   { href: "/yazarlar", label: "Yazarlar" },
   { href: "/yayinevleri", label: "Yayınevleri" },

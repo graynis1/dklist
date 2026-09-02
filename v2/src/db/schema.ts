@@ -110,6 +110,24 @@ export const book = mysqlTable("book", {
 	primaryKey({ columns: [table.id], name: "book_id"}),
 ]);
 
+// Migration 0034 - "satın al" / commission-referral links, customer's ask.
+// Real partner terms (which retailers, revenue split) are still a business
+// decision, not made yet - this is just the plumbing so real links can be
+// added later without another schema change. Multiple retailers per book
+// supported deliberately (a book could reasonably link to more than one).
+export const bookPurchaseLink = mysqlTable("book_purchase_link", {
+	id: int().autoincrement().notNull(),
+	bookId: int("book_id").notNull().references(() => book.id, { onDelete: "cascade" }),
+	retailerName: varchar("retailer_name", { length: 100 }).notNull(),
+	url: varchar({ length: 500 }).notNull(),
+	sortOrder: int("sort_order").notNull().default(0),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+},
+(table) => [
+	index("idx_book_purchase_link_book").on(table.bookId),
+	primaryKey({ columns: [table.id], name: "book_purchase_link_id"}),
+]);
+
 export const bookCategory = mysqlTable("book_category", {
 	bookId: int("book_id").notNull().references(() => book.id, { onDelete: "cascade" } ),
 	categoryId: int("category_id").notNull().references(() => category.id, { onDelete: "cascade" } ),

@@ -33,6 +33,7 @@ import { isInLibrary } from "@/db/queries/library";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { getActiveStoreListingsForBook } from "@/db/queries/store";
+import { getBookPurchaseLinks } from "@/db/queries/purchase-links";
 import { addCommentAction, addReplyAction, shareCommentAction } from "./actions";
 
 const READER_STATUS_LABELS: Record<string, string> = {
@@ -140,6 +141,7 @@ async function BookDetailContent({
     storeListings,
     workEditions,
     similarBooks,
+    purchaseLinks,
   ] = await Promise.all([
     userId ? getReadStatus(userId, detail.id) : Promise.resolve(null),
     getBookDropStats(detail.id),
@@ -160,6 +162,7 @@ async function BookDetailContent({
       ? getWorkEditions(detail.workId, detail.id, detail.lang)
       : Promise.resolve({ sameLanguage: [], otherLanguages: {} }),
     detail.categories.length > 0 ? getSimilarBooks(detail.id, detail.categories[0].id, 6, detail.lang) : Promise.resolve([]),
+    getBookPurchaseLinks(detail.id),
   ]);
 
   const quotes = await getBookComments(detail.id, "quotation");
@@ -432,6 +435,26 @@ async function BookDetailContent({
               <AddToListButton bookId={detail.id} signedIn={Boolean(userId)} />
               {userId && <ReportBookErrorButton bookId={detail.id} />}
             </div>
+
+            {/* Customer's "satın al" ask (2026-09-02) - admin-managed
+                retailer links (see /admin/kitaplar/[id]), only shown once
+                a real one exists for this book. rel="sponsored nofollow"
+                is the correct signal for a commission-referral link. */}
+            {purchaseLinks.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {purchaseLinks.map((l) => (
+                  <a
+                    key={l.id}
+                    href={l.url}
+                    target="_blank"
+                    rel="sponsored nofollow noopener"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    {l.retailerName}&apos;dan Satın Al
+                  </a>
+                ))}
+              </div>
+            )}
 
             {storeListings.length > 0 && (
               <div className="mt-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">

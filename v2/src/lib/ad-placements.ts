@@ -15,6 +15,7 @@ export const AD_PLACEMENTS = [
   { id: "yazarlar-listesi", label: "Yazarlar Listesi" },
   { id: "akis", label: "Akış (Topluluk Feed)" },
   { id: "akis-sidebar", label: "Akış - Yan Panel" },
+  { id: "mesajlar", label: "Mesajlar Sayfası" },
 ] as const;
 
 export type AdPlacementId = (typeof AD_PLACEMENTS)[number]["id"];
