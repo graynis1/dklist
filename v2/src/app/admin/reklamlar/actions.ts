@@ -2,6 +2,7 @@
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import { createAd, toggleAdActive, deleteAd } from "@/db/queries/advertisements";
+import { updateAdSenseSettings, setAdSensePlacementSlot } from "@/db/queries/adsense";
 import { logAdminAction } from "@/db/queries/admin-log";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
@@ -45,5 +46,33 @@ export async function deleteAdAction(adId: number): Promise<{ status: boolean; m
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Silinemedi." };
+  }
+}
+
+export async function updateAdSenseSettingsAction(
+  publisherId: string,
+  enabled: boolean,
+): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    await updateAdSenseSettings(publisherId, enabled);
+    await logAdminAction(actor.id, "adsense:settings-update", "adsense", undefined, enabled ? "enabled" : "disabled");
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
+  }
+}
+
+export async function setAdSensePlacementSlotAction(
+  placement: string,
+  slotId: string,
+): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    await setAdSensePlacementSlot(placement, slotId);
+    await logAdminAction(actor.id, "adsense:slot-update", "adsense", undefined, `${placement}=${slotId}`);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
   }
 }

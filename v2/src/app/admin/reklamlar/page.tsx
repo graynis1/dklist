@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getAdAdminList } from "@/db/queries/advertisements";
+import { getAdSenseSettings, getAdSensePlacements } from "@/db/queries/adsense";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { CreateAdForm } from "@/components/dklist/create-ad-form";
 import { AdAdminRow } from "@/components/dklist/ad-admin-row";
+import { AdSenseSettingsForm } from "@/components/dklist/adsense-settings-form";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 
@@ -24,7 +26,11 @@ async function AdminAdsContent() {
   if (!session?.user) redirect("/giris");
   if (!hasRole(session.user.userType, ADMIN_ONLY)) redirect("/");
 
-  const ads = await getAdAdminList();
+  const [ads, adsenseSettings, adsensePlacements] = await Promise.all([
+    getAdAdminList(),
+    getAdSenseSettings(),
+    getAdSensePlacements(),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -32,6 +38,8 @@ async function AdminAdsContent() {
         title="Reklamlar"
         description={`Premium olmayan kullanıcılara gösterilen reklam alanlarını yönet - toplam ${ads.length} kayıt.`}
       />
+
+      <AdSenseSettingsForm initialSettings={adsenseSettings} initialPlacements={adsensePlacements} />
 
       <CreateAdForm />
 

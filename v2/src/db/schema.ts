@@ -1057,6 +1057,30 @@ export const advertisement = mysqlTable("advertisement", {
 	primaryKey({ columns: [table.id], name: "advertisement_id" }),
 ]);
 
+// Migration 0035 - real Google AdSense, admin-managed, alongside (not
+// replacing) the direct/personal ad system above. Deliberate single-row
+// table, defaults OFF (enabled=0) so nothing ever loads until a real,
+// approved AdSense account's publisher id is entered.
+export const adsenseSetting = mysqlTable("adsense_setting", {
+	id: int().notNull().default(1),
+	publisherId: varchar("publisher_id", { length: 50 }),
+	enabled: tinyint().notNull().default(0),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "adsense_setting_id" }),
+]);
+
+// Maps each placement string (see ad-placements.ts) to its own AdSense
+// ad-unit slot id - a placement with no row, or an empty slot_id, falls
+// back to the existing personal-ad system for that spot.
+export const adsensePlacement = mysqlTable("adsense_placement", {
+	placement: varchar({ length: 50 }).notNull(),
+	slotId: varchar("slot_id", { length: 50 }),
+},
+(table) => [
+	primaryKey({ columns: [table.placement], name: "adsense_placement_placement" }),
+]);
+
 // Advertiser-facing lead capture for /reklam-ver - see
 // src/db/migrations/0022_ad_inquiry.sql for why this exists now (the
 // "natural next step" once impression/click stats existed). A lead inbox,
