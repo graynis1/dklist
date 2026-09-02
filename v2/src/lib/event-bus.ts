@@ -1,5 +1,8 @@
 import "server-only";
 import { EventEmitter } from "node:events";
+import { publishUserEventOn, subscribeUserEventsOn, type RealtimeEventType } from "@/lib/event-bus-core";
+
+export type { RealtimeEventType };
 
 /**
  * Gerçek-zamanlı bildirim (SSE) - thirteenth and final item from the "what
@@ -10,6 +13,10 @@ import { EventEmitter } from "node:events";
  * (each invocation is a separate process with no shared memory), but that
  * constraint doesn't apply to this app's actual architecture. No Redis/
  * external pub-sub needed for a single-instance deployment.
+ *
+ * The actual channel/routing logic lives in event-bus-core.ts (no
+ * "server-only" guard, unit-tested) - this file only owns the globalThis
+ * singleton wiring below and re-exports the two functions bound to it.
  */
 // Stored on globalThis rather than plain module scope - a real bug caught
 // via testing: Next.js bundles route handlers, Server Actions, and Server
@@ -30,14 +37,10 @@ if (!g.__dklistEventBus) {
 }
 const bus = g.__dklistEventBus;
 
-export type RealtimeEventType = "notification" | "message";
-
 export function publishUserEvent(userId: number, type: RealtimeEventType): void {
-  bus.emit(`user:${userId}`, type);
+  publishUserEventOn(bus, userId, type);
 }
 
 export function subscribeUserEvents(userId: number, listener: (type: RealtimeEventType) => void): () => void {
-  const channel = `user:${userId}`;
-  bus.on(channel, listener);
-  return () => bus.off(channel, listener);
+  return subscribeUserEventsOn(bus, userId, listener);
 }
