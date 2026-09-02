@@ -36,6 +36,30 @@ interface HouseAdSpec {
   skyscraper?: boolean;
 }
 
+/**
+ * Real customer feedback ("çerçeveleri mükemmel hale getirmen lazım. Kötü
+ * görünüyor"): the original frame was a bare 1px border color-mixed from
+ * each ad's own `fg` at 20% opacity - too faint to read as a deliberate
+ * edge against some of the busier gradients, and plain flat-bordered-box
+ * looking rather than a polished, elevated card. Replaced with the same
+ * "glass card" edge treatment real premium ad units use: a bright 1px
+ * inset top highlight (catches the eye as a lit edge, not just an
+ * outline), a very subtle all-around inset hairline for definition at
+ * every corner, and a two-layer outer drop shadow for real depth/
+ * separation from the page background - one soft+wide, one tight+dark,
+ * which reads as "this card is sitting above the page" rather than
+ * "this is a flat rectangle painted onto the page". Deliberately colorless
+ * (white-based, not per-ad-color) so it looks identically crisp across
+ * all nine very different gradient palettes instead of needing one
+ * hand-tuned value per ad.
+ */
+const FRAME_SHADOW =
+  "inset 0 1px 0 0 rgb(255 255 255 / 0.28), inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 24px 48px -16px rgb(0 0 0 / 0.55), 0 8px 22px -10px rgb(0 0 0 / 0.4)";
+/** Same glass-edge language as FRAME_SHADOW, scaled down for the smaller
+ * icon badge/CTA pill so the whole card - not just its outer edge -
+ * reads as one deliberately-designed, cohesive piece. */
+const INSET_SHADOW = "inset 0 1px 0 0 rgb(255 255 255 / 0.35), 0 6px 16px -6px rgb(0 0 0 / 0.45)";
+
 const HOUSE_ADS: Record<AdPlacementId, HouseAdSpec> = {
   "homepage-banner": {
     href: "/premium",
@@ -160,11 +184,11 @@ export function HouseAd({ placement, className }: { placement: string; className
       <div className={className}>
         <Link
           href={spec.href}
-          className="group relative flex h-full w-full flex-col items-center justify-between overflow-hidden rounded-lg border p-4 text-center shadow-sm transition-transform duration-300 hover:-translate-y-0.5"
+          className="group relative flex h-full w-full flex-col items-center justify-between overflow-hidden rounded-xl p-4 text-center transition-transform duration-300 hover:-translate-y-1"
           style={{
             background: spec.bg,
             backgroundSize: "200% 200%",
-            borderColor: "color-mix(in oklch, " + spec.fg + ", transparent 80%)",
+            boxShadow: FRAME_SHADOW,
             animation: "house-ad-drift 10s ease-in-out infinite",
           }}
         >
@@ -196,8 +220,8 @@ export function HouseAd({ placement, className }: { placement: string; className
           />
 
           <span
-            className="relative z-10 mt-4 flex size-14 shrink-0 items-center justify-center rounded-2xl shadow-lg"
-            style={{ background: spec.accent, animation: "house-ad-bob 3.5s ease-in-out infinite" }}
+            className="relative z-10 mt-4 flex size-14 shrink-0 items-center justify-center rounded-2xl"
+            style={{ background: spec.accent, boxShadow: INSET_SHADOW, animation: "house-ad-bob 3.5s ease-in-out infinite" }}
           >
             <Icon style={{ color: spec.badgeIcon, width: 28, height: 28 }} />
           </span>
@@ -215,8 +239,8 @@ export function HouseAd({ placement, className }: { placement: string; className
           </div>
 
           <span
-            className="relative z-10 mb-4 inline-flex w-fit items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-md transition-transform group-hover:scale-105"
-            style={{ background: spec.accent, color: spec.badgeIcon }}
+            className="relative z-10 mb-4 inline-flex w-fit items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-transform group-hover:scale-105"
+            style={{ background: spec.accent, color: spec.badgeIcon, boxShadow: INSET_SHADOW }}
           >
             {spec.cta} →
           </span>
@@ -231,13 +255,13 @@ export function HouseAd({ placement, className }: { placement: string; className
       <Link
         href={spec.href}
         className={cn(
-          "group relative flex overflow-hidden rounded-lg border shadow-sm transition-transform duration-300 hover:-translate-y-0.5",
+          "group relative flex overflow-hidden rounded-xl transition-transform duration-300 hover:-translate-y-1",
           spec.tall ? "aspect-[4/5] flex-col items-center justify-center gap-4 p-8 text-center" : "items-center gap-6 p-7",
         )}
         style={{
           background: spec.bg,
           backgroundSize: "200% 200%",
-          borderColor: "color-mix(in oklch, " + spec.fg + ", transparent 80%)",
+          boxShadow: FRAME_SHADOW,
           animation: "house-ad-drift 10s ease-in-out infinite",
         }}
       >
@@ -272,11 +296,12 @@ export function HouseAd({ placement, className }: { placement: string; className
         />
 
         <span
-          className="relative z-10 flex shrink-0 items-center justify-center rounded-2xl shadow-lg"
+          className="relative z-10 flex shrink-0 items-center justify-center rounded-2xl"
           style={{
             width: spec.tall ? 88 : 72,
             height: spec.tall ? 88 : 72,
             background: spec.accent,
+            boxShadow: INSET_SHADOW,
             animation: "house-ad-bob 3.5s ease-in-out infinite",
           }}
         >
@@ -302,8 +327,8 @@ export function HouseAd({ placement, className }: { placement: string; className
             {spec.sub}
           </p>
           <span
-            className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold shadow-md transition-transform group-hover:scale-105"
-            style={{ background: spec.accent, color: spec.badgeIcon }}
+            className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-transform group-hover:scale-105"
+            style={{ background: spec.accent, color: spec.badgeIcon, boxShadow: INSET_SHADOW }}
           >
             {spec.cta}
             <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
