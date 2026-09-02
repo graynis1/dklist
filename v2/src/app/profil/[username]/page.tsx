@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfileFrameRing } from "@/components/dklist/profile-frame-ring";
+import { cn } from "@/lib/utils";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { avatarUrl } from "@/db/queries/avatar";
@@ -51,6 +53,7 @@ import {
 } from "@/db/queries/profile";
 import { getLikedWriters, getLikedTranslators, getLikedPublishers } from "@/db/queries/likes";
 import { getUserTotalPoints, isRecentlyActive, getUserActivityHeatmap, getUserActivityStreak, getUserWeeklyRank } from "@/db/queries/points";
+import { getFramePointCost } from "@/db/queries/point-store";
 import { ActivityHeatmap } from "@/components/dklist/activity-heatmap";
 import { getBlogsByOwner } from "@/db/queries/blog";
 import { READ_STATUSES } from "@/lib/reading-status";
@@ -185,6 +188,7 @@ async function ProfileContent({
     viewerHasBlocked,
     activityStreak,
     weeklyRank,
+    framePointCost,
   ] = await Promise.all([
     getFollowCounts(profile.id),
     viewerId && !isOwnProfile ? isFollowing(viewerId, profile.id) : Promise.resolve(false),
@@ -207,6 +211,7 @@ async function ProfileContent({
     viewerId && !isOwnProfile ? isBlockedByMe(viewerId, profile.id) : Promise.resolve(false),
     getUserActivityStreak(profile.id),
     isOwnProfile ? getUserWeeklyRank(profile.id) : Promise.resolve(null),
+    profile.profileFrame ? getFramePointCost(profile.profileFrame) : Promise.resolve(null),
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
@@ -257,17 +262,30 @@ async function ProfileContent({
           </div>
 
           <div className="-mt-14 flex flex-col items-center gap-2.5 px-5 text-center">
-            <Avatar
-              className="size-24 text-2xl ring-4 ring-card"
-              style={{
-                backgroundColor: tone.bg,
-                color: tone.fg,
-                boxShadow: profile.profileFrame ? `0 0 0 3px ${profile.profileFrame}` : undefined,
-              }}
-            >
-              <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
-              <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
-            </Avatar>
+            {(() => {
+              // A purchased frame supplies its own edge (the conic ring
+              // below) - the default `ring-4 ring-card` white outline would
+              // otherwise sit between the avatar and the frame, visually
+              // eating into the frame's own color band and washing it out
+              // toward white. Framed avatars get a hairline instead so the
+              // frame's color touches the image directly, full strength.
+              const avatar = (
+                <Avatar
+                  className={cn("size-24 text-2xl", profile.profileFrame ? "ring-2 ring-black/10" : "ring-4 ring-card")}
+                  style={{ backgroundColor: tone.bg, color: tone.fg }}
+                >
+                  <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
+                  <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
+                </Avatar>
+              );
+              return profile.profileFrame ? (
+                <ProfileFrameRing color={profile.profileFrame} size={96} ringWidth={7} pointCost={framePointCost}>
+                  {avatar}
+                </ProfileFrameRing>
+              ) : (
+                avatar
+              );
+            })()}
             <h1 className="flex items-center gap-1 font-heading text-2xl font-medium tracking-tight">
               @{profile.username}
               {profile.verified && (

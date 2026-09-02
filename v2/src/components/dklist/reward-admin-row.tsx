@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toggleRewardActiveAction, deleteRewardAction } from "@/app/admin/puan-magazasi/actions";
 import type { PointRewardItem } from "@/db/queries/point-store";
+import { ProfileFrameRing } from "@/components/dklist/profile-frame-ring";
 
 export function RewardAdminRow({ reward }: { reward: PointRewardItem }) {
   const router = useRouter();
@@ -27,10 +28,9 @@ export function RewardAdminRow({ reward }: { reward: PointRewardItem }) {
 
   return (
     <li className="flex items-center gap-4 rounded-lg border border-border p-4">
-      <span
-        className="size-8 shrink-0 rounded-full border-2"
-        style={{ borderColor: reward.rewardValue }}
-      />
+      <ProfileFrameRing color={reward.rewardValue} size={32} ringWidth={3} pointCost={reward.pointCost}>
+        <span className="block size-8 rounded-full bg-muted" />
+      </ProfileFrameRing>
       <div className="flex-1">
         <p className="font-medium">{reward.name}</p>
         <p className="text-xs text-muted-foreground">
