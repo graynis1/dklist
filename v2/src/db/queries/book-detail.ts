@@ -4,7 +4,7 @@ import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user, score } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
-import { getCategoryBookCount } from "@/db/queries/books";
+import { getCategoryBookCount, getCategoryLangCount } from "@/db/queries/books";
 
 export interface BookDetail {
   id: number;
@@ -336,6 +336,16 @@ const LARGE_CATEGORY_POOL_THRESHOLD = 20_000;
  * Caching key includes `lang` (via the tag/args) so a Turkish and a
  * non-Turkish request for the same category get separate, independently
  * cached pools.
+ *
+ * Second production incident (2026-09-02): the size check used to decide
+ * the query plan was based on the category's TOTAL size regardless of
+ * `lang` - a large category with almost no books in the requested
+ * language still got the "large category" book-first plan, which
+ * degrades to a near-full-table-scan for exactly the same reason already
+ * fixed for the language-agnostic case (confirmed on prod: categories
+ * with a handful of Ukrainian/Italian books stuck 7-12+ minutes). The
+ * selectivity that actually matters is the (category, lang) pair, not
+ * the category alone - see getCategoryLangCount()'s doc comment.
  */
 async function getCategoryCandidatePool(
   categoryId: number,
@@ -346,7 +356,7 @@ async function getCategoryCandidatePool(
   cacheLife("hours");
   cacheTag(`similar-books:${categoryId}`);
 
-  const categorySize = await getCategoryBookCount(categoryId);
+  const categorySize = lang ? await getCategoryLangCount(categoryId, lang) : await getCategoryBookCount(categoryId);
   const langCondition = lang ? sql`AND b.lang = ${lang}` : sql``;
 
   const rows = (

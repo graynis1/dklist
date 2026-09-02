@@ -164,6 +164,32 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
   return Number(rows[0]?.n ?? 0);
 }
 
+/**
+ * Generalizes getCategoryTurkishCount() to any language - real production
+ * incident (2026-09-02): getSimilarBooks' language-aware candidate pool
+ * (book-detail.ts) decided its book-first-vs-bookCategory-first query
+ * strategy using the category's TOTAL size (all languages combined), then
+ * applied the language filter on top of whichever plan that picked. A
+ * large category with very few books in a specific language (confirmed on
+ * prod: category 100/863 had almost no Ukrainian books, category 2028
+ * almost no Italian) still got the "large category" book-first plan, which
+ * degrades to the same near-full-table-scan already fixed for the
+ * language-agnostic case - one real request stuck 12+ minutes. The actual
+ * selectivity that matters is the (category, language) pair, not the
+ * category alone - this answers that directly, same cached-days pattern.
+ */
+export async function getCategoryLangCount(categoryId: number, lang: string): Promise<number> {
+  "use cache";
+  cacheLife("days");
+  cacheTag(`category-lang-count:${categoryId}:${lang}`);
+
+  const rows = (await db.execute(sql`
+    SELECT COUNT(*) AS n FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
+    WHERE bc.category_id = ${categoryId} AND b.lang = ${lang}
+  `))[0] as unknown as { n: number }[];
+  return Number(rows[0]?.n ?? 0);
+}
+
 export interface CategorySummary {
   id: number;
   name: string;
