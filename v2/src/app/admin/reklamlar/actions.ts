@@ -1,7 +1,7 @@
 "use server";
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
-import { createAd, toggleAdActive, deleteAd } from "@/db/queries/advertisements";
+import { createAd, toggleAdActive, deleteAd, setAdMobileImage } from "@/db/queries/advertisements";
 import { updateAdSenseSettings, setAdSensePlacementSlot } from "@/db/queries/adsense";
 import { logAdminAction } from "@/db/queries/admin-log";
 
@@ -11,12 +11,14 @@ export async function createAdAction(formData: FormData): Promise<{ status: bool
   try {
     const actor = await requireRole(ADMIN_ONLY);
     const image = formData.get("image");
+    const mobileImage = formData.get("mobileImage");
     const placement = String(formData.get("placement") ?? "");
     const language = String(formData.get("language") ?? "");
     await createAd({
       placement,
       language,
       image: image instanceof File ? image : new File([], ""),
+      mobileImage: mobileImage instanceof File ? mobileImage : undefined,
       linkUrl: String(formData.get("linkUrl") ?? ""),
       sortOrder: Number(formData.get("sortOrder") ?? 0),
     });
@@ -24,6 +26,18 @@ export async function createAdAction(formData: FormData): Promise<{ status: bool
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Eklenemedi." };
+  }
+}
+
+export async function setAdMobileImageAction(adId: number, formData: FormData): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    const mobileImage = formData.get("mobileImage");
+    await setAdMobileImage(adId, mobileImage instanceof File ? mobileImage : new File([], ""));
+    await logAdminAction(actor.id, "ad:mobile-image-update", "advertisement", adId);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
   }
 }
 

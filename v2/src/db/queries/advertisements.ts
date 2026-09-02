@@ -16,6 +16,7 @@ function deleteAdImageFile(filename: string): Promise<void> {
 export interface AdView {
   id: number;
   image: string;
+  mobileImage: string | null;
   linkUrl: string | null;
 }
 
@@ -46,7 +47,7 @@ export async function getActiveAd(
     ? or(eq(advertisement.language, contentLanguage), isNull(advertisement.language))
     : isNull(advertisement.language);
 
-  const [row] = await db.select({ id: advertisement.id, image: advertisement.image, linkUrl: advertisement.linkUrl })
+  const [row] = await db.select({ id: advertisement.id, image: advertisement.image, mobileImage: advertisement.mobileImage, linkUrl: advertisement.linkUrl })
     .from(advertisement)
     .where(and(eq(advertisement.placement, placement), eq(advertisement.active, 1), languageCondition))
     // A language-matched ad wins over a generic (NULL) one when both exist
@@ -78,6 +79,7 @@ export interface AdAdminListItem {
   placement: string;
   language: string | null;
   image: string;
+  mobileImage: string | null;
   linkUrl: string | null;
   active: boolean;
   sortOrder: number;
@@ -87,13 +89,16 @@ export interface AdAdminListItem {
 
 export async function getAdAdminList(): Promise<AdAdminListItem[]> {
   const rows = await db.select().from(advertisement).orderBy(asc(advertisement.placement), asc(advertisement.sortOrder));
-  return rows.map((r) => ({ id: r.id, placement: r.placement, language: r.language, image: r.image, linkUrl: r.linkUrl, active: r.active === 1, sortOrder: r.sortOrder, impressions: r.impressions, clicks: r.clicks }));
+  return rows.map((r) => ({ id: r.id, placement: r.placement, language: r.language, image: r.image, mobileImage: r.mobileImage, linkUrl: r.linkUrl, active: r.active === 1, sortOrder: r.sortOrder, impressions: r.impressions, clicks: r.clicks }));
 }
 
 export interface CreateAdInput {
   placement: string;
   language?: string;
   image: File;
+  /** Optional dedicated mobile-sized creative - see migration 0036's doc
+   * comment for why a flat image with baked-in text needs one. */
+  mobileImage?: File;
   linkUrl?: string;
   sortOrder?: number;
 }
@@ -104,10 +109,12 @@ export async function createAd(input: CreateAdInput): Promise<void> {
   if (input.image.size === 0) throw new Error("Bir görsel yüklemelisiniz.");
 
   const filename = await saveUploadedImage("advertisement", input.image);
+  const mobileFilename = input.mobileImage && input.mobileImage.size > 0 ? await saveUploadedImage("advertisement", input.mobileImage) : null;
   await db.insert(advertisement).values({
     placement,
     language: input.language?.trim() || null,
     image: filename,
+    mobileImage: mobileFilename,
     linkUrl: input.linkUrl?.trim() || null,
     active: 1,
     sortOrder: input.sortOrder ?? 0,
@@ -122,8 +129,21 @@ export async function toggleAdActive(adId: number): Promise<void> {
 }
 
 export async function deleteAd(adId: number): Promise<void> {
-  const [row] = await db.select({ image: advertisement.image }).from(advertisement).where(eq(advertisement.id, adId)).limit(1);
+  const [row] = await db.select({ image: advertisement.image, mobileImage: advertisement.mobileImage }).from(advertisement).where(eq(advertisement.id, adId)).limit(1);
   if (!row) throw new Error("Reklam bulunamadı.");
   await db.delete(advertisement).where(eq(advertisement.id, adId));
   await deleteAdImageFile(row.image);
+  if (row.mobileImage) await deleteAdImageFile(row.mobileImage);
+}
+
+/** Lets an admin add/replace just the mobile creative on an existing ad
+ * without recreating the whole row. */
+export async function setAdMobileImage(adId: number, mobileImage: File): Promise<void> {
+  const [row] = await db.select({ mobileImage: advertisement.mobileImage }).from(advertisement).where(eq(advertisement.id, adId)).limit(1);
+  if (!row) throw new Error("Reklam bulunamadı.");
+  if (mobileImage.size === 0) throw new Error("Bir görsel yüklemelisiniz.");
+
+  const filename = await saveUploadedImage("advertisement", mobileImage);
+  await db.update(advertisement).set({ mobileImage: filename }).where(eq(advertisement.id, adId));
+  if (row.mobileImage) await deleteAdImageFile(row.mobileImage);
 }

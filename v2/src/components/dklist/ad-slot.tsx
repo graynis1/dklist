@@ -67,7 +67,22 @@ export async function AdSlot({
   const ad = await getActiveAd(placement, userId, contentLanguage);
   if (!ad) return null;
 
-  const image = (
+  // Real bug found via customer report: a flat image with text baked in
+  // scales down proportionally with its container - a wide desktop-
+  // proportioned banner shrinks its text to near-illegible size on a
+  // narrow phone viewport. When a dedicated mobile creative exists
+  // (mobile_image, migration 0036), swap to it below the same breakpoint
+  // Tailwind's own `sm:` uses (640px) via a real <picture> element - the
+  // browser picks the right image itself, no JS/hydration needed. Falls
+  // back to just the desktop image at every size when no mobile variant
+  // exists yet (every ad created before this feature, or one an admin
+  // hasn't bothered to add a mobile version for).
+  const image = ad.mobileImage ? (
+    <picture>
+      <source media="(max-width: 640px)" srcSet={advertisementImageUrl(ad.mobileImage)} />
+      <img src={advertisementImageUrl(ad.image)} alt="" className="w-full rounded-lg" />
+    </picture>
+  ) : (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={advertisementImageUrl(ad.image)} alt="" className="w-full rounded-lg" />
   );
