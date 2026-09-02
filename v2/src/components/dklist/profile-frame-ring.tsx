@@ -44,7 +44,7 @@ export function ProfileFrameRing({
       <span
         aria-hidden
         className="profile-frame-ring absolute inset-0 rounded-full"
-        style={{ boxShadow: `0 0 18px -3px ${color}` }}
+        style={{ boxShadow: `0 0 10px -2px ${color}` }}
       />
       <span className="relative z-10 flex items-center justify-center">{children}</span>
       <ProfileFrameKeyframes />
@@ -56,14 +56,20 @@ function ProfileFrameKeyframes() {
   return (
     <style>{`
       .profile-frame-ring {
+        /* Base color dominates most of the ring (stays clearly "that
+           gem/metal's color" at a glance) with one dark band for depth and
+           one bright near-white glint - like a single point of light
+           catching a polished ring - rather than a smooth pastel blend
+           that reads as a generic soft-colored halo. */
         background: conic-gradient(
           from 0deg,
-          color-mix(in oklch, var(--frame-color), white 65%),
-          var(--frame-color) 18%,
-          color-mix(in oklch, var(--frame-color), black 50%) 40%,
-          var(--frame-color) 62%,
-          color-mix(in oklch, var(--frame-color), white 65%) 82%,
-          color-mix(in oklch, var(--frame-color), white 65%)
+          var(--frame-color) 0%,
+          color-mix(in oklch, var(--frame-color), black 45%) 22%,
+          var(--frame-color) 40%,
+          color-mix(in oklch, var(--frame-color), white 85%) 50%,
+          var(--frame-color) 60%,
+          color-mix(in oklch, var(--frame-color), black 45%) 78%,
+          var(--frame-color) 100%
         );
         animation: profile-frame-spin 6s linear infinite;
       }

@@ -25,6 +25,7 @@ import {
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileFrameRing } from "@/components/dklist/profile-frame-ring";
+import { cn } from "@/lib/utils";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { avatarUrl } from "@/db/queries/avatar";
@@ -259,14 +260,23 @@ async function ProfileContent({
 
           <div className="-mt-14 flex flex-col items-center gap-2.5 px-5 text-center">
             {(() => {
+              // A purchased frame supplies its own edge (the conic ring
+              // below) - the default `ring-4 ring-card` white outline would
+              // otherwise sit between the avatar and the frame, visually
+              // eating into the frame's own color band and washing it out
+              // toward white. Framed avatars get a hairline instead so the
+              // frame's color touches the image directly, full strength.
               const avatar = (
-                <Avatar className="size-24 text-2xl ring-4 ring-card" style={{ backgroundColor: tone.bg, color: tone.fg }}>
+                <Avatar
+                  className={cn("size-24 text-2xl", profile.profileFrame ? "ring-2 ring-black/10" : "ring-4 ring-card")}
+                  style={{ backgroundColor: tone.bg, color: tone.fg }}
+                >
                   <AvatarImage src={avatarUrl(profile.image) ?? undefined} />
                   <AvatarFallback style={{ backgroundColor: tone.bg, color: tone.fg }}>{initials}</AvatarFallback>
                 </Avatar>
               );
               return profile.profileFrame ? (
-                <ProfileFrameRing color={profile.profileFrame} size={96} ringWidth={5}>
+                <ProfileFrameRing color={profile.profileFrame} size={96} ringWidth={7}>
                   {avatar}
                 </ProfileFrameRing>
               ) : (
