@@ -1,31 +1,37 @@
 import type { CSSProperties, ReactNode } from "react";
+import { CrownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { frameTierFromPointCost } from "@/lib/profile-frame-tier";
 
 /**
  * Renders a purchasable profile frame (Puan Mağazası, `profile_frame`
- * rewards - Bronz/Gümüş/Zümrüt/Ametist/Yakut/Safir/Altın/Elmas Çerçeve) as
- * an actual designed, tiered ring.
+ * rewards - Bronz/Gümüş/Zümrüt/Ametist/Yakut/Safir/Altın/Elmas Çerçeve),
+ * tiered by point cost.
  *
- * First pass (2026-09-03) replaced the flat single-color outline with a
- * rotating metallic ring - customer's follow-up feedback: "hepsi bir renk
- * aq... adam gibi yüksek olanları mükemmel iyi yapsana" (they're all just
- * one color - make the expensive ones look genuinely excellent). Every
- * tier used the identical treatment regardless of price, so a 30-point
- * Bronz frame looked as good as an 800-point Elmas frame - no reason to
- * actually chase the expensive ones.
- *
- * Now tiered by point cost (see `frameTierFromPointCost` - no schema
- * change, price alone decides the tier): each step up is a strictly
- * richer, more deliberate visual than the last, not just a recolor -
- * exactly what makes a purchasable status symbol worth grinding for.
- *   Tier 1 (Standart)    - the base rotating ring with one glint.
- *   Tier 2 (Değerli)     - adds a slim bright inner accent line (double ring).
- *   Tier 3 (Ayrıcalıklı) - upgrades to a multi-facet "cut gem" gradient and
- *                          a slow breathing glow, on top of tier 2.
- *   Tier 4 (Efsanevi)    - adds orbiting twinkling sparkles and a wider
- *                          band on top of tier 3 - the full showpiece,
- *                          currently Elmas alone.
+ * Third pass (2026-09-03). Customer's feedback on the second pass, after
+ * seeing it live: "sadece renkleri farklı çerçeveler var... yükseldikçe
+ * şekilli heybetli şekilde olsa" (they're still just differently-colored
+ * [rings] - going up in tier should make the SHAPE itself grander/more
+ * ornate). Fair - tier 2/3/4 were the same circular ring with escalating
+ * decoration (facets, glow, sparkles) but never a different silhouette.
+ * Real reward-frame systems in games (Mobile Legends/PUBG Mobile avatar
+ * frames, Steam rare profile frames, Discord avatar decorations) escalate
+ * exactly this way: low tiers are a plain ring, high tiers break out of
+ * the circle entirely - radiant medallion "sunburst" halos, an emblem
+ * (crown/wings/gem) perched on top, layered depth. Rebuilt around that
+ * reference instead of only varying color/glow:
+ *   Tier 1 (Standart)    - plain rotating ring, one glint. Unchanged silhouette.
+ *   Tier 2 (Değerli)     - adds an inner accent line AND four small gem
+ *                          studs at the compass points - still a circle,
+ *                          but visibly bezel-set/jeweled now.
+ *   Tier 3 (Ayrıcalıklı) - breaks the circle: a scalloped "sunburst" halo
+ *                          (a real generated star/gear polygon, not part of
+ *                          the ring) sits behind it, rotating independently,
+ *                          plus the multi-facet gradient and a glow pulse.
+ *   Tier 4 (Efsanevi)    - a larger, sharper sunburst halo, a small crown
+ *                          emblem perched above the ring, and three
+ *                          orbiting twinkling sparkles - the full
+ *                          medallion, currently Elmas alone.
  */
 export function ProfileFrameRing({
   color,
@@ -48,15 +54,15 @@ export function ProfileFrameRing({
   const vars = { "--frame-color": color } as CSSProperties;
 
   return (
-    <span
-      className={cn("relative inline-flex shrink-0 items-center justify-center rounded-full", className)}
-      style={{ width: outer, height: outer, ...vars }}
-    >
+    <span className={cn("relative inline-flex shrink-0 items-center justify-center", className)} style={{ width: outer, height: outer, ...vars }}>
+      {tier >= 3 && <Sunburst outer={outer} big={tier >= 4} color={color} />}
+
       <span
         aria-hidden
         className={cn("profile-frame-ring absolute inset-0 rounded-full", tier >= 3 && "profile-frame-ring--faceted profile-frame-ring--pulse")}
         style={{ boxShadow: `0 0 ${8 + tier * 3}px -2px ${color}` }}
       />
+
       {tier >= 2 && (
         <span
           aria-hidden
@@ -64,21 +70,103 @@ export function ProfileFrameRing({
           style={{ inset: Math.max(2, rw * 0.4), boxShadow: `0 0 0 1px color-mix(in oklch, ${color}, white 45%)`, opacity: 0.9 }}
         />
       )}
+
+      {tier >= 2 &&
+        [0, 90, 180, 270].map((angle) => <GemStud key={angle} angle={angle} outer={outer} rw={rw} color={color} />)}
+
       {tier >= 4 && (
         <>
-          <Sparkle angle={-42} delay={0} size={size} rw={rw} />
-          <Sparkle angle={75} delay={0.9} size={size} rw={rw} />
-          <Sparkle angle={195} delay={1.8} size={size} rw={rw} />
+          <Sparkle angle={-135} delay={0} size={size} rw={rw} />
+          <Sparkle angle={40} delay={0.9} size={size} rw={rw} />
+          <Sparkle angle={155} delay={1.8} size={size} rw={rw} />
+          <CrownIcon
+            aria-hidden
+            className="profile-frame-crown pointer-events-none absolute z-30"
+            style={{
+              width: size * 0.3,
+              height: size * 0.3,
+              top: -size * 0.17,
+              left: "50%",
+              transform: "translateX(-50%)",
+              color: "white",
+              fill: "color-mix(in oklch, var(--frame-color), white 25%)",
+              filter: `drop-shadow(0 0 5px ${color})`,
+            }}
+          />
         </>
       )}
+
       <span className="relative z-10 flex items-center justify-center">{children}</span>
       <ProfileFrameKeyframes />
     </span>
   );
 }
 
+/** Generates a scalloped star/gear silhouette (percentage-based clip-path
+ * polygon around a 0-100% box) - the actual "break out of the circle" halo
+ * behind tier 3+ rings. `spikes` alternates an outer point and an inner
+ * valley `spikes` times around the circle. */
+function sunburstClipPath(spikes: number, innerRatio: number): string {
+  const total = spikes * 2;
+  const pts: string[] = [];
+  for (let i = 0; i < total; i++) {
+    const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
+    const r = i % 2 === 0 ? 50 : 50 * innerRatio;
+    const x = 50 + r * Math.cos(angle);
+    const y = 50 + r * Math.sin(angle);
+    pts.push(`${x.toFixed(2)}% ${y.toFixed(2)}%`);
+  }
+  return `polygon(${pts.join(", ")})`;
+}
+
+function Sunburst({ outer, big, color }: { outer: number; big: boolean; color: string }) {
+  const scale = big ? 1.42 : 1.2;
+  const d = outer * scale;
+  const clip = big ? sunburstClipPath(14, 0.78) : sunburstClipPath(10, 0.87);
+  return (
+    <span
+      aria-hidden
+      className={cn("absolute", big ? "profile-frame-sunburst--big" : "profile-frame-sunburst")}
+      style={{
+        width: d,
+        height: d,
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        clipPath: clip,
+        background: `radial-gradient(circle, ${color}, color-mix(in oklch, ${color}, black 55%))`,
+        filter: `drop-shadow(0 0 ${big ? 10 : 6}px color-mix(in oklch, ${color}, transparent 20%))`,
+      }}
+    />
+  );
+}
+
+function GemStud({ angle, outer, rw, color }: { angle: number; outer: number; rw: number; color: string }) {
+  const radius = outer / 2;
+  const rad = (angle * Math.PI) / 180;
+  const x = Math.cos(rad) * radius;
+  const y = Math.sin(rad) * radius;
+  const s = Math.max(4, rw * 0.9);
+  return (
+    <span
+      aria-hidden
+      className="absolute z-10"
+      style={{
+        width: s,
+        height: s,
+        left: `calc(50% + ${x}px)`,
+        top: `calc(50% + ${y}px)`,
+        transform: "translate(-50%, -50%) rotate(45deg)",
+        background: `color-mix(in oklch, ${color}, white 55%)`,
+        boxShadow: `0 0 0 1px color-mix(in oklch, ${color}, black 40%), 0 0 4px ${color}`,
+        borderRadius: 2,
+      }}
+    />
+  );
+}
+
 function Sparkle({ angle, delay, size, rw }: { angle: number; delay: number; size: number; rw: number }) {
-  const radius = size / 2 + rw;
+  const radius = size / 2 + rw + 4;
   const rad = (angle * Math.PI) / 180;
   const x = Math.cos(rad) * radius;
   const y = Math.sin(rad) * radius;
@@ -102,11 +190,6 @@ function ProfileFrameKeyframes() {
   return (
     <style>{`
       .profile-frame-ring {
-        /* Base color dominates most of the ring (stays clearly "that
-           gem/metal's color" at a glance) with one dark band for depth and
-           one bright near-white glint - like a single point of light
-           catching a polished ring - rather than a smooth pastel blend
-           that reads as a generic soft-colored halo. */
         background: conic-gradient(
           from 0deg,
           var(--frame-color) 0%,
@@ -120,9 +203,6 @@ function ProfileFrameKeyframes() {
         animation: profile-frame-spin 6s linear infinite;
       }
       .profile-frame-ring.profile-frame-ring--faceted {
-        /* Tier 3+: several alternating light/dark facets instead of one
-           glint - reads as a cut gemstone catching light from multiple
-           angles, not a single smooth highlight. */
         background: conic-gradient(
           from 0deg,
           var(--frame-color) 0%,
@@ -143,6 +223,17 @@ function ProfileFrameKeyframes() {
           profile-frame-spin 6s linear infinite,
           profile-frame-pulse 2.4s ease-in-out infinite alternate;
       }
+      .profile-frame-sunburst, .profile-frame-sunburst--big {
+        animation: profile-frame-spin-rev 16s linear infinite;
+        opacity: 0.9;
+      }
+      .profile-frame-sunburst--big {
+        animation-duration: 12s;
+        opacity: 0.95;
+      }
+      .profile-frame-crown {
+        animation: profile-frame-crown-bob 3.2s ease-in-out infinite;
+      }
       .profile-frame-sparkle {
         transform: translate(-50%, -50%);
         color: white;
@@ -152,16 +243,25 @@ function ProfileFrameKeyframes() {
       @keyframes profile-frame-spin {
         to { transform: rotate(360deg); }
       }
+      @keyframes profile-frame-spin-rev {
+        from { transform: translate(-50%, -50%) rotate(360deg); }
+        to { transform: translate(-50%, -50%) rotate(0deg); }
+      }
       @keyframes profile-frame-pulse {
         from { box-shadow: 0 0 10px -2px var(--frame-color); }
         to { box-shadow: 0 0 22px 1px var(--frame-color); }
+      }
+      @keyframes profile-frame-crown-bob {
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50% { transform: translateX(-50%) translateY(-3px); }
       }
       @keyframes profile-frame-twinkle {
         0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
         50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
       }
       @media (prefers-reduced-motion: reduce) {
-        .profile-frame-ring, .profile-frame-ring--pulse, .profile-frame-sparkle { animation: none; }
+        .profile-frame-ring, .profile-frame-ring--pulse, .profile-frame-sparkle,
+        .profile-frame-sunburst, .profile-frame-sunburst--big, .profile-frame-crown { animation: none; }
       }
     `}</style>
   );
