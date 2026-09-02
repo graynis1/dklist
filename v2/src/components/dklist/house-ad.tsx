@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { SparklesIcon, GiftIcon, UsersIcon, PenToolIcon, ShoppingBagIcon, AwardIcon, MessagesSquareIcon } from "lucide-react";
+import { SparklesIcon, GiftIcon, UsersIcon, PenToolIcon, ShoppingBagIcon, AwardIcon, MessagesSquareIcon, BookOpenIcon } from "lucide-react";
 import type { AdPlacementId } from "@/lib/ad-placements";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,12 @@ interface HouseAdSpec {
   accent: string;
   badgeIcon: string;
   tall?: boolean;
+  /** Very narrow, very tall "skyscraper" layout for the left/right viewport
+   * gutters (SkyscraperAds, wired site-wide in the root layout) - a
+   * completely different shape from `tall` (which is still a normal
+   * card-sized square-ish unit), so it gets its own rendering branch
+   * rather than reusing the same wrapper/className defaults. */
+  skyscraper?: boolean;
 }
 
 const HOUSE_ADS: Record<AdPlacementId, HouseAdSpec> = {
@@ -116,12 +122,109 @@ const HOUSE_ADS: Record<AdPlacementId, HouseAdSpec> = {
     accent: "oklch(0.8 0.11 160)",
     badgeIcon: "oklch(0.17 0.04 190)",
   },
+  "skyscraper-left": {
+    href: "/premium",
+    icon: SparklesIcon,
+    kicker: "Premium",
+    title: "Reklamsız Oku",
+    sub: "Temiz bir deneyim seni bekliyor.",
+    cta: "Keşfet",
+    bg: "linear-gradient(170deg, oklch(0.5 0.17 42), oklch(0.28 0.1 26), oklch(0.5 0.17 42))",
+    fg: "oklch(0.98 0.01 75)",
+    accent: "oklch(0.85 0.12 70)",
+    badgeIcon: "oklch(0.22 0.06 40)",
+    skyscraper: true,
+  },
+  "skyscraper-right": {
+    href: "/kulupler",
+    icon: BookOpenIcon,
+    kicker: "Kulüpler",
+    title: "Birlikte Oku",
+    sub: "Sana uygun bir kulüp bul.",
+    cta: "Katıl",
+    bg: "linear-gradient(170deg, oklch(0.48 0.08 150), oklch(0.26 0.05 150), oklch(0.48 0.08 150))",
+    fg: "oklch(0.97 0.01 100)",
+    accent: "oklch(0.78 0.13 130)",
+    badgeIcon: "oklch(0.18 0.04 140)",
+    skyscraper: true,
+  },
 };
 
 export function HouseAd({ placement, className }: { placement: string; className?: string }) {
   const spec = HOUSE_ADS[placement as AdPlacementId];
   if (!spec) return null;
   const Icon = spec.icon;
+
+  if (spec.skyscraper) {
+    return (
+      <div className={className}>
+        <Link
+          href={spec.href}
+          className="group relative flex h-full w-full flex-col items-center justify-between overflow-hidden rounded-lg border p-4 text-center shadow-sm transition-transform duration-300 hover:-translate-y-0.5"
+          style={{
+            background: spec.bg,
+            backgroundSize: "200% 200%",
+            borderColor: "color-mix(in oklch, " + spec.fg + ", transparent 80%)",
+            animation: "house-ad-drift 10s ease-in-out infinite",
+          }}
+        >
+          <span
+            className="pointer-events-none absolute top-2.5 left-1/2 z-10 -translate-x-1/2 rounded px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase"
+            style={{ color: spec.fg, background: "rgb(0 0 0 / 0.16)" }}
+          >
+            Reklam
+          </span>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -translate-y-full"
+            style={{
+              background: "linear-gradient(160deg, transparent 40%, rgb(255 255 255 / 0.16) 50%, transparent 60%)",
+              animation: "house-ad-sweep-v 6s ease-in-out infinite",
+            }}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute rounded-full opacity-10"
+            style={{
+              width: 160,
+              height: 160,
+              bottom: -60,
+              left: -50,
+              border: `2px solid ${spec.fg}`,
+              animation: "house-ad-float 7s ease-in-out infinite",
+            }}
+          />
+
+          <span
+            className="relative z-10 mt-4 flex size-14 shrink-0 items-center justify-center rounded-2xl shadow-lg"
+            style={{ background: spec.accent, animation: "house-ad-bob 3.5s ease-in-out infinite" }}
+          >
+            <Icon style={{ color: spec.badgeIcon, width: 28, height: 28 }} />
+          </span>
+
+          <div className="relative z-10 flex flex-col items-center gap-1.5">
+            <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: spec.accent }}>
+              {spec.kicker}
+            </span>
+            <h3 className="font-heading text-balance text-base leading-tight font-bold" style={{ color: spec.fg }}>
+              {spec.title}
+            </h3>
+            <p className="text-xs opacity-80" style={{ color: spec.fg }}>
+              {spec.sub}
+            </p>
+          </div>
+
+          <span
+            className="relative z-10 mb-4 inline-flex w-fit items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-md transition-transform group-hover:scale-105"
+            style={{ background: spec.accent, color: spec.badgeIcon }}
+          >
+            {spec.cta} →
+          </span>
+        </Link>
+        <HouseAdKeyframes />
+      </div>
+    );
+  }
 
   return (
     <div className={cn("mx-auto max-w-3xl px-6", className)}>
@@ -209,28 +312,37 @@ export function HouseAd({ placement, className }: { placement: string; className
           </span>
         </div>
       </Link>
-
-      <style>{`
-        @keyframes house-ad-drift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        @keyframes house-ad-sweep {
-          0% { transform: translateX(-120%); }
-          35%, 100% { transform: translateX(220%); }
-        }
-        @keyframes house-ad-float {
-          0%, 100% { transform: translateY(0) scale(1); }
-          50% { transform: translateY(10px) scale(1.04); }
-        }
-        @keyframes house-ad-bob {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-5px) rotate(-3deg); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          a[style], span[style] { animation: none !important; }
-        }
-      `}</style>
+      <HouseAdKeyframes />
     </div>
+  );
+}
+
+function HouseAdKeyframes() {
+  return (
+    <style>{`
+      @keyframes house-ad-drift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      @keyframes house-ad-sweep {
+        0% { transform: translateX(-120%); }
+        35%, 100% { transform: translateX(220%); }
+      }
+      @keyframes house-ad-sweep-v {
+        0% { transform: translateY(-120%); }
+        35%, 100% { transform: translateY(220%); }
+      }
+      @keyframes house-ad-float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(10px) scale(1.04); }
+      }
+      @keyframes house-ad-bob {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-5px) rotate(-3deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        a[style], span[style] { animation: none !important; }
+      }
+    `}</style>
   );
 }
