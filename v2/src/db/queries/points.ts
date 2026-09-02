@@ -383,7 +383,20 @@ export interface LeaderboardEntry {
 }
 
 /** Ranks users by points earned within the given ISO week (defaults to the
- * current week) - "Bu haftanın lideri" / the public leaderboard page. */
+ * current week) - "Bu haftanın lideri" / the public leaderboard page.
+ *
+ * Real bug found and fixed (2026-09-02, live customer report): this
+ * summed EVERY point_transaction in the week, including
+ * `point_store_redeem` - the negative row created when someone spends
+ * accumulated points in the point store (see point-store.ts). A user
+ * who redeemed a reward this week could show up with a negative weekly
+ * total ("-240 puan"), which reads as broken for what's meant to be an
+ * activity/engagement leaderboard - spending points you already earned
+ * isn't the opposite of engagement, it's unrelated to it. Excluding
+ * `point_store_redeem` keeps this a measure of what was earned this
+ * week; the user's real point balance (used for redemption eligibility)
+ * is unaffected - that's getUserTotalPoints(), a separate, correct sum
+ * over the whole ledger including redemptions. */
 export async function getWeeklyLeaderboard(
   limit = 20,
   yearWeek: string = currentISOWeek(),
@@ -401,7 +414,13 @@ export async function getWeeklyLeaderboard(
     })
     .from(pointTransaction)
     .innerJoin(user, eq(pointTransaction.userId, user.id))
-    .where(and(gte(pointTransaction.createdAt, startStr), lt(pointTransaction.createdAt, endStr)))
+    .where(
+      and(
+        gte(pointTransaction.createdAt, startStr),
+        lt(pointTransaction.createdAt, endStr),
+        sql`${pointTransaction.reason} != 'point_store_redeem'`,
+      ),
+    )
     .groupBy(pointTransaction.userId, user.username, user.image)
     .orderBy(desc(sql`sum(${pointTransaction.points})`))
     .limit(limit);
@@ -424,6 +443,9 @@ export async function getUserWeeklyRank(userId: number, yearWeek: string = curre
   const startStr = start.toISOString().slice(0, 19).replace("T", " ");
   const endStr = end.toISOString().slice(0, 19).replace("T", " ");
 
+  // Excludes point_store_redeem for the same reason as getWeeklyLeaderboard -
+  // this is a weekly-activity rank, not a balance, spending shouldn't count
+  // against it.
   const rows = await db.execute(sql`
     SELECT user_id, points, ranked, total
     FROM (
@@ -434,6 +456,7 @@ export async function getUserWeeklyRank(userId: number, yearWeek: string = curre
         COUNT(*) OVER () AS total
       FROM point_transaction pt
       WHERE pt.created_at >= ${startStr} AND pt.created_at < ${endStr}
+        AND pt.reason != 'point_store_redeem'
       GROUP BY pt.user_id
     ) ranked_totals
     WHERE user_id = ${userId}

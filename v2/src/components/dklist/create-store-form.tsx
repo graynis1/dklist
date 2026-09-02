@@ -20,7 +20,13 @@ import { PaidListingFields } from "@/components/dklist/paid-listing-fields";
  * still `redirect()`s inside the action, which Next.js's server-action
  * transport follows automatically even when the action was called this way.
  */
-export function CreateStoreForm({ marketplaceActive }: { marketplaceActive: boolean }) {
+export function CreateStoreForm({
+  marketplaceActive,
+  initialBook,
+}: {
+  marketplaceActive: boolean;
+  initialBook?: { id: number; name: string; slug: string; writers: string[] } | null;
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +61,7 @@ export function CreateStoreForm({ marketplaceActive }: { marketplaceActive: bool
       </p>
       <Input name="location" placeholder="Konum (şehir)" />
       <Input name="shipment" placeholder="Kargo bilgisi" />
-      <BookLinkPicker />
+      <BookLinkPicker initialBook={initialBook} />
       {marketplaceActive && <PaidListingFields />}
       <div className="flex flex-col gap-1">
         <label htmlFor="images" className="text-sm text-muted-foreground">

@@ -494,3 +494,13 @@ export async function deleteChat(userId: number, otherUserId: number): Promise<v
     .set(isFirst ? { hiddenForFirstUser: 1 } : { hiddenForSecondUser: 1 })
     .where(eq(chat.id, chatRow.id));
 }
+
+/** v1 parity gap found via customer report: v1 had a "tümünü sil" option
+ * on the inbox, v2 only ever had per-conversation delete. Same soft-hide
+ * semantics as deleteChat() (hides only this user's side - a new reply
+ * legitimately un-hides a chat again, matching existing behavior), just
+ * applied to every conversation this user is part of at once. */
+export async function deleteAllChats(userId: number): Promise<void> {
+  await db.update(chat).set({ hiddenForFirstUser: 1 }).where(eq(chat.firstUserId, userId));
+  await db.update(chat).set({ hiddenForSecondUser: 1 }).where(eq(chat.secondUserId, userId));
+}

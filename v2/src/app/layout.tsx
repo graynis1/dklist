@@ -54,11 +54,17 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: `${SITE_NAME} - Kitap Severlerin Buluştuğu Adres`,
     description: SITE_DESCRIPTION,
+    // Real bug found via customer report: sharing the bare dklist.com
+    // domain showed no image at all in link previews - no og:image was
+    // ever set here. metadataBase above resolves this relative path to
+    // an absolute URL automatically.
+    images: [{ url: "/manifest-icon-512.png" }],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE_NAME} - Kitap Severlerin Buluştuğu Adres`,
     description: SITE_DESCRIPTION,
+    images: ["/manifest-icon-512.png"],
   },
   alternates: {
     canonical: "/",

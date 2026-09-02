@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
+import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { Button } from "@/components/ui/button";
 import { EntityComments } from "@/components/dklist/entity-comments";
 import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
@@ -27,14 +28,23 @@ import { ClubJoinButton } from "@/components/dklist/club-join-button";
 import { ClubManageBook } from "@/components/dklist/club-manage-book";
 import { ClubDeleteButton } from "@/components/dklist/club-delete-button";
 
-export async function generateMetadata({ params }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const club = await getClubBySlug(slug);
   if (!club) return {};
 
+  // Real bug found via customer report: sharing a club comment on
+  // Facebook showed only this page's generic title/description, no
+  // trace of the actual comment - see share-button.tsx's `quote` prop.
+  // When present, use the real quoted text as the description instead.
+  const { alinti } = await searchParams;
+  const quote = typeof alinti === "string" ? alinti : undefined;
+
   return pageMetadata({
     title: `${club.name} (Kitap Kulübü)`,
-    description: truncateDescription(club.description || `${club.name} kitap kulübüne DKList'te katıl.`),
+    description: truncateDescription(
+      quote ? `"${quote}" - ${club.name} kitap kulübünde paylaşıldı.` : club.description || `${club.name} kitap kulübüne DKList'te katıl.`,
+    ),
     path: `/kulup/${club.slug}`,
     noIndex: club.visibility !== "public",
   });
@@ -97,11 +107,25 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
       <div className="mb-10 rounded-lg border border-border p-4">
         <SectionLabel>Şu An Okunan Kitap</SectionLabel>
         {club.currentBookName ? (
-          <Link href={`/kitap/${club.currentBookSlug}`} className="mt-2 block font-medium hover:underline">
-            {club.currentBookName}
-            {club.currentBookWriters.length > 0 && (
-              <span className="ml-1 font-normal text-muted-foreground">— {club.currentBookWriters.join(", ")}</span>
-            )}
+          // Real gap found via customer report: this was text-only ("daha
+          // görsel bir hava katmazmıydı?") - now shows the real cover
+          // next to the name/author, same as everywhere else on the site.
+          <Link href={`/kitap/${club.currentBookSlug}`} className="mt-2 flex items-center gap-3 hover:underline">
+            <BookCover
+              title={club.currentBookName}
+              author={club.currentBookWriters.join(", ") || "Yazar bilinmiyor"}
+              tone={toneForId(club.currentBookId!)}
+              bookId={club.currentBookId!}
+              hasImage={club.currentBookHasImage}
+              size="sm"
+              className="w-12 shrink-0"
+            />
+            <span className="font-medium">
+              {club.currentBookName}
+              {club.currentBookWriters.length > 0 && (
+                <span className="ml-1 font-normal text-muted-foreground">— {club.currentBookWriters.join(", ")}</span>
+              )}
+            </span>
           </Link>
         ) : (
           <p className="mt-2 text-sm text-muted-foreground">Henüz belirlenmedi.</p>

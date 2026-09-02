@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
+import { languageName } from "@/lib/languages";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -41,18 +42,43 @@ const READER_STATUS_LABELS: Record<string, string> = {
   dropRead: "yarıda bıraktı",
 };
 
-export async function generateMetadata({ params }: PageProps<"/kitap/[slug]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/kitap/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const book = await getBookBySlug(slug);
   if (!book) return {};
 
+  // Real bug found via customer report: sharing a book comment/quote on
+  // Facebook showed only the book's own generic description, no trace of
+  // the actual comment - see share-button.tsx's `quote` prop.
+  const { alinti } = await searchParams;
+  const quote = typeof alinti === "string" ? alinti : undefined;
+
   const writerNames = book.writers.map((w) => w.name).join(", ");
   const title = writerNames ? `${book.name} - ${writerNames}` : book.name;
+  // Real customer ask: the score should be part of what a share preview
+  // communicates, not just visible after clicking through - prepended
+  // here so WhatsApp/Facebook/Twitter all show it without extra work.
+  const scoreLine = book.score > 0 ? `${book.score.toFixed(1)}/10 · ` : "";
   const description = truncateDescription(
-    book.content || book.aiSummary || `${book.name}${writerNames ? ` (${writerNames})` : ""} - DKList'te oku, puanla, yorum yap.`,
+    quote
+      ? `"${quote}" - ${book.name}${writerNames ? ` (${writerNames})` : ""} hakkında DKList'te paylaşıldı.`
+      : `${scoreLine}${book.content || book.aiSummary || `${book.name}${writerNames ? ` (${writerNames})` : ""} - DKList'te oku, puanla, yorum yap.`}`,
   );
 
-  return pageMetadata({ title, description, path: `/kitap/${book.slug}` });
+  return pageMetadata({
+    title,
+    description,
+    path: `/kitap/${book.slug}`,
+    // Real bug found via customer report: no book page ever passed an
+    // image to pageMetadata(), so og:image was always absent - Facebook's
+    // crawler has fallback heuristics that can still produce a preview
+    // without one, but WhatsApp's does not, which is exactly the
+    // Facebook-works/WhatsApp-doesn't split the customer saw. Only set
+    // when the book actually has a real cover photo (/kapak/[id] 404s
+    // otherwise, see kapak/[id]/route.ts) - metadataBase in layout.tsx
+    // resolves this relative path to an absolute URL automatically.
+    image: book.hasImage ? `/kapak/${book.id}` : undefined,
+  });
 }
 
 export default function BookPage({ params }: PageProps<"/kitap/[slug]">) {
@@ -133,7 +159,7 @@ async function BookDetailContent({
     detail.workId
       ? getWorkEditions(detail.workId, detail.id, detail.lang)
       : Promise.resolve({ sameLanguage: [], otherLanguages: {} }),
-    detail.categories.length > 0 ? getSimilarBooks(detail.id, detail.categories[0].id) : Promise.resolve([]),
+    detail.categories.length > 0 ? getSimilarBooks(detail.id, detail.categories[0].id, 6, detail.lang) : Promise.resolve([]),
   ]);
 
   const quotes = await getBookComments(detail.id, "quotation");
@@ -264,21 +290,36 @@ async function BookDetailContent({
               <StarRating value={workPooledScore ? workPooledScore.avgScore : detail.score} />
               <span className="font-medium">
                 {workPooledScore
-                  ? `Ortak kitap puanı ${workPooledScore.avgScore.toFixed(1)}/10 (${workPooledScore.editionCount} baskı)`
+                  ? `Kitap puanı ${workPooledScore.avgScore.toFixed(1)}/10 (${workPooledScore.editionCount} baskı)`
                   : `${detail.score.toFixed(1)}/10`}
               </span>
               {/* Real gap found while wiring this up: ratingCount was
                   already fetched but only ever used in the invisible
                   JSON-LD SEO block below, never shown to a real visitor -
                   customer's explicit ask ("kaç kişi oy kullandı verisi
-                  eklenebilir mi"). */}
-              {ratingCount > 0 && (
-                <span className="text-muted-foreground">({ratingCount} oy)</span>
+                  eklenebilir mi"). When a pooled score exists, show the
+                  real pooled vote count (getWorkPooledScore.voteCount) -
+                  not this edition's own ratingCount - so "8 oy" next to
+                  "Kitap puanı" actually means 8 people rated this work
+                  across all its editions, matching what the number
+                  represents. */}
+              {(workPooledScore ? workPooledScore.voteCount : ratingCount) > 0 && (
+                <span className="text-muted-foreground">
+                  ({workPooledScore ? workPooledScore.voteCount : ratingCount} oy)
+                </span>
               )}
               {workPooledScore && (
                 <span className="text-muted-foreground">
                   · Bu baskının puanı {detail.score.toFixed(1)}/10
+                  {ratingCount > 0 && ` (${ratingCount} oy)`}
                 </span>
+              )}
+              {/* Real gap found via customer report: no book page ever
+                  showed which language the book is in - a real, useful
+                  piece of catalog information the customer expected to
+                  find and couldn't. */}
+              {languageName(detail.lang) && (
+                <span className="text-muted-foreground">· {languageName(detail.lang)}</span>
               )}
               <span className="text-muted-foreground">
                 · {detail.viewCount.toLocaleString("tr-TR")} görüntülenme
@@ -385,7 +426,7 @@ async function BookDetailContent({
                 signedIn={Boolean(userId)}
                 initialInLibrary={inLibrary}
               />
-              <Button variant="outline" render={<Link href="/askida-kitap/yeni" />} nativeButton={false}>
+              <Button variant="outline" render={<Link href={`/askida-kitap/yeni?bookId=${detail.id}`} />} nativeButton={false}>
                 Askıya Bırak
               </Button>
               <AddToListButton bookId={detail.id} signedIn={Boolean(userId)} />

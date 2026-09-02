@@ -573,7 +573,7 @@ export function EntityComments({
                     ) : (
                       <ReportCommentButton commentId={c.id} parentType="comment" />
                     )}
-                    <ShareButton content={c.text} />
+                    <ShareButton content={c.text} quote={c.text} />
                   </div>
                 )}
                 {quoteCardSource && !isEditing && <QuoteCard quoteText={c.text} sourceName={quoteCardSource} />}

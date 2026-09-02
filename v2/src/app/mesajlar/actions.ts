@@ -8,6 +8,7 @@ import {
   sendMessage,
   deleteMessage,
   deleteChat,
+  deleteAllChats,
   getMessages,
   acceptMessageRequest,
   type MessageItem,
@@ -93,6 +94,16 @@ export async function deleteChatAction(otherUsername: string): Promise<{ status:
       .limit(1);
     if (!target) return { status: false, message: "Kullanıcı bulunamadı." };
     await deleteChat(userId, target.id);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function deleteAllChatsAction(): Promise<{ status: boolean; message?: string }> {
+  try {
+    const userId = await requireUserId();
+    await deleteAllChats(userId);
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };

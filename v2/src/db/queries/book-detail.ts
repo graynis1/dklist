@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user } from "@/db/schema";
+import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user, score } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
 import { getCategoryBookCount } from "@/db/queries/books";
 
@@ -102,30 +102,54 @@ export async function getBookBySlug(slug: string): Promise<BookDetail | null> {
 export interface WorkPooledScore {
   avgScore: number;
   editionCount: number;
+  voteCount: number;
 }
 
 /**
  * Customer's rating/edition-model spec: show BOTH "bu baskı puanı" (this
- * edition's own score) and "ortak kitap puanı" (pooled across all editions/
- * translations of the same work) side by side. Only meaningful once
- * `work_id` is actually populated across editions - the real Phase 5
- * fuzzy-matching backfill hasn't run against prod yet (needs the isbn index
- * decision), so this returns null for any book still on its own island,
- * which is every book on the real site today. Built now so the UI is ready
- * the moment that backfill lands, rather than a follow-up feature later.
+ * edition's own score) and the pooled score across all editions/
+ * translations of the same work. Only meaningful once `work_id` is
+ * actually populated across editions - the real Phase 5 fuzzy-matching
+ * backfill hasn't run against prod yet (needs the isbn index decision),
+ * so this returns null for any book still on its own island, which is
+ * every book on the real site today. Built now so the UI is ready the
+ * moment that backfill lands, rather than a follow-up feature later.
+ *
+ * Real bug found and fixed (2026-09-02, live customer report): the first
+ * version did `avg(book.score)` grouped by workId - averaging each
+ * EDITION's own already-averaged score, unweighted by how many actual
+ * votes back it. A work with 7 editions where only one has ever been
+ * rated (say 8/10 from a single voter, the other 6 sitting at the
+ * unrated default of 0) would show avg(8,0,0,0,0,0,0) ≈ 1.1/10 instead
+ * of the correct 8/10 - silently punishing exactly the books that need
+ * pooling the most (thin per-edition vote counts). Fixed by averaging
+ * the raw `score` votes directly across every book row sharing this
+ * workId, so the result is a real vote-weighted mean, not a mean of
+ * means - and the count returned is real total votes cast, not edition
+ * count, per the customer's expectation ("toplam oy").
  */
 export async function getWorkPooledScore(workId: number): Promise<WorkPooledScore | null> {
   "use cache";
   cacheLife("hours");
   cacheTag(`work-score:${workId}`);
 
-  const [row] = await db
-    .select({ avgScore: sql<number>`avg(${book.score})`, editionCount: sql<number>`count(*)` })
-    .from(book)
-    .where(eq(book.workId, workId));
+  const [[editionRow], [voteRow]] = await Promise.all([
+    db.select({ editionCount: sql<number>`count(*)` }).from(book).where(eq(book.workId, workId)),
+    db
+      .select({ avgScore: sql<number>`avg(${score.score})`, voteCount: sql<number>`count(*)` })
+      .from(score)
+      .innerJoin(book, eq(score.targetId, book.id))
+      .where(and(eq(book.workId, workId), eq(score.targetType, "book"))),
+  ]);
 
-  if (!row || Number(row.editionCount) <= 1) return null;
-  return { avgScore: Number(row.avgScore), editionCount: Number(row.editionCount) };
+  if (!editionRow || Number(editionRow.editionCount) <= 1) return null;
+  if (!voteRow || Number(voteRow.voteCount) === 0) return null;
+
+  return {
+    avgScore: Number(voteRow.avgScore),
+    editionCount: Number(editionRow.editionCount),
+    voteCount: Number(voteRow.voteCount),
+  };
 }
 
 export interface WorkEdition {
@@ -303,15 +327,27 @@ export interface SimilarBook {
  */
 const LARGE_CATEGORY_POOL_THRESHOLD = 20_000;
 
+/**
+ * `lang` is optional so the pool stays cacheable/reusable for the
+ * language-agnostic fallback call below - real customer report: "Benzer
+ * Kitaplar" on a Turkish book was showing foreign-language books with no
+ * apparent language awareness at all, because this query never filtered
+ * by language in the first place (the pool was purely category+score).
+ * Caching key includes `lang` (via the tag/args) so a Turkish and a
+ * non-Turkish request for the same category get separate, independently
+ * cached pools.
+ */
 async function getCategoryCandidatePool(
   categoryId: number,
   poolSize: number,
+  lang?: string,
 ): Promise<Omit<SimilarBook, "writers">[]> {
   "use cache";
   cacheLife("hours");
   cacheTag(`similar-books:${categoryId}`);
 
   const categorySize = await getCategoryBookCount(categoryId);
+  const langCondition = lang ? sql`AND b.lang = ${lang}` : sql``;
 
   const rows = (
     categorySize < LARGE_CATEGORY_POOL_THRESHOLD
@@ -320,7 +356,7 @@ async function getCategoryCandidatePool(
             (b.image IS NOT NULL AND b.image != '') AS hasImage
           FROM book_category bc
           INNER JOIN book b ON b.id = bc.book_id
-          WHERE bc.category_id = ${categoryId}
+          WHERE bc.category_id = ${categoryId} ${langCondition}
           ORDER BY b.score DESC
           LIMIT ${poolSize}
         `))[0]
@@ -331,7 +367,7 @@ async function getCategoryCandidatePool(
           WHERE EXISTS (
             SELECT 1 FROM book_category bc
             WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-          )
+          ) ${langCondition}
           ORDER BY b.score DESC
           LIMIT ${poolSize}
         `))[0]
@@ -348,18 +384,32 @@ async function getCategoryCandidatePool(
  * a candidate have one computed. Falls back to the plain score ordering
  * for any candidate still missing an embedding - most books do until
  * they're re-saved/re-approved, this isn't a backfilled dataset yet. The
- * candidate-pool query is cached by categoryId (see getCategoryCandidatePool);
- * this outer function stays uncached since it's cheap once that pool is
- * warm (filter + rerank over ≤limit*4 rows, one writer lookup).
+ * candidate-pool query is cached by categoryId+lang (see
+ * getCategoryCandidatePool); this outer function stays uncached since
+ * it's cheap once that pool is warm (filter + rerank over ≤limit*4 rows,
+ * one writer lookup).
+ *
+ * `lang`, when passed, tries a same-language pool first - real customer
+ * report: recommendations for a Turkish book showed foreign-language
+ * books with no apparent reason. Falls back to the language-agnostic
+ * pool if the same-language one doesn't have enough real candidates
+ * (a niche category might genuinely have too few Turkish editions to
+ * fill the list) - always showing *something* over an empty section.
  */
-export async function getSimilarBooks(bookId: number, categoryId: number, limit = 6): Promise<SimilarBook[]> {
+export async function getSimilarBooks(bookId: number, categoryId: number, limit = 6, lang?: string): Promise<SimilarBook[]> {
   // Pull a wider candidate pool than needed so the content re-rank below
   // has real room to reorder, not just the same top-6-by-score every time,
   // plus a small margin since the current book (excluded below, not in SQL
   // so the pool query stays cacheable across every book in this category)
   // might itself be one of the top results.
-  const pool = await getCategoryCandidatePool(categoryId, limit * 4 + 4);
-  const rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
+  const poolSize = limit * 4 + 4;
+  let pool = lang ? await getCategoryCandidatePool(categoryId, poolSize, lang) : [];
+  let rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
+
+  if (rows.length < limit) {
+    pool = await getCategoryCandidatePool(categoryId, poolSize);
+    rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
+  }
 
   if (rows.length === 0) return [];
 

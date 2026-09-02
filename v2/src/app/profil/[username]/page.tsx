@@ -551,13 +551,14 @@ async function ProfileContent({
 
               {ownerBlogs.length > 0 && (
                 <SectionCard title="Blog Yazıları" icon={NewspaperIcon} count={ownerBlogs.length} tint="indigo">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ExpandableShelf className="grid grid-cols-1 gap-3 sm:grid-cols-2" limit={8} searchable>
                     {ownerBlogs.map((b) => {
                       const t = TONE_STYLE[toneForId(b.id)];
                       return (
                         <Link
                           key={b.id}
                           href={`/blog/${b.slug}`}
+                          data-search={b.title}
                           className="group flex overflow-hidden rounded-lg border border-border transition-colors hover:border-foreground/20 hover:bg-accent"
                         >
                           <div className="w-1.5 shrink-0" style={{ backgroundColor: t.bg }} />
@@ -572,7 +573,7 @@ async function ProfileContent({
                         </Link>
                       );
                     })}
-                  </div>
+                  </ExpandableShelf>
                 </SectionCard>
               )}
             </>
@@ -656,9 +657,9 @@ function BookShelf({
   books: { id: number; name: string; slug: string; hasImage: boolean; writers: string[] }[];
 }) {
   return (
-    <ExpandableShelf>
+    <ExpandableShelf searchable>
       {books.map((b) => (
-        <Link key={b.id} href={`/kitap/${b.slug}`} className="flex w-24 flex-col gap-1">
+        <Link key={b.id} href={`/kitap/${b.slug}`} data-search={b.name} className="flex w-24 flex-col gap-1">
           <BookCover
             title={b.name}
             author={b.writers.join(", ") || "Yazar bilinmiyor"}
@@ -690,11 +691,12 @@ function EntityChipShelf({
   hrefPrefix: string;
 }) {
   return (
-    <ExpandableShelf className="flex flex-wrap gap-2.5" limit={12}>
+    <ExpandableShelf className="flex flex-wrap gap-2.5" limit={12} searchable>
       {items.map((item) => (
         <Link
           key={item.id}
           href={`${hrefPrefix}/${item.slug}`}
+          data-search={item.name}
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-3.5 pl-1 text-sm transition-colors hover:border-foreground/20 hover:bg-accent"
         >
           <EntityAvatar id={item.id} name={item.name} size="size-7" />

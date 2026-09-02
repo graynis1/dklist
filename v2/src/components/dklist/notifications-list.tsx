@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { markAllReadAction, deleteNotificationAction } from "@/app/bildirimler/actions";
+import { markAllReadAction, deleteNotificationAction, deleteAllNotificationsAction } from "@/app/bildirimler/actions";
 import type { NotificationItem } from "@/db/queries/notifications";
 
 export function NotificationsList({ initialItems }: { initialItems: NotificationItem[] }) {
@@ -28,18 +28,41 @@ export function NotificationsList({ initialItems }: { initialItems: Notification
     });
   }
 
+  function removeAll() {
+    if (!window.confirm("Tüm bildirimleri silmek istediğinizden emin misiniz?")) return;
+    setItems([]);
+    startTransition(async () => {
+      await deleteAllNotificationsAction();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {hasUnread && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-fit"
-          disabled={isPending}
-          onClick={markAllRead}
-        >
-          Tümünü okundu işaretle
-        </Button>
+      {/* v1 parity gap found via customer report: v1 had a "tümünü sil"
+          option, v2 only ever had per-item delete. */}
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {hasUnread && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              disabled={isPending}
+              onClick={markAllRead}
+            >
+              Tümünü okundu işaretle
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-fit text-destructive"
+            disabled={isPending}
+            onClick={removeAll}
+          >
+            Tümünü sil
+          </Button>
+        </div>
       )}
 
       {items.length === 0 ? (

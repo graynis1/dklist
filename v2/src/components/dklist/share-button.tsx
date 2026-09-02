@@ -31,17 +31,39 @@ export function ShareButton({
   content,
   url,
   pointsKey,
+  quote,
   size = "default",
 }: {
   content: string;
   url?: string;
   pointsKey?: string;
+  /**
+   * Real bug found via customer report: sharing a comment/quote on
+   * Facebook/WhatsApp only ever shared the entity page's own URL, so the
+   * preview card showed that page's generic OG title/description (e.g.
+   * "DKList (Kitap Kulübü) | DKList") with zero trace of the actual
+   * comment - `content` only reaches Twitter's intent (which accepts
+   * text directly) and the native share sheet, never a Facebook/WhatsApp
+   * preview, which is generated purely from the target URL's own OG
+   * tags. When `quote` is passed, it's appended as an `alinti` query
+   * param on the shared URL (computed here, at click-time, not at
+   * render-time, for the same SSR-safety reason resolveUrl() already
+   * avoids `window` at render) - the entity page's own generateMetadata
+   * reads it and swaps its description for the real quoted text, so the
+   * preview actually reflects what's being shared.
+   */
+  quote?: string;
   size?: "default" | "sm";
 }) {
   const [open, setOpen] = useState(false);
 
   function resolveUrl() {
-    return url ?? (typeof window !== "undefined" ? window.location.href : "");
+    if (url) return url;
+    if (typeof window === "undefined") return "";
+    if (!quote) return window.location.href;
+    const base = `${window.location.origin}${window.location.pathname}`;
+    const excerpt = quote.length > 200 ? `${quote.slice(0, 200)}...` : quote;
+    return `${base}?alinti=${encodeURIComponent(excerpt)}`;
   }
 
   function trackShare() {

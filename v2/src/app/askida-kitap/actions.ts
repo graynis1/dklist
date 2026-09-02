@@ -1,7 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
+import { db } from "@/db";
+import { book, writer, writerBook } from "@/db/schema";
 import { createStore, toggleStoreFavorite, deleteStore, updateStoreStatus } from "@/db/queries/store";
 import { getBookList } from "@/db/queries/books";
 import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
@@ -57,6 +60,31 @@ export async function createStoreAction(formData: FormData): Promise<{ status: b
  * all, which the create form never offered (store.bookId existed in the
  * schema/query layer already, just never set by anything).
  */
+/**
+ * Real gap found via customer report: the book page's "Askıya Ekle"
+ * button linked to a bare /askida-kitap/yeni with no way to carry which
+ * book the seller came from - they had to search for the exact same
+ * book again from scratch, even though it's already known. Powers a
+ * `?bookId=` pre-fill on the create form (see BookLinkPicker's
+ * `initialBook` prop).
+ */
+export async function getBookLinkInfoAction(
+  bookId: number,
+): Promise<{ id: number; name: string; slug: string; writers: string[] } | null> {
+  if (!Number.isInteger(bookId) || bookId <= 0) return null;
+
+  const [row] = await db.select({ id: book.id, name: book.name, slug: book.slug }).from(book).where(eq(book.id, bookId)).limit(1);
+  if (!row) return null;
+
+  const writerRows = await db
+    .select({ name: writer.name })
+    .from(writerBook)
+    .innerJoin(writer, eq(writerBook.writerId, writer.id))
+    .where(eq(writerBook.bookId, bookId));
+
+  return { ...row, writers: writerRows.map((w) => w.name) };
+}
+
 export async function searchBooksForLinkAction(
   query: string,
 ): Promise<{ id: number; name: string; slug: string; writers: string[] }[]> {

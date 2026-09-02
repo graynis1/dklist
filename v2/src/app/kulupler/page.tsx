@@ -12,7 +12,8 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getClubList } from "@/db/queries/book-clubs";
+import { getClubList, getUserClubs } from "@/db/queries/book-clubs";
+import { auth } from "@/auth";
 
 export default function BookClubListPage({ searchParams }: PageProps<"/kulupler">) {
   return (
@@ -28,9 +29,51 @@ export default function BookClubListPage({ searchParams }: PageProps<"/kulupler"
             Kulüp Kur
           </Button>
         </div>
+        <Suspense fallback={null}>
+          <MyClubsSection />
+        </Suspense>
         <Suspense fallback={<ClubListSkeleton />}>
           <ClubList searchParams={searchParams} />
         </Suspense>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Real gap found via customer report: a "private/gizli" club is
+ * deliberately excluded from the public /kulupler list (unlisted by
+ * design, reachable only via direct link - see book-clubs.ts's own doc
+ * comment), but nothing ever showed a signed-in user which clubs they
+ * belong to - so losing a private club's URL meant losing the club
+ * entirely, with zero way back in. getUserClubs() already existed
+ * server-side but had no caller anywhere in the UI. Also answers the
+ * customer's related ask: once /kulupler has many public clubs, a
+ * member shouldn't have to search to find their own - this section
+ * covers both public and private memberships regardless of the main
+ * list below.
+ */
+async function MyClubsSection() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const clubs = await getUserClubs(Number(session.user.id));
+  if (clubs.length === 0) return null;
+
+  return (
+    <div className="mb-10">
+      <h2 className="font-heading mb-3 text-lg font-medium">Kulüplerim</h2>
+      <div className="flex flex-wrap gap-2">
+        {clubs.map((c) => (
+          <Link
+            key={c.id}
+            href={`/kulup/${c.slug}`}
+            className="rounded-full border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent"
+          >
+            {c.name}
+            {c.role === "owner" && <span className="ml-1.5 text-xs text-muted-foreground">(kurucu)</span>}
+          </Link>
+        ))}
       </div>
     </div>
   );
