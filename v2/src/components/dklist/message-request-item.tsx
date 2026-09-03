@@ -7,11 +7,12 @@ import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { Button } from "@/components/ui/button";
 import { acceptRequestAction, deleteChatAction } from "@/app/mesajlar/actions";
 import type { ConversationItem as ConversationItemType } from "@/db/queries/messages";
+import type { UserDecoration } from "@/db/queries/user-decorations";
 
 /** "Diğer mesajlar" (message requests) row - a pending first message from
  * someone not yet followed. Accept moves it to the main inbox; decline
  * hides it, same mechanism as deleting a normal conversation. */
-export function MessageRequestItem({ request }: { request: ConversationItemType }) {
+export function MessageRequestItem({ request, decoration }: { request: ConversationItemType; decoration?: UserDecoration }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -34,7 +35,15 @@ export function MessageRequestItem({ request }: { request: ConversationItemType 
   return (
     <div className="flex items-center gap-3 p-3">
       <Link href={`/mesajlar?user=${request.otherUsername}`} className="flex min-w-0 flex-1 items-center gap-3">
-        <EntityAvatar id={request.otherUserId} name={request.otherUsername} image={request.otherImage} size="size-9" />
+        <EntityAvatar
+          id={request.otherUserId}
+          name={request.otherUsername}
+          image={request.otherImage}
+          size="size-9"
+          profileFrame={decoration?.profileFrame}
+          frameTier={decoration?.frameTier}
+          highestBadge={decoration?.highestBadge}
+        />
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-sm font-medium">@{request.otherUsername}</span>
           <span className="truncate text-xs text-muted-foreground">{request.lastMessagePreview ?? ""}</span>

@@ -16,6 +16,7 @@ import { AdSlot } from "@/components/dklist/ad-slot";
 import { auth } from "@/auth";
 import { getConversations, getMessages, getMessageRequests } from "@/db/queries/messages";
 import { getProfileByUsername } from "@/db/queries/profile";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 export default function MessagesPage({ searchParams }: PageProps<"/mesajlar">) {
   return (
@@ -62,7 +63,7 @@ async function MessagesContent({
     typeof selectedUsername === "string" ? selectedUsername : conversations[0]?.otherUsername;
 
   let initialMessages: Awaited<ReturnType<typeof getMessages>>["messages"] = [];
-  let activeProfile: { id: number; username: string; image: string | null } | null = null;
+  let activeProfile: { id: number; username: string; image: string | null; profileFrame: string | null } | null = null;
 
   if (activeUsername) {
     const profile = await getProfileByUsername(activeUsername);
@@ -72,6 +73,12 @@ async function MessagesContent({
       initialMessages = page.messages;
     }
   }
+
+  const decorations = await getUserDecorations([
+    ...conversations.map((c) => c.otherUserId),
+    ...messageRequests.map((r) => r.otherUserId),
+    ...(activeProfile ? [activeProfile.id] : []),
+  ]);
 
   return (
     <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-border md:h-[40rem] md:grid-cols-[17rem_1fr]">
@@ -85,6 +92,7 @@ async function MessagesContent({
                 key={c.otherUserId}
                 conversation={c}
                 isActive={c.otherUsername === activeUsername}
+                decoration={decorationFor(decorations, c.otherUserId)}
               />
             ))}
             <DeleteAllChatsButton />
@@ -96,7 +104,7 @@ async function MessagesContent({
               Diğer Mesajlar ({messageRequests.length})
             </p>
             {messageRequests.map((r) => (
-              <MessageRequestItem key={r.otherUserId} request={r} />
+              <MessageRequestItem key={r.otherUserId} request={r} decoration={decorationFor(decorations, r.otherUserId)} />
             ))}
           </div>
         )}
@@ -111,6 +119,9 @@ async function MessagesContent({
                 name={activeProfile.username}
                 image={activeProfile.image}
                 size="size-8"
+                profileFrame={decorationFor(decorations, activeProfile.id).profileFrame}
+                frameTier={decorationFor(decorations, activeProfile.id).frameTier}
+                highestBadge={decorationFor(decorations, activeProfile.id).highestBadge}
               />
               <Link href={`/profil/${activeProfile.username}`} className="font-medium hover:underline">
                 @{activeProfile.username}

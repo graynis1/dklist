@@ -25,6 +25,7 @@ import { ReportBookErrorButton } from "@/components/dklist/report-book-error-but
 import { AddToListButton } from "@/components/dklist/add-to-list-button";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { getBookBySlug, getBookReaders, getBookReaderCount, getBookCategoryRank, getWorkPooledScore, getWorkEditions, getSimilarBooks } from "@/db/queries/book-detail";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 import { auth } from "@/auth";
 import { getReadStatus, getBookDropStats, DROP_REASON_LABELS } from "@/db/queries/reading-status";
 import { getUserBookRating, getBookRatingCount } from "@/db/queries/rating";
@@ -166,6 +167,7 @@ async function BookDetailContent({
   ]);
 
   const quotes = await getBookComments(detail.id, "quotation");
+  const readerDecorations = await getUserDecorations(readers.map((r) => r.id));
 
   const commentIds = comments.map((c) => c.id);
   const [repliesByComment, commentLikes] = await Promise.all([
@@ -590,7 +592,16 @@ async function BookDetailContent({
                   href={`/profil/${r.username}`}
                   className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm hover:bg-accent"
                 >
-                  <EntityAvatar id={r.id} name={r.username} image={r.image} size="size-6" className="text-[10px]" />
+                  <EntityAvatar
+                    id={r.id}
+                    name={r.username}
+                    image={r.image}
+                    size="size-6"
+                    className="text-[10px]"
+                    profileFrame={decorationFor(readerDecorations, r.id).profileFrame}
+                    frameTier={decorationFor(readerDecorations, r.id).frameTier}
+                    highestBadge={decorationFor(readerDecorations, r.id).highestBadge}
+                  />
                   {r.username}
                   <span className="text-xs text-muted-foreground">
                     {READER_STATUS_LABELS[r.status] ?? r.status}

@@ -8,6 +8,7 @@ import { CommunitySidebarNav } from "@/components/dklist/community-sidebar-nav";
 import { CommunityRightRail } from "@/components/dklist/community-right-rail";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { getSiteFeed } from "@/db/queries/feed";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 import { auth } from "@/auth";
 import { cn } from "@/lib/utils";
 import { pageMetadata } from "@/lib/seo";
@@ -91,11 +92,19 @@ async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">[
   const followingOnly = scope === "following";
 
   const page = await getSiteFeed({ followingOnly, viewerId, mode: view });
+  const viewerDecoration = viewerId ? decorationFor(await getUserDecorations([viewerId]), viewerId) : undefined;
 
   return (
     <div className="flex flex-col gap-6">
       {viewerId && session?.user && view === "posts" && (
-        <FeedComposer userId={viewerId} username={session.user.name ?? "?"} userImage={session.user.image ?? null} />
+        <FeedComposer
+          userId={viewerId}
+          username={session.user.name ?? "?"}
+          userImage={session.user.image ?? null}
+          profileFrame={viewerDecoration?.profileFrame}
+          frameTier={viewerDecoration?.frameTier}
+          highestBadge={viewerDecoration?.highestBadge}
+        />
       )}
       <div className="flex w-fit flex-wrap gap-1 rounded-full bg-muted p-1 text-sm">
         <TabLink href="/akis" active={view === "posts" && scope === "everyone"}>

@@ -69,7 +69,16 @@ export function FeedReplyThread({
         <div className="flex w-full flex-col gap-2.5 border-l-2 border-border py-1 pl-3">
           {replies.map((r) => (
             <div key={r.id} className="flex gap-2">
-              <EntityAvatar id={r.authorUserId} name={r.authorUsername} image={r.authorImage} size="size-6" className="mt-0.5 shrink-0" />
+              <EntityAvatar
+                id={r.authorUserId}
+                name={r.authorUsername}
+                image={r.authorImage}
+                size="size-6"
+                className="mt-0.5 shrink-0"
+                profileFrame={r.profileFrame}
+                frameTier={r.frameTier}
+                highestBadge={r.highestBadge}
+              />
               <div className="flex min-w-0 flex-col">
                 <span className="text-xs font-medium">@{r.authorUsername}</span>
                 <p className="text-sm leading-snug break-words text-foreground/90">{r.text}</p>

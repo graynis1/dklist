@@ -8,6 +8,7 @@ import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
 import { Button } from "@/components/ui/button";
 import { createFeedPostAction } from "@/app/akis/actions";
 import { searchParentBooksAction } from "@/app/kitap/yeni/actions";
+import type { FrameTier } from "@/lib/profile-frame-tier";
 
 /**
  * The "what's on your mind?" compose box - the one piece /akis genuinely
@@ -23,10 +24,16 @@ export function FeedComposer({
   userId,
   username,
   userImage,
+  profileFrame,
+  frameTier,
+  highestBadge,
 }: {
   userId: number;
   username: string;
   userImage: string | null;
+  profileFrame?: string | null;
+  frameTier?: FrameTier;
+  highestBadge?: { name: string; threshold: number } | null;
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -68,7 +75,16 @@ export function FeedComposer({
 
   return (
     <form ref={formRef} action={submit} className="flex gap-3 rounded-xl border border-border bg-card p-4">
-      <EntityAvatar id={userId} name={username} image={userImage} size="size-9" className="shrink-0" />
+      <EntityAvatar
+        id={userId}
+        name={username}
+        image={userImage}
+        size="size-9"
+        className="shrink-0"
+        profileFrame={profileFrame}
+        frameTier={frameTier}
+        highestBadge={highestBadge}
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <textarea
           name="text"

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { CrownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { frameTierFromPointCost } from "@/lib/profile-frame-tier";
+import { frameTierFromPointCost, type FrameTier } from "@/lib/profile-frame-tier";
 
 /**
  * Renders a purchasable profile frame (Puan Mağazası, `profile_frame`
@@ -38,6 +38,7 @@ export function ProfileFrameRing({
   size,
   ringWidth = 4,
   pointCost,
+  tier: tierOverride,
   className,
   children,
 }: {
@@ -45,17 +46,29 @@ export function ProfileFrameRing({
   size: number;
   ringWidth?: number;
   pointCost?: number | null;
+  /** Precomputed tier - skips the pointCost lookup. Callers already
+   * batch-resolving decorations for a whole list (see `getUserDecorations`)
+   * pass this instead of pointCost, so the tier isn't recomputed per row. */
+  tier?: FrameTier;
   className?: string;
   children: ReactNode;
 }) {
-  const tier = frameTierFromPointCost(pointCost);
-  const rw = ringWidth + (tier >= 4 ? 2 : tier >= 3 ? 1 : 0);
+  const tier = tierOverride ?? frameTierFromPointCost(pointCost);
+  // Small inline avatars (comments, feed, messages, sidebars - every
+  // `EntityAvatar` site-wide) can't fit a spiky halo/crown without
+  // overlapping neighboring text or looking cluttered at that density -
+  // the full medallion spectacle stays reserved for the one prominent
+  // profile-page avatar (96px+), matching how real reward-frame systems
+  // (Discord decorations, game avatar frames) size down their in-list
+  // representation while keeping the showcase version on the profile.
+  const compact = size < 60;
+  const rw = ringWidth + (!compact && tier >= 4 ? 2 : !compact && tier >= 3 ? 1 : 0);
   const outer = size + rw * 2;
   const vars = { "--frame-color": color } as CSSProperties;
 
   return (
     <span className={cn("relative inline-flex shrink-0 items-center justify-center", className)} style={{ width: outer, height: outer, ...vars }}>
-      {tier >= 3 && <Sunburst outer={outer} big={tier >= 4} color={color} />}
+      {tier >= 3 && !compact && <Sunburst outer={outer} big={tier >= 4} color={color} />}
 
       <span
         aria-hidden
@@ -74,7 +87,7 @@ export function ProfileFrameRing({
       {tier >= 2 &&
         [0, 90, 180, 270].map((angle) => <GemStud key={angle} angle={angle} outer={outer} rw={rw} color={color} />)}
 
-      {tier >= 4 && (
+      {tier >= 4 && !compact && (
         <>
           <Sparkle angle={-135} delay={0} size={size} rw={rw} />
           <Sparkle angle={40} delay={0.9} size={size} rw={rw} />

@@ -19,6 +19,7 @@ import { CommunityRightRail } from "@/components/dklist/community-right-rail";
 import { WriterApplicationForm } from "@/components/dklist/writer-application-form";
 import { formatRelativeTime } from "@/lib/utils";
 import { getAuthorMembers, getRecentAuthorPosts, getMyWriterApplication } from "@/db/queries/yazarhane";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 export default function YazarhanePage() {
   return (
@@ -77,6 +78,7 @@ async function YazarhaneContent() {
     getRecentAuthorPosts(20),
     session?.user?.id && !isAlreadyAuthor ? getMyWriterApplication(Number(session.user.id)) : Promise.resolve(null),
   ]);
+  const decorations = await getUserDecorations([...members.map((m) => m.userId), ...posts.map((p) => p.userId)]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -94,7 +96,15 @@ async function YazarhaneContent() {
                 href={`/yazarhane/${m.username}`}
                 className="flex w-40 shrink-0 flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-colors hover:border-foreground/15"
               >
-                <EntityAvatar id={m.userId} name={m.username} image={m.image} size="size-14" />
+                <EntityAvatar
+                  id={m.userId}
+                  name={m.username}
+                  image={m.image}
+                  size="size-14"
+                  profileFrame={decorationFor(decorations, m.userId).profileFrame}
+                  frameTier={decorationFor(decorations, m.userId).frameTier}
+                  highestBadge={decorationFor(decorations, m.userId).highestBadge}
+                />
                 <div className="flex min-w-0 flex-col">
                   <p className="truncate text-sm font-medium">@{m.username}</p>
                   {m.writerName && <p className="truncate text-xs text-muted-foreground">{m.writerName}</p>}
@@ -115,7 +125,15 @@ async function YazarhaneContent() {
             {posts.map((p) => (
               <article key={p.id} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/15 sm:p-5">
                 <div className="mb-3 flex items-center gap-2.5">
-                  <EntityAvatar id={p.userId} name={p.username} image={p.image} size="size-9" />
+                  <EntityAvatar
+                    id={p.userId}
+                    name={p.username}
+                    image={p.image}
+                    size="size-9"
+                    profileFrame={decorationFor(decorations, p.userId).profileFrame}
+                    frameTier={decorationFor(decorations, p.userId).frameTier}
+                    highestBadge={decorationFor(decorations, p.userId).highestBadge}
+                  />
                   <div className="flex min-w-0 flex-col">
                     <Link href={`/yazarhane/${p.username}`} className="text-sm font-medium hover:underline">
                       @{p.username}
