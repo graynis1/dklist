@@ -17,6 +17,7 @@ import { auth } from "@/auth";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { getUnreadNotificationCount } from "@/db/queries/notifications";
 import { getUnreadMessageCount } from "@/db/queries/messages";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 /**
  * Facebook's left-rail shortcut list, adapted to this site's own real
@@ -34,6 +35,7 @@ export async function CommunitySidebarNav() {
   const [notifCount, msgCount] = userId
     ? await Promise.all([getUnreadNotificationCount(userId), getUnreadMessageCount(userId)])
     : [0, 0];
+  const decoration = userId ? decorationFor(await getUserDecorations([userId]), userId) : undefined;
 
   const links = [
     { href: "/akis", label: "Akış", icon: Rss },
@@ -61,7 +63,14 @@ export async function CommunitySidebarNav() {
           href={`/profil/${username}`}
           className="mb-1 flex items-center gap-2.5 rounded-lg p-2.5 transition-colors hover:bg-accent"
         >
-          <EntityAvatar id={userId} name={username} size="size-10" />
+          <EntityAvatar
+            id={userId}
+            name={username}
+            size="size-10"
+            profileFrame={decoration?.profileFrame}
+            frameTier={decoration?.frameTier}
+            highestBadge={decoration?.highestBadge}
+          />
           <span className="truncate text-[0.95rem] font-medium">{username}</span>
         </Link>
       )}

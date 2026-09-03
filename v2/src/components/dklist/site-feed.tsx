@@ -120,7 +120,16 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
 
   const header = (
     <div className="flex items-center gap-2.5">
-      <EntityAvatar id={item.actorId} name={item.actorUsername} image={item.actorImage} size="size-9" className="shrink-0" />
+      <EntityAvatar
+        id={item.actorId}
+        name={item.actorUsername}
+        image={item.actorImage}
+        size="size-9"
+        className="shrink-0"
+        profileFrame={item.profileFrame}
+        frameTier={item.frameTier}
+        highestBadge={item.highestBadge}
+      />
       <div className="flex min-w-0 flex-col">
         <div className="flex flex-wrap items-center gap-1.5 text-sm leading-tight">
           <Link href={`/profil/${item.actorUsername}`} className="font-medium hover:underline">

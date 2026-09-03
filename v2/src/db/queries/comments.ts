@@ -8,6 +8,8 @@ import { addNotification } from "@/db/queries/notifications";
 import { extractHashtagTags } from "@/lib/hashtag";
 import { findFlaggedWords } from "@/lib/dirty-controller";
 import { isLikelyAbusive, isOffTopicFromBooks } from "@/lib/moderation";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import type { FrameTier } from "@/lib/profile-frame-tier";
 
 /**
  * Real AI-based content blocking, on top of (not instead of) the existing
@@ -65,6 +67,9 @@ export interface BookComment {
   authorUserId: number;
   authorImage: string | null;
   sharedFrom: SharedFromInfo | null;
+  profileFrame: string | null;
+  frameTier: FrameTier;
+  highestBadge: { name: string; threshold: number } | null;
 }
 
 /**
@@ -107,13 +112,15 @@ export async function getEntityComments(
     )
     .orderBy(desc(comment.id));
 
-  const sharedFromById = await getSharedFromInfo(
-    rows.map((r) => r.sharedFromCommentId).filter((id): id is number => id !== null),
-  );
+  const [sharedFromById, decorations] = await Promise.all([
+    getSharedFromInfo(rows.map((r) => r.sharedFromCommentId).filter((id): id is number => id !== null)),
+    getUserDecorations(rows.map((r) => r.authorUserId)),
+  ]);
 
   return rows.map(({ sharedFromCommentId, ...r }) => ({
     ...r,
     sharedFrom: sharedFromCommentId !== null ? (sharedFromById.get(sharedFromCommentId) ?? null) : null,
+    ...decorationFor(decorations, r.authorUserId),
   }));
 }
 
@@ -295,6 +302,9 @@ export interface CommentReply {
   parentType: SubCommentParentType;
   parentId: number;
   replies: CommentReply[];
+  profileFrame: string | null;
+  frameTier: FrameTier;
+  highestBadge: { name: string; threshold: number } | null;
 }
 
 /**
@@ -355,10 +365,12 @@ export async function getRepliesForComments(
         .orderBy(subComment.id)
     : [];
 
+  const decorations = await getUserDecorations([...level1Rows.map((r) => r.authorUserId), ...level2Rows.map((r) => r.authorUserId)]);
+
   const level2ByParent = new Map<number, CommentReply[]>();
   for (const row of level2Rows) {
     const list = level2ByParent.get(row.parentId) ?? [];
-    list.push({ ...row, parentType: "subComment", replies: [] });
+    list.push({ ...row, parentType: "subComment", replies: [], ...decorationFor(decorations, row.authorUserId) });
     level2ByParent.set(row.parentId, list);
   }
 
@@ -369,6 +381,7 @@ export async function getRepliesForComments(
       ...row,
       parentType: "comment",
       replies: level2ByParent.get(row.id) ?? [],
+      ...decorationFor(decorations, row.authorUserId),
     });
     byComment.set(row.parentId, list);
   }

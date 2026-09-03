@@ -21,6 +21,7 @@ import { auth } from "@/auth";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { RecentlyViewedShelf } from "@/components/dklist/recently-viewed-shelf";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -199,6 +200,8 @@ async function TopReadersShelf() {
     return <p className="text-sm text-muted-foreground">Henüz okuma kaydı yok.</p>;
   }
 
+  const decorations = await getUserDecorations(readers.map((r) => r.id));
+
   return (
     <div className="flex flex-wrap gap-3">
       {readers.map((r) => (
@@ -207,7 +210,16 @@ async function TopReadersShelf() {
           href={`/profil/${r.username}`}
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm transition-colors hover:bg-accent"
         >
-          <EntityAvatar id={r.id} name={r.username} image={r.image} size="size-7" className="shrink-0" />
+          <EntityAvatar
+            id={r.id}
+            name={r.username}
+            image={r.image}
+            size="size-7"
+            className="shrink-0"
+            profileFrame={decorationFor(decorations, r.id).profileFrame}
+            frameTier={decorationFor(decorations, r.id).frameTier}
+            highestBadge={decorationFor(decorations, r.id).highestBadge}
+          />
           @{r.username}
           <span className="text-xs text-muted-foreground">{r.readCount} kitap</span>
         </Link>
@@ -241,6 +253,8 @@ async function WeeklyLeaderWidget() {
     );
   }
 
+  const decorations = await getUserDecorations(topThree.map((entry) => entry.userId));
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {topThree.map((entry, i) => (
@@ -250,7 +264,16 @@ async function WeeklyLeaderWidget() {
           className="flex items-center gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
         >
           <span className="text-2xl">{MEDALS[i]}</span>
-          <EntityAvatar id={entry.userId} name={entry.username} image={entry.image} size="size-10" className="shrink-0" />
+          <EntityAvatar
+            id={entry.userId}
+            name={entry.username}
+            image={entry.image}
+            size="size-10"
+            className="shrink-0"
+            profileFrame={decorationFor(decorations, entry.userId).profileFrame}
+            frameTier={decorationFor(decorations, entry.userId).frameTier}
+            highestBadge={decorationFor(decorations, entry.userId).highestBadge}
+          />
           <div className="flex flex-col truncate">
             <span className="truncate font-medium">@{entry.username}</span>
             <span className="text-sm text-muted-foreground">{entry.points} puan</span>
@@ -408,6 +431,8 @@ async function FollowSuggestionsWidget() {
     );
   }
 
+  const decorations = await getUserDecorations(suggestions.map((s) => s.id));
+
   return (
     <div className="flex flex-wrap gap-3">
       {suggestions.map((s) => (
@@ -416,7 +441,16 @@ async function FollowSuggestionsWidget() {
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-2 pl-1 text-sm"
         >
           <Link href={`/profil/${s.username}`} className="flex items-center gap-2 hover:underline">
-            <EntityAvatar id={s.id} name={s.username} image={s.image} size="size-7" className="shrink-0" />
+            <EntityAvatar
+              id={s.id}
+              name={s.username}
+              image={s.image}
+              size="size-7"
+              className="shrink-0"
+              profileFrame={decorationFor(decorations, s.id).profileFrame}
+              frameTier={decorationFor(decorations, s.id).frameTier}
+              highestBadge={decorationFor(decorations, s.id).highestBadge}
+            />
             @{s.username}
           </Link>
           <span className="text-xs text-muted-foreground">{s.sharedBookCount} ortak kitap</span>

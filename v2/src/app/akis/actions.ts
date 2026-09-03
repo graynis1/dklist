@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { getSiteFeed, type FeedPage } from "@/db/queries/feed";
 import { createFeedPost, deleteFeedPost, setFeedPostReaction } from "@/db/queries/feed-posts";
 import { addSubComment, type SubCommentParentType, type CommentReply } from "@/db/queries/comments";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 export async function loadMoreFeedAction(
   cursor: number,
@@ -80,6 +81,7 @@ export async function addFeedReplyAction(
   try {
     const userId = Number(session.user.id);
     const replyId = await addSubComment(userId, parentType, parentId, text);
+    const decoration = decorationFor(await getUserDecorations([userId]), userId);
     return {
       status: true,
       reply: {
@@ -91,6 +93,7 @@ export async function addFeedReplyAction(
         parentType,
         parentId,
         replies: [],
+        ...decoration,
       },
     };
   } catch (err) {

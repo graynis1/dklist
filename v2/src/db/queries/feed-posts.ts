@@ -5,6 +5,7 @@ import { feedPost, feedPostLike, subComment, user, pointTransaction, book } from
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { checkModerationOrThrow, notifyHashtaggedReaders, type CommentReply } from "@/db/queries/comments";
 import { saveUploadedImage, deleteUploadedImage } from "@/lib/image-upload";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 /**
  * The one genuine "post" concept the app never had - a standalone status
@@ -182,17 +183,19 @@ export async function getRepliesForPosts(postIds: number[]): Promise<Map<number,
         .orderBy(subComment.id)
     : [];
 
+  const decorations = await getUserDecorations([...level1Rows.map((r) => r.authorUserId), ...level2Rows.map((r) => r.authorUserId)]);
+
   const level2ByParent = new Map<number, CommentReply[]>();
   for (const row of level2Rows) {
     const list = level2ByParent.get(row.parentId) ?? [];
-    list.push({ ...row, parentType: "subComment", replies: [] });
+    list.push({ ...row, parentType: "subComment", replies: [], ...decorationFor(decorations, row.authorUserId) });
     level2ByParent.set(row.parentId, list);
   }
 
   const byPost = new Map<number, CommentReply[]>();
   for (const row of level1Rows) {
     const list = byPost.get(row.parentId) ?? [];
-    list.push({ ...row, parentType: "feedPost", replies: level2ByParent.get(row.id) ?? [] });
+    list.push({ ...row, parentType: "feedPost", replies: level2ByParent.get(row.id) ?? [], ...decorationFor(decorations, row.authorUserId) });
     byPost.set(row.parentId, list);
   }
   return byPost;

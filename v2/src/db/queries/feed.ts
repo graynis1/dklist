@@ -17,6 +17,8 @@ import {
 import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
 import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
 import { getRepliesForComments, type CommentReply, type SubCommentParentType } from "@/db/queries/comments";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import type { FrameTier } from "@/lib/profile-frame-tier";
 
 /**
  * Site-wide activity feed ("akış") - the customer explicitly called the
@@ -70,6 +72,9 @@ export interface FeedItem {
   actorId: number;
   actorUsername: string;
   actorImage: string | null;
+  profileFrame: string | null;
+  frameTier: FrameTier;
+  highestBadge: { name: string; threshold: number } | null;
   reason: FeedReason;
   entityKind: "book" | "writer" | "translator" | "user" | "blog" | "store" | "club" | null;
   isQuote: boolean;
@@ -259,6 +264,7 @@ export async function getSiteFeed(opts: {
     postLikeStates,
     repliesByComment,
     repliesByPost,
+    actorDecorations,
   ] = await Promise.all([
     bookIds.size
       ? db
@@ -276,6 +282,7 @@ export async function getSiteFeed(opts: {
     getFeedPostLikeStates(opts.viewerId ?? null, [...feedPostIds]),
     getRepliesForComments([...commentIds]),
     getRepliesForPosts([...feedPostIds]),
+    getUserDecorations(parsed.map((r) => r.actorId)),
   ]);
 
   const bookMap = new Map(bookRows.map((b) => [b.id, b]));
@@ -293,6 +300,7 @@ export async function getSiteFeed(opts: {
       actorId: r.actorId,
       actorUsername: r.actorUsername,
       actorImage: r.actorImage,
+      ...decorationFor(actorDecorations, r.actorId),
       reason: r.reason as FeedReason,
       bookCover: null as FeedItem["bookCover"],
       entityAvatarId: null as FeedItem["entityAvatarId"],

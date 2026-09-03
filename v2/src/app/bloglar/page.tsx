@@ -10,6 +10,7 @@ import { ImageWithFallback } from "@/components/dklist/image-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getBlogList } from "@/db/queries/blog";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 const BLOG_AUTHOR_ROLES = [USER_TYPES.Blogger, USER_TYPES.Mod, USER_TYPES.Admin];
 
@@ -111,6 +112,7 @@ async function BlogList({
   // first there).
   const showHero = page === 1 && !search && items.length > 0;
   const [hero, ...rest] = showHero ? items : [null, ...items];
+  const decorations = await getUserDecorations(items.map((i) => i.ownerId).filter((id): id is number => id != null));
 
   return (
     <div>
@@ -145,7 +147,15 @@ async function BlogList({
                 <p className="line-clamp-3 text-[0.95rem] leading-relaxed text-muted-foreground">{hero.preview}</p>
                 <div className="mt-1 flex items-center gap-2">
                   {hero.ownerUsername && hero.ownerId != null && (
-                    <EntityAvatar id={hero.ownerId} name={hero.ownerUsername} image={hero.ownerImage} size="size-7" />
+                    <EntityAvatar
+                      id={hero.ownerId}
+                      name={hero.ownerUsername}
+                      image={hero.ownerImage}
+                      size="size-7"
+                      profileFrame={decorationFor(decorations, hero.ownerId).profileFrame}
+                      frameTier={decorationFor(decorations, hero.ownerId).frameTier}
+                      highestBadge={decorationFor(decorations, hero.ownerId).highestBadge}
+                    />
                   )}
                   <span className="text-sm text-muted-foreground">
                     {hero.ownerUsername ? `@${hero.ownerUsername} · ` : ""}
@@ -173,7 +183,15 @@ async function BlogList({
                   <p className="line-clamp-2 flex-1 text-sm leading-relaxed text-muted-foreground">{post!.preview}</p>
                   <div className="mt-1 flex items-center gap-2">
                     {post!.ownerUsername && post!.ownerId != null && (
-                      <EntityAvatar id={post!.ownerId} name={post!.ownerUsername} image={post!.ownerImage} size="size-6" />
+                      <EntityAvatar
+                        id={post!.ownerId}
+                        name={post!.ownerUsername}
+                        image={post!.ownerImage}
+                        size="size-6"
+                        profileFrame={decorationFor(decorations, post!.ownerId).profileFrame}
+                        frameTier={decorationFor(decorations, post!.ownerId).frameTier}
+                        highestBadge={decorationFor(decorations, post!.ownerId).highestBadge}
+                      />
                     )}
                     <span className="text-xs text-muted-foreground">
                       {post!.ownerUsername ? `@${post!.ownerUsername} · ` : ""}

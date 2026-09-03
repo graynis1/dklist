@@ -8,6 +8,7 @@ import { hasRole, USER_TYPES } from "@/lib/permission";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { getBlogBySlug, getRecentBlogPosts } from "@/db/queries/blog";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 import { DeleteBlogButton } from "@/components/dklist/delete-blog-button";
 import { HashtagText } from "@/components/dklist/hashtag-text";
 import { ShareButton } from "@/components/dklist/share-button";
@@ -96,6 +97,7 @@ async function BlogDetailContent({
   const isOwner = viewerId !== null && post.ownerId === viewerId;
   const isElevated = hasRole(session?.user?.userType, ELEVATED_ROLES);
   const canManage = isOwner || isElevated;
+  const ownerDecoration = post.ownerId != null ? decorationFor(await getUserDecorations([post.ownerId]), post.ownerId) : undefined;
 
   return (
     <article className="mx-auto flex w-full max-w-3xl flex-col gap-4">
@@ -116,7 +118,15 @@ async function BlogDetailContent({
       </h1>
       <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
         {post.ownerUsername && post.ownerId != null && (
-          <EntityAvatar id={post.ownerId} name={post.ownerUsername} image={post.ownerImage} size="size-8" />
+          <EntityAvatar
+            id={post.ownerId}
+            name={post.ownerUsername}
+            image={post.ownerImage}
+            size="size-8"
+            profileFrame={ownerDecoration?.profileFrame}
+            frameTier={ownerDecoration?.frameTier}
+            highestBadge={ownerDecoration?.highestBadge}
+          />
         )}
         <span>
           {post.ownerUsername ? (

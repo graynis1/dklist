@@ -11,6 +11,7 @@ import { HashtagText } from "@/components/dklist/hashtag-text";
 import { QuoteCard } from "@/components/dklist/quote-card";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { CommentLikeButton } from "@/components/dklist/comment-like-button";
+import type { UserDecoration } from "@/db/queries/user-decorations";
 
 /** v1's CommentComponent `notice()` - a silent fire-and-forget report that
  * just hides itself after sending, no confirmation modal (comment reports
@@ -184,7 +185,16 @@ function ReplyItem({
 
   return (
     <li className="flex gap-2.5 border-l-2 border-border pl-3">
-      <EntityAvatar id={reply.authorUserId} name={reply.authorUsername} image={reply.authorImage} size="size-7" className="mt-0.5 shrink-0" />
+      <EntityAvatar
+        id={reply.authorUserId}
+        name={reply.authorUsername}
+        image={reply.authorImage}
+        size="size-7"
+        className="mt-0.5 shrink-0"
+        profileFrame={reply.profileFrame}
+        frameTier={reply.frameTier}
+        highestBadge={reply.highestBadge}
+      />
       <div className="flex flex-1 flex-col gap-1">
       <div className="flex items-center gap-2 text-sm">
         <span className="font-medium">@{reply.authorUsername}</span>
@@ -263,9 +273,12 @@ function ReplyItem({
  * same way EntityLikeButton/RateEntityControl are, rather than duplicated
  * per entity type.
  */
+const NO_DECORATION: UserDecoration = { profileFrame: null, frameTier: 1, highestBadge: null };
+
 export function EntityComments({
   signedIn,
   viewerId,
+  viewerDecoration = NO_DECORATION,
   initialComments,
   initialRepliesByComment,
   commentLikes,
@@ -282,6 +295,10 @@ export function EntityComments({
    * show "Düzenle"/"Sil" on a given comment/reply - undefined when
    * signed out (no edit/delete controls render at all). */
   viewerId?: number;
+  /** The signed-in viewer's own frame/badge, used only to decorate the
+   * optimistic entry shown immediately after they post - the real value
+   * from the next full data fetch always wins once one happens. */
+  viewerDecoration?: UserDecoration;
   initialComments: BookComment[];
   initialRepliesByComment: Record<number, CommentReply[]>;
   commentLikes: Record<number, CommentLikeState>;
@@ -394,6 +411,7 @@ export function EntityComments({
             authorUserId: viewerId ?? -1,
             authorImage: null,
             sharedFrom: { authorUsername: original.authorUsername, text: original.text },
+            ...viewerDecoration,
           },
           ...prev,
         ]);
@@ -421,6 +439,7 @@ export function EntityComments({
             authorUserId: viewerId ?? -1,
             authorImage: null,
             sharedFrom: null,
+            ...viewerDecoration,
           },
           ...prev,
         ]);
@@ -443,6 +462,7 @@ export function EntityComments({
           parentType,
           parentId,
           replies: [],
+          ...viewerDecoration,
         };
         setRepliesByComment((prev) => {
           const next = { ...prev };
@@ -503,7 +523,16 @@ export function EntityComments({
             const isEditing = editingCommentId === c.id;
             return (
               <li key={c.id} className="flex gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-              <EntityAvatar id={c.authorUserId} name={c.authorUsername} image={c.authorImage} size="size-9" className="mt-0.5 shrink-0" />
+              <EntityAvatar
+                id={c.authorUserId}
+                name={c.authorUsername}
+                image={c.authorImage}
+                size="size-9"
+                className="mt-0.5 shrink-0"
+                profileFrame={c.profileFrame}
+                frameTier={c.frameTier}
+                highestBadge={c.highestBadge}
+              />
               <div className="flex flex-1 flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-medium">@{c.authorUsername}</span>

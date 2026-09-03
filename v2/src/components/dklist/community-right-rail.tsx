@@ -10,6 +10,7 @@ import { getTrendingBooks } from "@/db/queries/activity";
 import { getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -38,6 +39,7 @@ export async function CommunityRightRail() {
     viewerId ? getFollowSuggestions(viewerId, 4) : Promise.resolve([]),
     getWeeklyLeaderboard(3, currentISOWeek()),
   ]);
+  const decorations = await getUserDecorations([...suggestions.map((s) => s.id), ...leaders.map((l) => l.userId)]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,7 +78,16 @@ export async function CommunityRightRail() {
             {suggestions.map((s) => (
               <li key={s.id} className="flex items-center gap-2.5">
                 <Link href={`/profil/${s.username}`} className="flex min-w-0 flex-1 items-center gap-2.5">
-                  <EntityAvatar id={s.id} name={s.username} image={s.image} size="size-8" className="shrink-0" />
+                  <EntityAvatar
+                    id={s.id}
+                    name={s.username}
+                    image={s.image}
+                    size="size-8"
+                    className="shrink-0"
+                    profileFrame={decorationFor(decorations, s.id).profileFrame}
+                    frameTier={decorationFor(decorations, s.id).frameTier}
+                    highestBadge={decorationFor(decorations, s.id).highestBadge}
+                  />
                   <div className="flex min-w-0 flex-col">
                     <span className="truncate text-sm font-medium">@{s.username}</span>
                     <span className="text-xs text-muted-foreground">{s.sharedBookCount} ortak kitap</span>
@@ -96,7 +107,16 @@ export async function CommunityRightRail() {
               <li key={l.userId}>
                 <Link href={`/profil/${l.username}`} className="flex items-center gap-2.5 rounded-lg -m-1.5 p-1.5 transition-colors hover:bg-accent">
                   <span className="text-base leading-none">{MEDALS[i]}</span>
-                  <EntityAvatar id={l.userId} name={l.username} image={l.image} size="size-7" className="shrink-0" />
+                  <EntityAvatar
+                    id={l.userId}
+                    name={l.username}
+                    image={l.image}
+                    size="size-7"
+                    className="shrink-0"
+                    profileFrame={decorationFor(decorations, l.userId).profileFrame}
+                    frameTier={decorationFor(decorations, l.userId).frameTier}
+                    highestBadge={decorationFor(decorations, l.userId).highestBadge}
+                  />
                   <span className="truncate text-sm font-medium">@{l.username}</span>
                   <span className="ml-auto shrink-0 text-xs text-muted-foreground">{l.points} puan</span>
                 </Link>
