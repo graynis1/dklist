@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { CrownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { frameTierFromPointCost, type FrameTier } from "@/lib/profile-frame-tier";
+import { sunburstClipPath } from "@/lib/sunburst-clip-path";
 
 /**
  * Renders a purchasable profile frame (Puan Mağazası, `profile_frame`
@@ -113,23 +114,6 @@ export function ProfileFrameRing({
       <ProfileFrameKeyframes />
     </span>
   );
-}
-
-/** Generates a scalloped star/gear silhouette (percentage-based clip-path
- * polygon around a 0-100% box) - the actual "break out of the circle" halo
- * behind tier 3+ rings. `spikes` alternates an outer point and an inner
- * valley `spikes` times around the circle. */
-function sunburstClipPath(spikes: number, innerRatio: number): string {
-  const total = spikes * 2;
-  const pts: string[] = [];
-  for (let i = 0; i < total; i++) {
-    const angle = (Math.PI * 2 * i) / total - Math.PI / 2;
-    const r = i % 2 === 0 ? 50 : 50 * innerRatio;
-    const x = 50 + r * Math.cos(angle);
-    const y = 50 + r * Math.sin(angle);
-    pts.push(`${x.toFixed(2)}% ${y.toFixed(2)}%`);
-  }
-  return `polygon(${pts.join(", ")})`;
 }
 
 function Sunburst({ outer, big, color }: { outer: number; big: boolean; color: string }) {
