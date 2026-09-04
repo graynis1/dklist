@@ -17,7 +17,7 @@ export function ResendResetCodeButton({ userId }: { userId: number }) {
       if (result.status) {
         setState({
           message: result.devCode
-            ? `Geliştirme modunda sıfırlama kodunuz: ${result.devCode}`
+            ? `Yeni kodun tekrar e-postana gönderildi, ama gecikebilir - hemen devam etmek istersen kodun: ${result.devCode}`
             : "Kod tekrar gönderildi - gelen kutunuzu ve gereksiz/spam klasörünüzü kontrol edin.",
           devCode: result.devCode,
         });

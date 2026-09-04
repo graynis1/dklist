@@ -25,7 +25,9 @@ export async function resendVerificationCodeAction(userId: number): Promise<{ st
 
   try {
     const result = await resendVerificationCode(userId);
-    return { status: true, devCode: result.mailSent ? undefined : result.verificationCode };
+    // Always return the code - see registerAction()'s doc comment for why
+    // `mailSent` can no longer be trusted alone.
+    return { status: true, devCode: result.verificationCode };
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }

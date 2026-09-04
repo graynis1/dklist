@@ -36,30 +36,19 @@ async function ResetForm({
 }: {
   searchParams: PageProps<"/sifre-sifirla">["searchParams"];
 }) {
-  const { userId, devCode, newPassword, mailSent, error } = await searchParams;
+  const { userId, code, devCode, newPassword, error } = await searchParams;
+  // `code` (initial request) and `devCode` (resend action) are the same
+  // real code, just threaded through two different call sites.
+  const shownCode = (typeof code === "string" ? code : undefined) ?? (typeof devCode === "string" ? devCode : undefined);
 
   if (typeof newPassword === "string") {
     return (
       <div className="flex flex-col gap-4">
         <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
-          E-posta gönderimi yapılandırılmamış - geliştirme modunda yeni
-          şifreniz: <strong>{newPassword}</strong>
+          Yeni şifren e-postana da gönderildi, ama e-posta gecikebilir - hemen
+          giriş yapmak istersen yeni şifren: <strong>{newPassword}</strong>
           <br />
-          Bu şifreyi bir daha göremeyeceksiniz, giriş yaptıktan sonra
-          değiştirmenizi öneririz.
-        </p>
-        <Button render={<Link href="/giris" />} nativeButton={false} className="w-full">
-          Giriş Yap
-        </Button>
-      </div>
-    );
-  }
-
-  if (mailSent === "1") {
-    return (
-      <div className="flex flex-col gap-4">
-        <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
-          Yeni şifreniz e-posta adresinize gönderildi.
+          Giriş yaptıktan sonra profilinden dilediğin şifreyi belirleyebilirsin.
         </p>
         <Button render={<Link href="/giris" />} nativeButton={false} className="w-full">
           Giriş Yap
@@ -71,10 +60,10 @@ async function ResetForm({
   return (
     <form action={confirmPasswordResetAction} className="flex flex-col gap-4">
       <input type="hidden" name="userId" value={typeof userId === "string" ? userId : ""} />
-      {devCode ? (
+      {shownCode ? (
         <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
-          E-posta gönderimi yapılandırılmamış - geliştirme modunda sıfırlama
-          kodunuz: <strong>{devCode}</strong>
+          Sıfırlama kodun e-postana da gönderildi, ama e-posta gecikebilir -
+          hemen devam etmek istersen kodun: <strong>{shownCode}</strong>
         </p>
       ) : (
         <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
@@ -86,7 +75,7 @@ async function ResetForm({
       <Button type="submit" className="w-full">
         Şifreyi Sıfırla
       </Button>
-      {Number.isFinite(Number(userId)) && !devCode && <ResendResetCodeButton userId={Number(userId)} />}
+      {Number.isFinite(Number(userId)) && <ResendResetCodeButton userId={Number(userId)} />}
     </form>
   );
 }
