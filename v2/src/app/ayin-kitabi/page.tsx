@@ -14,6 +14,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { getCurrentBookOfMonth, getPastBooksOfMonth, isParticipating } from "@/db/queries/book-of-month";
 import { ParticipateButton } from "@/components/dklist/participate-button";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function BookOfMonthPage() {
   return (
@@ -29,6 +30,9 @@ export default function BookOfMonthPage() {
         </div>
         <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted" />}>
           <BookOfMonthContent />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AdSlot placement="ayin-kitabi" className="mt-10 max-w-none px-0" />
         </Suspense>
       </div>
     </div>

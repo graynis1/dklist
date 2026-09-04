@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { getPublisherList } from "@/db/queries/publishers";
 import { toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function PublisherListPage({ searchParams }: PageProps<"/yayinevleri">) {
   return (
@@ -62,6 +63,10 @@ async function PublisherList({
           Ara
         </Button>
       </form>
+
+      <Suspense fallback={null}>
+        <AdSlot placement="yayinevleri-listesi" className="mb-8 max-w-none px-0" />
+      </Suspense>
 
       {items.length === 0 ? (
         <p className="text-muted-foreground">{search ? "Bu aramaya uyan yayınevi yok." : "Henüz yayınevi yok."}</p>

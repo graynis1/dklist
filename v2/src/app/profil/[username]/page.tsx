@@ -227,8 +227,14 @@ async function ProfileContent({
   // çıkar - kitaplığım'a düşerse aşağıdaki Kitaplığım rafıyla birebir
   // aynı tek kitabı iki kez göstermiş oluyorduk (gerçek bir tekrar hatası,
   // "aynı kitap iki kez" ekran görüntüsüyle bulundu).
-  const featuredBook = booksByStatus.currentRead[0] ?? booksByStatus.finishRead[0] ?? null;
-  const featuredLabel = booksByStatus.currentRead[0] ? "Şu An Okuyor" : "Son Okuduğu";
+  // Real customer report: marking two books "okuyorum" showed both in the
+  // Kitaplığım shelf below, but this spotlight only ever showed
+  // `currentRead[0]` - the single most-recently-updated one - which read as
+  // the second book silently replacing the first rather than sitting
+  // alongside it. Capped at 3 so someone with a dozen simultaneous
+  // "currently reading" books doesn't turn the hero into its own long list.
+  const featuredBooks = booksByStatus.currentRead.length > 0 ? booksByStatus.currentRead.slice(0, 3) : booksByStatus.finishRead.slice(0, 1);
+  const featuredLabel = booksByStatus.currentRead.length > 0 ? "Şu An Okuyor" : "Son Okuduğu";
 
   return (
     <div className="mx-auto max-w-[1400px] px-6 py-10 sm:py-16">
@@ -427,8 +433,9 @@ async function ProfileContent({
             </div>
           ) : (
             <>
-              {featuredBook && (
+              {featuredBooks.map((featuredBook) => (
                 <div
+                  key={featuredBook.id}
                   className="relative flex items-center gap-5 overflow-hidden rounded-3xl border border-border p-5 shadow-sm sm:p-6"
                   style={{
                     background: `linear-gradient(120deg, color-mix(in oklch, ${TONE_STYLE[toneForId(featuredBook.id)].bg}, transparent 88%) 0%, transparent 65%)`,
@@ -457,7 +464,7 @@ async function ProfileContent({
                     </Link>
                   </div>
                 </div>
-              )}
+              ))}
 
               {sharedReadBooks.length > 0 && (
                 <p className="rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground shadow-sm">
@@ -485,7 +492,7 @@ async function ProfileContent({
 
                 <SectionCard title="2026 Okuma Hedefi" icon={TargetIcon}>
                   <div className="flex flex-col gap-3">
-                    <ReadingGoalControl isOwnProfile={isOwnProfile} initialGoal={readingGoal} />
+                    <ReadingGoalControl isOwnProfile={isOwnProfile} initialGoal={readingGoal} username={profile.username} />
                     {pastGoals.length > 0 && (
                       <p className="text-xs text-muted-foreground">
                         Geçmiş yıllar:{" "}

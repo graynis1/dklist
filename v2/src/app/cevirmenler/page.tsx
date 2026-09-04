@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { getTranslatorList } from "@/db/queries/translators";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function TranslatorListPage({ searchParams }: PageProps<"/cevirmenler">) {
   return (
@@ -62,6 +63,10 @@ async function TranslatorList({
           Ara
         </Button>
       </form>
+
+      <Suspense fallback={null}>
+        <AdSlot placement="cevirmenler-listesi" className="mb-8 max-w-none px-0" />
+      </Suspense>
 
       {items.length === 0 ? (
         <p className="text-muted-foreground">{search ? "Bu aramaya uyan çevirmen yok." : "Henüz çevirmen yok."}</p>

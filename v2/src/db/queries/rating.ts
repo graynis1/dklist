@@ -72,6 +72,16 @@ export async function rateBook(
 
   updateTag(`book:${bookSlug}`);
   updateTag(`book-rating:${bookId}`);
+  // Real customer report: voting on one edition was correctly recorded
+  // ("bu baskı oyu" - this edition's vote) but never showed up in the
+  // pooled/shared work score other editions display - getWorkPooledScore()
+  // is cached an hour under `work-score:${workId}`, and nothing ever
+  // invalidated it on a new vote. Same silent-cache-miss class of bug as
+  // the bookSlug tag-shape one above, just for a different tag.
+  const [bookRow] = await db.select({ workId: book.workId }).from(book).where(eq(book.id, bookId)).limit(1);
+  if (bookRow?.workId != null) {
+    updateTag(`work-score:${bookRow.workId}`);
+  }
   {
     const settings = await getPointSettings();
     await awardPointsWithDailyCap(userId, settings.rating, "rating", `rating:book:${bookId}`, settings.dailyRatingCap);

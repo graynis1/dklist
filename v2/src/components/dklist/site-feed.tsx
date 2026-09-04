@@ -16,6 +16,7 @@ import {
   UsersIcon,
   LibraryIcon,
   Trash2Icon,
+  PencilIcon,
   ChevronRightIcon,
 } from "lucide-react";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
@@ -27,7 +28,7 @@ import { ShareButton } from "@/components/dklist/share-button";
 import { Button } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/utils";
 import { feedPostImageUrl } from "@/lib/image-urls";
-import { loadMoreFeedAction, deleteFeedPostAction } from "@/app/akis/actions";
+import { loadMoreFeedAction, deleteFeedPostAction, updateFeedPostAction } from "@/app/akis/actions";
 import type { FeedItem } from "@/db/queries/feed";
 
 const ICON_BY_REASON = {
@@ -110,10 +111,27 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
   const router = useRouter();
   const [deleted, setDeleted] = useState(false);
   const [isDeleting, startDelete] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const [editedText, setEditedText] = useState(item.excerpt ?? "");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSavingEdit, startSaveEdit] = useTransition();
   const Icon = item.reason === "comment" && item.isQuote ? QuoteIcon : ICON_BY_REASON[item.reason];
   const { verb, target } = describe(item);
   const isPost = (item.reason === "comment" && Boolean(item.excerpt)) || item.reason === "feed_post";
   const isOwnPost = item.reason === "feed_post" && viewerId != null && viewerId === item.actorId;
+
+  function saveEdit() {
+    setEditError(null);
+    startSaveEdit(async () => {
+      const result = await updateFeedPostAction(item.feedPostId!, editedText);
+      if (result.status) {
+        setEditing(false);
+        router.refresh();
+      } else {
+        setEditError(result.message ?? "Güncellenemedi.");
+      }
+    });
+  }
   const sourceLabel = item.entityKind ? SOURCE_LABEL[item.entityKind] : null;
 
   if (deleted) return null;
@@ -143,25 +161,35 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
           {formatRelativeTime(item.createdAt)}
         </span>
       </div>
-      {isOwnPost && (
-        <button
-          type="button"
-          disabled={isDeleting}
-          onClick={() => {
-            if (!window.confirm("Bu gönderiyi silmek istediğinizden emin misiniz?")) return;
-            startDelete(async () => {
-              const result = await deleteFeedPostAction(item.feedPostId!);
-              if (result.status) {
-                setDeleted(true);
-                router.refresh();
-              }
-            });
-          }}
-          className="ml-auto shrink-0 text-muted-foreground/60 transition-colors hover:text-destructive disabled:opacity-50"
-          aria-label="Gönderiyi sil"
-        >
-          <Trash2Icon className="size-4" />
-        </button>
+      {isOwnPost && !editing && (
+        <div className="ml-auto flex shrink-0 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-muted-foreground/60 transition-colors hover:text-foreground"
+            aria-label="Gönderiyi düzenle"
+          >
+            <PencilIcon className="size-4" />
+          </button>
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={() => {
+              if (!window.confirm("Bu gönderiyi silmek istediğinizden emin misiniz?")) return;
+              startDelete(async () => {
+                const result = await deleteFeedPostAction(item.feedPostId!);
+                if (result.status) {
+                  setDeleted(true);
+                  router.refresh();
+                }
+              });
+            }}
+            className="text-muted-foreground/60 transition-colors hover:text-destructive disabled:opacity-50"
+            aria-label="Gönderiyi sil"
+          >
+            <Trash2Icon className="size-4" />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -260,11 +288,41 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
       <div className="flex flex-col gap-3">
         {isPost ? (
           <>
-            {item.excerpt && (
-              <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-foreground/90">
-                {item.isQuote && <QuoteIcon className="mr-1.5 inline size-4 -translate-y-0.5 text-muted-foreground/50" />}
-                {item.excerpt}
-              </p>
+            {editing ? (
+              <div className="flex flex-col gap-2">
+                <textarea
+                  value={editedText}
+                  onChange={(e) => setEditedText(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none"
+                />
+                {editError && <p className="text-xs text-destructive">{editError}</p>}
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={isSavingEdit} onClick={saveEdit}>
+                    Kaydet
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={isSavingEdit}
+                    onClick={() => {
+                      setEditing(false);
+                      setEditedText(item.excerpt ?? "");
+                      setEditError(null);
+                    }}
+                  >
+                    Vazgeç
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              item.excerpt && (
+                <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-foreground/90">
+                  {item.isQuote && <QuoteIcon className="mr-1.5 inline size-4 -translate-y-0.5 text-muted-foreground/50" />}
+                  {item.excerpt}
+                </p>
+              )
             )}
             {item.reason === "feed_post" && item.feedPostImage && (
               // Real customer report: "resmin bir bölümünü aktardığı için
