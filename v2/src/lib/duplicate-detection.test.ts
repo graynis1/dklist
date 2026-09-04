@@ -95,6 +95,46 @@ describe("titleAuthorSimilarity", () => {
     const score = titleAuthorSimilarity("Simyacı", ["Paulo Coelho"], "Simyacı", ["Someone Else"]);
     expect(score).toBeLessThan(DUPLICATE_MATCH_THRESHOLD);
   });
+
+  // Real catalog rows for a co-authored book routinely list authors in a
+  // different order, or with only a subset overlapping (e.g. a translator
+  // credit accidentally included on one side) - the double loop over every
+  // (authorsA, authorsB) pair must still find the correct match regardless
+  // of position, not just compare index-for-index.
+  it("finds the matching author pair in a multi-author list regardless of listing order", () => {
+    const score = titleAuthorSimilarity(
+      "Sineklerin Tanrısı",
+      ["Translator Adı", "William Golding"],
+      "Sineklerin Tanrısı",
+      ["William Golding", "Başka Çevirmen"],
+    );
+    expect(score).toBeGreaterThanOrEqual(DUPLICATE_MATCH_THRESHOLD);
+  });
+
+  it("a single genuinely matching author among several unrelated ones still scores as a duplicate", () => {
+    const score = titleAuthorSimilarity(
+      "Simyacı",
+      ["Paulo Coelho"],
+      "Simyacı",
+      ["Rastgele Bir Kişi", "Alakasız Yazar", "Paulo Coelho"],
+    );
+    expect(score).toBeGreaterThanOrEqual(DUPLICATE_MATCH_THRESHOLD);
+  });
+
+  it("no author pair matching among several still scores below the duplicate threshold, not an average", () => {
+    const score = titleAuthorSimilarity(
+      "Simyacı",
+      ["Paulo Coelho"],
+      "Simyacı",
+      ["Rastgele Bir Kişi", "Alakasız Yazar"],
+    );
+    expect(score).toBeLessThan(DUPLICATE_MATCH_THRESHOLD);
+  });
+
+  it("is case-insensitive with Turkish-specific casing on the author leg too, not just the title", () => {
+    const score = titleAuthorSimilarity("İstanbul Hatırası", ["ORHAN PAMUK"], "istanbul hatırası", ["orhan pamuk"]);
+    expect(score).toBeGreaterThanOrEqual(DUPLICATE_MATCH_THRESHOLD);
+  });
 });
 
 describe("normalizeIsbn", () => {
