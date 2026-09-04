@@ -23,19 +23,27 @@ export async function registerAction(formData: FormData) {
   let userId: number;
   let verificationCode: string;
   let mailSent: boolean;
+  let verificationRequired: boolean;
 
   try {
     const result = await registerUser({ name, surname, username, mail, birthDate, sex, password });
     userId = result.userId;
     verificationCode = result.verificationCode;
     mailSent = result.mailSent;
+    verificationRequired = result.verificationRequired;
   } catch (err) {
     redirect(`/kayit-ol?error=${encodeURIComponent((err as Error).message)}`);
   }
 
-  const codeParam = mailSent ? "" : `&devCode=${verificationCode}`;
+  // Customer's explicit ask (2026-09-04) while Brevo delivery is broken:
+  // new members should land as a fully usable account with zero extra
+  // step, not a verification gate nobody can complete right now - see
+  // EMAIL_VERIFICATION_REQUIRED's doc comment.
+  const redirectTo = verificationRequired
+    ? `/dogrula?userId=${userId}${mailSent ? "" : `&devCode=${verificationCode}`}`
+    : "/";
   try {
-    await signIn("credentials", { username, password, redirectTo: `/dogrula?userId=${userId}${codeParam}` });
+    await signIn("credentials", { username, password, redirectTo });
   } catch (error) {
     if (error instanceof AuthError) {
       redirect(`/giris?error=${error.type}`);

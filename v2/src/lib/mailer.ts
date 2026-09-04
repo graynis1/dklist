@@ -14,6 +14,23 @@ export function isMailConfigured(): boolean {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
 }
 
+/**
+ * Temporary kill switch (customer's explicit ask, 2026-09-04): Brevo is
+ * silently dropping mail (accepts every send with `250 OK`, never actually
+ * delivers - see PLAN.md's "Mail delivery genuinely broken" entry for the
+ * full investigation), and new members must not be blocked by an email
+ * verification step nobody can currently complete. Registration now skips
+ * straight to a full, usable account - no /dogrula redirect, no pending
+ * code, no blocked login.
+ *
+ * Flip back to `true` once real delivery is confirmed working again (a new
+ * provider, or Brevo fixed) - everything this gates (the /dogrula page,
+ * its resend button, the pendingCode column, registerUser()'s email send)
+ * is left fully intact and starts working again immediately, no other
+ * code changes needed anywhere.
+ */
+export const EMAIL_VERIFICATION_REQUIRED = false;
+
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
 function getTransporter() {

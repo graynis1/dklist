@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
-import { isMailConfigured, sendVerificationEmail, sendPasswordResetEmail, sendNewPasswordEmail } from "@/lib/mailer";
+import { isMailConfigured, sendVerificationEmail, sendPasswordResetEmail, sendNewPasswordEmail, EMAIL_VERIFICATION_REQUIRED } from "@/lib/mailer";
 
 const TOKEN_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -37,6 +37,10 @@ export interface RegisterResult {
   userId: number;
   verificationCode: string;
   mailSent: boolean;
+  /** false while EMAIL_VERIFICATION_REQUIRED is off - the caller should
+   * skip the /dogrula redirect entirely, the account is already fully
+   * usable. */
+  verificationRequired: boolean;
 }
 
 /**
@@ -51,6 +55,10 @@ export interface RegisterResult {
  * false - e.g. a fresh clone with no .env.local) so registration stays fully
  * testable without mail. Login itself (see auth.ts) still doesn't gate on
  * mailAuth the way v1's bearer-token flow did.
+ *
+ * `EMAIL_VERIFICATION_REQUIRED` (mailer.ts) is currently off - see its own
+ * doc comment - so this creates the account already fully verified
+ * (`mailAuth: 1`) and skips generating/emailing a code entirely.
  */
 export async function registerUser(input: RegisterInput): Promise<RegisterResult> {
   const { name, surname, username, mail, birthDate, password, sex } = input;
@@ -96,12 +104,12 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
     name,
     surname,
     birthDate,
-    mailAuth: 0,
+    mailAuth: EMAIL_VERIFICATION_REQUIRED ? 0 : 1,
     disable: 0,
-    pendingCode: verificationCode,
+    pendingCode: EMAIL_VERIFICATION_REQUIRED ? verificationCode : null,
   });
 
-  const mailSent = isMailConfigured();
+  const mailSent = EMAIL_VERIFICATION_REQUIRED && isMailConfigured();
   if (mailSent) {
     // Fire-and-forget, not awaited - registration itself (the DB insert
     // above) is already done and must not be held hostage by an SMTP round
@@ -120,7 +128,7 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
     });
   }
 
-  return { userId: result.insertId, verificationCode, mailSent };
+  return { userId: result.insertId, verificationCode, mailSent, verificationRequired: EMAIL_VERIFICATION_REQUIRED };
 }
 
 export interface ResendVerificationResult {
