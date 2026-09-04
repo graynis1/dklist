@@ -7,6 +7,7 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { getCategoryBySlug, getBooksByCategory } from "@/db/queries/books";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({ params }: PageProps<"/kategori/[slug]">): Promise<Metadata> {
@@ -77,6 +78,10 @@ async function CategoryContent({
           {total} kitap · Türkçe baskılar önce, sonra görüntülenmeye göre sıralı
         </p>
       </div>
+
+      <Suspense fallback={null}>
+        <AdSlot placement="kategori-sayfasi" className="mb-10 max-w-none px-0" />
+      </Suspense>
 
       {books.length === 0 ? (
         <p className="text-muted-foreground">

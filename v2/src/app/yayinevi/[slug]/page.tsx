@@ -9,6 +9,7 @@ import { EntityLikeButton } from "@/components/dklist/entity-like-button";
 import { getPublisherBySlug, getBooksByPublisher } from "@/db/queries/publishers";
 import { isPublisherLiked, getPublisherLikeCount } from "@/db/queries/likes";
 import { JsonLd } from "@/components/dklist/json-ld";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { auth } from "@/auth";
 import { pageMetadata } from "@/lib/seo";
 import { togglePublisherLikeAction } from "./actions";
@@ -106,6 +107,10 @@ async function PublisherContent({
           label="Takip Et"
         />
       </div>
+
+      <Suspense fallback={null}>
+        <AdSlot placement="publisher-page" className="mb-10 max-w-none px-0" />
+      </Suspense>
 
       {books.length === 0 ? (
         <p className="text-muted-foreground">

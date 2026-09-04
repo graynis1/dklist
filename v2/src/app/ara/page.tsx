@@ -7,6 +7,7 @@ import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { Input } from "@/components/ui/input";
 import { searchBooks, searchWriters, searchTranslators, searchPublishers, searchUsers } from "@/db/queries/search";
 import { semanticSearchBooks } from "@/db/queries/book-embedding";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -35,6 +36,10 @@ export default function SearchPage({ searchParams }: PageProps<"/ara">) {
             autoFocus
           />
         </form>
+
+        <Suspense fallback={null}>
+          <AdSlot placement="ara" className="mb-10 max-w-none px-0" />
+        </Suspense>
 
         <Suspense fallback={<ResultsSkeleton />}>
           <Results searchParams={searchParams} />

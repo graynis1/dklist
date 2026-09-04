@@ -22,10 +22,12 @@ import {
   leaveClubAction,
   searchBooksForClubAction,
   updateClubCurrentBookAction,
+  updateClubDescriptionAction,
   deleteClubAction,
 } from "./actions";
 import { ClubJoinButton } from "@/components/dklist/club-join-button";
 import { ClubManageBook } from "@/components/dklist/club-manage-book";
+import { ClubManageDescription } from "@/components/dklist/club-manage-description";
 import { ClubDeleteButton } from "@/components/dklist/club-delete-button";
 
 export async function generateMetadata({ params, searchParams }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
@@ -102,7 +104,17 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
         </p>
       </div>
 
-      <p className="mb-8 whitespace-pre-wrap text-sm leading-relaxed">{club.description}</p>
+      <div className="mb-8 flex flex-col gap-2">
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">{club.description}</p>
+        {canManage && (
+          <ClubManageDescription
+            clubId={club.id}
+            slug={club.slug}
+            description={club.description}
+            updateAction={updateClubDescriptionAction}
+          />
+        )}
+      </div>
 
       <div className="mb-10 rounded-lg border border-border p-4">
         <SectionLabel>Şu An Okunan Kitap</SectionLabel>

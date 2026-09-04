@@ -11,6 +11,7 @@ import { connection } from "next/server";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { getPublicBadgeGallery } from "@/db/queries/badges-public";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function BadgeGalleryPage() {
   return (
@@ -24,6 +25,9 @@ export default function BadgeGalleryPage() {
             DKList&apos;te kazanılabilecek tüm rozetler.
           </p>
         </div>
+        <Suspense fallback={null}>
+          <AdSlot placement="rozetler" className="mb-8 max-w-none px-0" />
+        </Suspense>
         <Suspense fallback={<div className="h-64 animate-pulse rounded-lg bg-muted" />}>
           <BadgeGalleryContent />
         </Suspense>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmPasswordResetAction } from "./actions";
+import { ResendResetCodeButton } from "@/components/dklist/resend-reset-code-button";
 
 export default function ResetPasswordPage({ searchParams }: PageProps<"/sifre-sifirla">) {
   return (
@@ -85,6 +86,7 @@ async function ResetForm({
       <Button type="submit" className="w-full">
         Şifreyi Sıfırla
       </Button>
+      {Number.isFinite(Number(userId)) && !devCode && <ResendResetCodeButton userId={Number(userId)} />}
     </form>
   );
 }

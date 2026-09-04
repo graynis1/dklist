@@ -4,13 +4,16 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { setReadingGoalAction } from "@/app/profil/[username]/actions";
 import type { ReadingGoal } from "@/db/queries/profile";
+import { ReadingGoalShareCard } from "@/components/dklist/reading-goal-share-card";
 
 export function ReadingGoalControl({
   isOwnProfile,
   initialGoal,
+  username,
 }: {
   isOwnProfile: boolean;
   initialGoal: ReadingGoal | null;
+  username: string;
 }) {
   const [goal, setGoal] = useState(initialGoal);
   const [editing, setEditing] = useState(false);
@@ -96,6 +99,9 @@ export function ReadingGoalControl({
           style={{ width: `${barPct}%` }}
         />
       </div>
+      {isOwnProfile && (
+        <ReadingGoalShareCard username={username} year={goal!.year} readCount={goal!.readCount} targetCount={goal!.targetCount} />
+      )}
     </div>
   );
 }

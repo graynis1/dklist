@@ -61,6 +61,27 @@ export async function createFeedPost(
   return result.insertId;
 }
 
+/**
+ * Real customer report: "Akışta görsel ekleyip paylaşma kısmında sadece
+ * silme seçeneği var" - a feed post could only ever be deleted, never
+ * corrected, unlike comments (which already have edit) - a typo meant
+ * deleting and reposting from scratch, losing likes/replies/points in the
+ * process. Text-only (the image itself isn't re-editable here - matches
+ * how comments/quotes elsewhere in the app don't support swapping an
+ * attached image post-creation either, a real scope cut, not an oversight).
+ */
+export async function updateFeedPostText(userId: number, postId: number, text: string): Promise<void> {
+  const [row] = await db.select({ userId: feedPost.userId }).from(feedPost).where(eq(feedPost.id, postId)).limit(1);
+  if (!row) throw new Error("Gönderi bulunamadı.");
+  if (row.userId !== userId) throw new Error("Bu gönderiyi düzenleme yetkiniz yok.");
+
+  const trimmed = text.trim();
+  if (trimmed.length > 2000) throw new Error("Gönderi en fazla 2000 karakter olabilir.");
+  if (trimmed) await checkModerationOrThrow(trimmed);
+
+  await db.update(feedPost).set({ text: trimmed || null }).where(eq(feedPost.id, postId));
+}
+
 export async function deleteFeedPost(userId: number, postId: number): Promise<void> {
   const [row] = await db.select({ userId: feedPost.userId, image: feedPost.image }).from(feedPost).where(eq(feedPost.id, postId)).limit(1);
   if (!row) throw new Error("Gönderi bulunamadı.");

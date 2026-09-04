@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { getSiteFeed, type FeedPage } from "@/db/queries/feed";
-import { createFeedPost, deleteFeedPost, setFeedPostReaction } from "@/db/queries/feed-posts";
+import { createFeedPost, deleteFeedPost, updateFeedPostText, setFeedPostReaction } from "@/db/queries/feed-posts";
 import { addSubComment, type SubCommentParentType, type CommentReply } from "@/db/queries/comments";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
@@ -46,6 +46,18 @@ export async function deleteFeedPostAction(postId: number): Promise<ActionResult
 
   try {
     await deleteFeedPost(Number(session.user.id), postId);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function updateFeedPostAction(postId: number, text: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+
+  try {
+    await updateFeedPostText(Number(session.user.id), postId, text);
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };
