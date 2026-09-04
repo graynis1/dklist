@@ -9,19 +9,18 @@ export async function confirmPasswordResetAction(formData: FormData) {
   const code = String(formData.get("code") ?? "");
 
   let newPassword: string;
+  let mailSent: boolean;
   try {
     const result = await confirmPasswordReset(userId, code);
     newPassword = result.newPassword;
+    mailSent = result.mailSent;
   } catch (err) {
     redirect(`/sifre-sifirla?userId=${userId}&error=${encodeURIComponent((err as Error).message)}`);
   }
 
-  // Real, confirmed production incident (2026-09-04) - see
-  // kayit-ol/actions.ts's registerAction() doc comment. This is the most
-  // critical of the four "show the code/password on screen too" fixes:
-  // this IS the new password itself, with no separate resend path -
-  // trusting a since-disproven `mailSent` here would have meant a real
-  // chance of permanently locking someone out of their own account.
+  if (mailSent) {
+    redirect(`/sifre-sifirla?userId=${userId}&mailSent=1`);
+  }
   redirect(`/sifre-sifirla?userId=${userId}&newPassword=${encodeURIComponent(newPassword)}`);
 }
 
@@ -33,9 +32,7 @@ export async function resendResetCodeAction(userId: number): Promise<{ status: b
 
   try {
     const result = await resendResetCode(userId);
-    // Always return the code - see registerAction()'s doc comment for why
-    // `mailSent` can no longer be trusted alone.
-    return { status: true, devCode: result.resetCode };
+    return { status: true, devCode: result.mailSent ? undefined : result.resetCode };
   } catch (err) {
     return { status: false, message: (err as Error).message };
   }

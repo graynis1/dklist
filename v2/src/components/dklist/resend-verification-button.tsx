@@ -15,7 +15,7 @@ export function ResendVerificationButton({ userId }: { userId: number }) {
       if (result.status) {
         setState({
           message: result.devCode
-            ? `Yeni kodun tekrar e-postana gönderildi, ama gecikebilir - hemen devam etmek istersen kodun: ${result.devCode}`
+            ? `Geliştirme modunda doğrulama kodunuz: ${result.devCode}`
             : "Kod tekrar gönderildi - gelen kutunuzu ve gereksiz/spam klasörünüzü kontrol edin.",
           devCode: result.devCode,
         });

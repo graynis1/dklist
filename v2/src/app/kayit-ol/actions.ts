@@ -22,25 +22,18 @@ export async function registerAction(formData: FormData) {
 
   let userId: number;
   let verificationCode: string;
+  let mailSent: boolean;
 
   try {
     const result = await registerUser({ name, surname, username, mail, birthDate, sex, password });
     userId = result.userId;
     verificationCode = result.verificationCode;
+    mailSent = result.mailSent;
   } catch (err) {
     redirect(`/kayit-ol?error=${encodeURIComponent((err as Error).message)}`);
   }
 
-  // Real, confirmed production incident (2026-09-04): Brevo accepts and
-  // queues every send (SMTP returns 250 OK) but multiple real end-to-end
-  // tests to two different providers never actually arrived - a silent
-  // post-acceptance drop invisible to this app (no error, nothing to
-  // catch/retry). `mailSent` (= isMailConfigured()) can no longer be
-  // trusted as a proxy for "will actually be delivered", so the code is
-  // now always shown on-screen too, not just when mail isn't configured -
-  // the email is still attempted in the background in case Brevo recovers,
-  // but nobody is locked out of registering while that gets sorted out.
-  const codeParam = `&code=${verificationCode}`;
+  const codeParam = mailSent ? "" : `&devCode=${verificationCode}`;
   try {
     await signIn("credentials", { username, password, redirectTo: `/dogrula?userId=${userId}${codeParam}` });
   } catch (error) {

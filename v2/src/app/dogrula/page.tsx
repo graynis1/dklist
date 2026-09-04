@@ -37,23 +37,17 @@ async function VerifyForm({
 }: {
   searchParams: PageProps<"/dogrula">["searchParams"];
 }) {
-  const { userId, code, devCode, error } = await searchParams;
+  const { userId, devCode, error } = await searchParams;
   const numericUserId = Number(typeof userId === "string" ? userId : NaN);
-  // `code` (registration) and `devCode` (resend action) are the same real
-  // code, just threaded through two different call sites - see
-  // registerAction()'s doc comment for why this is now always shown
-  // regardless of whether mail sending is "configured", not just as a
-  // dev-mode fallback.
-  const shownCode = (typeof code === "string" ? code : undefined) ?? (typeof devCode === "string" ? devCode : undefined);
 
   return (
     <div className="flex flex-col gap-4">
       <form action={verifyMailAction} className="flex flex-col gap-4">
         <input type="hidden" name="userId" value={typeof userId === "string" ? userId : ""} />
-        {shownCode ? (
+        {devCode ? (
           <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
-            Doğrulama kodun e-postana da gönderildi, ama e-posta gecikebilir -
-            hemen devam etmek istersen kodun: <strong>{shownCode}</strong>
+            E-posta gönderimi yapılandırılmamış - geliştirme modunda doğrulama
+            kodunuz: <strong>{devCode}</strong>
           </p>
         ) : (
           <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">
