@@ -2,34 +2,23 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { layoutQuoteText } from "@/lib/quote-card-layout";
 
 /**
  * Alıntı-görsel paylaşım kartı - third item from the "what else could be
  * added" brainstorm list. Same Canvas-2D, zero-external-image approach as
  * ReadingScoreCard (no CORS-taint risk, toBlob/toDataURL always work) -
  * an Instagram-style typography card for a single quote, not a stats card.
+ *
+ * The word-wrap + shrink-to-fit math itself lives in the pure, unit-tested
+ * `src/lib/quote-card-layout.ts` (a real `<canvas>` is needed to unit-test
+ * this component directly, since it calls `ctx.measureText`) - this
+ * component just supplies the actual measuring callback.
  */
 export function QuoteCard({ quoteText, sourceName }: { quoteText: string; sourceName: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [generated, setGenerated] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-
-  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
-    const words = text.split(/\s+/);
-    const lines: string[] = [];
-    let current = "";
-    for (const word of words) {
-      const test = current ? `${current} ${word}` : word;
-      if (ctx.measureText(test).width > maxWidth && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = test;
-      }
-    }
-    if (current) lines.push(current);
-    return lines;
-  }
 
   function draw() {
     const canvas = canvasRef.current;
@@ -52,22 +41,27 @@ export function QuoteCard({ quoteText, sourceName }: { quoteText: string; source
     ctx.fillText("“", 60, 220);
 
     const maxWidth = SIZE - 160;
-    ctx.font = "500 52px Georgia, serif";
     ctx.fillStyle = "#ffffff";
-    const lines = wrapText(ctx, quoteText, maxWidth);
 
     // Shrink the font if the quote is long enough to overflow the card,
     // rather than clipping or truncating real quote text.
-    let fontSize = 52;
-    let wrapped = lines;
-    while (wrapped.length * (fontSize * 1.35) > SIZE - 420 && fontSize > 28) {
-      fontSize -= 4;
-      ctx.font = `500 ${fontSize}px Georgia, serif`;
-      wrapped = wrapText(ctx, quoteText, maxWidth);
-    }
+    const { fontSize, lines: wrapped, lineHeight, totalHeight } = layoutQuoteText(
+      quoteText,
+      (line, size) => {
+        ctx.font = `500 ${size}px Georgia, serif`;
+        return ctx.measureText(line).width;
+      },
+      {
+        maxWidth,
+        boxHeight: SIZE - 420,
+        initialFontSize: 52,
+        minFontSize: 28,
+        fontStep: 4,
+        lineHeightRatio: 1.35,
+      },
+    );
+    ctx.font = `500 ${fontSize}px Georgia, serif`;
 
-    const lineHeight = fontSize * 1.35;
-    const totalHeight = wrapped.length * lineHeight;
     let y = SIZE / 2 - totalHeight / 2 + fontSize;
     for (const line of wrapped) {
       ctx.fillText(line, 80, y);
