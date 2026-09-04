@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
+import { groupWriterBooks } from "@/lib/writer-book-grouping";
 import type { WriterBookItem } from "@/db/queries/writers";
 
 /**
@@ -19,21 +20,7 @@ import type { WriterBookItem } from "@/db/queries/writers";
  * editions collapsed behind a "+N baskı" toggle instead of their own tile.
  */
 export function WriterBookGrid({ books, writerName }: { books: WriterBookItem[]; writerName: string }) {
-  const groups = new Map<number, WriterBookItem[]>();
-  for (const b of books) {
-    const key = b.originalBookId ?? b.id;
-    const list = groups.get(key) ?? [];
-    list.push(b);
-    groups.set(key, list);
-  }
-
-  const grouped = Array.from(groups.values())
-    .map((items) => {
-      const front = items.find((b) => b.originalBookId === null) ?? items.reduce((a, c) => (c.score > a.score ? c : a));
-      const others = items.filter((b) => b.id !== front.id);
-      return { front, others, maxViewCount: Math.max(...items.map((b) => b.viewCount)) };
-    })
-    .sort((a, b) => b.maxViewCount - a.maxViewCount);
+  const grouped = groupWriterBooks(books);
 
   return (
     <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 lg:grid-cols-5">
