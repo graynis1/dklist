@@ -9,6 +9,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { NotificationsList } from "@/components/dklist/notifications-list";
 import { auth } from "@/auth";
 import { getNotifications } from "@/db/queries/notifications";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function NotificationsPage() {
   return (
@@ -21,6 +22,9 @@ export default function NotificationsPage() {
             Bildirimler
           </h1>
         </div>
+        <Suspense fallback={null}>
+          <AdSlot placement="bildirimler" className="mb-6 max-w-none px-0" />
+        </Suspense>
         <Suspense fallback={<NotificationsSkeleton />}>
           <NotificationsContent />
         </Suspense>

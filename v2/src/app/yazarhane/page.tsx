@@ -20,6 +20,7 @@ import { WriterApplicationForm } from "@/components/dklist/writer-application-fo
 import { formatRelativeTime } from "@/lib/utils";
 import { getAuthorMembers, getRecentAuthorPosts, getMyWriterApplication } from "@/db/queries/yazarhane";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function YazarhanePage() {
   return (
@@ -40,6 +41,9 @@ export default function YazarhanePage() {
                 DKList&apos;te üye olan gerçek yazarların paylaşımları ve profilleri.
               </p>
             </div>
+            <Suspense fallback={null}>
+              <AdSlot placement="yazarhane" className="mb-6 max-w-none px-0" />
+            </Suspense>
             <Suspense fallback={<YazarhaneSkeleton />}>
               <YazarhaneContent />
             </Suspense>

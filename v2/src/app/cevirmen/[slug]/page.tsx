@@ -16,6 +16,7 @@ import { isTranslatorLiked, getTranslatorLikeCount } from "@/db/queries/likes";
 import { getUserTranslatorRating, getTranslatorRatingCount } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { auth } from "@/auth";
 import {
   toggleTranslatorLikeAction,
@@ -146,6 +147,10 @@ async function TranslatorContent({
           {translator.biyo}
         </p>
       )}
+
+      <Suspense fallback={null}>
+        <AdSlot placement="translator-page" className="mb-10 max-w-none px-0" />
+      </Suspense>
 
       <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
         Çevirileri

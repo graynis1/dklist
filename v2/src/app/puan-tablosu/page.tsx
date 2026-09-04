@@ -14,12 +14,15 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { avatarUrl } from "@/db/queries/avatar";
-import { ShareButton } from "@/components/dklist/share-button";
+import { PointsShareCard } from "@/components/dklist/points-share-card";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import {
   getWeeklyLeaderboard,
   getPastWeeklyWinners,
   getUserWeeklyRank,
   getPointSettings,
+  getUserTotalPoints,
+  getUserActivityStreak,
 } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
 
@@ -42,6 +45,9 @@ export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablo
             blocking the whole page from being part of the static shell. */}
         <Suspense fallback={<LeaderboardSkeleton />}>
           <LeaderboardContent searchParams={searchParams} />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AdSlot placement="puan-tablosu" className="mt-10 max-w-none px-0" />
         </Suspense>
       </div>
     </div>
@@ -74,11 +80,13 @@ async function LeaderboardContent({
   const session = await auth();
   const userId = session?.user?.id ? Number(session.user.id) : null;
 
-  const [leaderboard, pastWinners, myRank, pointSettings] = await Promise.all([
+  const [leaderboard, pastWinners, myRank, pointSettings, totalPoints, streakDays] = await Promise.all([
     getWeeklyLeaderboard(limit, week),
     getPastWeeklyWinners(10),
     userId ? getUserWeeklyRank(userId, week) : Promise.resolve(null),
     getPointSettings(),
+    userId ? getUserTotalPoints(userId) : Promise.resolve(0),
+    userId ? getUserActivityStreak(userId) : Promise.resolve(0),
   ]);
 
   const iAmInVisibleList = userId !== null && leaderboard.some((e) => e.userId === userId);
@@ -113,15 +121,24 @@ async function LeaderboardContent({
         </div>
       </div>
 
-      {myRank && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
-          <span className="font-heading text-lg font-medium">#{myRank.rank}</span>
-          <p className="flex-1 text-sm">
-            Bu hafta <span className="font-medium">{myRank.points} puan</span> ile {myRank.totalRanked} kişi arasında {myRank.rank}. sıradasın.
-          </p>
-          <ShareButton
-            content={`DKList'te bu hafta ${myRank.rank}. sıradayım! (${myRank.points} puan) 📚`}
-            pointsKey={`weekly-rank:${week}`}
+      {myRank && session?.user?.name && (
+        <div className="mb-4 flex flex-col gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+          <div className="flex items-center gap-3">
+            <span className="font-heading text-lg font-medium">#{myRank.rank}</span>
+            <p className="flex-1 text-sm">
+              Bu hafta <span className="font-medium">{myRank.points} puan</span> ile {myRank.totalRanked} kişi arasında {myRank.rank}. sıradasın.
+            </p>
+          </div>
+          {/* Real customer report: sharing your standing here only ever
+              produced a generic link-preview card (the site's own default
+              OG image, "sitenin DK şekli") instead of anything reflecting
+              your actual status - swapped the plain link-share for the
+              real canvas-drawn status card (already built for the profile
+              page) so what gets shared actually shows your points/rank/
+              streak. */}
+          <PointsShareCard
+            username={session.user.name}
+            stats={{ totalPoints, weeklyPoints: myRank.points, weeklyRank: myRank.rank, streakDays }}
           />
         </div>
       )}

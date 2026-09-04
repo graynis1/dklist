@@ -18,6 +18,7 @@ import { getEntityComments, getRepliesForComments } from "@/db/queries/comments"
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { getAuthorMemberForWriter } from "@/db/queries/yazarhane";
 import { JsonLd } from "@/components/dklist/json-ld";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { auth } from "@/auth";
 import {
   toggleWriterLikeAction,
@@ -174,6 +175,10 @@ async function WriterContent({
           ✎ Bu yazar DKList Yazarhanesi&apos;nde - ziyaret et →
         </Link>
       )}
+
+      <Suspense fallback={null}>
+        <AdSlot placement="writer-page" className="mb-10 max-w-none px-0" />
+      </Suspense>
 
       <h2 className="font-heading mb-6 text-2xl font-medium tracking-tight">
         Kitapları

@@ -205,6 +205,38 @@ export async function requestPasswordReset(target: string): Promise<ResetPasswor
   return { userId: row.id, resetCode, mailSent };
 }
 
+export interface ResendResetCodeResult {
+  resetCode: string;
+  mailSent: boolean;
+}
+
+/**
+ * Symmetric gap to resendVerificationCode() - the customer reported (with a
+ * screenshot) the exact same "kod gelmiyor" complaint for password reset
+ * too, on both an old and a newly-registered account, and /sifre-sifirla
+ * had no way to retry either - a real dead end for anyone whose first
+ * email genuinely didn't land (spam filter, a one-off Brevo hiccup - a
+ * live SMTP test confirmed the pipeline itself accepts and queues mail
+ * correctly, so this isn't a broken transport, same conclusion as the
+ * verification-email investigation).
+ */
+export async function resendResetCode(userId: number): Promise<ResendResetCodeResult> {
+  const [row] = await db.select({ mail: user.mail, username: user.username }).from(user).where(eq(user.id, userId)).limit(1);
+  if (!row) throw new Error("Kullanıcı bulunamadı.");
+
+  const resetCode = generateToken(5);
+  await db.update(user).set({ pendingCode: resetCode }).where(eq(user.id, userId));
+
+  const mailSent = isMailConfigured();
+  if (mailSent) {
+    void sendPasswordResetEmail(row.mail, row.username, resetCode).catch((err) => {
+      console.error("[resend-reset-code] email failed to send:", err);
+    });
+  }
+
+  return { resetCode, mailSent };
+}
+
 export interface ConfirmPasswordResetResult {
   newPassword: string;
   mailSent: boolean;

@@ -14,6 +14,7 @@ import { getActiveRewards, getUserRedeemedRewardIds, getUserActiveFrame } from "
 import { getUserTotalPoints } from "@/db/queries/points";
 import { RedeemRewardButton } from "@/components/dklist/redeem-reward-button";
 import { ProfileFrameRing } from "@/components/dklist/profile-frame-ring";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function PointStorePage() {
   return (
@@ -27,6 +28,9 @@ export default function PointStorePage() {
             Kazandığın puanları harcayarak profilin için özel bir çerçeve al.
           </p>
         </div>
+        <Suspense fallback={null}>
+          <AdSlot placement="puan-magazasi" className="mb-8 max-w-none px-0" />
+        </Suspense>
         <Suspense fallback={<PointStoreSkeleton />}>
           <PointStoreContent />
         </Suspense>

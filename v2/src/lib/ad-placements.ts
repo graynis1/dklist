@@ -23,6 +23,23 @@ export const AD_PLACEMENTS = [
   // not per-page like the others above.
   { id: "skyscraper-left", label: "Sol Kenar (Sticky, Geniş Ekran)" },
   { id: "skyscraper-right", label: "Sağ Kenar (Sticky, Geniş Ekran)" },
+  // Customer's full-site sweep (2026-09-03): "Yazarlara reklam / Yayınevleri
+  // kısmına reklam / Çevirmenlerde dahil / Ayın kitabı / Yazarhane /
+  // Rozet Tablosu, Rozetler, Puan Mağazası / Keşfet / Bildirim" - every
+  // remaining real page that had no ad slot at all yet, listed page by page.
+  { id: "writer-page", label: "Yazar Sayfası" },
+  { id: "publisher-page", label: "Yayınevi Sayfası" },
+  { id: "translator-page", label: "Çevirmen Sayfası" },
+  { id: "yayinevleri-listesi", label: "Yayınevleri Listesi" },
+  { id: "cevirmenler-listesi", label: "Çevirmenler Listesi" },
+  { id: "kategori-sayfasi", label: "Kategori Sayfası" },
+  { id: "ayin-kitabi", label: "Ayın Kitabı" },
+  { id: "yazarhane", label: "Yazarhane" },
+  { id: "puan-tablosu", label: "Puan Tablosu" },
+  { id: "rozetler", label: "Rozetler" },
+  { id: "puan-magazasi", label: "Puan Mağazası" },
+  { id: "ara", label: "Arama / Keşfet" },
+  { id: "bildirimler", label: "Bildirimler" },
 ] as const;
 
 export type AdPlacementId = (typeof AD_PLACEMENTS)[number]["id"];
