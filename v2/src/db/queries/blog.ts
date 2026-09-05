@@ -4,7 +4,7 @@ import path from "node:path";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, desc, eq, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { blog, user } from "@/db/schema";
+import { blog, user, blogLike } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { saveUploadedImage } from "@/lib/image-upload";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
@@ -220,6 +220,8 @@ export interface BlogDetail {
   pendingContent: string | null;
   pendingPreview: string | null;
   pendingImg: string | null;
+  viewCount: number;
+  commentsDisabled: boolean;
 }
 
 /**
@@ -255,6 +257,8 @@ export async function getBlogBySlug(slug: string): Promise<BlogDetail | null> {
       pendingContent: blog.pendingContent,
       pendingPreview: blog.pendingPreview,
       pendingImage: blog.pendingImage,
+      viewCount: blog.viewCount,
+      commentsDisabled: blog.commentsDisabled,
     })
     .from(blog)
     .leftJoin(user, eq(blog.ownerId, user.id))
@@ -279,7 +283,86 @@ export async function getBlogBySlug(slug: string): Promise<BlogDetail | null> {
     pendingContent: row.pendingContent,
     pendingPreview: row.pendingPreview,
     pendingImg: blogImageUrl(row.pendingImage),
+    viewCount: Number(row.viewCount),
+    commentsDisabled: Boolean(row.commentsDisabled),
   };
+}
+
+/** Real customer report: the view/click count column already existed
+ * (`blog.viewCount`) but was never incremented or shown anywhere in v2 -
+ * "kaç kez okunduğu yada tıklandığı verisi olmalı (hangisini
+ * kullanıyorlar bilmiyorum)". Fire-and-forget from the page, same as
+ * store/writer/translator view-count bumps elsewhere in this app. */
+export async function incrementBlogViewCount(blogId: number): Promise<void> {
+  // Deliberately no updateTag() here - getBlogBySlug()'s own "minutes"
+  // cacheLife already makes the displayed count eventually consistent,
+  // same tradeoff writer/store view counts elsewhere in this app make.
+  // Invalidating on every single view would defeat the point of caching
+  // the page at all.
+  await db.update(blog).set({ viewCount: sql`${blog.viewCount} + 1` }).where(eq(blog.id, blogId));
+}
+
+export interface BlogLikeState {
+  count: number;
+  liked: boolean;
+  dislikeCount: number;
+  disliked: boolean;
+}
+
+/** Same shape as getFeedPostLikeStates() (messages.ts) but scoped to one
+ * blog post, since a blog detail page only ever needs its own post's
+ * state, not a batch. */
+export async function getBlogLikeState(userId: number | null, blogId: number): Promise<BlogLikeState> {
+  const [counts] = await db
+    .select({
+      likes: sql<number>`sum(case when ${blogLike.value} = 1 then 1 else 0 end)`,
+      dislikes: sql<number>`sum(case when ${blogLike.value} = -1 then 1 else 0 end)`,
+    })
+    .from(blogLike)
+    .where(eq(blogLike.blogId, blogId));
+
+  const own = userId
+    ? await db.select({ value: blogLike.value }).from(blogLike).where(and(eq(blogLike.userId, userId), eq(blogLike.blogId, blogId))).limit(1)
+    : [];
+
+  const reaction = own[0]?.value as 1 | -1 | undefined;
+  return {
+    count: Number(counts?.likes ?? 0),
+    liked: reaction === 1,
+    dislikeCount: Number(counts?.dislikes ?? 0),
+    disliked: reaction === -1,
+  };
+}
+
+/** Re-sending the same value clears it - matches setFeedPostReaction()'s
+ * real-toggle shape used everywhere else in the app. */
+export async function setBlogReaction(userId: number, blogId: number, value: 1 | -1): Promise<{ reaction: 1 | -1 | null }> {
+  const [existing] = await db.select({ id: blogLike.id, value: blogLike.value }).from(blogLike).where(and(eq(blogLike.userId, userId), eq(blogLike.blogId, blogId))).limit(1);
+
+  if (existing) {
+    if (existing.value === value) {
+      await db.delete(blogLike).where(eq(blogLike.id, existing.id));
+      return { reaction: null };
+    }
+    await db.update(blogLike).set({ value }).where(eq(blogLike.id, existing.id));
+    return { reaction: value };
+  }
+
+  await db.insert(blogLike).values({ userId, blogId, value });
+  return { reaction: value };
+}
+
+/** Blogger's own per-post toggle - "bloger eğer isterse yorum yapmayı
+ * kapabilmeli". Existing comments stay visible either way; this only
+ * gates the "write a new comment" form. */
+export async function setBlogCommentsDisabled(userId: number, userType: string, blogId: number, disabled: boolean): Promise<void> {
+  const [row] = await db.select({ ownerId: blog.ownerId, slug: blog.slug }).from(blog).where(eq(blog.id, blogId)).limit(1);
+  if (!row) throw new Error("Blog yazısı bulunamadı.");
+  if (row.ownerId !== userId && !ELEVATED_TYPES.includes(userType)) {
+    throw new Error("Bu işlem için yetkiniz yok.");
+  }
+  await db.update(blog).set({ commentsDisabled: disabled ? 1 : 0 }).where(eq(blog.id, blogId));
+  updateTag(`blog:${row.slug}`);
 }
 
 const BLOGGER_TYPE = "Blog_Yazari";

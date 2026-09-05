@@ -8,7 +8,11 @@ import {
   updateBlogPost,
   deleteBlogPost,
   setBlogApproval,
+  incrementBlogViewCount,
+  setBlogReaction,
+  setBlogCommentsDisabled,
 } from "@/db/queries/blog";
+import { addEntityComment, addSubComment, shareEntityComment, type SubCommentParentType, type CommentType } from "@/db/queries/comments";
 import { logAdminAction } from "@/db/queries/admin-log";
 
 // v1's own comment on this permission set: Mod/Admin couldn't originally
@@ -85,6 +89,77 @@ export async function deleteBlogAction(
     return { status: false, message: "Giriş yapmalısınız." };
   }
   return deleteBlogPost(Number(session.user.id), session.user.userType ?? "", blogId);
+}
+
+/** Fire-and-forget from the page - never throws, a failed increment
+ * shouldn't break the actual page render. */
+export async function trackBlogViewAction(blogId: number): Promise<void> {
+  await incrementBlogViewCount(blogId).catch(() => {});
+}
+
+export async function setBlogReactionAction(blogId: number, value: 1 | -1): Promise<{ status: boolean; message?: string; reaction?: 1 | -1 | null }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    const { reaction } = await setBlogReaction(Number(session.user.id), blogId, value);
+    return { status: true, reaction };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function setBlogCommentsDisabledAction(blogId: number, disabled: boolean): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    await setBlogCommentsDisabled(Number(session.user.id), session.user.userType ?? "", blogId, disabled);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function addBlogCommentAction(blogId: number, commentType: CommentType, text: string): Promise<{ status: boolean; message?: string; commentId?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    const commentId = await addEntityComment(Number(session.user.id), blogId, "blog", text, commentType);
+    return { status: true, commentId };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function addBlogReplyAction(parentType: SubCommentParentType, parentId: number, text: string): Promise<{ status: boolean; message?: string; replyId?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    const replyId = await addSubComment(Number(session.user.id), parentType, parentId, text);
+    return { status: true, replyId };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function shareBlogCommentAction(originalCommentId: number, commentary: string): Promise<{ status: boolean; message?: string; commentId?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    const commentId = await shareEntityComment(Number(session.user.id), originalCommentId, "blog", commentary);
+    return { status: true, commentId };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
 }
 
 export async function approveBlogAction(

@@ -34,6 +34,7 @@ export const blog = mysqlTable("blog", {
 	approved: tinyint().notNull(),
 	viewCount: bigint("view_count", { mode: "number" }).notNull(),
 	hasPendingRevision: tinyint("has_pending_revision").notNull(),
+	commentsDisabled: tinyint("comments_disabled").notNull().default(0),
 	pendingTitle: varchar("pending_title", { length: 255 }),
 	pendingContent: longtext("pending_content"),
 	pendingPreview: longtext("pending_preview"),
@@ -1176,4 +1177,17 @@ export const feedPostLike = mysqlTable("feed_post_like", {
 	unique("uniq_feed_post_like").on(table.userId, table.postId),
 	index("idx_feed_post_like_post").on(table.postId),
 	primaryKey({ columns: [table.id], name: "feed_post_like_id" }),
+]);
+
+// Migration 0038 - same shape as feed_post_like, for blog posts.
+export const blogLike = mysqlTable("blog_like", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	blogId: int("blog_id").notNull().references(() => blog.id, { onDelete: "cascade" }),
+	value: tinyint().notNull().default(1),
+},
+(table) => [
+	unique("uniq_blog_like").on(table.userId, table.blogId),
+	index("idx_blog_like_blog").on(table.blogId),
+	primaryKey({ columns: [table.id], name: "blog_like_id" }),
 ]);

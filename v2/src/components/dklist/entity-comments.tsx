@@ -290,6 +290,7 @@ export function EntityComments({
   submitLabel = "Yorum Yap",
   emptyMessage = "Henüz yorum yok.",
   quoteCardSource,
+  commentingDisabled = false,
 }: {
   signedIn: boolean;
   /** The signed-in viewer's own user id, used only to decide whether to
@@ -321,6 +322,10 @@ export function EntityComments({
    * this (the book/writer/translator's own display name) only on that
    * instance, not the plain-comments one. */
   quoteCardSource?: string;
+  /** Customer's ask (blog posts): "bloger eğer isterse yorum yapmayı
+   * kapabilmeli" - hides only the write-a-new-comment form, existing
+   * comments/replies/likes/shares stay fully visible either way. */
+  commentingDisabled?: boolean;
 }) {
   const [comments, setComments] = useState(initialComments);
   const [repliesByComment, setRepliesByComment] = useState(initialRepliesByComment);
@@ -486,7 +491,9 @@ export function EntityComments({
 
   return (
     <div className="flex flex-col gap-6">
-      {signedIn ? (
+      {commentingDisabled ? (
+        <p className="text-sm text-muted-foreground">Yazar bu paylaşımda yorumları kapattı.</p>
+      ) : signedIn ? (
         <form
           ref={formRef}
           action={submit}

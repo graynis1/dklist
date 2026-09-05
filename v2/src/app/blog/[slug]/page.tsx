@@ -7,7 +7,9 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
-import { getBlogBySlug, getRecentBlogPosts } from "@/db/queries/blog";
+import { getBlogBySlug, getRecentBlogPosts, getBlogLikeState } from "@/db/queries/blog";
+import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
+import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 import { DeleteBlogButton } from "@/components/dklist/delete-blog-button";
 import { HashtagText } from "@/components/dklist/hashtag-text";
@@ -16,6 +18,12 @@ import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { ImageWithFallback } from "@/components/dklist/image-with-fallback";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { JsonLd } from "@/components/dklist/json-ld";
+import { EntityComments } from "@/components/dklist/entity-comments";
+import { BlogLikeButton } from "@/components/dklist/blog-like-button";
+import { BlogCommentsToggle } from "@/components/dklist/blog-comments-toggle";
+import { BlogViewTracker } from "@/components/dklist/blog-view-tracker";
+import { addBlogCommentAction, addBlogReplyAction, shareBlogCommentAction } from "@/actions/blog";
+import { EyeIcon } from "lucide-react";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 
 const ELEVATED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
@@ -99,6 +107,15 @@ async function BlogDetailContent({
   const canManage = isOwner || isElevated;
   const ownerDecoration = post.ownerId != null ? decorationFor(await getUserDecorations([post.ownerId]), post.ownerId) : undefined;
 
+  const likeState = await getBlogLikeState(viewerId, post.id);
+  const comments = await getEntityComments(post.id, "blog");
+  const commentIds = comments.map((c) => c.id);
+  const [repliesByComment, commentLikes] = await Promise.all([
+    getRepliesForComments(commentIds),
+    getCommentLikeStates(viewerId, commentIds),
+  ]);
+  const repliesByCommentObj = Object.fromEntries(repliesByComment);
+
   return (
     <article className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <JsonLd
@@ -112,6 +129,7 @@ async function BlogDetailContent({
           ...(post.ownerUsername ? { author: { "@type": "Person", name: post.ownerUsername } } : {}),
         }}
       />
+      <BlogViewTracker blogId={post.id} />
       <SectionLabel>Blog</SectionLabel>
       <h1 className="font-heading text-4xl font-medium tracking-tight text-balance">
         {post.title}
@@ -136,6 +154,12 @@ async function BlogDetailContent({
           ) : null}
           {post.ownerUsername ? " · " : ""}
           {post.createdDate}
+        </span>
+        {/* Real customer report: "kaç kez okunduğu yada tıklandığı verisi
+            olmalı" - blog.viewCount already existed, just never shown. */}
+        <span className="flex items-center gap-1">
+          <EyeIcon className="size-3.5" />
+          {post.viewCount}
         </span>
         <span className="ml-auto">
           <ShareButton content={post.title} pointsKey={`blog:${post.id}`} />
@@ -187,14 +211,41 @@ async function BlogDetailContent({
         </div>
       ))}
 
+      {/* Real customer report: no like/dislike at all on blog posts,
+          unlike every other content type. An extra share button lives
+          here too ("daha çok paylaşmaya sevk etmek için... yanına da
+          ekstra paylaş eklenebilir") - the one at the top stays as-is. */}
+      <div className="mt-6 flex items-center gap-2 border-t border-border pt-4">
+        <BlogLikeButton blogId={post.id} signedIn={Boolean(viewerId)} initialState={likeState} />
+        <ShareButton content={post.title} pointsKey={`blog:${post.id}`} />
+      </div>
+
       {canManage && (
-        <div className="mt-6 flex gap-3 border-t border-border pt-4 text-sm">
+        <div className="flex items-center gap-3 text-sm">
           <Link href={`/blog/${slug}/duzenle`} className="underline hover:text-foreground">
             Düzenle
           </Link>
           <DeleteBlogButton blogId={post.id} />
+          <BlogCommentsToggle blogId={post.id} initialDisabled={post.commentsDisabled} />
         </div>
       )}
+
+      <section className="mt-6 border-t border-border pt-6">
+        <h2 className="font-heading mb-4 text-xl font-medium">Yorumlar</h2>
+        <EntityComments
+          signedIn={Boolean(viewerId)}
+          viewerId={viewerId ?? undefined}
+          initialComments={comments}
+          initialRepliesByComment={repliesByCommentObj}
+          commentLikes={commentLikes}
+          addCommentAction={addBlogCommentAction.bind(null, post.id, "comment")}
+          addReplyAction={addBlogReplyAction}
+          shareCommentAction={shareBlogCommentAction}
+          commentingDisabled={post.commentsDisabled}
+          placeholder="Bu yazı hakkında ne düşünüyorsun?"
+          emptyMessage="Henüz yorum yok - ilk yorumu sen yaz."
+        />
+      </section>
     </article>
   );
 }
