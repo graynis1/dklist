@@ -32,6 +32,7 @@ export function EntityAvatar({
   id,
   name,
   image,
+  imageUrl,
   className,
   size = "size-9",
   profileFrame,
@@ -40,7 +41,19 @@ export function EntityAvatar({
 }: {
   id: number;
   name: string;
+  /** A bare uploaded filename served through the *user* avatar proxy
+   * (`/api/avatar/[filename]`) - correct for every real person (comments,
+   * feed, messages...). */
   image?: string | null;
+  /** An already-resolved image URL, for entities with their own separate
+   * image route (writer/translator, `/api/writer-image/…` etc. via
+   * image-urls.ts's own helpers) - real bug found via customer report
+   * ("Sabahattin Ali'de ise ekli görünüyor ama girince göstermiyor"):
+   * getWriterBySlug() never even selected `writer.img` from the DB, and
+   * even if it had, passing it into `image` would have built the wrong
+   * URL (the user-avatar route, not the writer one). Takes priority over
+   * `image` when both are somehow passed. */
+  imageUrl?: string | null;
   className?: string;
   size?: string;
   profileFrame?: string | null;
@@ -54,7 +67,7 @@ export function EntityAvatar({
   // through the real proxy route here rather than requiring every call
   // site to remember to (see avatarUrl()'s own doc comment for the real
   // bug this fixes).
-  const resolvedSrc = avatarUrl(image);
+  const resolvedSrc = imageUrl ?? avatarUrl(image);
   const px = sizeClassToPx(size);
 
   const avatar = (

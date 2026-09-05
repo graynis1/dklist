@@ -43,6 +43,7 @@ export const ADMIN_CATEGORIES: AdminCategory[] = [
       { href: "/admin/cevirmenler", label: "Çevirmenler", description: "Çevirmen kayıtları, biyografi ve görsel yönetimi", roles: [USER_TYPES.Admin] },
       { href: "/admin/kategoriler", label: "Kategoriler", description: "Kategori tanımları (TR/EN isim)", roles: [USER_TYPES.Admin] },
       { href: "/admin/merge", label: "Kitap Birleştirme", description: "Yinelenen baskı kayıtlarını tek işte birleştir", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
+      { href: "/admin/mukerrer-tarama", label: "Mükerrer Tarama", description: "Bir yazarın kitaplarında olası mükerrer kayıtları bul", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
     ],
   },
   {

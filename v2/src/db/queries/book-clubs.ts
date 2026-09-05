@@ -250,6 +250,24 @@ export async function updateClubDescription(clubId: number, description: string,
   await db.update(bookClub).set({ description: trimmed }).where(eq(bookClub.id, clubId));
 }
 
+/**
+ * Real customer follow-up: "Kulüplerde var sadece açıklama düzenle
+ * şeklinde olmuş... her ikisinde de başlık ve açıklama düzenle olmalı" -
+ * only the description was editable, not the club's own name. Deliberately
+ * does NOT touch `slug` (derived from the name only at creation) - renaming
+ * keeps the existing URL/bookmarks working, matching how most real
+ * platforms handle a display-name change (Discord server renames don't
+ * break the server's invite link, X handle vs. display name, etc.) rather
+ * than the bigger scope of regenerating the slug and adding a redirect.
+ */
+export async function updateClubName(clubId: number, name: string, actorUserId: number, actorUserType: string): Promise<void> {
+  await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Kulüp adı boş olamaz.");
+  await db.update(bookClub).set({ name: trimmed }).where(eq(bookClub.id, clubId));
+  updateTag("book-club-list");
+}
+
 export async function deleteClub(clubId: number, actorUserId: number, actorUserType: string): Promise<void> {
   await requireClubManagePermission(clubId, actorUserId, actorUserType);
   await db.delete(bookClubMember).where(eq(bookClubMember.clubId, clubId));

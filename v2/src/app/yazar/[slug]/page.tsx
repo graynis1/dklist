@@ -19,6 +19,7 @@ import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { getAuthorMemberForWriter } from "@/db/queries/yazarhane";
 import { JsonLd } from "@/components/dklist/json-ld";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { writerImageUrl } from "@/lib/image-urls";
 import { auth } from "@/auth";
 import {
   toggleWriterLikeAction,
@@ -41,7 +42,10 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/yaz
   const description = truncateDescription(
     quote ? `"${quote}" - ${writer.name} hakkında DKList'te paylaşıldı.` : writer.biyo || `${writer.name} - kitapları, puanı ve yorumları DKList'te.`,
   );
-  return pageMetadata({ title: `${writer.name} (Yazar)`, description, path: `/yazar/${writer.slug}` });
+  // Same title fix as kitap/[slug] - a quote/comment share should lead
+  // with the quote, not just swap the description underneath it.
+  const title = quote ? `"${quote.length > 80 ? `${quote.slice(0, 80)}...` : quote}" - ${writer.name}` : `${writer.name} (Yazar)`;
+  return pageMetadata({ title, description, path: `/yazar/${writer.slug}` });
 }
 
 export default function WriterPage({ params }: PageProps<"/yazar/[slug]">) {
@@ -120,7 +124,7 @@ async function WriterContent({
         }}
       />
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center">
-        <EntityAvatar id={writer.id} name={writer.name} size="size-20" className="text-xl" />
+        <EntityAvatar id={writer.id} name={writer.name} imageUrl={writerImageUrl(writer.img)} size="size-20" className="text-xl" />
         <div className="flex flex-col gap-2">
           <SectionLabel>Yazar</SectionLabel>
           <h1 className="font-heading text-4xl font-medium tracking-tight">

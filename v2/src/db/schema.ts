@@ -160,7 +160,12 @@ export const chat = mysqlTable("chat", {
 	lastMessageAt: datetime("last_message_at", { mode: 'string'}),
 	lastMessagePreview: varchar("last_message_preview", { length: 140 }),
 	hiddenForFirstUser: tinyint("hidden_for_first_user").notNull(),
+	// "Clear chat" cursor - messages with id <= this are hidden from this
+	// user's thread view, even after a later message un-hides the chat row
+	// itself. See migration 0037's doc comment for the real bug this fixes.
+	firstUserClearedThroughId: int("first_user_cleared_through_id"),
 	hiddenForSecondUser: tinyint("hidden_for_second_user").notNull(),
+	secondUserClearedThroughId: int("second_user_cleared_through_id"),
 },
 (table) => [
 	index("IDX_659DF2AAB4E2BF69").on(table.firstUserId),

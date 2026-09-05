@@ -70,6 +70,53 @@ export async function createFeedPost(
  * how comments/quotes elsewhere in the app don't support swapping an
  * attached image post-creation either, a real scope cut, not an oversight).
  */
+export interface FeedPostDetail {
+  id: number;
+  text: string | null;
+  image: string | null;
+  createdAt: string;
+  authorUserId: number;
+  authorUsername: string;
+  authorImage: string | null;
+  bookId: number | null;
+  bookName: string | null;
+  bookSlug: string | null;
+}
+
+/**
+ * Real customer report: sharing a standalone feed post (image + text, no
+ * book/writer attached) to Facebook/WhatsApp only ever pulled the generic
+ * `/akis` link preview ("sadece dk şeklinde sitenin linkini çekiyor") -
+ * unlike comments/quotes (which attach to a real book/writer page and can
+ * override its OG description via `?alinti=`), a bare feed_post had no
+ * page of its own to share *to* at all - `ShareButton`'s `url` prop fell
+ * back to `window.location.href`, whatever page the share button happened
+ * to be clicked from. This is the real permalink that fixes that -
+ * `/gonderi/[id]`'s own generateMetadata reads the actual post directly.
+ */
+export async function getFeedPostById(postId: number): Promise<FeedPostDetail | null> {
+  const [row] = await db
+    .select({
+      id: feedPost.id,
+      text: feedPost.text,
+      image: feedPost.image,
+      createdAt: feedPost.createdAt,
+      authorUserId: user.id,
+      authorUsername: user.username,
+      authorImage: user.image,
+      bookId: book.id,
+      bookName: book.name,
+      bookSlug: book.slug,
+    })
+    .from(feedPost)
+    .innerJoin(user, eq(feedPost.userId, user.id))
+    .leftJoin(book, eq(feedPost.bookId, book.id))
+    .where(eq(feedPost.id, postId))
+    .limit(1);
+
+  return row ?? null;
+}
+
 export async function updateFeedPostText(userId: number, postId: number, text: string): Promise<void> {
   const [row] = await db.select({ userId: feedPost.userId }).from(feedPost).where(eq(feedPost.id, postId)).limit(1);
   if (!row) throw new Error("Gönderi bulunamadı.");

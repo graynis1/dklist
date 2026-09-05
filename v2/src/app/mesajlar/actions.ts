@@ -1,13 +1,14 @@
 "use server";
 
 import { auth } from "@/auth";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, desc, eq, inArray, like } from "drizzle-orm";
 import { db } from "@/db";
 import { user, store } from "@/db/schema";
 import {
   sendMessage,
   deleteMessage,
   deleteChat,
+  deleteChats,
   deleteAllChats,
   getMessages,
   acceptMessageRequest,
@@ -94,6 +95,24 @@ export async function deleteChatAction(otherUsername: string): Promise<{ status:
       .limit(1);
     if (!target) return { status: false, message: "Kullanıcı bulunamadı." };
     await deleteChat(userId, target.id);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+/** Customer's ask: "hepsini sil" (delete all) plus a real multi-select,
+ * email-inbox-style, rather than only the two extremes of one-at-a-time
+ * or everything at once. */
+export async function deleteChatsAction(otherUsernames: string[]): Promise<{ status: boolean; message?: string }> {
+  try {
+    const userId = await requireUserId();
+    if (otherUsernames.length === 0) return { status: true };
+    const targets = await db.select({ id: user.id }).from(user).where(inArray(user.username, otherUsernames));
+    await deleteChats(
+      userId,
+      targets.map((t) => t.id),
+    );
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };

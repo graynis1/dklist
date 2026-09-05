@@ -13,10 +13,16 @@ export function ConversationItem({
   conversation,
   isActive,
   decoration,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: {
   conversation: ConversationItemType;
   isActive: boolean;
   decoration?: UserDecoration;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -35,7 +41,20 @@ export function ConversationItem({
 
   return (
     <div className={`group flex items-center gap-3 p-3 transition-colors hover:bg-accent ${isActive ? "bg-accent" : ""}`}>
-      <Link href={`/mesajlar?user=${conversation.otherUsername}`} className="flex min-w-0 flex-1 items-center gap-3">
+      {selectMode && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          aria-label={`@${conversation.otherUsername} konuşmasını seç`}
+          className="size-4 shrink-0 accent-primary"
+        />
+      )}
+      <Link
+        href={selectMode ? "#" : `/mesajlar?user=${conversation.otherUsername}`}
+        onClick={selectMode ? (e) => { e.preventDefault(); onToggleSelect?.(); } : undefined}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
         <EntityAvatar
           id={conversation.otherUserId}
           name={conversation.otherUsername}
@@ -61,6 +80,7 @@ export function ConversationItem({
         type="button"
         onClick={remove}
         disabled={isPending}
+        hidden={selectMode}
         className="shrink-0 text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100 disabled:opacity-50"
         aria-label="Sohbeti sil"
       >

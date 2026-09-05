@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { comment, subComment, user, commentLike } from "@/db/schema";
+import { comment, subComment, user, commentLike, book, score } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
 import { extractHashtagTags } from "@/lib/hashtag";
@@ -70,6 +70,13 @@ export interface BookComment {
   profileFrame: string | null;
   frameTier: FrameTier;
   highestBadge: { name: string; threshold: number } | null;
+  /** The commenter's own 1-10 rating for the exact edition they commented
+   * on (null if they never rated it) - real customer ask: "yorum yapan
+   * kişi puan verdi ise o puan isminin altında yıldız işareti ile
+   * yazsa... güzel etki yapabilirdi" (Goodreads-style). Only meaningful
+   * for targetType "book"/"writer"/"translator" (the entities with a
+   * rating system) - always null for clubs. */
+  authorScore: number | null;
 }
 
 /**
@@ -77,6 +84,20 @@ export interface BookComment {
  * nests comments/subComments on the writer page exactly like BookController::
  * getBook() does on the book page (same Comment/SubComment entities, just a
  * different `type`), so this isn't book-specific despite the historical name.
+ *
+ * Real customer report (2026-09-05, the "Küçük Prens" example): a comment
+ * written on one edition of a book silently disappeared on a *different*
+ * edition of the exact same work - "her baskıya yapılan yorum ve alıntı
+ * havuz mantığında tüm çeviri ve baskılara gelmeli" (Goodreads-style -
+ * every edition's comments/quotes should pool into one shared view, same
+ * as ratings already do via getWorkPooledScore). Deliberately pools
+ * across ALL languages, not just the viewed edition's own language - a
+ * real judgment call (the customer's own message left this open,
+ * "çeviri mi bilmiyorum... siz karar verin" in spirit): Goodreads' actual
+ * behavior is to pool every edition's reviews regardless of language with
+ * no machine translation, which is what this matches - building real
+ * translation would be a much larger, separate feature, not attempted
+ * here.
  */
 export async function getEntityComments(
   targetId: number,
@@ -87,6 +108,17 @@ export async function getEntityComments(
   cacheLife("minutes");
   cacheTag(`${targetType}-comments:${targetId}:${commentType}`);
 
+  // Only "book" pools across sibling editions (via work_id) - writer/
+  // translator/club comments have no edition concept to pool across.
+  let targetIds: number[] = [targetId];
+  if (targetType === "book") {
+    const [thisBook] = await db.select({ workId: book.workId }).from(book).where(eq(book.id, targetId)).limit(1);
+    if (thisBook?.workId != null) {
+      const siblings = await db.select({ id: book.id }).from(book).where(eq(book.workId, thisBook.workId));
+      if (siblings.length > 1) targetIds = siblings.map((s) => s.id);
+    }
+  }
+
   const rows = await db
     .select({
       id: comment.id,
@@ -96,12 +128,13 @@ export async function getEntityComments(
       authorUserId: user.id,
       authorImage: user.image,
       sharedFromCommentId: comment.sharedFromCommentId,
+      targetId: comment.targetId,
     })
     .from(comment)
     .innerJoin(user, eq(comment.userId, user.id))
     .where(
       and(
-        eq(comment.targetId, targetId),
+        targetIds.length > 1 ? inArray(comment.targetId, targetIds) : eq(comment.targetId, targetId),
         eq(comment.type, targetType),
         eq(comment.commentType, commentType),
         // v1's getBook()/getWriter() filter out comments from disabled/banned
@@ -112,16 +145,36 @@ export async function getEntityComments(
     )
     .orderBy(desc(comment.id));
 
-  const [sharedFromById, decorations] = await Promise.all([
+  const [sharedFromById, decorations, scoresByAuthorAndTarget] = await Promise.all([
     getSharedFromInfo(rows.map((r) => r.sharedFromCommentId).filter((id): id is number => id !== null)),
     getUserDecorations(rows.map((r) => r.authorUserId)),
+    getAuthorScores(rows, targetType),
   ]);
 
-  return rows.map(({ sharedFromCommentId, ...r }) => ({
+  return rows.map(({ sharedFromCommentId, targetId: rowTargetId, ...r }) => ({
     ...r,
     sharedFrom: sharedFromCommentId !== null ? (sharedFromById.get(sharedFromCommentId) ?? null) : null,
+    authorScore: scoresByAuthorAndTarget.get(`${r.authorUserId}:${rowTargetId}`) ?? null,
     ...decorationFor(decorations, r.authorUserId),
   }));
+}
+
+const SCORABLE_TARGET_TYPES: readonly CommentTargetType[] = ["book", "writer", "translator"];
+
+async function getAuthorScores(
+  rows: { authorUserId: number; targetId: number }[],
+  targetType: CommentTargetType,
+): Promise<Map<string, number>> {
+  if (!SCORABLE_TARGET_TYPES.includes(targetType) || rows.length === 0) return new Map();
+
+  const ownerIds = [...new Set(rows.map((r) => r.authorUserId))];
+  const targetIds = [...new Set(rows.map((r) => r.targetId))];
+  const scoreRows = await db
+    .select({ ownerId: score.ownerId, targetId: score.targetId, score: score.score })
+    .from(score)
+    .where(and(inArray(score.ownerId, ownerIds), inArray(score.targetId, targetIds), eq(score.targetType, targetType)));
+
+  return new Map(scoreRows.map((s) => [`${s.ownerId}:${s.targetId}`, s.score]));
 }
 
 /**

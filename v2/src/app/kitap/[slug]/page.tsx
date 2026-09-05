@@ -56,11 +56,26 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/kit
   const quote = typeof alinti === "string" ? alinti : undefined;
 
   const writerNames = book.writers.map((w) => w.name).join(", ");
-  const title = writerNames ? `${book.name} - ${writerNames}` : book.name;
+  // Real customer report: even with the description swapped for the real
+  // quote (the earlier fix), the title still always led with the bare
+  // book name - a Facebook/WhatsApp preview card shows the title big and
+  // the description small, so this still read as "sharing the book" with
+  // the comment as an afterthought ("kitabı paylaşım yaptı, yorum ile
+  // beraber kitap paylaşımı şeklinde değil"). When a quote is present the
+  // title now leads with it instead, capped shorter than the full
+  // description excerpt since social preview titles truncate aggressively.
+  const title = quote
+    ? `"${quote.length > 80 ? `${quote.slice(0, 80)}...` : quote}" - ${book.name}`
+    : writerNames
+      ? `${book.name} - ${writerNames}`
+      : book.name;
   // Real customer ask: the score should be part of what a share preview
   // communicates, not just visible after clicking through - prepended
-  // here so WhatsApp/Facebook/Twitter all show it without extra work.
-  const scoreLine = book.score > 0 ? `${book.score.toFixed(1)}/10 · ` : "";
+  // here so WhatsApp/Facebook/Twitter all show it without extra work. A
+  // real ⭐ character (follow-up ask: "görsel bir yıldız... daha görsel
+  // bir koyulukta yazmalı") since a plain-text OG description can't use
+  // an actual icon/bold styling - this is the one visual lever available.
+  const scoreLine = book.score > 0 ? `⭐ ${book.score.toFixed(1)}/10 · ` : "";
   const description = truncateDescription(
     quote
       ? `"${quote}" - ${book.name}${writerNames ? ` (${writerNames})` : ""} hakkında DKList'te paylaşıldı.`

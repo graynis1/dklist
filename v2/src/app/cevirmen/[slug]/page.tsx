@@ -17,6 +17,7 @@ import { getUserTranslatorRating, getTranslatorRatingCount } from "@/db/queries/
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { translatorImageUrl } from "@/lib/image-urls";
 import { auth } from "@/auth";
 import {
   toggleTranslatorLikeAction,
@@ -41,7 +42,12 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/cev
       ? `"${quote}" - ${translator.name} hakkında DKList'te paylaşıldı.`
       : translator.biyo || `${translator.name} - çevirileri, puanı ve yorumları DKList'te.`,
   );
-  return pageMetadata({ title: `${translator.name} (Çevirmen)`, description, path: `/cevirmen/${translator.slug}` });
+  // Same title fix as kitap/[slug] - a quote/comment share should lead
+  // with the quote, not just swap the description underneath it.
+  const title = quote
+    ? `"${quote.length > 80 ? `${quote.slice(0, 80)}...` : quote}" - ${translator.name}`
+    : `${translator.name} (Çevirmen)`;
+  return pageMetadata({ title, description, path: `/cevirmen/${translator.slug}` });
 }
 
 export default function TranslatorPage({ params }: PageProps<"/cevirmen/[slug]">) {
@@ -106,7 +112,7 @@ async function TranslatorContent({
   return (
     <section className="mx-auto max-w-6xl px-6 py-16 lg:py-20">
       <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center">
-        <EntityAvatar id={translator.id} name={translator.name} size="size-20" className="text-xl" />
+        <EntityAvatar id={translator.id} name={translator.name} imageUrl={translatorImageUrl(translator.img)} size="size-20" className="text-xl" />
         <div className="flex flex-col gap-2">
           <SectionLabel>Çevirmen</SectionLabel>
           <h1 className="font-heading text-4xl font-medium tracking-tight">

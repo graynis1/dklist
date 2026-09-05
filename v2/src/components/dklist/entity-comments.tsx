@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { StarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BookComment, CommentReply, SubCommentParentType } from "@/db/queries/comments";
 import type { CommentLikeState } from "@/db/queries/comment-likes";
@@ -411,6 +412,7 @@ export function EntityComments({
             authorUserId: viewerId ?? -1,
             authorImage: null,
             sharedFrom: { authorUsername: original.authorUsername, text: original.text },
+            authorScore: null,
             ...viewerDecoration,
           },
           ...prev,
@@ -439,6 +441,7 @@ export function EntityComments({
             authorUserId: viewerId ?? -1,
             authorImage: null,
             sharedFrom: null,
+            authorScore: null,
             ...viewerDecoration,
           },
           ...prev,
@@ -536,6 +539,16 @@ export function EntityComments({
               <div className="flex flex-1 flex-col gap-1.5">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-medium">@{c.authorUsername}</span>
+                  {/* Real customer ask: "yorum yapan kişi puan verdi ise o
+                      puan isminin altında yıldız işareti ile yazsa" -
+                      Goodreads-style, next to the name rather than only
+                      visible after opening their profile. */}
+                  {c.authorScore != null && (
+                    <span className="flex items-center gap-0.5 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                      <StarIcon className="size-3 fill-current" />
+                      {c.authorScore}/10
+                    </span>
+                  )}
                   <span className="text-muted-foreground">{c.date}</span>
                 </div>
                 {c.sharedFrom && (
@@ -572,12 +585,22 @@ export function EntityComments({
                       </button>
                     )}
                     {signedIn && !c.sharedFrom && (
+                      // Real customer report: "böyle bir şey var ama
+                      // işlevsel değil sanırım, çalışmıyor" - the feature
+                      // itself works end to end (verified live: submitting
+                      // creates a real new comment row with
+                      // sharedFromCommentId set), the actual problem is
+                      // this sat right next to the unrelated external
+                      // ShareButton a few pixels away, both bare-labeled
+                      // "Paylaş" - genuinely easy to click the wrong one
+                      // and never notice this form opened below. Relabeled
+                      // to say what it actually does.
                       <button
                         type="button"
                         onClick={() => setShareFormFor((cur) => (cur === c.id ? null : c.id))}
                         className="w-fit text-xs text-muted-foreground hover:text-foreground hover:underline"
                       >
-                        Paylaş
+                        Akışında Paylaş
                       </button>
                     )}
                     {isOwn ? (

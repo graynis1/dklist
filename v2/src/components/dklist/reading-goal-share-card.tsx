@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ShareButton } from "@/components/dklist/share-button";
 
 /**
  * Customer's ask (2026-09-03): "Kitap hedefini yüzdelik daire grafiği yada
@@ -26,6 +27,7 @@ export function ReadingGoalShareCard({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [generated, setGenerated] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const pct = targetCount > 0 ? Math.round((readCount / targetCount) * 100) : 0;
 
   function draw() {
     const canvas = canvasRef.current;
@@ -146,9 +148,21 @@ export function ReadingGoalShareCard({
             </Button>
             {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
               <Button size="sm" variant="outline" disabled={isSharing} onClick={share}>
-                Paylaş
+                Cihazdan Paylaş
               </Button>
             )}
+            {/* Real customer report: "paylaş kısmında facebook ve diğer
+                paylaşılacak yerler çıkmıyor" - Facebook/WhatsApp/Twitter's
+                share dialogs can only attach a URL (they scrape its OG tags),
+                never an arbitrary local canvas image, so this shares a real
+                caption + link back to the profile rather than the PNG -
+                the PNG itself is still available via İndir/Cihazdan Paylaş
+                above for an actual image post. */}
+            <ShareButton
+              content={`@${username} bu yıl (${year}) okuma hedefinin %${pct}'ini tamamladı! 📚`}
+              url={`/profil/${username}`}
+              size="sm"
+            />
           </>
         )}
       </div>

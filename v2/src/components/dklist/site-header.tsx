@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SearchIcon } from "lucide-react";
 import { HeaderSearchBox } from "@/components/dklist/header-search";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
@@ -69,6 +70,19 @@ export function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <HeaderSearchBox />
+          {/* Real member report: "mobil tarafında ekranda arama kısmı
+              görünmüyor" - HeaderSearchBox is `hidden lg:block` with no
+              mobile equivalent at all below that, and "Keşfet" is buried
+              one level deep in the mobile drawer, not visible in the
+              header itself. A plain icon button matching every other
+              mobile-visible header action here. */}
+          <Link
+            href="/ara"
+            className="flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+            aria-label="Ara"
+          >
+            <SearchIcon className="size-5" />
+          </Link>
           <MessageBell />
           <NotificationBell />
           <ThemeToggle />

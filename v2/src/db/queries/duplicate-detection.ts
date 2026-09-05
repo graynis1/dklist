@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, writerBook, writer } from "@/db/schema";
 import {
@@ -120,4 +120,102 @@ export async function findDuplicateCandidatesDryRun(limit = 5000): Promise<{
   }
 
   return { scanned: rows.length, isbnGroups, normalizedTitleGroups, fuzzyGroups };
+}
+
+export interface WriterDuplicateCandidate {
+  matchType: "isbn" | "normalized_title" | "fuzzy_title_author";
+  books: { id: number; name: string; slug: string; hasImage: boolean }[];
+}
+
+/**
+ * Real customer report (2026-09-05, the "Orhan Pamuk / Elurra" example):
+ * the same book appearing 2-3 times on one writer's page, asked
+ * point-blank "tarama şansı oluyor mu?" (is there a scanning capability).
+ * A whole-catalog scan is Phase 5's own deliberate, bounded-limit dry-run
+ * (findDuplicateCandidatesDryRun above) - scoping to one writer's own
+ * bibliography instead is a completely different, much cheaper query
+ * (typically tens of rows, not millions), real-time-feasible, and matches
+ * exactly how this problem actually surfaces to an admin: "I'm looking at
+ * this author's page and see the same book more than once."
+ *
+ * Deliberately read-only, same as the dry-run this reuses - see
+ * PLAN.md's note on why an actual cross-row book *merge* (as opposed to
+ * scanning) isn't built yet: book is referenced from far more tables than
+ * writer/publisher/work (comments, ratings, shelves, reading history,
+ * store listings, feed posts...), and a correct merge needs to *reassign*
+ * that data to the surviving row, not delete it - a bigger, separate,
+ * carefully-tested feature, not something to bolt onto a scan tool.
+ */
+export async function findDuplicateCandidatesForWriter(writerId: number): Promise<WriterDuplicateCandidate[]> {
+  const rows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      isbn: book.isbn,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
+    .from(book)
+    .innerJoin(writerBook, eq(writerBook.bookId, book.id))
+    .where(eq(writerBook.writerId, writerId));
+
+  const toRef = (r: (typeof rows)[number]) => ({ id: r.id, name: r.name, slug: r.slug, hasImage: Boolean(r.hasImage) });
+
+  const byIsbn = new Map<string, typeof rows>();
+  for (const r of rows) {
+    if (!r.isbn) continue;
+    const key = normalizeIsbn(r.isbn);
+    if (!key) continue;
+    byIsbn.set(key, [...(byIsbn.get(key) ?? []), r]);
+  }
+  const matchedByIsbn = new Set<number>();
+  const isbnCandidates: WriterDuplicateCandidate[] = [];
+  for (const group of byIsbn.values()) {
+    if (group.length > 1) {
+      isbnCandidates.push({ matchType: "isbn", books: group.map(toRef) });
+      group.forEach((r) => matchedByIsbn.add(r.id));
+    }
+  }
+
+  const remaining = rows.filter((r) => !matchedByIsbn.has(r.id));
+  const byTitle = new Map<string, typeof rows>();
+  for (const r of remaining) {
+    const key = normalizeTitle(r.name);
+    if (!key) continue;
+    byTitle.set(key, [...(byTitle.get(key) ?? []), r]);
+  }
+  const matchedByTitle = new Set<number>();
+  const titleCandidates: WriterDuplicateCandidate[] = [];
+  for (const group of byTitle.values()) {
+    if (group.length > 1) {
+      titleCandidates.push({ matchType: "normalized_title", books: group.map(toRef) });
+      group.forEach((r) => matchedByTitle.add(r.id));
+    }
+  }
+
+  // Fuzzy stage compares against the whole writer name once (not per-book
+  // author links, which would need a second join) - fine at this scale,
+  // this whole function only ever runs over one writer's own book count.
+  const fuzzyCandidates = remaining.filter((r) => !matchedByTitle.has(r.id));
+  const fuzzyGroups: WriterDuplicateCandidate[] = [];
+  const consumed = new Set<number>();
+  for (let i = 0; i < fuzzyCandidates.length; i++) {
+    const a = fuzzyCandidates[i];
+    if (consumed.has(a.id)) continue;
+    const group = [a];
+    for (let j = i + 1; j < fuzzyCandidates.length; j++) {
+      const b = fuzzyCandidates[j];
+      if (consumed.has(b.id)) continue;
+      if (titleAuthorSimilarity(a.name, [], b.name, []) >= DUPLICATE_MATCH_THRESHOLD) {
+        group.push(b);
+        consumed.add(b.id);
+      }
+    }
+    if (group.length > 1) {
+      group.forEach((r) => consumed.add(r.id));
+      fuzzyGroups.push({ matchType: "fuzzy_title_author", books: group.map(toRef) });
+    }
+  }
+
+  return [...isbnCandidates, ...titleCandidates, ...fuzzyGroups];
 }

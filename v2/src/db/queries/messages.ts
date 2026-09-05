@@ -243,6 +243,7 @@ export async function getMessages(
   if (!chatRow) return { messages: [], hasMore: false, nextCursor: null };
 
   const isFirst = chatRow.firstUserId === currentUserId;
+  const clearedThroughId = isFirst ? chatRow.firstUserClearedThroughId : chatRow.secondUserClearedThroughId;
 
   const rows = await db
     .select({
@@ -258,9 +259,11 @@ export async function getMessages(
     })
     .from(message)
     .where(
-      cursor
-        ? and(eq(message.chatId, chatRow.id), lt(message.id, cursor))
-        : eq(message.chatId, chatRow.id),
+      and(
+        eq(message.chatId, chatRow.id),
+        cursor ? lt(message.id, cursor) : undefined,
+        clearedThroughId != null ? sql`${message.id} > ${clearedThroughId}` : undefined,
+      ),
     )
     .orderBy(desc(message.id))
     .limit(limit + 1);
@@ -482,6 +485,24 @@ export async function deleteMessage(userId: number, messageId: number): Promise<
   await db.update(message).set({ hiddenForSender: 1 }).where(eq(message.id, messageId));
 }
 
+async function maxMessageId(chatId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ maxId: sql<number | null>`max(${message.id})` })
+    .from(message)
+    .where(eq(message.chatId, chatId));
+  return row?.maxId ?? null;
+}
+
+/**
+ * Real customer report (2026-09-05): deleting a chat then having the other
+ * person reply brought back the ENTIRE old history, not just the new
+ * message - because only the chat row's hidden flag was ever set, and
+ * sendMessage() unconditionally clears it on any new message. Now also
+ * records "cleared through this message id" so getMessages() keeps the
+ * old history hidden for this user even once the chat itself reappears -
+ * matching WhatsApp/Telegram-style "clear chat" semantics. Deliberately
+ * per-user (the other side's own view of the history is untouched).
+ */
 export async function deleteChat(userId: number, otherUserId: number): Promise<void> {
   const chatRow = await findChatBetween(userId, otherUserId);
   if (!chatRow) {
@@ -489,18 +510,42 @@ export async function deleteChat(userId: number, otherUserId: number): Promise<v
   }
 
   const isFirst = chatRow.firstUserId === userId;
+  const clearedThroughId = await maxMessageId(chatRow.id);
   await db
     .update(chat)
-    .set(isFirst ? { hiddenForFirstUser: 1 } : { hiddenForSecondUser: 1 })
+    .set(
+      isFirst
+        ? { hiddenForFirstUser: 1, firstUserClearedThroughId: clearedThroughId }
+        : { hiddenForSecondUser: 1, secondUserClearedThroughId: clearedThroughId },
+    )
     .where(eq(chat.id, chatRow.id));
 }
 
 /** v1 parity gap found via customer report: v1 had a "tümünü sil" option
- * on the inbox, v2 only ever had per-conversation delete. Same soft-hide
- * semantics as deleteChat() (hides only this user's side - a new reply
- * legitimately un-hides a chat again, matching existing behavior), just
- * applied to every conversation this user is part of at once. */
+ * on the inbox, v2 only ever had per-conversation delete. Same semantics
+ * as deleteChat() (hides + clears history only on this user's side - a
+ * new reply legitimately un-hides the chat again, but the old messages
+ * stay cleared for this user), just applied to every conversation this
+ * user is part of at once. */
 export async function deleteAllChats(userId: number): Promise<void> {
-  await db.update(chat).set({ hiddenForFirstUser: 1 }).where(eq(chat.firstUserId, userId));
-  await db.update(chat).set({ hiddenForSecondUser: 1 }).where(eq(chat.secondUserId, userId));
+  const asFirst = await db.select({ id: chat.id }).from(chat).where(eq(chat.firstUserId, userId));
+  for (const row of asFirst) {
+    const clearedThroughId = await maxMessageId(row.id);
+    await db.update(chat).set({ hiddenForFirstUser: 1, firstUserClearedThroughId: clearedThroughId }).where(eq(chat.id, row.id));
+  }
+
+  const asSecond = await db.select({ id: chat.id }).from(chat).where(eq(chat.secondUserId, userId));
+  for (const row of asSecond) {
+    const clearedThroughId = await maxMessageId(row.id);
+    await db.update(chat).set({ hiddenForSecondUser: 1, secondUserClearedThroughId: clearedThroughId }).where(eq(chat.id, row.id));
+  }
+}
+
+/** Bulk variant of deleteChat() for the new multi-select UI - same
+ * per-user clear-history semantics, just scoped to a chosen subset of
+ * conversations instead of either one or literally all of them. */
+export async function deleteChats(userId: number, otherUserIds: number[]): Promise<void> {
+  for (const otherUserId of otherUserIds) {
+    await deleteChat(userId, otherUserId);
+  }
 }

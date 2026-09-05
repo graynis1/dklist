@@ -10,6 +10,7 @@ export interface TranslatorDetail {
   slug: string;
   biyo: string | null;
   score: number;
+  img: string | null;
 }
 
 export async function getTranslatorBySlug(slug: string): Promise<TranslatorDetail | null> {
@@ -24,6 +25,7 @@ export async function getTranslatorBySlug(slug: string): Promise<TranslatorDetai
       slug: translator.slug,
       biyo: translator.biyo,
       score: translator.score,
+      img: translator.img,
     })
     .from(translator)
     .where(eq(translator.slug, slug))

@@ -278,7 +278,14 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
           Tartışmayı Gör
         </Link>
       )}
-      {item.excerpt && <ShareButton content={item.excerpt} url={item.targetHref ?? undefined} />}
+      {item.excerpt && (
+        // Real customer report: sharing a standalone feed_post only ever
+        // pulled the generic /akis preview - `targetHref` is only ever set
+        // for comments on a real entity page, so a bare post had no URL
+        // of its own to attach to. Real permalink now exists at
+        // /gonderi/[id] with its own accurate OG tags.
+        <ShareButton content={item.excerpt} url={item.targetHref ?? (item.feedPostId ? `/gonderi/${item.feedPostId}` : undefined)} />
+      )}
     </div>
   );
 
@@ -330,17 +337,21 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
               // held up, very commonly not landscape) rendered with
               // object-cover and only a max-height was getting its bottom
               // silently cropped off, since object-cover only crops to fit
-              // a container's own size, not to a max-height cap. A fixed
-              // aspect ratio + object-contain (letterboxed on a neutral
-              // fill, never cropped) - "sabit bir ölçüye çekip paylaşsa
-              // daha güzel olur" - guarantees the whole photo is always
-              // visible regardless of its original orientation.
-              <div className="w-full overflow-hidden rounded-lg border border-border bg-muted">
+              // a container's own size, not to a max-height cap.
+              //
+              // Follow-up report (2026-09-05): the fixed `aspect-[4/5]` box
+              // forced every image - including landscape/small ones - to
+              // reserve that much vertical space regardless of its real
+              // shape, reading as oversized in the feed. Capped by max
+              // height instead of a forced aspect ratio, so the box sizes
+              // to the actual image (never taller than the cap) while
+              // object-contain still guarantees nothing is ever cropped.
+              <div className="flex w-full justify-center overflow-hidden rounded-lg border border-border bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={feedPostImageUrl(item.feedPostImage)}
                   alt=""
-                  className="aspect-[4/5] w-full object-contain"
+                  className="max-h-[360px] w-auto max-w-full object-contain"
                 />
               </div>
             )}

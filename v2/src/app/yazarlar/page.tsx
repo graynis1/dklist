@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { getWriterList } from "@/db/queries/writers";
+import { writerImageUrl } from "@/lib/image-urls";
 
 export default function WriterListPage({ searchParams }: PageProps<"/yazarlar">) {
   return (
@@ -78,7 +79,7 @@ async function WriterList({
                 href={`/yazar/${w.slug}`}
                 className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
               >
-                <EntityAvatar id={w.id} name={w.name} />
+                <EntityAvatar id={w.id} name={w.name} imageUrl={writerImageUrl(w.image)} />
                 <div className="flex flex-col gap-0.5 overflow-hidden">
                   <span className="truncate text-sm font-medium">{w.name}</span>
                   <div className="flex items-center gap-1 text-xs">

@@ -58,7 +58,10 @@ export function ShareButton({
   const [open, setOpen] = useState(false);
 
   function resolveUrl() {
-    if (url) return url;
+    if (url) {
+      if (typeof window === "undefined" || /^https?:\/\//.test(url)) return url;
+      return `${window.location.origin}${url}`;
+    }
     if (typeof window === "undefined") return "";
     if (!quote) return window.location.href;
     const base = `${window.location.origin}${window.location.pathname}`;

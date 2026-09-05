@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { getTranslatorList } from "@/db/queries/translators";
+import { translatorImageUrl } from "@/lib/image-urls";
 import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function TranslatorListPage({ searchParams }: PageProps<"/cevirmenler">) {
@@ -79,7 +80,7 @@ async function TranslatorList({
                 href={`/cevirmen/${t.slug}`}
                 className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
               >
-                <EntityAvatar id={t.id} name={t.name} />
+                <EntityAvatar id={t.id} name={t.name} imageUrl={translatorImageUrl(t.image)} />
                 <div className="flex flex-col gap-0.5 overflow-hidden">
                   <span className="truncate text-sm font-medium">{t.name}</span>
                   <div className="flex items-center gap-1 text-xs">

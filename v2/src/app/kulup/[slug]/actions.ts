@@ -14,6 +14,7 @@ import {
   leaveClub,
   updateClubCurrentBook,
   updateClubDescription,
+  updateClubName,
   deleteClub,
 } from "@/db/queries/book-clubs";
 import { getBookList } from "@/db/queries/books";
@@ -134,6 +135,21 @@ export async function updateClubDescriptionAction(clubId: number, slug: string, 
   try {
     await updateClubDescription(clubId, description, Number(session.user.id), session.user.userType ?? "");
     revalidatePath(`/kulup/${slug}`);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function updateClubNameAction(clubId: number, slug: string, name: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    await updateClubName(clubId, name, Number(session.user.id), session.user.userType ?? "");
+    revalidatePath(`/kulup/${slug}`);
+    revalidatePath("/kulupler");
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };

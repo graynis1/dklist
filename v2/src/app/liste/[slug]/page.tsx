@@ -9,6 +9,7 @@ import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating } from "@/components/dklist/star-rating";
 import { getListBySlug } from "@/db/queries/reading-lists";
 import { RemoveFromListButton } from "@/components/dklist/remove-from-list-button";
+import { ListManageDetails } from "@/components/dklist/list-manage-details";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 
 export async function generateMetadata({ params }: PageProps<"/liste/[slug]">): Promise<Metadata> {
@@ -77,6 +78,7 @@ async function ListDetailContent({
           </Link>{" "}
           · {list.books.length} kitap{!list.isPublic && " · Gizli"}
         </p>
+        {isOwner && <ListManageDetails listId={list.id} title={list.title} description={list.description} isPublic={list.isPublic} />}
       </div>
 
       {list.books.length === 0 ? (

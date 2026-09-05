@@ -9,9 +9,8 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { MessageThread } from "@/components/dklist/message-thread";
-import { ConversationItem } from "@/components/dklist/conversation-item";
+import { ConversationsPanel } from "@/components/dklist/conversations-panel";
 import { MessageRequestItem } from "@/components/dklist/message-request-item";
-import { DeleteAllChatsButton } from "@/components/dklist/delete-all-chats-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { auth } from "@/auth";
 import { getConversations, getMessages, getMessageRequests } from "@/db/queries/messages";
@@ -86,17 +85,11 @@ async function MessagesContent({
         {conversations.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Henüz bir konuşman yok.</p>
         ) : (
-          <>
-            {conversations.map((c) => (
-              <ConversationItem
-                key={c.otherUserId}
-                conversation={c}
-                isActive={c.otherUsername === activeUsername}
-                decoration={decorationFor(decorations, c.otherUserId)}
-              />
-            ))}
-            <DeleteAllChatsButton />
-          </>
+          <ConversationsPanel
+            conversations={conversations}
+            activeUsername={activeUsername}
+            decorationFor={(userId) => decorationFor(decorations, userId)}
+          />
         )}
         {messageRequests.length > 0 && (
           <div className="flex flex-col">

@@ -10,6 +10,7 @@ export interface WriterDetail {
   slug: string;
   biyo: string | null;
   score: number;
+  img: string | null;
 }
 
 export async function getWriterBySlug(slug: string): Promise<WriterDetail | null> {
@@ -24,6 +25,7 @@ export async function getWriterBySlug(slug: string): Promise<WriterDetail | null
       slug: writer.slug,
       biyo: writer.biyo,
       score: writer.score,
+      img: writer.img,
     })
     .from(writer)
     .where(eq(writer.slug, slug))

@@ -36,6 +36,24 @@ export function feedPostImageUrl(filename: string): string {
 }
 
 /**
+ * Real customer report: a writer's admin-uploaded photo ("Sabahattin
+ * Ali'de ise ekli görünüyor ama girince göstermiyor sayfada resmini")
+ * never appeared on the real writer page. Root cause: getWriterBySlug()
+ * never selected `writer.img` at all, and the admin-only preview
+ * (writer-admin-row.tsx) built its own `/api/writer-image/${img}` URL
+ * inline rather than through a shared helper - no publicly-reachable code
+ * path ever resolved a writer's photo URL. Same for translators
+ * (translator-admin-row.tsx had the identical inline pattern, same gap).
+ */
+export function writerImageUrl(filename: string | null | undefined): string | null {
+  return filename ? `/api/writer-image/${filename}` : null;
+}
+
+export function translatorImageUrl(filename: string | null | undefined): string | null {
+  return filename ? `/api/translator-image/${filename}` : null;
+}
+
+/**
  * Real customer-reported bug: the homepage announcement popup showed a
  * broken image ("hatalı görsel gibi görünüyor"). Root cause: `site_popup.
  * image` holds a full Cloudinary URL (a legacy/imported value, not

@@ -6,9 +6,7 @@ import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
-import { Button } from "@/components/ui/button";
 import { EntityComments } from "@/components/dklist/entity-comments";
-import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
 import { auth } from "@/auth";
 import { getClubBySlug } from "@/db/queries/book-clubs";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
@@ -23,11 +21,12 @@ import {
   searchBooksForClubAction,
   updateClubCurrentBookAction,
   updateClubDescriptionAction,
+  updateClubNameAction,
   deleteClubAction,
 } from "./actions";
 import { ClubJoinButton } from "@/components/dklist/club-join-button";
 import { ClubManageBook } from "@/components/dklist/club-manage-book";
-import { ClubManageDescription } from "@/components/dklist/club-manage-description";
+import { ClubManageDetails } from "@/components/dklist/club-manage-description";
 import { ClubDeleteButton } from "@/components/dklist/club-delete-button";
 
 export async function generateMetadata({ params, searchParams }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
@@ -42,8 +41,13 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/kul
   const { alinti } = await searchParams;
   const quote = typeof alinti === "string" ? alinti : undefined;
 
+  // Same title fix as kitap/[slug] - a quote/comment share should lead
+  // with the quote, not just swap the description underneath it.
+  const title = quote
+    ? `"${quote.length > 80 ? `${quote.slice(0, 80)}...` : quote}" - ${club.name}`
+    : `${club.name} (Kitap Kulübü)`;
   return pageMetadata({
-    title: `${club.name} (Kitap Kulübü)`,
+    title,
     description: truncateDescription(
       quote ? `"${quote}" - ${club.name} kitap kulübünde paylaşıldı.` : club.description || `${club.name} kitap kulübüne DKList'te katıl.`,
     ),
@@ -107,11 +111,13 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
       <div className="mb-8 flex flex-col gap-2">
         <p className="whitespace-pre-wrap text-sm leading-relaxed">{club.description}</p>
         {canManage && (
-          <ClubManageDescription
+          <ClubManageDetails
             clubId={club.id}
             slug={club.slug}
+            name={club.name}
             description={club.description}
-            updateAction={updateClubDescriptionAction}
+            updateNameAction={updateClubNameAction}
+            updateDescriptionAction={updateClubDescriptionAction}
           />
         )}
       </div>
