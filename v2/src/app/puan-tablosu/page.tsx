@@ -66,6 +66,12 @@ export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablo
  * (/admin/haftalik-kazanan), and shows the admin's own note instead when
  * it's off, rather than just silently disappearing. */
 async function WeeklyGiftAnnouncement() {
+  // Same fix as LeaderboardContent's own connection() call below - this
+  // reads the DB directly with no other dynamic-API call ahead of it, so
+  // Cache Components tries to prerender/cache it by default. A real bug
+  // caught only by a plain `next build` (Turbopack) - the earlier
+  // `--webpack` local builds this session didn't reach this check at all.
+  await connection();
   const settings = await getWeeklyGiftSettings();
   if (settings.active) {
     return (
