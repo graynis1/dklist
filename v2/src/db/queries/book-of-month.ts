@@ -124,3 +124,26 @@ export async function setBookOfMonth(bookId: number, periodLabel: string): Promi
     createdDate: nowSql(),
   });
 }
+
+/**
+ * Real customer report (2026-09-05): "Ekim girdim şu an sileyim eskisi
+ * geri gelsin eylül yazan gibi düşündüm" - a wrongly-entered period had
+ * no way to be removed at all. If the deleted entry was the active one,
+ * the most recent remaining entry is reactivated so the previous pick
+ * genuinely comes back, matching what the customer described wanting -
+ * not just "delete and leave nothing active".
+ */
+export async function deleteBookOfMonth(id: number): Promise<void> {
+  const [row] = await db.select({ active: bookOfMonth.active }).from(bookOfMonth).where(eq(bookOfMonth.id, id)).limit(1);
+  if (!row) throw new Error("Kayıt bulunamadı.");
+
+  await db.delete(bookOfMonthParticipant).where(eq(bookOfMonthParticipant.bookOfMonthId, id));
+  await db.delete(bookOfMonth).where(eq(bookOfMonth.id, id));
+
+  if (row.active === 1) {
+    const [previous] = await db.select({ id: bookOfMonth.id }).from(bookOfMonth).orderBy(desc(bookOfMonth.id)).limit(1);
+    if (previous) {
+      await db.update(bookOfMonth).set({ active: 1 }).where(eq(bookOfMonth.id, previous.id));
+    }
+  }
+}

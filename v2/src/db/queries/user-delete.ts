@@ -6,7 +6,7 @@ import { db } from "@/db";
 import {
   user, comment, subComment, commentLike, dknotifiaction, follow, libraryBook, score,
   readPurpose, read, sellerPayoutProfile, storeFavorite, message, chat, blog, store,
-  storePicture, storeOrder, notice,
+  storePicture, storeOrder, notice, bannedEmail,
 } from "@/db/schema";
 
 const AVATAR_DIR = path.join(process.cwd(), "uploads", "avatar");
@@ -131,8 +131,8 @@ async function deleteStoreListing(storeId: number): Promise<void> {
  * unresolvable FK conflict. A real business rule this account-deletion
  * feature needs, not an invented obstacle.
  */
-export async function deleteUserAccount(userId: number): Promise<string> {
-  const [userRow] = await db.select({ username: user.username, image: user.image, userType: user.userType }).from(user).where(eq(user.id, userId)).limit(1);
+export async function deleteUserAccount(userId: number): Promise<{ username: string; mail: string }> {
+  const [userRow] = await db.select({ username: user.username, mail: user.mail, image: user.image, userType: user.userType }).from(user).where(eq(user.id, userId)).limit(1);
   if (!userRow) throw new Error("Kullanıcı bulunamadı.");
   if (userRow.userType === "SuperAdmin") throw new Error("Bu hesap silinemez.");
 
@@ -173,5 +173,51 @@ export async function deleteUserAccount(userId: number): Promise<string> {
   await db.delete(user).where(eq(user.id, userId));
   if (userRow.image) await deleteFile(AVATAR_DIR, userRow.image);
 
-  return userRow.username;
+  return { username: userRow.username, mail: userRow.mail };
+}
+
+/**
+ * Real customer report (2026-09-05, admin panel section): "yanlış kişiyi
+ * silsen yine aynı hesapla geri geliş mümkün engelleme olmalı maile
+ * sanki. Engelleyip sonra silebilir." An admin-side email blocklist,
+ * checked at registration - independent of whether the original account
+ * still exists, so a deleted bad actor can't just sign up again with the
+ * same address. Deliberately a standalone action (not folded into
+ * delete) - the customer's own phrasing treats block/delete as two
+ * separate steps that can be done in either order.
+ */
+export async function banEmail(email: string, reason: string | null, adminId: number): Promise<void> {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed) throw new Error("E-posta adresi gerekli.");
+  await db.insert(bannedEmail).values({
+    email: trimmed,
+    reason,
+    bannedByAdminId: adminId,
+    createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
+  }).onDuplicateKeyUpdate({ set: { reason, bannedByAdminId: adminId } });
+}
+
+export async function unbanEmail(email: string): Promise<void> {
+  await db.delete(bannedEmail).where(eq(bannedEmail.email, email.trim().toLowerCase()));
+}
+
+export async function isEmailBanned(email: string): Promise<boolean> {
+  const [row] = await db.select({ id: bannedEmail.id }).from(bannedEmail).where(eq(bannedEmail.email, email.trim().toLowerCase())).limit(1);
+  return Boolean(row);
+}
+
+export interface BannedEmailItem {
+  email: string;
+  reason: string | null;
+  createdAt: string;
+  bannedByUsername: string | null;
+}
+
+export async function getBannedEmails(): Promise<BannedEmailItem[]> {
+  const rows = await db
+    .select({ email: bannedEmail.email, reason: bannedEmail.reason, createdAt: bannedEmail.createdAt, bannedByUsername: user.username })
+    .from(bannedEmail)
+    .leftJoin(user, eq(bannedEmail.bannedByAdminId, user.id))
+    .orderBy(bannedEmail.id);
+  return rows;
 }

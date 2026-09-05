@@ -14,6 +14,7 @@ import {
   getUserAssignmentPanelDataAction,
   updateUserBadgesAction,
   setUserFrameAdminAction,
+  banUserEmailAction,
 } from "@/app/admin/kullanicilar/actions";
 import { UserAssignmentPanel } from "@/components/dklist/user-assignment-panel";
 import { searchPublishersAction, searchWritersAction } from "@/app/kitap/yeni/actions";
@@ -64,6 +65,17 @@ export function UserAdminRow({
       const result = await deleteUserAccountAction(user.id);
       if (!result.status) setError(result.message ?? "Silinemedi.");
       else router.refresh();
+    });
+  }
+
+  const [emailBanned, setEmailBanned] = useState(false);
+  function banEmail() {
+    if (!window.confirm(`${user.mail} adresini engellemek istediğinizden emin misiniz? Bu e-posta ile yeniden kayıt olunamayacak.`)) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await banUserEmailAction(user.id);
+      if (!result.status) setError(result.message ?? "Engellenemedi.");
+      else setEmailBanned(true);
     });
   }
 
@@ -121,8 +133,12 @@ export function UserAdminRow({
         </Select>
       )}
 
-      <Button variant="outline" size="sm" disabled={isPending || !canMutate} onClick={toggleDisabled}>
-        {user.disabled ? "Aktif Et" : "Devre Dışı Bırak"}
+      {/* Real customer report: "Devre Dışı Bırak sekmesi var sadece bu
+          direk siteden silmeye mi yarıyor?" - relabeled to make clear
+          this is reversible and does NOT delete anything (unlike Hesabı
+          Sil below), matching what it already actually does. */}
+      <Button variant="outline" size="sm" disabled={isPending || !canMutate} onClick={toggleDisabled} title="Geri alınabilir, hesabı silmez.">
+        {user.disabled ? "Askıyı Kaldır" : "Askıya Al"}
       </Button>
 
       {canMutate && (
@@ -131,8 +147,23 @@ export function UserAdminRow({
         </Button>
       )}
 
+      {/* Real customer report: "yanlış kişiyi silsen yine aynı hesapla
+          geri geliş mümkün engelleme olmalı maile sanki." A separate
+          action from delete - either can be done first. */}
+      {canMutate && (
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isPending || emailBanned}
+          onClick={banEmail}
+          title="Bu e-posta ile yeniden kayıt olmayı önler, hesabı silmez."
+        >
+          {emailBanned ? "E-posta Engellendi" : "E-postayı Engelle"}
+        </Button>
+      )}
+
       {canDelete && (
-        <Button variant="ghost" size="sm" className="text-destructive" disabled={isPending} onClick={deleteAccount}>
+        <Button variant="ghost" size="sm" className="text-destructive" disabled={isPending} onClick={deleteAccount} title="Kalıcı, geri alınamaz.">
           Hesabı Sil
         </Button>
       )}

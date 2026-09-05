@@ -23,6 +23,7 @@ import {
   getPointSettings,
   getUserTotalPoints,
   getUserActivityStreak,
+  getWeeklyGiftSettings,
 } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
 
@@ -34,9 +35,9 @@ export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablo
         <div className="mb-4 flex flex-col gap-2">
           <SectionLabel>Etkileşim</SectionLabel>
           <h1 className="font-heading text-3xl font-medium tracking-tight">Puan Tablosu</h1>
-          <p className="text-sm text-muted-foreground">
-            Her hafta en yüksek puanı alan üyeye sistem tarafından bir kitap hediye edilir.
-          </p>
+          <Suspense fallback={null}>
+            <WeeklyGiftAnnouncement />
+          </Suspense>
         </div>
 
         {/* Real customer report (2026-09-05): the ad had drifted down below
@@ -56,6 +57,27 @@ export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablo
       </div>
     </div>
   );
+}
+
+/** Real customer report: "hediye kitap etmediğim an yanlış vaat yaramamak
+ * için bunu nasıl ayarlarız" - this claim used to be an unconditional
+ * static string, regardless of whether the admin actually had a book
+ * lined up for the current week. Now checks weeklyGiftSettings.active
+ * (/admin/haftalik-kazanan), and shows the admin's own note instead when
+ * it's off, rather than just silently disappearing. */
+async function WeeklyGiftAnnouncement() {
+  const settings = await getWeeklyGiftSettings();
+  if (settings.active) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Her hafta en yüksek puanı alan üyeye sistem tarafından bir kitap hediye edilir.
+      </p>
+    );
+  }
+  if (settings.note) {
+    return <p className="text-sm text-muted-foreground">{settings.note}</p>;
+  }
+  return null;
 }
 
 function LeaderboardSkeleton() {

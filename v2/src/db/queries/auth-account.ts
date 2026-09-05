@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
 import { isMailConfigured, sendVerificationEmail, sendPasswordResetEmail, sendNewPasswordEmail, EMAIL_VERIFICATION_REQUIRED } from "@/lib/mailer";
+import { isEmailBanned } from "@/db/queries/user-delete";
 
 const TOKEN_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -87,6 +88,13 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
       throw new Error(`${username} kullanıcı adı kullanılıyor.`);
     }
     throw new Error(`${mail} mail adresi kullanılıyor.`);
+  }
+
+  // Real customer report (admin panel section): an admin-banned email
+  // (see user-delete.ts's banEmail()) must not be able to just register
+  // a brand-new account, whether or not the original account still exists.
+  if (await isEmailBanned(mail)) {
+    throw new Error("Bu e-posta adresi ile kayıt oluşturulamıyor.");
   }
 
   const verificationCode = generateToken(5);

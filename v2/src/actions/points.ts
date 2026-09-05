@@ -2,7 +2,7 @@
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import { auth } from "@/auth";
-import { recordWeeklyWinner, markWinnerFulfilled, awardSharePoints } from "@/db/queries/points";
+import { recordWeeklyWinner, markWinnerFulfilled, deleteWeeklyWinner, awardSharePoints, updateWeeklyGiftSettings } from "@/db/queries/points";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 
@@ -37,5 +37,28 @@ export async function markWinnerFulfilledAction(id: number): Promise<{ status: b
     return { status: false, message: (err as Error).message };
   }
   await markWinnerFulfilled(id);
+  return { status: true };
+}
+
+export async function deleteWeeklyWinnerAction(id: number): Promise<{ status: boolean; message?: string }> {
+  try {
+    await requireRole(ADMIN_ONLY);
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+  await deleteWeeklyWinner(id);
+  return { status: true };
+}
+
+export async function updateWeeklyGiftSettingsAction(formData: FormData): Promise<{ status: boolean; message?: string }> {
+  try {
+    await requireRole(ADMIN_ONLY);
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+  await updateWeeklyGiftSettings({
+    active: formData.get("active") === "on",
+    note: String(formData.get("note") ?? ""),
+  });
   return { status: true };
 }

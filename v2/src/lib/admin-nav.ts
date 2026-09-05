@@ -50,6 +50,7 @@ export const ADMIN_CATEGORIES: AdminCategory[] = [
     label: "Kullanıcı ve Topluluk",
     tools: [
       { href: "/admin/kullanicilar", label: "Kullanıcılar", description: "Rol, hesap durumu ve yayınevi bağlantısı yönetimi", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
+      { href: "/admin/engellenen-mailler", label: "Engellenen E-postalar", description: "Yeniden kayıt olmayı engellenmiş e-posta adresleri", roles: [USER_TYPES.Admin] },
       { href: "/admin/rozetler", label: "Rozetler", description: "Rozet tanımları ve görselleri", roles: [USER_TYPES.Admin] },
       { href: "/admin/puan-ayarlari", label: "Puan Ayarları", description: "Puan/oyunlaştırma sisteminin kazanç değerleri ve spam koruma sınırları", roles: [USER_TYPES.Admin] },
       { href: "/admin/puan-magazasi", label: "Puan Mağazası", description: "Kullanıcıların puan harcayarak alabileceği profil çerçeveleri", roles: [USER_TYPES.Admin] },

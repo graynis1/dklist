@@ -2,7 +2,10 @@
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
 import { updateUserRole, toggleUserDisabled, updateUserPublisher, updateUserBadges, getUserBadgeIds } from "@/db/queries/user-admin";
-import { deleteUserAccount } from "@/db/queries/user-delete";
+import { deleteUserAccount, banEmail } from "@/db/queries/user-delete";
+import { db } from "@/db";
+import { user } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { logAdminAction } from "@/db/queries/admin-log";
 import { linkUserToWriter } from "@/db/queries/yazarhane";
 import { getAllBadgesBrief } from "@/db/queries/badge-admin";
@@ -118,5 +121,23 @@ export async function deleteUserAccountAction(userId: number): Promise<{ status:
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Silinemedi." };
+  }
+}
+
+/** Real customer report: "yanlış kişiyi silsen yine aynı hesapla geri
+ * geliş mümkün engelleme olmalı maile sanki. Engelleyip sonra silebilir."
+ * Bans the account's CURRENT email (works whether the account still
+ * exists or was already deleted) - a deliberately separate action from
+ * delete, not a checkbox bundled into it. */
+export async function banUserEmailAction(userId: number): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    const [row] = await db.select({ mail: user.mail, username: user.username }).from(user).where(eq(user.id, userId)).limit(1);
+    if (!row) return { status: false, message: "Kullanıcı bulunamadı." };
+    await banEmail(row.mail, `Admin panelden engellendi: ${row.username}`, actor.id);
+    await logAdminAction(actor.id, "user:ban-email", "user", userId, row.mail);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Engellenemedi." };
   }
 }

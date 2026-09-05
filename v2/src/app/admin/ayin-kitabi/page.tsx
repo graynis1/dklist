@@ -6,6 +6,7 @@ import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getCurrentBookOfMonth, getPastBooksOfMonth } from "@/db/queries/book-of-month";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { SetBookOfMonthForm } from "@/components/dklist/set-book-of-month-form";
+import { DeleteBookOfMonthButton } from "@/components/dklist/delete-book-of-month-button";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
 
@@ -36,12 +37,15 @@ async function AdminBookOfMonthContent() {
       <SetBookOfMonthForm />
 
       {current && (
-        <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
-          <p className="text-xs font-medium text-primary">ŞU AN AKTİF</p>
-          <p className="font-medium">
-            {current.periodLabel}: <Link href={`/kitap/${current.bookSlug}`} className="hover:underline">{current.bookName}</Link>
-          </p>
-          <p className="text-xs text-muted-foreground">{current.participantCount} katılımcı</p>
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <div>
+            <p className="text-xs font-medium text-primary">ŞU AN AKTİF</p>
+            <p className="font-medium">
+              {current.periodLabel}: <Link href={`/kitap/${current.bookSlug}`} className="hover:underline">{current.bookName}</Link>
+            </p>
+            <p className="text-xs text-muted-foreground">{current.participantCount} katılımcı</p>
+          </div>
+          <DeleteBookOfMonthButton id={current.id} />
         </div>
       )}
 
@@ -50,9 +54,12 @@ async function AdminBookOfMonthContent() {
           <h2 className="mb-3 font-heading text-lg font-medium">Geçmiş</h2>
           <ul className="flex flex-col gap-2">
             {past.map((p) => (
-              <li key={p.id} className="rounded-lg border border-border p-3 text-sm">
-                {p.periodLabel}: <Link href={`/kitap/${p.bookSlug}`} className="hover:underline">{p.bookName}</Link>{" "}
-                <span className="text-muted-foreground">· {p.participantCount} katılımcı</span>
+              <li key={p.id} className="flex items-center justify-between gap-4 rounded-lg border border-border p-3 text-sm">
+                <span>
+                  {p.periodLabel}: <Link href={`/kitap/${p.bookSlug}`} className="hover:underline">{p.bookName}</Link>{" "}
+                  <span className="text-muted-foreground">· {p.participantCount} katılımcı</span>
+                </span>
+                <DeleteBookOfMonthButton id={p.id} />
               </li>
             ))}
           </ul>

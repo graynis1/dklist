@@ -160,6 +160,30 @@ export async function createReward(input: CreateRewardInput): Promise<void> {
   });
 }
 
+/** Real customer report: "burda çerçevelerde de düzenle yok" - only
+ * add/toggle-active/delete existed, no way to fix a typo or adjust the
+ * price/color of an already-created frame without deleting and
+ * recreating it (losing anyone who already redeemed it, since
+ * deleteReward() also removes the redemption rows). */
+export async function updateReward(
+  rewardId: number,
+  input: { name: string; description: string | null; pointCost: number; rewardValue: string; sortOrder: number },
+): Promise<void> {
+  const name = input.name.trim();
+  if (!name) throw new Error("Ad zorunludur.");
+  if (!Number.isInteger(input.pointCost) || input.pointCost <= 0) throw new Error("Puan bedeli pozitif bir tam sayı olmalıdır.");
+  const rewardValue = input.rewardValue.trim();
+  if (!rewardValue) throw new Error("Ödül değeri zorunludur.");
+
+  await db.update(pointReward).set({
+    name,
+    description: input.description?.trim() || null,
+    pointCost: input.pointCost,
+    rewardValue,
+    sortOrder: input.sortOrder,
+  }).where(eq(pointReward.id, rewardId));
+}
+
 export async function toggleRewardActive(rewardId: number): Promise<void> {
   const [row] = await db.select({ active: pointReward.active }).from(pointReward).where(eq(pointReward.id, rewardId)).limit(1);
   if (!row) throw new Error("Ödül bulunamadı.");

@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { recordWeeklyWinnerAction } from "@/actions/points";
+import { BookLinkPicker } from "@/components/dklist/book-link-picker";
 
+/**
+ * Real customer report (2026-09-05): "Haftalık kazanan kısmını da
+ * denedim orada da sanırım kitaplar sekmesi açılmadı onun sıralama ID
+ * numarasını buraya yazınca kitap görselini çekip..." - this used to be
+ * a bare numeric book-ID text field (the admin had to go find the ID
+ * elsewhere first), not an actual picker. Reuses BookLinkPicker (the
+ * same real search-with-cover component Askıda Kitap's create form
+ * uses) instead of a raw ID input.
+ */
 export function RecordWinnerForm({
   yearWeek,
   userId,
@@ -17,9 +26,24 @@ export function RecordWinnerForm({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [bookId, setBookId] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  function submit() {
+    const formData = new FormData(formRef.current!);
+    const rawBookId = formData.get("bookId");
+    const bookId = rawBookId ? Number(rawBookId) : null;
+    startTransition(async () => {
+      const result = await recordWeeklyWinnerAction(yearWeek, userId, points, bookId);
+      if (result.status) {
+        router.refresh();
+        setOpen(false);
+      } else {
+        setError(result.message ?? "Kaydedilemedi.");
+      }
+    });
+  }
 
   return (
     <div className="flex flex-col items-end gap-2">
@@ -27,35 +51,14 @@ export function RecordWinnerForm({
         Kazanan Olarak Kaydet
       </Button>
       {open && (
-        <div className="flex w-64 flex-col gap-2 rounded-md border border-border bg-popover p-3">
-          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            Hediye edilecek kitabın ID&apos;si (kitap sayfasının admin panelinden bulunabilir, boş bırakılabilir)
-            <Input value={bookId} onChange={(e) => setBookId(e.target.value)} placeholder="Örn. 42" type="number" />
-          </label>
+        <form ref={formRef} className="flex w-72 flex-col gap-2 rounded-md border border-border bg-popover p-3">
+          <p className="text-xs text-muted-foreground">Hediye edilecek kitap (opsiyonel, boş bırakılabilir)</p>
+          <BookLinkPicker />
           {error && <p className="text-xs text-destructive">{error}</p>}
-          <Button
-            size="sm"
-            disabled={isPending}
-            onClick={() =>
-              startTransition(async () => {
-                const result = await recordWeeklyWinnerAction(
-                  yearWeek,
-                  userId,
-                  points,
-                  bookId.trim() ? Number(bookId.trim()) : null,
-                );
-                if (result.status) {
-                  router.refresh();
-                  setOpen(false);
-                } else {
-                  setError(result.message ?? "Kaydedilemedi.");
-                }
-              })
-            }
-          >
+          <Button type="button" size="sm" disabled={isPending} onClick={submit}>
             Onayla
           </Button>
-        </div>
+        </form>
       )}
     </div>
   );

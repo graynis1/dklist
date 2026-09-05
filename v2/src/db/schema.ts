@@ -1047,6 +1047,18 @@ export const premiumPurchase = mysqlTable("premium_purchase", {
 	primaryKey({ columns: [table.id], name: "premium_purchase_id" }),
 ]);
 
+// Migration 0042 - single-row settings, same pattern as premiumSettings/
+// storePinSettings, for the customer's "yanlış vaat" concern.
+export const weeklyGiftSettings = mysqlTable("weekly_gift_settings", {
+	id: int().autoincrement().notNull(),
+	active: tinyint().notNull(),
+	note: varchar({ length: 255 }),
+	updatedDate: datetime("updated_date", { mode: 'string' }),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "weekly_gift_settings_id" }),
+]);
+
 // Migration 0040 - same shape as premium_settings/premium_purchase, for
 // the customer's "üste tutturma renkli çerçeve" per-listing paid highlight.
 export const storePinSettings = mysqlTable("store_pin_settings", {
@@ -1080,6 +1092,20 @@ export const storePinPurchase = mysqlTable("store_pin_purchase", {
 	index("idx_store_pin_purchase_user").on(table.userId),
 	index("idx_store_pin_purchase_token").on(table.iyzicoToken),
 	primaryKey({ columns: [table.id], name: "store_pin_purchase_id" }),
+]);
+
+// Migration 0041 - admin-side email blocklist, checked at registration
+// time. Distinct from `userBlock` (user-to-user social blocking).
+export const bannedEmail = mysqlTable("banned_email", {
+	id: int().autoincrement().notNull(),
+	email: varchar({ length: 50 }).notNull(),
+	reason: varchar({ length: 255 }),
+	bannedByAdminId: int("banned_by_admin_id").notNull().references(() => user.id),
+	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	unique("uniq_banned_email").on(table.email),
+	primaryKey({ columns: [table.id], name: "banned_email_id" }),
 ]);
 
 export const advertisement = mysqlTable("advertisement", {

@@ -5,10 +5,12 @@ import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
-import { getWeeklyLeaderboard, getWeeklyWinner, getPastWeeklyWinners } from "@/db/queries/points";
+import { getWeeklyLeaderboard, getWeeklyWinner, getPastWeeklyWinners, getWeeklyGiftSettings } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
 import { RecordWinnerForm } from "@/components/dklist/record-winner-form";
 import { FulfillWinnerButton } from "@/components/dklist/fulfill-winner-button";
+import { DeleteWinnerButton } from "@/components/dklist/delete-winner-button";
+import { WeeklyGiftSettingsForm } from "@/components/dklist/weekly-gift-settings-form";
 
 // Choosing/mailing the actual free book is a real admin action (recording a
 // weekly winner, unlike simply viewing the leaderboard) - Admin-only, same
@@ -32,10 +34,11 @@ async function AdminWeeklyWinnerContent() {
   if (!hasRole(session.user.userType, ADMIN_ONLY)) redirect("/");
 
   const week = currentISOWeek();
-  const [leaderboard, currentWinner, pastWinners] = await Promise.all([
+  const [leaderboard, currentWinner, pastWinners, giftSettings] = await Promise.all([
     getWeeklyLeaderboard(20, week),
     getWeeklyWinner(week),
     getPastWeeklyWinners(10),
+    getWeeklyGiftSettings(),
   ]);
 
   return (
@@ -45,15 +48,16 @@ async function AdminWeeklyWinnerContent() {
         description={`Bu hafta (${week}) en yüksek puanı alan üyeyi seçip hediye edilecek kitabı kaydedin.`}
       />
 
+      <WeeklyGiftSettingsForm settings={giftSettings} />
+
       {currentWinner ? (
         <div className="mb-8 rounded-lg border border-border bg-secondary p-4 text-sm">
           Bu haftanın kazananı zaten kaydedildi: <strong>@{currentWinner.username}</strong> (
           {currentWinner.points} puan){currentWinner.prizeBookName ? ` - 🎁 ${currentWinner.prizeBookName}` : ""}
-          {!currentWinner.fulfilled && (
-            <div className="mt-2">
-              <FulfillWinnerButton id={currentWinner.id} />
-            </div>
-          )}
+          <div className="mt-2 flex gap-2">
+            {!currentWinner.fulfilled && <FulfillWinnerButton id={currentWinner.id} />}
+            <DeleteWinnerButton id={currentWinner.id} />
+          </div>
         </div>
       ) : leaderboard.length === 0 ? (
         <p className="text-sm text-muted-foreground">Bu hafta henüz kimse puan kazanmadı.</p>
@@ -82,9 +86,10 @@ async function AdminWeeklyWinnerContent() {
                   </Link>
                   <span className="text-xs text-muted-foreground"> · {w.yearWeek} · {w.points} puan</span>
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {w.prizeBookName ?? "Ödül yok"} {w.fulfilled ? "· Gönderildi" : ""}
                   {!w.fulfilled && <FulfillWinnerButton id={w.id} />}
+                  <DeleteWinnerButton id={w.id} />
                 </div>
               </li>
             ))}

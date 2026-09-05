@@ -1,7 +1,7 @@
 "use server";
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
-import { createReward, toggleRewardActive, deleteReward } from "@/db/queries/point-store";
+import { createReward, updateReward, toggleRewardActive, deleteReward } from "@/db/queries/point-store";
 import { logAdminAction } from "@/db/queries/admin-log";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
@@ -22,6 +22,23 @@ export async function createRewardAction(formData: FormData): Promise<{ status: 
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Eklenemedi." };
+  }
+}
+
+export async function updateRewardAction(rewardId: number, formData: FormData): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    await updateReward(rewardId, {
+      name: String(formData.get("name") ?? ""),
+      description: String(formData.get("description") ?? ""),
+      pointCost: Number(formData.get("pointCost") ?? 0),
+      rewardValue: String(formData.get("rewardValue") ?? ""),
+      sortOrder: Number(formData.get("sortOrder") ?? 0),
+    });
+    await logAdminAction(actor.id, "point-reward:update", "point_reward", rewardId);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
   }
 }
 

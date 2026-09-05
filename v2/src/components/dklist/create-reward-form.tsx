@@ -33,7 +33,14 @@ export function CreateRewardForm() {
       <Input type="number" name="pointCost" placeholder="Puan Bedeli" required min="1" />
       <input type="hidden" name="rewardType" value="profile_frame" />
       <Input name="rewardValue" placeholder="Çerçeve rengi (CSS renk değeri, örn: gold veya #ffd700)" required />
-      <Input type="number" name="sortOrder" placeholder="Sıra" defaultValue={0} />
+      {/* Real customer report: "verin girişinde en sonrdaki 0 lup rakam
+          girilen yer ne işe yarıyor?" - a bare placeholder disappears the
+          moment you focus the field, so it read as unlabeled. Real label
+          + explanation now, same field either way. */}
+      <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+        Sıra (mağazada görünme sırası - küçük sayı önce görünür)
+        <Input type="number" name="sortOrder" defaultValue={0} />
+      </label>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={isPending} className="w-fit">
         Ekle

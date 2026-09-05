@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { pointTransaction, weeklyWinner, user, book, badges, userBadges, pointSetting } from "@/db/schema";
+import { pointTransaction, weeklyWinner, user, book, badges, userBadges, pointSetting, weeklyGiftSettings } from "@/db/schema";
 import { currentISOWeek, getISOWeekRange } from "@/lib/iso-week";
 import { isDuplicateKeyError } from "@/lib/db-errors";
 import { addNotification } from "@/db/queries/notifications";
@@ -576,4 +576,46 @@ export async function markWinnerFulfilled(id: number): Promise<void> {
     .update(weeklyWinner)
     .set({ fulfilled: 1, fulfilledAt: new Date().toISOString().slice(0, 19).replace("T", " ") })
     .where(eq(weeklyWinner.id, id));
+}
+
+/** Real customer report: "burada deneme yaptığım hediye gönderildi denen
+ * profil kayda girdi onları temizleyebiliyor muyuz?" - a test/demo record
+ * an admin created while trying the tool out had no way to be removed.
+ * yearWeek is UNIQUE, so deleting a test record also frees that week up
+ * to record a real winner for it. */
+export async function deleteWeeklyWinner(id: number): Promise<void> {
+  await db.delete(weeklyWinner).where(eq(weeklyWinner.id, id));
+}
+
+export interface WeeklyGiftSettingsView {
+  active: boolean;
+  note: string | null;
+}
+
+async function getOrCreateWeeklyGiftSettingsRow() {
+  const [row] = await db.select().from(weeklyGiftSettings).limit(1);
+  if (row) return row;
+  const [result] = await db.insert(weeklyGiftSettings).values({ active: 1, note: null });
+  const [created] = await db.select().from(weeklyGiftSettings).where(eq(weeklyGiftSettings.id, result.insertId)).limit(1);
+  return created;
+}
+
+/** Real customer report: "hediye kitap etmediğim an yanlış vaat yaramamak
+ * için bunu nasıl ayarlarız" - the public /puan-tablosu page's "her hafta
+ * bir kitap hediye edilir" claim is now conditional on this, instead of
+ * an unconditional evergreen promise. Defaults to active=1 (matches the
+ * feature's actual current behavior) so this migration doesn't silently
+ * turn the copy off for sites that never touch the new setting. */
+export async function getWeeklyGiftSettings(): Promise<WeeklyGiftSettingsView> {
+  const row = await getOrCreateWeeklyGiftSettingsRow();
+  return { active: row.active === 1, note: row.note };
+}
+
+export async function updateWeeklyGiftSettings(input: { active: boolean; note: string | null }): Promise<void> {
+  const row = await getOrCreateWeeklyGiftSettingsRow();
+  await db.update(weeklyGiftSettings).set({
+    active: input.active ? 1 : 0,
+    note: input.note?.trim() || null,
+    updatedDate: new Date().toISOString().slice(0, 19).replace("T", " "),
+  }).where(eq(weeklyGiftSettings.id, row.id));
 }
