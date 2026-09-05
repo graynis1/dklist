@@ -38,7 +38,7 @@ export async function checkModerationOrThrow(
 
 // v1's CommentTypeEnum - comments live on book/writer/translator pages, all
 // through the same `comment` table (type + target_id columns).
-export type CommentTargetType = "book" | "writer" | "translator" | "bookClub" | "blog";
+export type CommentTargetType = "book" | "writer" | "translator" | "bookClub" | "blog" | "user";
 
 // Customer's notes were explicit that "yorum yap" (write a review) and
 // "alıntı yap" (add a quote) should read as clearly separate things, not
@@ -159,7 +159,7 @@ export async function getEntityComments(
   }));
 }
 
-const SCORABLE_TARGET_TYPES: readonly CommentTargetType[] = ["book", "writer", "translator"];
+const SCORABLE_TARGET_TYPES: readonly CommentTargetType[] = ["book", "writer", "translator", "user"];
 
 async function getAuthorScores(
   rows: { authorUserId: number; targetId: number }[],

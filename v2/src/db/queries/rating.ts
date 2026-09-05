@@ -2,12 +2,13 @@ import "server-only";
 import { updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { score, book, writer, translator } from "@/db/schema";
+import { score, book, writer, translator, user } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 
 const BOOK_TARGET_TYPE = "book";
 const WRITER_TARGET_TYPE = "writer";
 const TRANSLATOR_TARGET_TYPE = "translator";
+const USER_TARGET_TYPE = "user";
 
 export async function getUserBookRating(
   userId: number,
@@ -232,4 +233,57 @@ export async function getTranslatorRatingCount(translatorId: number): Promise<nu
     .from(score)
     .where(and(eq(score.targetId, translatorId), eq(score.targetType, TRANSLATOR_TARGET_TYPE)));
   return Number(row?.count ?? 0);
+}
+
+/**
+ * Real customer report (Askıda Kitap section): "satıcı için satıcı puanı
+ * ve yorum kısmı olabilmeli... İlanda ki isminin yanında görünmeli"
+ * (Trendyol-style). Same `score`-table mechanism as book/writer/
+ * translator, just target_type "user" against the seller's own user id -
+ * a person's reputation as a seller, shared across every listing they
+ * post, not scoped to one listing. Denormalized onto user.sellerScore/
+ * sellerRatingCount (migration 0039) for cheap reads on listing pages.
+ */
+export async function getUserSellerRating(raterId: number, sellerId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ score: score.score })
+    .from(score)
+    .where(and(eq(score.ownerId, raterId), eq(score.targetId, sellerId), eq(score.targetType, USER_TARGET_TYPE)))
+    .limit(1);
+  return row?.score ?? null;
+}
+
+export async function rateUser(raterId: number, sellerId: number, value: number): Promise<{ newAverage: number }> {
+  if (!Number.isInteger(value) || value < 1 || value > 10) {
+    throw new Error("Puan 1 ile 10 arasında bir tam sayı olmalıdır.");
+  }
+  if (raterId === sellerId) {
+    throw new Error("Kendinize puan veremezsiniz.");
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(score)
+      .values({ ownerId: raterId, targetId: sellerId, targetType: USER_TARGET_TYPE, score: value })
+      .onDuplicateKeyUpdate({ set: { score: value } });
+
+    const [{ avg, cnt }] = await tx
+      .select({ avg: sql<number>`avg(${score.score})`, cnt: sql<number>`count(*)` })
+      .from(score)
+      .where(and(eq(score.targetId, sellerId), eq(score.targetType, USER_TARGET_TYPE)));
+
+    await tx.update(user).set({ sellerScore: avg, sellerRatingCount: cnt }).where(eq(user.id, sellerId));
+  });
+
+  const [{ avg: newAverage }] = await db
+    .select({ avg: sql<number>`avg(${score.score})` })
+    .from(score)
+    .where(and(eq(score.targetId, sellerId), eq(score.targetType, USER_TARGET_TYPE)));
+
+  updateTag(`user-seller-rating:${sellerId}`);
+  {
+    const settings = await getPointSettings();
+    await awardPointsWithDailyCap(raterId, settings.rating, "rating", `rating:user:${sellerId}`, settings.dailyRatingCap);
+  }
+  return { newAverage };
 }

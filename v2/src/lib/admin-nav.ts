@@ -64,6 +64,7 @@ export const ADMIN_CATEGORIES: AdminCategory[] = [
       { href: "/admin/pazaryeri-ayarlari", label: "Pazaryeri Ayarları", description: "iyzico API anahtarları, ücretli satın alma aç/kapa, komisyon oranı", roles: [USER_TYPES.Admin] },
       { href: "/admin/siparisler", label: "Siparişler", description: "Tüm ücretli Askıda Kitap siparişlerini görüntüle", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
       { href: "/admin/premium-ayarlari", label: "Premium Ayarları", description: "Premium üyelik fiyatı, süresi ve satışını aç/kapa", roles: [USER_TYPES.Admin] },
+      { href: "/admin/one-cikan-ilan-ayarlari", label: "İlan Öne Çıkarma Ayarları", description: "Askıda Kitap ilanlarını öne çıkarma fiyatı, süresi ve satışını aç/kapa", roles: [USER_TYPES.Admin] },
     ],
   },
   {

@@ -664,6 +664,10 @@ export const user = mysqlTable("user", {
 	// Point-store redeemable cosmetic (avatar ring color/style) - null means
 	// no frame equipped, even if the user owns one or more via redemption.
 	profileFrame: varchar("profile_frame", { length: 30 }),
+	// Migration 0039 - denormalized average of `score` rows where
+	// target_type = 'user' (Askıda Kitap seller rating).
+	sellerScore: double("seller_score"),
+	sellerRatingCount: int("seller_rating_count").notNull().default(0),
 	// Self-service email-based 2FA - separate from pending_code/mail_auth
 	// (a different lifecycle: email verification/password reset).
 	twoFactorEnabled: tinyint("two_factor_enabled").notNull().default(0),
@@ -1041,6 +1045,41 @@ export const premiumPurchase = mysqlTable("premium_purchase", {
 	index("idx_premium_purchase_user").on(table.userId),
 	index("idx_premium_purchase_token").on(table.iyzicoToken),
 	primaryKey({ columns: [table.id], name: "premium_purchase_id" }),
+]);
+
+// Migration 0040 - same shape as premium_settings/premium_purchase, for
+// the customer's "üste tutturma renkli çerçeve" per-listing paid highlight.
+export const storePinSettings = mysqlTable("store_pin_settings", {
+	id: int().autoincrement().notNull(),
+	active: tinyint().notNull(),
+	priceKurus: int("price_kurus").notNull(),
+	durationDays: int("duration_days").notNull(),
+	updatedDate: datetime("updated_date", { mode: 'string' }),
+},
+(table) => [
+	primaryKey({ columns: [table.id], name: "store_pin_settings_id" }),
+]);
+
+export const storePinPurchase = mysqlTable("store_pin_purchase", {
+	id: int().autoincrement().notNull(),
+	storeId: int("store_id").notNull().references(() => store.id),
+	userId: int("user_id").notNull().references(() => user.id),
+	amountKurus: int("amount_kurus").notNull(),
+	durationDays: int("duration_days").notNull(),
+	status: varchar({ length: 20 }).notNull(),
+	startsAt: datetime("starts_at", { mode: 'string' }),
+	expiresAt: datetime("expires_at", { mode: 'string' }),
+	iyzicoConversationId: varchar("iyzico_conversation_id", { length: 255 }),
+	iyzicoToken: varchar("iyzico_token", { length: 255 }),
+	iyzicoPaymentId: varchar("iyzico_payment_id", { length: 255 }),
+	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+	updatedDate: datetime("updated_date", { mode: 'string' }),
+},
+(table) => [
+	index("idx_store_pin_purchase_store").on(table.storeId),
+	index("idx_store_pin_purchase_user").on(table.userId),
+	index("idx_store_pin_purchase_token").on(table.iyzicoToken),
+	primaryKey({ columns: [table.id], name: "store_pin_purchase_id" }),
 ]);
 
 export const advertisement = mysqlTable("advertisement", {

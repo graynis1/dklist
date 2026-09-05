@@ -43,6 +43,7 @@ export interface StoreListItem {
   image: string | null;
   ownerUsername: string;
   ownerIsPremium: boolean;
+  isPinned: boolean;
 }
 
 /**
@@ -58,6 +59,22 @@ function ownerIsPremiumExpr() {
   return sql<number>`EXISTS (
     SELECT 1 FROM premium_purchase pp
     WHERE pp.user_id = ${store.ownerId} AND pp.status = 'active' AND pp.expires_at > NOW()
+  )`;
+}
+
+/**
+ * Real customer report (2026-09-05): "üste tutturma renkli çerçeve...
+ * sahibinden.com da olduğu gibi" - a per-LISTING paid highlight (see
+ * store-pin.ts), distinct from the incidental owner-is-premium sort
+ * above. Sorts even higher than that - a deliberate, listing-specific
+ * purchase should outrank a seller's general membership status, matching
+ * how a real paid "vitrin" listing outranks a plain premium seller on
+ * sahibinden.com.
+ */
+function isPinnedExpr() {
+  return sql<number>`EXISTS (
+    SELECT 1 FROM store_pin_purchase spp
+    WHERE spp.store_id = ${store.id} AND spp.status = 'active' AND spp.expires_at > NOW()
   )`;
 }
 
@@ -132,14 +149,16 @@ export async function getStoreList(
       location: store.location,
       ownerUsername: user.username,
       ownerIsPremium: ownerIsPremiumExpr(),
+      isPinned: isPinnedExpr(),
     })
     .from(store)
     .innerJoin(user, eq(store.ownerId, user.id))
     .where(whereClause)
-    // Premium sellers' listings sort first, then the requested sort, then
-    // an id-desc tiebreaker whenever sorting by a non-id column (matching
-    // v1's own addOrderBy('store.id', 'DESC') fallback).
-    .orderBy(desc(ownerIsPremiumExpr()), sortColumn === store.id ? direction(store.id) : direction(sortColumn), desc(store.id))
+    // Pinned listings sort first (a deliberate paid highlight), then
+    // premium sellers' listings, then the requested sort, then an id-desc
+    // tiebreaker whenever sorting by a non-id column (matching v1's own
+    // addOrderBy('store.id', 'DESC') fallback).
+    .orderBy(desc(isPinnedExpr()), desc(ownerIsPremiumExpr()), sortColumn === store.id ? direction(store.id) : direction(sortColumn), desc(store.id))
     .limit(safeSize)
     .offset((effectivePage - 1) * safeSize);
 
@@ -159,6 +178,7 @@ export async function getStoreList(
   const items = rows.map((r) => ({
     ...r,
     ownerIsPremium: Boolean(Number(r.ownerIsPremium)),
+    isPinned: Boolean(Number(r.isPinned)),
     image: firstImageByStore.get(r.id) ?? null,
   }));
 
@@ -181,6 +201,10 @@ export interface StoreDetail {
   pictures: string[];
   ownerId: number;
   ownerUsername: string;
+  /** Real customer report: "satıcı için satıcı puanı... İlanda ki isminin
+   * yanında görünmeli" - null when the seller has no ratings yet. */
+  ownerSellerScore: number | null;
+  ownerSellerRatingCount: number;
   book: { id: number; name: string; slug: string } | null;
 }
 
@@ -201,6 +225,8 @@ export async function getStoreBySlug(slug: string): Promise<StoreDetail | null> 
       createdDate: store.createdDate,
       ownerId: store.ownerId,
       ownerUsername: user.username,
+      ownerSellerScore: user.sellerScore,
+      ownerSellerRatingCount: user.sellerRatingCount,
       bookId: book.id,
       bookName: book.name,
       bookSlug: book.slug,
@@ -233,6 +259,8 @@ export async function getStoreBySlug(slug: string): Promise<StoreDetail | null> 
     createdDate: row.createdDate,
     ownerId: row.ownerId,
     ownerUsername: row.ownerUsername,
+    ownerSellerScore: row.ownerSellerScore,
+    ownerSellerRatingCount: row.ownerSellerRatingCount,
     pictures: pics.map((p) => p.imageName),
     book: row.bookId ? { id: row.bookId, name: row.bookName!, slug: row.bookSlug! } : null,
   };

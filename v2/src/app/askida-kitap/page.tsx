@@ -140,10 +140,14 @@ async function StoreList({
               <Link
                 key={item.id}
                 href={`/askida-kitap/${item.slug}`}
-                className="flex flex-col gap-2 rounded-lg border border-border p-2 transition-colors hover:bg-accent"
+                className={
+                  item.isPinned
+                    ? "flex flex-col gap-2 rounded-lg border-2 border-amber-400 p-2 transition-colors hover:bg-accent"
+                    : "flex flex-col gap-2 rounded-lg border border-border p-2 transition-colors hover:bg-accent"
+                }
               >
                 <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-muted">
-                  {item.ownerIsPremium && (
+                  {(item.isPinned || item.ownerIsPremium) && (
                     <span className="absolute left-1 top-1 z-10 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
                       ★ Öne Çıkan
                     </span>
