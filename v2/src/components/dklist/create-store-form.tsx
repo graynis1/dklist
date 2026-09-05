@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { createStoreAction } from "@/app/askida-kitap/actions";
 import { BookLinkPicker } from "@/components/dklist/book-link-picker";
 import { PaidListingFields } from "@/components/dklist/paid-listing-fields";
+import { MultiImagePicker } from "@/components/dklist/multi-image-picker";
 
 /**
  * Real bug the maintainer reported live: submitting with an error (e.g. no
@@ -25,17 +26,27 @@ export function CreateStoreForm({
   initialBook,
 }: {
   marketplaceActive: boolean;
-  initialBook?: { id: number; name: string; slug: string; writers: string[] } | null;
+  initialBook?: { id: number; name: string; slug: string; writers: string[]; hasImage: boolean } | null;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [images, setImages] = useState<File[]>([]);
   const [isPending, startTransition] = useTransition();
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (images.length === 0) {
+      setError("En az bir fotoğraf eklemelisiniz.");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
+    // MultiImagePicker keeps its own File[] in React state rather than a
+    // native multi-file input's FileList (see its own doc comment for why)
+    // - append each one under the same "images" key the server action's
+    // formData.getAll("images") already expects, nothing else changes.
+    images.forEach((f) => formData.append("images", f));
     startTransition(async () => {
       const result = await createStoreAction(formData);
       if (result.status && result.slug) {
@@ -63,23 +74,7 @@ export function CreateStoreForm({
       <Input name="shipment" placeholder="Kargo bilgisi" />
       <BookLinkPicker initialBook={initialBook} />
       {marketplaceActive && <PaidListingFields />}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="images" className="text-sm text-muted-foreground">
-          Fotoğraflar (gerçek kopyanın fotoğrafı, en az 1)
-        </label>
-        <input
-          id="images"
-          name="images"
-          type="file"
-          accept="image/*"
-          multiple
-          required
-          className="text-sm"
-        />
-        <p className="text-xs text-muted-foreground/70">
-          Herhangi bir resim formatı kabul edilir, yüklerken otomatik olarak optimize edilir.
-        </p>
-      </div>
+      <MultiImagePicker onChange={setImages} required label="Fotoğraflar (gerçek kopyanın fotoğrafı)" />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="w-fit" disabled={isPending}>
         {isPending ? "Yayınlanıyor..." : "İlanı Yayınla"}

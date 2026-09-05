@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { book, writer, writerBook } from "@/db/schema";
@@ -70,10 +70,14 @@ export async function createStoreAction(formData: FormData): Promise<{ status: b
  */
 export async function getBookLinkInfoAction(
   bookId: number,
-): Promise<{ id: number; name: string; slug: string; writers: string[] } | null> {
+): Promise<{ id: number; name: string; slug: string; writers: string[]; hasImage: boolean } | null> {
   if (!Number.isInteger(bookId) || bookId <= 0) return null;
 
-  const [row] = await db.select({ id: book.id, name: book.name, slug: book.slug }).from(book).where(eq(book.id, bookId)).limit(1);
+  const [row] = await db
+    .select({ id: book.id, name: book.name, slug: book.slug, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` })
+    .from(book)
+    .where(eq(book.id, bookId))
+    .limit(1);
   if (!row) return null;
 
   const writerRows = await db
@@ -82,16 +86,16 @@ export async function getBookLinkInfoAction(
     .innerJoin(writer, eq(writerBook.writerId, writer.id))
     .where(eq(writerBook.bookId, bookId));
 
-  return { ...row, writers: writerRows.map((w) => w.name) };
+  return { ...row, hasImage: Boolean(row.hasImage), writers: writerRows.map((w) => w.name) };
 }
 
 export async function searchBooksForLinkAction(
   query: string,
-): Promise<{ id: number; name: string; slug: string; writers: string[] }[]> {
+): Promise<{ id: number; name: string; slug: string; writers: string[]; hasImage: boolean }[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
   const { items } = await getBookList(1, 6, trimmed);
-  return items.map((b) => ({ id: b.id, name: b.name, slug: b.slug, writers: b.writers }));
+  return items.map((b) => ({ id: b.id, name: b.name, slug: b.slug, writers: b.writers, hasImage: b.hasImage }));
 }
 
 export async function toggleStoreFavoriteAction(

@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { searchBooksForLinkAction } from "@/app/askida-kitap/actions";
+import { BookCover, toneForId } from "@/components/dklist/book-cover";
 
 interface BookMatch {
   id: number;
   name: string;
   slug: string;
   writers: string[];
+  hasImage: boolean;
 }
 
 /** Optional "bu ilan hangi kitapla ilgili?" search-select for the Askıda
@@ -46,8 +48,17 @@ export function BookLinkPicker({ initialBook }: { initialBook?: BookMatch | null
 
   if (selected) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-border p-2 text-sm">
+      <div className="flex items-center gap-3 rounded-lg border border-border p-2 text-sm">
         <input type="hidden" name="bookId" value={selected.id} />
+        <BookCover
+          title={selected.name}
+          author={selected.writers.join(", ")}
+          tone={toneForId(selected.id)}
+          bookId={selected.id}
+          hasImage={selected.hasImage}
+          size="sm"
+          className="w-10 shrink-0"
+        />
         <span className="flex-1">
           <span className="font-medium">{selected.name}</span>
           {selected.writers.length > 0 && (
@@ -90,12 +101,23 @@ export function BookLinkPicker({ initialBook }: { initialBook?: BookMatch | null
                   setSelected(b);
                   setResults([]);
                 }}
-                className="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-accent"
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
               >
-                <span className="font-medium">{b.name}</span>
-                {b.writers.length > 0 && (
-                  <span className="text-xs text-muted-foreground">{b.writers.join(", ")}</span>
-                )}
+                <BookCover
+                  title={b.name}
+                  author={b.writers.join(", ")}
+                  tone={toneForId(b.id)}
+                  bookId={b.id}
+                  hasImage={b.hasImage}
+                  size="sm"
+                  className="w-9 shrink-0"
+                />
+                <span className="flex flex-col">
+                  <span className="font-medium">{b.name}</span>
+                  {b.writers.length > 0 && (
+                    <span className="text-xs text-muted-foreground">{b.writers.join(", ")}</span>
+                  )}
+                </span>
               </button>
             </li>
           ))}

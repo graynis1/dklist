@@ -9,6 +9,7 @@ import { StoreFavoriteButton } from "@/components/dklist/store-favorite-button";
 import { StoreOwnerActions } from "@/components/dklist/store-owner-actions";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { ShareButton } from "@/components/dklist/share-button";
+import { StoreImageGallery } from "@/components/dklist/store-image-gallery";
 import { auth } from "@/auth";
 import {
   getStoreBySlug,
@@ -87,21 +88,7 @@ async function StoreDetailContent({
   return (
     <div className="flex flex-col gap-12">
     <div className="grid grid-cols-1 gap-10 lg:grid-cols-[320px_1fr]">
-      <div className="flex flex-col gap-2">
-        {item.pictures.length === 0 ? (
-          <div className="aspect-[3/4] rounded-lg bg-muted" />
-        ) : (
-          item.pictures.map((pic) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={pic}
-              src={storeImageUrl(pic)!}
-              alt={item.title}
-              className="w-full rounded-lg object-cover"
-            />
-          ))
-        )}
-      </div>
+      <StoreImageGallery images={item.pictures.map((pic) => storeImageUrl(pic)!)} alt={item.title} />
 
       <div className="flex flex-col gap-4">
         <SectionLabel>{STATUS_LABELS[item.status] ?? item.status}</SectionLabel>
