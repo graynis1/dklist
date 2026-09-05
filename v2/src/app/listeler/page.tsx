@@ -11,6 +11,7 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { getPublicLists } from "@/db/queries/reading-lists";
 
 export default function ListsBrowsePage() {
@@ -25,6 +26,10 @@ export default function ListsBrowsePage() {
             Topluluğun kürasyonunu yaptığı kitap listeleri.
           </p>
         </div>
+        {/* Customer's ad-placement ask (2026-09-05). */}
+        <Suspense fallback={null}>
+          <AdSlot placement="listeler" className="mb-6 max-w-none px-0" />
+        </Suspense>
         <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted" />}>
           <ListsBrowseContent />
         </Suspense>

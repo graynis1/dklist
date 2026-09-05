@@ -12,6 +12,7 @@ import { UsersIcon, BookOpenIcon, PenLineIcon, EyeIcon, MousePointerClickIcon } 
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { AdInquiryForm } from "@/components/dklist/ad-inquiry-form";
+import { HouseAd } from "@/components/dklist/house-ad";
 import { AD_PLACEMENTS } from "@/lib/ad-placements";
 import { getSiteStatsForAdvertisers } from "@/db/queries/ad-inquiry";
 
@@ -34,16 +35,36 @@ export default function AdvertiseWithUsPage() {
           <StatsSection />
         </Suspense>
 
+        {/* Real customer report (2026-09-05): "belirtilen reklam
+            başlıklarının nerede göründüklerini görsel olarak
+            gösterebilir miyiz" - a bare list of placement names told an
+            advertiser nothing about what they'd actually be buying.
+            Deliberately NOT a plain rented ad slot on this page itself
+            (a sales page showing its own house ad reads as odd) - instead
+            each card below is a real, scaled-down render of that exact
+            placement's fallback creative, so this doubles as both the
+            visual reference and the answer to "should reklam-ver carry
+            an ad" (yes, but as a live demonstration, not inventory). */}
         <div className="mb-10">
           <h2 className="mb-4 font-heading text-xl font-medium">Nerede Görünür?</h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            Reklamınız, kitleye göre seçtiğiniz bir veya birden fazla alanda gösterilir - her
-            biri sitenin en çok görüntülenen bölümlerinden.
+            Reklamınız, kitleye göre seçtiğiniz bir veya birden fazla alanda gösterilir. Aşağıdaki
+            önizlemeler, reklamınızın o sayfada gerçekte nasıl göründüğünü birebir yansıtır.
           </p>
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {AD_PLACEMENTS.map((p) => (
-              <li key={p.id} className="rounded-lg border border-border p-4 text-sm font-medium">
-                {p.label}
+              <li key={p.id} className="overflow-hidden rounded-lg border border-border">
+                <div className="pointer-events-none h-28 overflow-hidden bg-muted/30">
+                  {/* Fixed pixel height (not just "taller than the crop")
+                      matters for the two skyscraper placements specifically -
+                      their layout relies on filling an ancestor's real height
+                      via h-full, which a height:auto wrapper would collapse
+                      to zero. */}
+                  <div className="h-[420px] w-[260%] origin-top-left scale-[0.38]">
+                    <HouseAd placement={p.id} className="h-full px-0" />
+                  </div>
+                </div>
+                <p className="border-t border-border p-3 text-sm font-medium">{p.label}</p>
               </li>
             ))}
           </ul>

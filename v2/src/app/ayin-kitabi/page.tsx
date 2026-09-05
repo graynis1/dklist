@@ -31,9 +31,6 @@ export default function BookOfMonthPage() {
         <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted" />}>
           <BookOfMonthContent />
         </Suspense>
-        <Suspense fallback={null}>
-          <AdSlot placement="ayin-kitabi" className="mt-10 max-w-none px-0" />
-        </Suspense>
       </div>
     </div>
   );
@@ -80,6 +77,14 @@ async function BookOfMonthContent() {
       ) : (
         <p className="text-sm text-muted-foreground">Şu anda belirlenmiş bir ayın kitabı yok.</p>
       )}
+
+      {/* Real customer report (2026-09-05): the ad used to sit after the
+          whole page, meaning it drifted further down every month as
+          "Geçmiş Seçimler" accumulated history - fixed here, between the
+          current pick and the history list, so its position never moves. */}
+      <Suspense fallback={null}>
+        <AdSlot placement="ayin-kitabi" className="max-w-none px-0" />
+      </Suspense>
 
       {past.length > 0 && (
         <section>

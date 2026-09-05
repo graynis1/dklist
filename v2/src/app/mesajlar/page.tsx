@@ -26,15 +26,18 @@ export default function MessagesPage({ searchParams }: PageProps<"/mesajlar">) {
           <SectionLabel>Hesabım</SectionLabel>
           <h1 className="font-heading text-3xl font-medium tracking-tight">Mesajlar</h1>
         </div>
-        <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-muted" />}>
-          <MessagesContent searchParams={searchParams} />
-        </Suspense>
-        {/* Customer's ad-placement suggestion (2026-09-02). Own Suspense
+        {/* Real customer report (2026-09-05): the ad used to sit below the
+            fixed-height md:h-[40rem] conversation grid, genuinely below the
+            fold on a normal viewport - moved above the content, matching
+            /bildirimler's own placement (top, not bottom). Own Suspense
             boundary is required here - AdSlot reads auth() internally, and
             a real production incident this same day was caused by exactly
             this being skipped elsewhere (see PLAN.md). */}
         <Suspense fallback={null}>
-          <AdSlot placement="mesajlar" className="mt-6 max-w-none px-0" />
+          <AdSlot placement="mesajlar" className="mb-6 max-w-none px-0" />
+        </Suspense>
+        <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-muted" />}>
+          <MessagesContent searchParams={searchParams} />
         </Suspense>
       </div>
     </div>

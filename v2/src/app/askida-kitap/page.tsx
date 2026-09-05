@@ -10,6 +10,7 @@ export const metadata: Metadata = pageMetadata({
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,6 +45,11 @@ export default function StoreListPage({ searchParams }: PageProps<"/askida-kitap
           </div>
           <Button render={<Link href="/askida-kitap/yeni" />} nativeButton={false}>İlan Ver</Button>
         </div>
+        {/* Customer's ad-placement ask (2026-09-05): "aktif kullanılacak
+            alanlardan" - one slot, near the top. */}
+        <Suspense fallback={null}>
+          <AdSlot placement="askida-kitap" className="mb-6 max-w-none px-0" />
+        </Suspense>
         <Suspense fallback={<StoreListSkeleton />}>
           <StoreList searchParams={searchParams} />
         </Suspense>

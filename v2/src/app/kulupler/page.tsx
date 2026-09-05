@@ -10,6 +10,7 @@ export const metadata: Metadata = pageMetadata({
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
+import { AdSlot } from "@/components/dklist/ad-slot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getClubList, getUserClubs } from "@/db/queries/book-clubs";
@@ -29,6 +30,10 @@ export default function BookClubListPage({ searchParams }: PageProps<"/kulupler"
             Kulüp Kur
           </Button>
         </div>
+        {/* Customer's ad-placement ask (2026-09-05). */}
+        <Suspense fallback={null}>
+          <AdSlot placement="kulupler" className="mb-6 max-w-none px-0" />
+        </Suspense>
         <Suspense fallback={null}>
           <MyClubsSection />
         </Suspense>

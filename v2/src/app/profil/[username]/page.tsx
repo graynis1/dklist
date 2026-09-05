@@ -60,6 +60,7 @@ import { READ_STATUSES } from "@/lib/reading-status";
 import { getTotalReadingMinutes } from "@/db/queries/reading-status";
 import { isUserPremium } from "@/db/queries/premium";
 import { ExpandableShelf } from "@/components/dklist/expandable-shelf";
+import { AdSlot } from "@/components/dklist/ad-slot";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
   finishRead: "Okudum",
@@ -545,6 +546,21 @@ async function ProfileContent({
                     </SectionCard>
                   );
                 })}
+
+                {/* Customer's ad-placement ask (2026-09-05): "insanların en
+                    çok kullanacağı kısım burada" - a masonry-style fill of
+                    the exact gap under the shorter shelf isn't practical
+                    with this grid's row-based auto-flow (items-start means
+                    a taller sibling just leaves empty space, it doesn't
+                    pull the next item up into it), so this sits as its own
+                    full-width row right after the shelves instead - close
+                    to where they asked for it without a fragile, layout-
+                    dependent placement. */}
+                <div className="col-span-full">
+                  <Suspense fallback={null}>
+                    <AdSlot placement="profil" className="max-w-none px-0" />
+                  </Suspense>
+                </div>
 
                 {libraryBooks.length > 0 && (
                   // Deliberately its own section, not merged into the reading-status

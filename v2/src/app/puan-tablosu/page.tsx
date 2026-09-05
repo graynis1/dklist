@@ -39,15 +39,19 @@ export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablo
           </p>
         </div>
 
+        {/* Real customer report (2026-09-05): the ad had drifted down below
+            the leaderboard/past-winners/share-card content - moved above it
+            so it isn't scroll-position-dependent on how much history exists. */}
+        <Suspense fallback={null}>
+          <AdSlot placement="puan-tablosu" className="mb-6 max-w-none px-0" />
+        </Suspense>
+
         {/* currentISOWeek() reads the real clock (new Date()), a genuinely
             per-request value - isolated in its own Suspense boundary like
             every other dynamic-data section in this app, rather than
             blocking the whole page from being part of the static shell. */}
         <Suspense fallback={<LeaderboardSkeleton />}>
           <LeaderboardContent searchParams={searchParams} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <AdSlot placement="puan-tablosu" className="mt-10 max-w-none px-0" />
         </Suspense>
       </div>
     </div>

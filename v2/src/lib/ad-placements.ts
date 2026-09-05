@@ -40,6 +40,15 @@ export const AD_PLACEMENTS = [
   { id: "puan-magazasi", label: "Puan Mağazası" },
   { id: "ara", label: "Arama / Keşfet" },
   { id: "bildirimler", label: "Bildirimler" },
+  // Customer's ad-sweep follow-up (2026-09-05): profile page ("insanların
+  // en çok kullanacağı kısım") plus 3 more real pages that still had no
+  // slot at all - see house-ad.tsx's doc comment on the 2026-09-03 sweep
+  // for why every new placement below reuses one of the 9 existing
+  // creative themes rather than inventing new ones.
+  { id: "profil", label: "Profil Sayfası" },
+  { id: "askida-kitap", label: "Askıda Kitap" },
+  { id: "kulupler", label: "Kitap Kulüpleri Listesi" },
+  { id: "listeler", label: "Listeler" },
 ] as const;
 
 export type AdPlacementId = (typeof AD_PLACEMENTS)[number]["id"];
