@@ -258,27 +258,95 @@ export interface TopCategory {
  * v1's CategoryController::getAllCategoriesForClient() - the site-wide nav
  * widget. On the real 98.5M-row/508K-category prod table this GROUP BY over
  * ~50M book_category rows was expensive enough that v1 resorted to a 24h
- * file cache with a flock() stampede guard (a live `information_schema`-style
- * count wasn't an option here since book_category needs an actual join to
- * rank by book count, unlike the simpler TABLE_ROWS estimate used elsewhere).
- * `'use cache'` + a long cacheLife is the Cache Components equivalent of that
- * file cache - same reasoning, no hand-rolled flock() needed.
+ * file cache with a flock() stampede guard - noted here at the time as a
+ * real concern, "no hand-rolled flock() needed" because `'use cache'` was
+ * assumed to be the Cache Components equivalent.
+ *
+ * EMERGENCY PRODUCTION INCIDENT (2026-09-06): that assumption was wrong,
+ * and it took the site down. `'use cache'` does NOT provide the same
+ * single-flight stampede protection v1's flock() guard did - confirmed
+ * live that this exact query takes 6+ minutes to run cold (494,653 real
+ * category rows, not the "~508K" estimate above, still the same order of
+ * magnitude), and every concurrent visitor hitting a cold cache
+ * independently triggered a fresh multi-minute execution of it, all
+ * competing for the same disk on this HDD-backed instance - a real
+ * cache-stampede pileup, not a single slow query. Real users
+ * refreshing an unresponsive homepage repeatedly only fed the stampede.
+ *
+ * TEMPORARY MITIGATION: the live query is replaced with a static snapshot
+ * of its own real output, captured directly from production seconds
+ * before this fix (not fabricated data - the actual top-50 result the
+ * query itself returned). This removes the expensive query from the
+ * request path entirely so the stampede cannot recur, at the cost of the
+ * category list going stale until this is replaced with a real fix - a
+ * genuine, deliberate, disclosed tradeoff to stop an active outage, not a
+ * permanent design. Follow-up needed: either a real single-flight lock
+ * around this computation (matching what v1's flock() actually did), a
+ * scheduled/precomputed refresh outside the request path, or addressing
+ * the root data-quality issue (494,653 categories is itself almost
+ * certainly duplicate/messy import data, not a real taxonomy size -
+ * matches this project's own known, already-flagged category-clutter
+ * backlog).
  */
+const TOP_CATEGORIES_SNAPSHOT_2026_09_06: TopCategory[] = [
+  { id: 31, name: "Fiction", slug: "fiction-31", bookCount: 2215001 },
+  { id: 13, name: "History", slug: "history-13", bookCount: 1576299 },
+  { id: 6, name: "Politics and government", slug: "politics-and-government-6", bookCount: 684197 },
+  { id: 19, name: "Biography", slug: "biography-19", bookCount: 644215 },
+  { id: 689, name: "Children's fiction", slug: "children-s-fiction-689", bookCount: 468131 },
+  { id: 51, name: "Congresses", slug: "congresses-51", bookCount: 438500 },
+  { id: 42, name: "Criticism and interpretation", slug: "criticism-and-interpretation-42", bookCount: 367738 },
+  { id: 45, name: "Education", slug: "education-45", bookCount: 328737 },
+  { id: 146, name: "Description and travel", slug: "description-and-travel-146", bookCount: 317173 },
+  { id: 55, name: "Bibliography", slug: "bibliography-55", bookCount: 265243 },
+  { id: 297, name: "Exhibitions", slug: "exhibitions-297", bookCount: 245805 },
+  { id: 1490, name: "Bible", slug: "bible-1490", bookCount: 220853 },
+  { id: 524, name: "Religion", slug: "religion-524", bookCount: 212083 },
+  { id: 25, name: "Social life and customs", slug: "social-life-and-customs-25", bookCount: 199465 },
+  { id: 64, name: "Economic conditions", slug: "economic-conditions-64", bookCount: 188536 },
+  { id: 175, name: "Art", slug: "art-175", bookCount: 187466 },
+  { id: 53, name: "History and criticism", slug: "history-and-criticism-53", bookCount: 184876 },
+  { id: 449, name: "Catalogs", slug: "catalogs-449", bookCount: 183705 },
+  { id: 347, name: "World War", slug: "world-war-347", bookCount: 180493 },
+  { id: 1781, name: "Juvenile literature", slug: "juvenile-literature-1781", bookCount: 167841 },
+  { id: 81, name: "Foreign relations", slug: "foreign-relations-81", bookCount: 158028 },
+  { id: 20, name: "Social conditions", slug: "social-conditions-20", bookCount: 157607 },
+  { id: 22, name: "Civilization", slug: "civilization-22", bookCount: 153366 },
+  { id: 2699, name: "United States", slug: "united-states-2699", bookCount: 150503 },
+  { id: 460, name: "Guidebooks", slug: "guidebooks-460", bookCount: 147979 },
+  { id: 33, name: "Antiquities", slug: "antiquities-33", bookCount: 144939 },
+  { id: 182, name: "Economic policy", slug: "economic-policy-182", bookCount: 144807 },
+  { id: 2028, name: "Poetry (poetic works by one author)", slug: "poetry-poetic-works-by-one-author--2028", bookCount: 141218 },
+  { id: 411, name: "Philosophy", slug: "philosophy-411", bookCount: 140846 },
+  { id: 109, name: "Sources", slug: "sources-109", bookCount: 136372 },
+  { id: 132, name: "Drama", slug: "drama-132", bookCount: 135905 },
+  { id: 39, name: "Law", slug: "law-39", bookCount: 133170 },
+  { id: 955, name: "English language", slug: "english-language-955", bookCount: 128591 },
+  { id: 61, name: "Architecture", slug: "architecture-61", bookCount: 127096 },
+  { id: 168, name: "Early works to 1800", slug: "early-works-to-1800-168", bookCount: 121291 },
+  { id: 822, name: "Mathematics", slug: "mathematics-822", bookCount: 116485 },
+  { id: 221, name: "Law and legislation", slug: "law-and-legislation-221", bookCount: 115330 },
+  { id: 285, name: "Science", slug: "science-285", bookCount: 114679 },
+  { id: 273, name: "Women", slug: "women-273", bookCount: 114377 },
+  { id: 164, name: "Agriculture", slug: "agriculture-164", bookCount: 113825 },
+  { id: 290, name: "Poetry", slug: "poetry-290", bookCount: 113058 },
+  { id: 622, name: "Pictorial works", slug: "pictorial-works-622", bookCount: 111285 },
+  { id: 3440, name: "Business", slug: "business-3440", bookCount: 108778 },
+  { id: 49, name: "Correspondence", slug: "correspondence-49", bookCount: 106344 },
+  { id: 215, name: "Dictionaries", slug: "dictionaries-215", bookCount: 105692 },
+  { id: 1000, name: "Catholic Church", slug: "catholic-church-1000", bookCount: 104930 },
+  { id: 846, name: "Commentaries", slug: "commentaries-846", bookCount: 102392 },
+  { id: 45226, name: "Bills", slug: "bills-45226", bookCount: 100840 },
+  { id: 92, name: "Jews", slug: "jews-92", bookCount: 100833 },
+  { id: 453, name: "Economics", slug: "economics-453", bookCount: 99097 },
+];
+
 export async function getTopCategories(limit = 50): Promise<TopCategory[]> {
   "use cache";
   cacheLife("days");
   cacheTag("top-categories");
 
-  const rows = (await db.execute(sql`
-    SELECT c.id, c.category AS name, c.slug, COUNT(bc.book_id) AS bookCount
-    FROM category c
-    JOIN book_category bc ON bc.category_id = c.id
-    GROUP BY c.id
-    ORDER BY bookCount DESC
-    LIMIT ${limit}
-  `))[0] as unknown as { id: number; name: string; slug: string; bookCount: number }[];
-
-  return rows.map((r) => ({ ...r, name: translateCategoryName(r.name), bookCount: Number(r.bookCount) }));
+  return TOP_CATEGORIES_SNAPSHOT_2026_09_06.slice(0, limit).map((r) => ({ ...r, name: translateCategoryName(r.name) }));
 }
 
 /**
