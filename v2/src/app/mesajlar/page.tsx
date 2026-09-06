@@ -91,7 +91,7 @@ async function MessagesContent({
           <ConversationsPanel
             conversations={conversations}
             activeUsername={activeUsername}
-            decorationFor={(userId) => decorationFor(decorations, userId)}
+            decorationsByUserId={Object.fromEntries(decorations)}
           />
         )}
         {messageRequests.length > 0 && (

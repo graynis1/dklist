@@ -16,14 +16,16 @@ import type { UserDecoration } from "@/db/queries/user-decorations";
  * toggle, checkboxes, and a bulk-delete bar, on top of the existing
  * per-item and delete-all actions rather than replacing either.
  */
+const EMPTY_DECORATION: UserDecoration = { profileFrame: null, frameTier: 1, highestBadge: null };
+
 export function ConversationsPanel({
   conversations,
   activeUsername,
-  decorationFor,
+  decorationsByUserId,
 }: {
   conversations: ConversationItemType[];
   activeUsername: string | undefined;
-  decorationFor: (userId: number) => UserDecoration | undefined;
+  decorationsByUserId: Record<number, UserDecoration>;
 }) {
   const router = useRouter();
   const [selectMode, setSelectMode] = useState(false);
@@ -101,7 +103,7 @@ export function ConversationsPanel({
           key={c.otherUserId}
           conversation={c}
           isActive={c.otherUsername === activeUsername}
-          decoration={decorationFor(c.otherUserId)}
+          decoration={decorationsByUserId[c.otherUserId] ?? EMPTY_DECORATION}
           selectMode={selectMode}
           selected={selected.has(c.otherUsername)}
           onToggleSelect={() => toggle(c.otherUsername)}
