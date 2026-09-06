@@ -35,10 +35,9 @@ export async function registerAction(formData: FormData) {
     redirect(`/kayit-ol?error=${encodeURIComponent((err as Error).message)}`);
   }
 
-  // Customer's explicit ask (2026-09-04) while Brevo delivery is broken:
-  // new members should land as a fully usable account with zero extra
-  // step, not a verification gate nobody can complete right now - see
-  // EMAIL_VERIFICATION_REQUIRED's doc comment.
+  // EMAIL_VERIFICATION_REQUIRED is back on (2026-09-06, mail delivery fixed)
+  // - see mailer.ts's doc comment. `verificationRequired` mirrors it so this
+  // stays correct automatically if it's ever toggled again.
   const redirectTo = verificationRequired
     ? `/dogrula?userId=${userId}${mailSent ? "" : `&devCode=${verificationCode}`}`
     : "/";

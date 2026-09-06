@@ -38,9 +38,9 @@ export interface RegisterResult {
   userId: number;
   verificationCode: string;
   mailSent: boolean;
-  /** false while EMAIL_VERIFICATION_REQUIRED is off - the caller should
-   * skip the /dogrula redirect entirely, the account is already fully
-   * usable. */
+  /** Mirrors EMAIL_VERIFICATION_REQUIRED. If it's ever turned off again, the
+   * caller should skip the /dogrula redirect entirely - the account is
+   * already fully usable in that case. */
   verificationRequired: boolean;
 }
 
@@ -57,9 +57,10 @@ export interface RegisterResult {
  * testable without mail. Login itself (see auth.ts) still doesn't gate on
  * mailAuth the way v1's bearer-token flow did.
  *
- * `EMAIL_VERIFICATION_REQUIRED` (mailer.ts) is currently off - see its own
- * doc comment - so this creates the account already fully verified
- * (`mailAuth: 1`) and skips generating/emailing a code entirely.
+ * `EMAIL_VERIFICATION_REQUIRED` (mailer.ts) is currently on - see its own
+ * doc comment for the 2026-09-04/06 history of this flag - so this
+ * generates a pending code, emails it, and leaves the account unverified
+ * (`mailAuth: 0`) until /dogrula confirms it.
  */
 export async function registerUser(input: RegisterInput): Promise<RegisterResult> {
   const { name, surname, username, mail, birthDate, password, sex } = input;
