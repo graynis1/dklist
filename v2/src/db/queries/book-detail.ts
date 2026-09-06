@@ -4,7 +4,7 @@ import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user, score } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
-import { getCategoryBookCount, getCategoryLangCount } from "@/db/queries/books";
+import { getCategoryBookCount } from "@/db/queries/books";
 
 export interface BookDetail {
   id: number;
@@ -339,13 +339,35 @@ const LARGE_CATEGORY_POOL_THRESHOLD = 20_000;
  *
  * Second production incident (2026-09-02): the size check used to decide
  * the query plan was based on the category's TOTAL size regardless of
- * `lang` - a large category with almost no books in the requested
- * language still got the "large category" book-first plan, which
- * degrades to a near-full-table-scan for exactly the same reason already
- * fixed for the language-agnostic case (confirmed on prod: categories
- * with a handful of Ukrainian/Italian books stuck 7-12+ minutes). The
- * selectivity that actually matters is the (category, lang) pair, not
- * the category alone - see getCategoryLangCount()'s doc comment.
+ * `lang`, which was reported (at the time) to route a large-category/
+ * sparse-lang combination into the book-first plan and have it degrade
+ * badly. Switched to `getCategoryLangCount()` (the (category,lang)-
+ * specific count) instead.
+ *
+ * Third production incident (2026-09-06) - that second fix was itself
+ * wrong, and reintroduced the FIRST incident's exact disease from the
+ * other direction: the category-first branch's cost is
+ * `... FROM book_category bc WHERE bc.category_id = X` BEFORE any lang
+ * filter is applied at all (lang lives on `book`, joined per row) - its
+ * cost tracks the category's TOTAL row count, full stop, regardless of
+ * how selective the eventual lang filter turns out to be. Gating that
+ * branch on the (category,lang)-specific count (which can be small even
+ * when the category itself is enormous) let a huge category slip back
+ * into the catastrophic full-materialize-and-filesort plan the moment a
+ * request asked for an underrepresented language - confirmed live via
+ * EXPLAIN on a real stuck query (category 31, lang='ja': `rows: 4528976`,
+ * "Using temporary; Using filesort", 6+ minutes) and reproduced with real
+ * counts (category 31: 4,528,976 total rows, only 3,910 in Japanese).
+ *
+ * Fixed properly this time with BOTH signals, not by swapping one wrong
+ * signal for another: `getCategoryBookCount()` (total, lang-independent)
+ * gates whether category-first is safe at all, and when it isn't, the
+ * book-first plan is scoped to the requested language via a new
+ * `(lang, score)` composite index (migration 0043) instead of the global
+ * `idx_book_score` - bounding its walk by that language's own population
+ * (confirmed: 670,298 Japanese books total, vs 98.5M globally) rather
+ * than the whole table, so a globally-rare (category,lang) pair no longer
+ * needs a deep walk through every other language's books first.
  */
 async function getCategoryCandidatePool(
   categoryId: number,
@@ -356,7 +378,7 @@ async function getCategoryCandidatePool(
   cacheLife("hours");
   cacheTag(`similar-books:${categoryId}`);
 
-  const categorySize = lang ? await getCategoryLangCount(categoryId, lang) : await getCategoryBookCount(categoryId);
+  const categorySize = await getCategoryBookCount(categoryId);
   const langCondition = lang ? sql`AND b.lang = ${lang}` : sql``;
 
   const rows = (
@@ -370,14 +392,26 @@ async function getCategoryCandidatePool(
           ORDER BY b.score DESC
           LIMIT ${poolSize}
         `))[0]
-      : (await db.execute(sql`
+      : lang
+        ? (await db.execute(sql`
+          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+            (b.image IS NOT NULL AND b.image != '') AS hasImage
+          FROM book b FORCE INDEX (idx_book_lang_score)
+          WHERE b.lang = ${lang} AND EXISTS (
+            SELECT 1 FROM book_category bc
+            WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+          )
+          ORDER BY b.score DESC
+          LIMIT ${poolSize}
+        `))[0]
+        : (await db.execute(sql`
           SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
             (b.image IS NOT NULL AND b.image != '') AS hasImage
           FROM book b FORCE INDEX (idx_book_score)
           WHERE EXISTS (
             SELECT 1 FROM book_category bc
             WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-          ) ${langCondition}
+          )
           ORDER BY b.score DESC
           LIMIT ${poolSize}
         `))[0]

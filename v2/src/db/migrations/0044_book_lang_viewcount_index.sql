@@ -1,0 +1,33 @@
+-- Hand-written migration, applied manually (never drizzle-kit push/generate).
+--
+-- STATUS (2026-09-06): applied to the local dev DB only. The production
+-- build of this index was ABORTED mid-way (`KILL <id>` on the ALTER) - its
+-- online build (ALGORITHM=INPLACE, LOCK=NONE, non-blocking for locks) was
+-- still consuming enough real disk I/O on this HDD-backed instance,
+-- combined with a pile of concurrent slow queries from the not-yet-deployed
+-- old code, to make every page on the live site hang - a genuine site-down
+-- incident, not a acceptable tradeoff. Aborting an in-progress ADD INDEX
+-- is safe (InnoDB rolls it back cleanly, the table is untouched), and it
+-- was the right call to restore service immediately over finishing the
+-- index build.
+--
+-- The application code (books.ts's fetchCategoryPage) does NOT reference
+-- this index right now - it deliberately falls back to the existing
+-- idx_book_viewcount global-index plan instead, so this half of the
+-- category-page perf fix (see migration 0043 and PLAN.md for the full
+-- incident writeup) shipped without ever needing this index to exist on
+-- production. Re-run this ALTER during a real low-traffic window, then
+-- switch fetchCategoryPage's "tr" bucket back to FORCE INDEX
+-- (idx_book_lang_viewcount) as a genuine follow-up improvement - not
+-- required for correctness, only for the sparse-Turkish-in-a-huge-category
+-- case to be as fast as the analogous idx_book_lang_score fix already is
+-- for "Benzer Kitaplar".
+--
+-- Same disease as 0043's idx_book_lang_score, for `getBooksByCategory`'s
+-- Turkish/non-Turkish category-listing split (books.ts) instead of
+-- "Benzer Kitaplar" - confirmed live that category 31's Turkish bucket
+-- (882 of 2,215,001 total books, real view_count values 0-1) made the
+-- book-first global-view_count-order plan walk deep into the 98.5M-row
+-- table trying to find enough Turkish matches, timing out past 120s live.
+-- Bounds that walk by Turkish's own ~126K-book population instead.
+ALTER TABLE book ADD INDEX idx_book_lang_viewcount (lang, view_count), ALGORITHM=INPLACE, LOCK=NONE;

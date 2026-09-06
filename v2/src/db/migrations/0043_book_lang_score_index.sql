@@ -1,0 +1,27 @@
+-- Hand-written migration, applied manually (never drizzle-kit push/generate).
+-- Applied directly to PRODUCTION on 2026-09-06 (urgent perf incident, see
+-- book-detail.ts's getCategoryCandidatePool doc comment for the full
+-- diagnosis) BEFORE this file was written - applying it here too so the
+-- local dev DB and any future fresh checkout stay in sync.
+
+-- Real production incident: a category with a globally-rare language
+-- subset (e.g. 3,910 Japanese books out of 4,528,976 total in category
+-- 31) made the "Benzer Kitaplar" candidate-pool query walk the ENTIRE
+-- category (book_category-first) or the ENTIRE 98.5M-row book table
+-- (book-first via the existing global idx_book_score) before finding
+-- enough score-ranked matches - confirmed live via EXPLAIN
+-- ("rows: 4528976", "Using temporary; Using filesort") and real stuck
+-- queries running 90-390+ seconds concurrently. This composite index lets
+-- a language-scoped "top N by score" query bound its walk by that
+-- language's OWN population (e.g. 670,298 Japanese books) instead of the
+-- whole table or the whole category.
+--
+-- Built online (ALGORITHM=INPLACE, LOCK=NONE) against the live 98.5M-row
+-- table - took ~22 minutes, non-blocking for reads/writes throughout,
+-- confirmed via `SHOW FULL PROCESSLIST` that live traffic continued
+-- uninterrupted during the build (the one delay encountered was the
+-- ALTER's own brief final metadata-lock upgrade being queued behind a
+-- long-running old-code query still active from before the fix deployed -
+-- resolved by killing that one query, not a problem with the index build
+-- itself).
+ALTER TABLE book ADD INDEX idx_book_lang_score (lang, score), ALGORITHM=INPLACE, LOCK=NONE;

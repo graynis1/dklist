@@ -56,40 +56,89 @@ export interface CategoryBookListItem {
  * via EXPLAIN + live timing (0.067s for category 95900) that a filesort
  * over a few thousand rows is a non-issue, it's only catastrophic at
  * millions of rows.
+ *
+ * Third real incident (2026-09-06): the branch decision above used the
+ * FILTERED bucket size (trCount/nonTrCount) as the "subset" signal - wrong.
+ * The category-first branch's cost is `SELECT ... FROM book_category bc
+ * WHERE bc.category_id = X` BEFORE the lang filter is even applied (lang
+ * lives on `book`, not `book_category`, so every matching category row
+ * gets joined to `book` and checked one at a time) - its cost tracks the
+ * category's TOTAL row count, not whichever lang-filtered subset happens
+ * to be small. A category that's 2.2M Turkish + 3K non-Turkish still makes
+ * MySQL materialize-and-filesort all 2,203,000 rows to paginate the
+ * 3K-row "not-tr" bucket - confirmed live via EXPLAIN (`rows: 4528976`,
+ * "Using temporary; Using filesort") on a real stuck query, same disease
+ * as the getCategoryCandidatePool incident below, just with the tr/not-tr
+ * split instead of a specific language. Fixed by gating on `total`
+ * (already fetched via the cheap, days-cached getCategoryBookCount) for
+ * BOTH buckets, not the bucket's own filtered count.
+ *
+ * That fix alone isn't sufficient for the "large" branch either, though:
+ * confirmed live that walking `book` by GLOBAL view_count DESC (the
+ * existing plan) checking `EXISTS(category) AND lang = 'tr'` per row can
+ * itself run for minutes when Turkish books happen to cluster at low
+ * view-counts within a category dominated by other languages (this
+ * session's real category-31 example: 882 Turkish books, all with
+ * view_count 0-1, buried under 2M+ higher-viewed non-Turkish books).
+ * Scoped the "tr" bucket to a new `(lang, view_count)` composite index
+ * (migration 0044) instead, bounding its walk by Turkish's own ~126K-book
+ * population rather than the whole ~98.5M-row table. The "not-tr" bucket
+ * is deliberately left on the existing global-index plan - a composite
+ * index keyed on a single lang value can't serve a "not equal to" scan
+ * the same way, and every category observed live so far has non-Turkish
+ * as the dominant majority (making that bucket's own EXISTS/lang filter
+ * cheap to satisfy near the top of the view_count order) - a category
+ * where Turkish is instead the overwhelming majority would need the same
+ * treatment for its "not-tr" bucket, not yet observed as a real incident,
+ * flagged here rather than built speculatively.
  */
 const LARGE_CATEGORY_SUBSET_THRESHOLD = 20_000;
 
 async function fetchCategoryPage(
   categoryId: number,
   lang: "tr" | "not-tr",
-  subsetCount: number,
+  totalCategorySize: number,
   limit: number,
   offset: number,
 ): Promise<Omit<CategoryBookListItem, "writers">[]> {
   const langCondition = lang === "tr" ? sql`b.lang = 'tr'` : sql`b.lang != 'tr'`;
 
-  const rows =
-    subsetCount < LARGE_CATEGORY_SUBSET_THRESHOLD
-      ? (await db.execute(sql`
-          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-            (b.image IS NOT NULL AND b.image != '') AS hasImage
-          FROM book_category bc
-          INNER JOIN book b ON b.id = bc.book_id
-          WHERE bc.category_id = ${categoryId} AND ${langCondition}
-          ORDER BY b.view_count DESC
-          LIMIT ${limit} OFFSET ${offset}
-        `))[0]
-      : (await db.execute(sql`
-          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-            (b.image IS NOT NULL AND b.image != '') AS hasImage
-          FROM book b FORCE INDEX (idx_book_viewcount)
-          WHERE EXISTS (
-            SELECT 1 FROM book_category bc
-            WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-          ) AND ${langCondition}
-          ORDER BY b.view_count DESC
-          LIMIT ${limit} OFFSET ${offset}
-        `))[0];
+  if (totalCategorySize < LARGE_CATEGORY_SUBSET_THRESHOLD) {
+    const rows = (await db.execute(sql`
+      SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+        (b.image IS NOT NULL AND b.image != '') AS hasImage
+      FROM book_category bc
+      INNER JOIN book b ON b.id = bc.book_id
+      WHERE bc.category_id = ${categoryId} AND ${langCondition}
+      ORDER BY b.view_count DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `))[0];
+    return rows as unknown as Omit<CategoryBookListItem, "writers">[];
+  }
+
+  // TEMPORARY (2026-09-06): the lang-scoped idx_book_lang_viewcount index
+  // (migration 0044) was deliberately NOT deployed with this fix - its
+  // online build was competing for disk I/O with the live site badly
+  // enough on this HDD-backed instance to make every page hang, and got
+  // aborted mid-build to restore service. Falls back to the same global
+  // idx_book_viewcount + EXISTS(category) plan both branches already used
+  // before this incident - not as fast for a sparse-language-in-a-huge-
+  // category case as the scoped index would be, but it's what was already
+  // safely running in production, and correctly gated on TOTAL category
+  // size now (the actual bug fixed this pass) rather than the wrong,
+  // filtered-count signal. Revisit once the index can be rebuilt during
+  // low-traffic hours - see PLAN.md for the incident writeup.
+  const rows = (await db.execute(sql`
+    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+      (b.image IS NOT NULL AND b.image != '') AS hasImage
+    FROM book b FORCE INDEX (idx_book_viewcount)
+    WHERE EXISTS (
+      SELECT 1 FROM book_category bc
+      WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+    ) AND ${langCondition}
+    ORDER BY b.view_count DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `))[0];
 
   return rows as unknown as Omit<CategoryBookListItem, "writers">[];
 }
@@ -111,19 +160,18 @@ export async function getBooksByCategory(
   const lastPage = Math.max(1, Math.ceil(total / safeSize));
   const safePage = Math.min(Math.max(1, page), lastPage);
   const offset = (safePage - 1) * safeSize;
-  const nonTrCount = total - trCount;
 
   const items: Omit<CategoryBookListItem, "writers">[] = [];
 
   if (offset < trCount) {
-    const trRows = await fetchCategoryPage(categoryId, "tr", trCount, safeSize, offset);
+    const trRows = await fetchCategoryPage(categoryId, "tr", total, safeSize, offset);
     items.push(...trRows);
   }
 
   if (items.length < safeSize) {
     const remaining = safeSize - items.length;
     const nonTrOffset = Math.max(0, offset - trCount);
-    const otherRows = await fetchCategoryPage(categoryId, "not-tr", nonTrCount, remaining, nonTrOffset);
+    const otherRows = await fetchCategoryPage(categoryId, "not-tr", total, remaining, nonTrOffset);
     items.push(...otherRows);
   }
 
@@ -146,11 +194,21 @@ export async function getCategoryBookCount(categoryId: number): Promise<number> 
 /**
  * Real trap found via direct testing: counting Turkish books in a category
  * needs a join to `book` (book_category alone doesn't carry `lang`), and
- * that join is a genuine `book`-table random-access lookup per row - timed
- * out past 60s on category 31's 2.2M rows on this HDD-backed instance, the
- * same disk-IO cost class already documented elsewhere in this file. Cached
+ * that join is a genuine `book`-table random-access lookup per row. Cached
  * with a long `days` life so that expensive join only ever runs cold once
  * per category per cache period, never per-request.
+ *
+ * Real production incident (2026-09-06): this used to join category-first
+ * (`book_category bc STRAIGHT_JOIN book b ... WHERE category_id = X AND
+ * lang = 'tr'`) - cost bound by the category's TOTAL size regardless of
+ * how few Turkish books it actually contains, confirmed live stuck 134-
+ * 326+ seconds on real categories (31, 55) as part of the same incident
+ * documented on `fetchCategoryPage` above. Turkish turns out to be a
+ * small global minority in this catalog (confirmed: 125,926 of ~98.5M
+ * books total, most of the catalog is non-Turkish metadata) - flipped to
+ * scan lang-first via the existing `idx_book_lang` index instead, bounded
+ * by that ~126K-row population regardless of which category is queried,
+ * rather than the category's own (potentially multi-million-row) size.
  */
 export async function getCategoryTurkishCount(categoryId: number): Promise<number> {
   "use cache";
@@ -158,58 +216,12 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
   cacheTag(`category-tr-count:${categoryId}`);
 
   const rows = (await db.execute(sql`
-    SELECT COUNT(*) AS n FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
-    WHERE bc.category_id = ${categoryId} AND b.lang = 'tr'
+    SELECT COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
+    WHERE b.lang = 'tr' AND EXISTS (
+      SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+    )
   `))[0] as unknown as { n: number }[];
   return Number(rows[0]?.n ?? 0);
-}
-
-/**
- * Generalizes getCategoryTurkishCount() to any language - real production
- * incident (2026-09-02): getSimilarBooks' language-aware candidate pool
- * (book-detail.ts) decided its book-first-vs-bookCategory-first query
- * strategy using the category's TOTAL size (all languages combined), then
- * applied the language filter on top of whichever plan that picked. A
- * large category with very few books in a specific language (confirmed on
- * prod: category 100/863 had almost no Ukrainian books, category 2028
- * almost no Italian) still got the "large category" book-first plan, which
- * degrades to the same near-full-table-scan already fixed for the
- * language-agnostic case - one real request stuck 12+ minutes. The actual
- * selectivity that matters is the (category, language) pair, not the
- * category alone.
- *
- * Second real incident, same day: the first version of this ran one COUNT
- * query PER (category, language) pair - fine for a category with one or
- * two languages, but a genuinely multilingual large category (confirmed
- * on prod: category 31, ~2.2M rows) gets organic traffic across many
- * distinct languages close together, and each *distinct* language was a
- * fresh multi-minute cold join - several piled up concurrently and
- * fought over the same disk repeatedly, not just once. Fixed by computing
- * every language's count for a category in ONE pass (GROUP BY) and
- * caching the whole breakdown per-category - the expensive join now runs
- * at most once ever per category, regardless of how many distinct
- * languages it contains, matching the true one-time-per-category cost the
- * original getCategoryTurkishCount() precedent assumed.
- */
-export async function getCategoryLangCount(categoryId: number, lang: string): Promise<number> {
-  const breakdown = await getCategoryLangBreakdown(categoryId);
-  return breakdown[lang] ?? 0;
-}
-
-async function getCategoryLangBreakdown(categoryId: number): Promise<Record<string, number>> {
-  "use cache";
-  cacheLife("days");
-  cacheTag(`category-lang-breakdown:${categoryId}`);
-
-  const rows = (await db.execute(sql`
-    SELECT b.lang AS lang, COUNT(*) AS n FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
-    WHERE bc.category_id = ${categoryId}
-    GROUP BY b.lang
-  `))[0] as unknown as { lang: string; n: number }[];
-
-  const breakdown: Record<string, number> = {};
-  for (const row of rows) breakdown[row.lang] = Number(row.n);
-  return breakdown;
 }
 
 export interface CategorySummary {
