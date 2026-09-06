@@ -381,43 +381,53 @@ async function getCategoryCandidatePool(
   const categorySize = await getCategoryBookCount(categoryId);
   const langCondition = lang ? sql`AND b.lang = ${lang}` : sql``;
 
-  const rows = (
-    categorySize < LARGE_CATEGORY_POOL_THRESHOLD
-      ? (await db.execute(sql`
-          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
-            (b.image IS NOT NULL AND b.image != '') AS hasImage
-          FROM book_category bc
-          INNER JOIN book b ON b.id = bc.book_id
-          WHERE bc.category_id = ${categoryId} ${langCondition}
-          ORDER BY b.score DESC
-          LIMIT ${poolSize}
-        `))[0]
-      : lang
+  // EMERGENCY CIRCUIT BREAKER (2026-09-06): same reasoning as books.ts's
+  // fetchCategoryPage - MAX_EXECUTION_TIME aborts a runaway plan with a
+  // catchable error instead of letting it hang (and drag every other
+  // query on this instance down with it) for however long it takes.
+  // Falls back to an empty "Benzer Kitaplar" section on timeout, not a
+  // crashed page.
+  let rows: unknown;
+  try {
+    rows =
+      categorySize < LARGE_CATEGORY_POOL_THRESHOLD
         ? (await db.execute(sql`
-          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
-            (b.image IS NOT NULL AND b.image != '') AS hasImage
-          FROM book b FORCE INDEX (idx_book_lang_score)
-          WHERE b.lang = ${lang} AND EXISTS (
-            SELECT 1 FROM book_category bc
-            WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-          )
-          ORDER BY b.score DESC
-          LIMIT ${poolSize}
-        `))[0]
-        : (await db.execute(sql`
-          SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
-            (b.image IS NOT NULL AND b.image != '') AS hasImage
-          FROM book b FORCE INDEX (idx_book_score)
-          WHERE EXISTS (
-            SELECT 1 FROM book_category bc
-            WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-          )
-          ORDER BY b.score DESC
-          LIMIT ${poolSize}
-        `))[0]
-  ) as unknown as Omit<SimilarBook, "writers">[];
+            SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+              (b.image IS NOT NULL AND b.image != '') AS hasImage
+            FROM book_category bc
+            INNER JOIN book b ON b.id = bc.book_id
+            WHERE bc.category_id = ${categoryId} ${langCondition}
+            ORDER BY b.score DESC
+            LIMIT ${poolSize}
+          `))[0]
+        : lang
+          ? (await db.execute(sql`
+            SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+              (b.image IS NOT NULL AND b.image != '') AS hasImage
+            FROM book b FORCE INDEX (idx_book_lang_score)
+            WHERE b.lang = ${lang} AND EXISTS (
+              SELECT 1 FROM book_category bc
+              WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+            )
+            ORDER BY b.score DESC
+            LIMIT ${poolSize}
+          `))[0]
+          : (await db.execute(sql`
+            SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+              (b.image IS NOT NULL AND b.image != '') AS hasImage
+            FROM book b FORCE INDEX (idx_book_score)
+            WHERE EXISTS (
+              SELECT 1 FROM book_category bc
+              WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+            )
+            ORDER BY b.score DESC
+            LIMIT ${poolSize}
+          `))[0];
+  } catch {
+    rows = [];
+  }
 
-  return rows.map((row) => ({ ...row, hasImage: Boolean(row.hasImage) }));
+  return (rows as Omit<SimilarBook, "writers">[]).map((row) => ({ ...row, hasImage: Boolean(row.hasImage) }));
 }
 
 /**

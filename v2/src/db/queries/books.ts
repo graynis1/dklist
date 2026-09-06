@@ -103,17 +103,33 @@ async function fetchCategoryPage(
 ): Promise<Omit<CategoryBookListItem, "writers">[]> {
   const langCondition = lang === "tr" ? sql`b.lang = 'tr'` : sql`b.lang != 'tr'`;
 
+  // EMERGENCY CIRCUIT BREAKER (2026-09-06): both branches below are raw,
+  // hand-tuned query plans this file already documents as having gone
+  // catastrophic THREE separate times on this HDD-backed instance despite
+  // each looking correct via EXPLAIN at the time. `MAX_EXECUTION_TIME`
+  // makes MySQL itself abort a query past this budget with a catchable
+  // error, instead of running for however long it takes (confirmed live:
+  // 20+ minutes, multiple concurrent instances, dragging every other
+  // query on the instance down with it) - converts "hangs the whole site"
+  // into "this one request fails fast", which the caller now falls back
+  // from gracefully. This is a safety net, not a performance fix - a
+  // request that hits this budget still shows a degraded result, not the
+  // real one.
   if (totalCategorySize < LARGE_CATEGORY_SUBSET_THRESHOLD) {
-    const rows = (await db.execute(sql`
-      SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-        (b.image IS NOT NULL AND b.image != '') AS hasImage
-      FROM book_category bc
-      INNER JOIN book b ON b.id = bc.book_id
-      WHERE bc.category_id = ${categoryId} AND ${langCondition}
-      ORDER BY b.view_count DESC
-      LIMIT ${limit} OFFSET ${offset}
-    `))[0];
-    return rows as unknown as Omit<CategoryBookListItem, "writers">[];
+    try {
+      const rows = (await db.execute(sql`
+        SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+          (b.image IS NOT NULL AND b.image != '') AS hasImage
+        FROM book_category bc
+        INNER JOIN book b ON b.id = bc.book_id
+        WHERE bc.category_id = ${categoryId} AND ${langCondition}
+        ORDER BY b.view_count DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `))[0];
+      return rows as unknown as Omit<CategoryBookListItem, "writers">[];
+    } catch {
+      return [];
+    }
   }
 
   // TEMPORARY (2026-09-06): the lang-scoped idx_book_lang_viewcount index
@@ -128,19 +144,22 @@ async function fetchCategoryPage(
   // size now (the actual bug fixed this pass) rather than the wrong,
   // filtered-count signal. Revisit once the index can be rebuilt during
   // low-traffic hours - see PLAN.md for the incident writeup.
-  const rows = (await db.execute(sql`
-    SELECT STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-      (b.image IS NOT NULL AND b.image != '') AS hasImage
-    FROM book b FORCE INDEX (idx_book_viewcount)
-    WHERE EXISTS (
-      SELECT 1 FROM book_category bc
-      WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-    ) AND ${langCondition}
-    ORDER BY b.view_count DESC
-    LIMIT ${limit} OFFSET ${offset}
-  `))[0];
-
-  return rows as unknown as Omit<CategoryBookListItem, "writers">[];
+  try {
+    const rows = (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+        (b.image IS NOT NULL AND b.image != '') AS hasImage
+      FROM book b FORCE INDEX (idx_book_viewcount)
+      WHERE EXISTS (
+        SELECT 1 FROM book_category bc
+        WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+      ) AND ${langCondition}
+      ORDER BY b.view_count DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `))[0];
+    return rows as unknown as Omit<CategoryBookListItem, "writers">[];
+  } catch {
+    return [];
+  }
 }
 
 export async function getBooksByCategory(
@@ -215,13 +234,21 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
   cacheLife("days");
   cacheTag(`category-tr-count:${categoryId}`);
 
-  const rows = (await db.execute(sql`
-    SELECT COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
-    WHERE b.lang = 'tr' AND EXISTS (
-      SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-    )
-  `))[0] as unknown as { n: number }[];
-  return Number(rows[0]?.n ?? 0);
+  // Same emergency circuit breaker as fetchCategoryPage above - falls
+  // back to 0 (treated as "no Turkish books in this category yet") on
+  // timeout rather than hanging; a wrong 0 here just means that category
+  // temporarily shows as if it had no Turkish bucket, not a crash.
+  try {
+    const rows = (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(8000) */ COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
+      WHERE b.lang = 'tr' AND EXISTS (
+        SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+      )
+    `))[0] as unknown as { n: number }[];
+    return Number(rows[0]?.n ?? 0);
+  } catch {
+    return 0;
+  }
 }
 
 export interface CategorySummary {
