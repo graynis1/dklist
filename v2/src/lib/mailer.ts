@@ -15,21 +15,19 @@ export function isMailConfigured(): boolean {
 }
 
 /**
- * Temporary kill switch (customer's explicit ask, 2026-09-04): Brevo is
- * silently dropping mail (accepts every send with `250 OK`, never actually
- * delivers - see PLAN.md's "Mail delivery genuinely broken" entry for the
- * full investigation), and new members must not be blocked by an email
- * verification step nobody can currently complete. Registration now skips
- * straight to a full, usable account - no /dogrula redirect, no pending
- * code, no blocked login.
- *
- * Flip back to `true` once real delivery is confirmed working again (a new
- * provider, or Brevo fixed) - everything this gates (the /dogrula page,
- * its resend button, the pendingCode column, registerUser()'s email send)
- * is left fully intact and starts working again immediately, no other
- * code changes needed anywhere.
+ * Re-enabled 2026-09-06: real mail delivery confirmed working again after
+ * fixing the actual root cause (see PLAN.md's "Mail delivery root cause
+ * found and fixed" entry) - Brevo was rejecting every send at the sender-
+ * validation step because `no-reply@mail.dklist.com` was never registered
+ * as a verified sender identity (only the `mail.dklist.com` branded-link
+ * subdomain and a stray personal Gmail sender were). Added and verified
+ * `no-reply@dklist.com` (the already-authenticated root domain) as a
+ * proper sender in Brevo, switched `MAIL_FROM` to it, and confirmed a real
+ * test send reached "Delivered" status in Brevo's own logs - the first
+ * time any send from this app has ever gotten past "accepted," not just
+ * "queued."
  */
-export const EMAIL_VERIFICATION_REQUIRED = false;
+export const EMAIL_VERIFICATION_REQUIRED = true;
 
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
