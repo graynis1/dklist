@@ -10,6 +10,7 @@ import { StarRating } from "@/components/dklist/star-rating";
 import { getListBySlug } from "@/db/queries/reading-lists";
 import { RemoveFromListButton } from "@/components/dklist/remove-from-list-button";
 import { ListManageDetails } from "@/components/dklist/list-manage-details";
+import { ShareButton } from "@/components/dklist/share-button";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 
 export async function generateMetadata({ params }: PageProps<"/liste/[slug]">): Promise<Metadata> {
@@ -69,7 +70,10 @@ async function ListDetailContent({
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10 flex flex-col gap-2">
-        <SectionLabel>Liste</SectionLabel>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <SectionLabel>Liste</SectionLabel>
+          <ShareButton content={`"${list.title}" okuma listesine göz at`} url={`/liste/${list.slug}`} />
+        </div>
         <h1 className="font-heading text-4xl font-medium tracking-tight">{list.title}</h1>
         {list.description && <p className="max-w-2xl text-muted-foreground">{list.description}</p>}
         <p className="text-sm text-muted-foreground">

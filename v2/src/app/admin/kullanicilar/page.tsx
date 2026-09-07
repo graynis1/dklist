@@ -39,9 +39,10 @@ async function AdminUsersContent({
 
   const { items, total, lastPage } = await getUserAdminList(page, 20, search);
   const canMutate = hasRole(session.user.userType, [USER_TYPES.Admin]);
-  // hasRole(type, []) is only ever true for SuperAdmin - matches v1's real
-  // deleteUserAdmin() gate (an empty allow-list) exactly.
-  const canDelete = hasRole(session.user.userType, []);
+  // Was gated SuperAdmin-only (matching v1's deleteUserAdmin()) - fixed
+  // 2026-09-08, see actions.ts's own comment on deleteUserAccountAction
+  // for why that was unreachable by anyone in practice.
+  const canDelete = canMutate;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">

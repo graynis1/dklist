@@ -12,14 +12,15 @@ import { getAllBadgesBrief } from "@/db/queries/badge-admin";
 import { getFrameRewardsBrief, setUserFrameAdmin, getUserActiveFrame } from "@/db/queries/point-store";
 
 const ADMIN_ONLY = [USER_TYPES.Admin];
-// v1's real deleteUserAdmin() passes an EMPTY permission allow-list -
-// Permission::checkPermission() gives SuperAdmin an unconditional bypass
-// but requires every other role to be explicitly listed, so an empty list
-// means only SuperAdmin can ever pass. hasRole(type, []) reproduces that
-// exactly (SuperAdmin still short-circuits true; nothing else is in an
-// empty array). Kept this restrictive deliberately - full account deletion
-// is far more destructive than anything else in this panel.
-const SUPERADMIN_ONLY: (typeof USER_TYPES)[keyof typeof USER_TYPES][] = [];
+// Was SuperAdmin-only (an empty allow-list, matching v1's original
+// deleteUserAdmin() gate) - a real gap found via customer report
+// (2026-09-08): there is no actual SuperAdmin account on this data (the
+// real top-of-hierarchy account is "Kurucu"), and hasRole()'s Kurucu-
+// bypass rule only fires for an allow-list that explicitly includes
+// Admin - an empty array never matches it. So this button was reachable
+// by nobody in practice. Now gated the same as every other mutating
+// action in this panel (role change, disable, suspend, ban-email) -
+// still real Admin-tier-or-above only, just not an unreachable tier.
 
 export async function updateUserRoleAction(userId: number, newUserType: string): Promise<{ status: boolean; message?: string }> {
   try {
@@ -142,7 +143,7 @@ export async function setUserFrameAdminAction(userId: number, rewardValue: strin
 
 export async function deleteUserAccountAction(userId: number): Promise<{ status: boolean; message?: string }> {
   try {
-    const actor = await requireRole(SUPERADMIN_ONLY);
+    const actor = await requireRole(ADMIN_ONLY);
     await deleteUserAccount(userId);
     await logAdminAction(actor.id, "user:delete-account", "user", userId);
     return { status: true };

@@ -28,6 +28,7 @@ import { ClubJoinButton } from "@/components/dklist/club-join-button";
 import { ClubManageBook } from "@/components/dklist/club-manage-book";
 import { ClubManageDetails } from "@/components/dklist/club-manage-description";
 import { ClubDeleteButton } from "@/components/dklist/club-delete-button";
+import { ShareButton } from "@/components/dklist/share-button";
 
 export async function generateMetadata({ params, searchParams }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -93,15 +94,18 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
         <SectionLabel>Kitap Kulübü</SectionLabel>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="font-heading text-3xl font-medium tracking-tight">{club.name}</h1>
-          <ClubJoinButton
-            clubId={club.id}
-            slug={club.slug}
-            isMember={isMember}
-            isOwner={club.ownerId === userId}
-            signedIn={Boolean(userId)}
-            joinAction={joinClubAction}
-            leaveAction={leaveClubAction}
-          />
+          <div className="flex items-center gap-2">
+            <ShareButton content={`${club.name} kitap kulübüne katıl!`} url={`/kulup/${club.slug}`} />
+            <ClubJoinButton
+              clubId={club.id}
+              slug={club.slug}
+              isMember={isMember}
+              isOwner={club.ownerId === userId}
+              signedIn={Boolean(userId)}
+              joinAction={joinClubAction}
+              leaveAction={leaveClubAction}
+            />
+          </div>
         </div>
         <p className="text-sm text-muted-foreground">
           {club.memberCount} üye {club.ownerUsername && <>· Kurucu: @{club.ownerUsername}</>}

@@ -33,9 +33,10 @@ export function UserAdminRow({
 }: {
   user: UserAdminListItem;
   canMutate?: boolean;
-  /** Full account deletion is SuperAdmin-only (matches v1's real
-   * deleteUserAdmin() gate exactly) - stricter than canMutate, which
-   * covers role/disable/publisher changes an ordinary Admin can do. */
+  /** Same Admin-tier gate as canMutate now (fixed 2026-09-08 - was
+   * SuperAdmin-only, unreachable by anyone in practice, see actions.ts).
+   * Kept as a separate prop rather than folded into canMutate in case
+   * this ever needs to diverge again later. */
   canDelete?: boolean;
 }) {
   const router = useRouter();
