@@ -79,6 +79,23 @@ export async function getTranslatorList(
   return { items, total, page: effectivePage, lastPage };
 }
 
+/** Lightweight name-only search for picker UIs - see writers.ts's
+ * quickSearchWriters() for the full reasoning (same disease, same fix). */
+export async function quickSearchTranslators(term: string, limit = 8): Promise<{ id: number; name: string }[]> {
+  const trimmed = term.trim();
+  if (trimmed.length < 2) return [];
+  try {
+    return (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(5000) */ id, name FROM translator
+      WHERE LOWER(name) LIKE LOWER(${`%${trimmed}%`})
+      ORDER BY id
+      LIMIT ${limit}
+    `))[0] as unknown as { id: number; name: string }[];
+  } catch {
+    return [];
+  }
+}
+
 export interface TranslatorBookItem {
   id: number;
   name: string;

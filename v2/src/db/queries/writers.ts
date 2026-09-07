@@ -107,6 +107,33 @@ export async function getWriterList(
   return { items: rows, total, page: effectivePage, lastPage };
 }
 
+/**
+ * Lightweight name-only search for picker UIs (EntitySearchPicker on
+ * /kitap/yeni and /admin/merge) - real slowness found via testing:
+ * getWriterList()'s search mode runs the same unindexable `LIKE
+ * '%term%'` scan TWICE (once for a COUNT(*), once for the actual rows)
+ * across all ~11.3M writer rows, several real seconds each, entirely
+ * wasted here since a picker never needs `total`/`lastPage`. This skips
+ * the count query and adds the same MAX_EXECUTION_TIME circuit breaker
+ * already proven elsewhere this session (search.ts, book-detail.ts) -
+ * fails to an empty result rather than leaving a debounced keystroke
+ * search hanging indefinitely.
+ */
+export async function quickSearchWriters(term: string, limit = 8): Promise<{ id: number; name: string }[]> {
+  const trimmed = term.trim();
+  if (trimmed.length < 2) return [];
+  try {
+    return (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(5000) */ id, name FROM writer
+      WHERE LOWER(name) LIKE LOWER(${`%${trimmed}%`})
+      ORDER BY id
+      LIMIT ${limit}
+    `))[0] as unknown as { id: number; name: string }[];
+  } catch {
+    return [];
+  }
+}
+
 export async function getBooksByWriter(writerId: number): Promise<WriterBookItem[]> {
   "use cache";
   cacheLife("hours");

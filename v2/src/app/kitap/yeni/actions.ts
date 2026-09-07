@@ -5,9 +5,9 @@ import { and, eq, like, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { book, category } from "@/db/schema";
-import { getPublisherList } from "@/db/queries/publishers";
-import { getWriterList } from "@/db/queries/writers";
-import { getTranslatorList } from "@/db/queries/translators";
+import { quickSearchPublishers } from "@/db/queries/publishers";
+import { quickSearchWriters } from "@/db/queries/writers";
+import { quickSearchTranslators } from "@/db/queries/translators";
 import { createBookSubmission, type CreateBookInput } from "@/db/queries/book-admin";
 import { requireRole, DATA_ENTRY_ROLES, type UserType } from "@/lib/permission";
 
@@ -17,20 +17,17 @@ export interface SearchOption {
 }
 
 export async function searchPublishersAction(query: string): Promise<SearchOption[]> {
-  if (query.trim().length < 2) return [];
-  const { items } = await getPublisherList(1, 8, query);
+  const items = await quickSearchPublishers(query);
   return items.map((p) => ({ id: p.id, label: p.name }));
 }
 
 export async function searchWritersAction(query: string): Promise<SearchOption[]> {
-  if (query.trim().length < 2) return [];
-  const { items } = await getWriterList(1, 8, query);
+  const items = await quickSearchWriters(query);
   return items.map((w) => ({ id: w.id, label: w.name }));
 }
 
 export async function searchTranslatorsAction(query: string): Promise<SearchOption[]> {
-  if (query.trim().length < 2) return [];
-  const { items } = await getTranslatorList(1, 8, query);
+  const items = await quickSearchTranslators(query);
   return items.map((t) => ({ id: t.id, label: t.name }));
 }
 
