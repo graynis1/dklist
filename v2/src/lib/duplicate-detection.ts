@@ -153,6 +153,47 @@ export function titleAuthorSimilarity(
   return titleScore * 0.7 + bestAuthorScore * 0.3;
 }
 
+/**
+ * Character-trigram (3-gram) similarity via the Sørensen-Dice coefficient -
+ * the third algorithm PLAN.md's Phase 5 spec names alongside Levenshtein/
+ * Jaro-Winkler ("title+author fuzzy similarity (Levenshtein/Jaro-Winkler/
+ * trigram, ~95% threshold)"). Complements `stringSimilarity()` (Jaro-Winkler)
+ * rather than replacing it: Jaro-Winkler weights a shared *prefix* heavily,
+ * which fits "same start, different ending" cases well but scores a typo or
+ * reordering near the *start* of a title harshly - trigram similarity is
+ * position-independent (it's just a set-overlap of substrings), so it
+ * catches those cases Jaro-Winkler tends to undervalue. Deliberately not
+ * wired into `titleAuthorSimilarity()`/the dry-run pipeline yet, matching
+ * this file's existing pure-function-only, not-yet-integrated stance -
+ * picking a single blended threshold across multiple similarity metrics is
+ * its own design decision, not something to bake in silently here.
+ */
+function trigrams(s: string): Set<string> {
+  // Padding with leading/trailing spaces (pg_trgm's own convention) means
+  // even a 1-2 character string still yields real trigrams instead of none,
+  // and boundary trigrams like "  c" / "at " count word-start/end context
+  // as part of the similarity signal, not just the interior substrings.
+  const padded = `  ${s} `;
+  const result = new Set<string>();
+  for (let i = 0; i <= padded.length - 3; i++) {
+    result.add(padded.slice(i, i + 3));
+  }
+  return result;
+}
+
+export function trigramSimilarity(a: string, b: string): number {
+  if (a === b) return 1;
+  const trigramsA = trigrams(a);
+  const trigramsB = trigrams(b);
+  if (trigramsA.size === 0 || trigramsB.size === 0) return 0;
+
+  let shared = 0;
+  for (const t of trigramsA) {
+    if (trigramsB.has(t)) shared++;
+  }
+  return (2 * shared) / (trigramsA.size + trigramsB.size);
+}
+
 export const DUPLICATE_MATCH_THRESHOLD = 0.95;
 
 /**
