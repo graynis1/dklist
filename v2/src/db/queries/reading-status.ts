@@ -2,7 +2,7 @@ import "server-only";
 import { updateTag, cacheLife, cacheTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { read } from "@/db/schema";
+import { read, readPurpose } from "@/db/schema";
 import type { ReadStatus, DropReason, CurrentReadStatus } from "@/lib/reading-status";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 
@@ -63,9 +63,37 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   updateTag(`profile-books:${userId}`);
   updateTag(`book-readers:${bookId}`);
 
+  const settings = await getPointSettings();
+
   if (status === "finishRead") {
-    await awardPoints(userId, (await getPointSettings()).bookRead, "book_read", `read:book:${bookId}`);
+    await awardPoints(userId, settings.bookRead, "book_read", `read:book:${bookId}`);
+    await maybeAwardGoalAchieved(userId, settings.readingGoalAchieved);
+  } else if (status === "targetRead" || status === "currentRead") {
+    // Customer's explicit ask (2026-09-07): "okudum-okuyacağım dediğinde"
+    // should show up in the activity feed too, not just the finished-book
+    // case - "yarıda bıraktım" deliberately excluded (their own "handikap
+    // olmayacak kısımlar" caveat - a dropped book reads as more personal/
+    // negative to broadcast than "started" or "want to read"). reasonKey is
+    // per (user, book, status) so switching status back and forth doesn't
+    // re-earn or re-post the same transition repeatedly.
+    await awardPoints(userId, settings.readingStatusUpdate, "reading_status", `reading_status:${status}:${bookId}`);
   }
+}
+
+/**
+ * Fires once per user per year, the moment a finished book pushes their
+ * "okudum" count for the current year to (or past) their own set goal -
+ * customer's explicit ask for a shareable "hedefe ulaştı" feed moment.
+ * Cheap: two small, already-indexed lookups, only on the finishRead path.
+ */
+async function maybeAwardGoalAchieved(userId: number, points: number): Promise<void> {
+  const year = String(new Date().getFullYear());
+  const [[goalRow], [countRow]] = await Promise.all([
+    db.select({ purposeCount: readPurpose.purposeCount }).from(readPurpose).where(and(eq(readPurpose.ownerId, userId), eq(readPurpose.year, year))).limit(1),
+    db.select({ n: sql<number>`count(*)` }).from(read).where(and(eq(read.userId, userId), eq(read.year, year), eq(read.status, "finishRead"))),
+  ]);
+  if (!goalRow || countRow.n < goalRow.purposeCount) return;
+  await awardPoints(userId, points, "reading_goal_achieved", `reading_goal_achieved:${userId}:${year}`);
 }
 
 /**

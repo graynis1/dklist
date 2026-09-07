@@ -556,6 +556,12 @@ export async function setReadingGoal(userId: number, count: number): Promise<voi
   } else {
     await db.insert(readPurpose).values({ ownerId: userId, year, purposeCount: count });
   }
+
+  // Customer's explicit ask (2026-09-07): setting a yearly goal should show
+  // up in the activity feed too. reasonKey is per (user, year) - naturally
+  // fires once per year, editing an already-set goal doesn't re-post it.
+  const settings = await getPointSettings();
+  await awardPoints(userId, settings.readingGoalSet, "reading_goal_set", `reading_goal_set:${userId}:${year}`);
 }
 
 export interface PastReadingGoal {

@@ -13,6 +13,7 @@ import {
   bookClub,
   follow,
   feedPost,
+  readPurpose,
 } from "@/db/schema";
 import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
 import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
@@ -48,6 +49,13 @@ const FEED_REASONS = [
   "club_join",
   "library_add",
   "feed_post",
+  // Customer's explicit ask (2026-09-07): "okudum-okuyacağım dediğinde...
+  // kütüphaneye ekledi vb" and the yearly reading goal (set + achieved)
+  // should all show up in the feed too, same passive-activity tier as
+  // book_read/library_add above.
+  "reading_status",
+  "reading_goal_set",
+  "reading_goal_achieved",
 ] as const;
 
 export type FeedReason = (typeof FEED_REASONS)[number];
@@ -108,6 +116,16 @@ export interface FeedItem {
    * genuine social-media feed, not just a link away to reply elsewhere. */
   replyTarget: { parentType: SubCommentParentType; parentId: number } | null;
   replies: CommentReply[];
+  /** Only set for reason "reading_status" - which of "okuyacağım"/
+   * "okuyorum" the actor set, so the feed card can pick the right verb.
+   * "finishRead" already has its own dedicated "book_read" reason and
+   * "dropRead" is deliberately never posted to the feed (see
+   * reading-status.ts's comment on why). */
+  readStatus: "targetRead" | "currentRead" | null;
+  /** Only set for reason "reading_goal_set"/"reading_goal_achieved" - the
+   * actor's current-year target, so the card can show "50 kitap" rather
+   * than a bare, numberless announcement. */
+  goalCount: number | null;
 }
 
 function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedItem["entityKind"]; entityId: number | null } {
@@ -137,6 +155,11 @@ function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedIt
       return { entityKind: "club", entityId: Number(parts[parts.length - 1]) || null };
     case "feed_post":
       return { entityKind: null, entityId: Number(parts[1]) || null }; // resolved via feed_post row
+    case "reading_status":
+      return { entityKind: "book", entityId: Number(parts[2]) || null };
+    case "reading_goal_set":
+    case "reading_goal_achieved":
+      return { entityKind: null, entityId: null }; // resolved via the actor's own current-year goal, see goalUserIds below
     default:
       return { entityKind: null, entityId: null };
   }
@@ -214,10 +237,12 @@ export async function getSiteFeed(opts: {
   const clubIds = new Set<number>();
   const commentIds = new Set<number>();
   const feedPostIds = new Set<number>();
+  const goalUserIds = new Set<number>();
 
   for (const r of parsed) {
     if (r.reason === "comment" && r.entityId) commentIds.add(r.entityId);
     else if (r.reason === "feed_post" && r.entityId) feedPostIds.add(r.entityId);
+    else if (r.reason === "reading_goal_set" || r.reason === "reading_goal_achieved") goalUserIds.add(r.actorId);
     else if (r.entityKind === "book" && r.entityId) bookIds.add(r.entityId);
     else if (r.entityKind === "writer" && r.entityId) writerIds.add(r.entityId);
     else if (r.entityKind === "translator" && r.entityId) translatorIds.add(r.entityId);
@@ -252,6 +277,7 @@ export async function getSiteFeed(opts: {
     if (p.bookId) bookIds.add(p.bookId);
   }
 
+  const currentGoalYear = String(new Date().getFullYear());
   const [
     bookRows,
     writerRows,
@@ -265,6 +291,7 @@ export async function getSiteFeed(opts: {
     repliesByComment,
     repliesByPost,
     actorDecorations,
+    goalRows,
   ] = await Promise.all([
     bookIds.size
       ? db
@@ -283,8 +310,15 @@ export async function getSiteFeed(opts: {
     getRepliesForComments([...commentIds]),
     getRepliesForPosts([...feedPostIds]),
     getUserDecorations(parsed.map((r) => r.actorId)),
+    goalUserIds.size
+      ? db
+          .select({ ownerId: readPurpose.ownerId, purposeCount: readPurpose.purposeCount })
+          .from(readPurpose)
+          .where(and(inArray(readPurpose.ownerId, [...goalUserIds]), eq(readPurpose.year, currentGoalYear)))
+      : Promise.resolve([]),
   ]);
 
+  const goalCountByUser = new Map(goalRows.map((g) => [g.ownerId, g.purposeCount]));
   const bookMap = new Map(bookRows.map((b) => [b.id, b]));
   const writerMap = new Map(writerRows.map((w) => [w.id, w]));
   const translatorMap = new Map(translatorRows.map((t) => [t.id, t]));
@@ -311,6 +345,8 @@ export async function getSiteFeed(opts: {
       postLikeState: null as FeedItem["postLikeState"],
       replyTarget: null as FeedItem["replyTarget"],
       replies: [] as FeedItem["replies"],
+      readStatus: null as FeedItem["readStatus"],
+      goalCount: null as FeedItem["goalCount"],
     };
 
     if (r.reason === "feed_post" && r.entityId) {
@@ -368,7 +404,7 @@ export async function getSiteFeed(opts: {
       return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt, entityAvatarId: t?.id ?? null };
     }
 
-    if ((r.reason === "book_read" || r.reason === "library_add" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
+    if ((r.reason === "book_read" || r.reason === "library_add" || r.reason === "reading_status" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
       const b = bookMap.get(r.entityId);
       return {
         ...base,
@@ -378,6 +414,7 @@ export async function getSiteFeed(opts: {
         targetHref: b ? `/kitap/${b.slug}` : null,
         excerpt: null,
         bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage), score: b.score } : null,
+        readStatus: r.reason === "reading_status" ? (r.reasonKey.split(":")[1] as FeedItem["readStatus"]) : null,
       };
     }
 
@@ -415,6 +452,13 @@ export async function getSiteFeed(opts: {
       return { ...base, entityKind: "club", isQuote: false, targetLabel: c?.name ?? null, targetHref: c ? `/kulup/${c.slug}` : null, excerpt: null };
     }
 
+    if (r.reason === "reading_goal_set" || r.reason === "reading_goal_achieved") {
+      // Same "no real entity, own profile is the destination" shape as
+      // author_post - a goal isn't a row with its own page, it's an
+      // attribute of the actor's own current-year reading stats.
+      return { ...base, entityKind: "user", isQuote: false, targetLabel: null, targetHref: `/profil/${r.actorUsername}`, excerpt: null, goalCount: goalCountByUser.get(r.actorId) ?? null };
+    }
+
     return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };
   });
 
@@ -422,7 +466,10 @@ export async function getSiteFeed(opts: {
   // resolve to a null href - drop them from the rendered feed rather than
   // showing a broken/dead sentence.
   const visible = items.filter(
-    (i) => i.targetHref !== null || i.reason === "author_post" || (i.reason === "feed_post" && i.feedPostId !== null),
+    (i) =>
+      i.targetHref !== null ||
+      i.reason === "author_post" ||
+      (i.reason === "feed_post" && i.feedPostId !== null),
   );
 
   return { items: visible, nextCursor: hasMore ? page[page.length - 1].id : null };

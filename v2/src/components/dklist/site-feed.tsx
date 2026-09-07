@@ -18,6 +18,9 @@ import {
   Trash2Icon,
   PencilIcon,
   ChevronRightIcon,
+  BookmarkIcon,
+  TargetIcon,
+  TrophyIcon,
 } from "lucide-react";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
@@ -43,6 +46,9 @@ const ICON_BY_REASON = {
   author_post: PenLineIcon,
   club_join: UsersIcon,
   feed_post: MessageSquareIcon,
+  reading_status: BookmarkIcon,
+  reading_goal_set: TargetIcon,
+  reading_goal_achieved: TrophyIcon,
 } as const;
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -91,6 +97,18 @@ function describe(item: FeedItem): { verb: string; target: string | null } {
       return { verb: "kulübüne katıldı", target };
     case "feed_post":
       return { verb: "bir gönderi paylaştı", target: null };
+    case "reading_status":
+      return { verb: item.readStatus === "currentRead" ? "kitabını okumaya başladı" : "kitabını okuma listesine ekledi", target };
+    case "reading_goal_set":
+      return {
+        verb: item.goalCount ? `bu yıl için ${item.goalCount} kitap okuma hedefi belirledi` : "bu yıl için bir okuma hedefi belirledi",
+        target: null,
+      };
+    case "reading_goal_achieved":
+      return {
+        verb: item.goalCount ? `${item.goalCount} kitaplık yıllık okuma hedefine ulaştı! 🎉` : "yıllık okuma hedefine ulaştı! 🎉",
+        target: null,
+      };
   }
 }
 

@@ -45,6 +45,16 @@ export const POINT_VALUES = {
   // Standalone social-feed post (see feed-posts.ts) - same tier as
   // comment/blogPublished/authorPost, all genuine content-creation actions.
   feedPost: 5,
+  // Customer's explicit ask ("okudum-okuyacağım dediğinde... akışa düşse") -
+  // setting "okuyacağım"/"okuyorum" on a book, same lightweight tier as
+  // like/follow (not a content-creation action, just a status signal).
+  readingStatusUpdate: 1,
+  // Setting the yearly reading-goal target - same lightweight social-action
+  // tier as clubJoin/libraryAdd.
+  readingGoalSet: 2,
+  // Genuinely reaching that goal - a real milestone, deliberately above the
+  // 25-point "Aktif Okur" badge tier so it reads as a bigger deal in the feed.
+  readingGoalAchieved: 30,
 } as const;
 
 /**

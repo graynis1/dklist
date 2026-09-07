@@ -96,5 +96,27 @@ async function RegisterError({
 }) {
   const { error } = await searchParams;
   if (!error) return null;
-  return <p className="text-sm text-destructive">{error}</p>;
+
+  // Real customer report (2026-09-07, "Yazıatölyesi'nde de böyle bir sorun
+  // yaşanmıştı"): people who already have an account land here via "kayıt
+  // ol" (often years-old muscle memory, or they forgot they signed up
+  // before), see "mail adresi kullanılıyor"/"kullanıcı adı kullanılıyor",
+  // and read that as "the form is broken" rather than "you already have an
+  // account" - previously the only way out was someone with DB access
+  // manually resetting their password. The message itself was always
+  // correct; it just never told them what to do next.
+  const isDuplicate = error.includes("kullanılıyor");
+  return (
+    <div className="rounded-lg bg-destructive/10 p-3 text-sm">
+      <p className="text-destructive">{error}</p>
+      {isDuplicate && (
+        <p className="mt-1 text-muted-foreground">
+          Bu hesap muhtemelen daha önce oluşturulmuş.{" "}
+          <Link href="/sifremi-unuttum" className="font-medium text-primary hover:underline">
+            Şifreni mi unuttun?
+          </Link>
+        </p>
+      )}
+    </div>
+  );
 }
