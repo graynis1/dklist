@@ -4,10 +4,9 @@ import { auth } from "@/auth";
 import { mergeWorks, mergeWriters, mergeTranslators, mergePublishers, type MergeResult } from "@/db/queries/merge";
 import { requireRole, hasRole, USER_TYPES } from "@/lib/permission";
 import { logAdminAction } from "@/db/queries/admin-log";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
+import { MergeForm } from "@/components/dklist/merge-form";
 
 // First real Phase 4 permission check - previously gated on "is signed in"
 // only, not any actual role, and (worse) the Server Action itself had no
@@ -110,32 +109,10 @@ async function AdminMergeContent({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">ID&apos;ler</CardTitle>
+          <CardTitle className="text-lg">Kayıtlar</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={merge} className="flex flex-col gap-4">
-            <label className="flex flex-col gap-1.5 text-sm">
-              Kayıt türü
-              <select name="kind" defaultValue="work" className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring">
-                {(Object.keys(ENTITY_LABELS) as EntityKind[]).map((k) => (
-                  <option key={k} value={k}>
-                    {ENTITY_LABELS[k]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              Mükerrer (silinecek) ID
-              <Input name="duplicateId" type="number" required />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              Asıl (korunacak) ID
-              <Input name="canonicalId" type="number" required />
-            </label>
-            <Button type="submit" variant="destructive">
-              Birleştir
-            </Button>
-          </form>
+          <MergeForm action={merge} />
         </CardContent>
       </Card>
     </div>
