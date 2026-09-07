@@ -35,16 +35,31 @@ export async function searchBooks(
   const trimmed = term.trim();
   if (trimmed.length < 2) return [];
 
-  const rows = (await db.execute(sql`
-    SELECT b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-      (b.image IS NOT NULL AND b.image != '') AS hasImage
-    FROM book b
-    WHERE b.name LIKE ${trimmed + "%"}
-    ORDER BY b.view_count DESC
-    LIMIT ${limit}
-  `))[0] as unknown as Omit<SearchResultBook, "writers">[];
+  // MAX_EXECUTION_TIME circuit breaker (same proven pattern as the category-
+  // page incident, see PLAN.md) - `idx_book_name` gives a clean range scan
+  // for the LIKE prefix (EXPLAIN confirms `type: range`), but the trailing
+  // `ORDER BY view_count` can't be satisfied by that same index, so MySQL
+  // filesorts however many rows matched the prefix before returning the top
+  // N. For a common short prefix that's tens of thousands of rows - fine in
+  // isolation, but genuinely slow to unbounded under real memory/IO pressure
+  // on this HDD-backed instance. Fails fast to an empty result rather than
+  // risking a multi-second hang on every distinct, largely-uncacheable
+  // search term a real visitor types.
+  let rows: unknown;
+  try {
+    rows = (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(5000) */ b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+        (b.image IS NOT NULL AND b.image != '') AS hasImage
+      FROM book b
+      WHERE b.name LIKE ${trimmed + "%"}
+      ORDER BY b.view_count DESC
+      LIMIT ${limit}
+    `))[0];
+  } catch {
+    rows = [];
+  }
 
-  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
+  return attachWriterNames((rows as Omit<SearchResultBook, "writers">[]).map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
 }
 
 export interface SearchResultEntity {

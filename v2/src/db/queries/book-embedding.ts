@@ -118,9 +118,18 @@ export async function semanticSearchBooks(term: string, limit = 8): Promise<Sema
 
   let queryVector: number[];
   try {
-    queryVector = await getEmbedding(trimmed);
+    // Bounded with a real timeout, not just a try/catch - getEmbedding()
+    // rejecting is already handled below, but a stuck/slow ONNX inference
+    // call under system memory pressure wouldn't necessarily reject at all,
+    // it would just hang, and /ara awaits this in parallel with the regular
+    // search - one slow embedding call shouldn't be able to hold the whole
+    // search page open indefinitely.
+    queryVector = await Promise.race([
+      getEmbedding(trimmed),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("embedding timeout")), 3000)),
+    ]);
   } catch (err) {
-    console.error("[semantic-search] embedding failed, skipping:", err);
+    console.error("[semantic-search] embedding failed or timed out, skipping:", err);
     return [];
   }
   if (queryVector.length === 0) return [];
