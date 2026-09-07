@@ -5,6 +5,7 @@ import {
   normalizeTitle,
   stringSimilarity,
   titleAuthorSimilarity,
+  trigramSimilarity,
 } from "./duplicate-detection";
 
 describe("normalizeTitle", () => {
@@ -61,6 +62,42 @@ describe("stringSimilarity (Jaro-Winkler)", () => {
   it("handles empty strings without throwing", () => {
     expect(stringSimilarity("", "")).toBe(1);
     expect(stringSimilarity("", "a")).toBe(0);
+  });
+});
+
+describe("trigramSimilarity", () => {
+  it("scores identical strings as 1", () => {
+    expect(trigramSimilarity("simyacı", "simyacı")).toBe(1);
+  });
+
+  it("scores completely different strings low", () => {
+    expect(trigramSimilarity("simyacı", "1984")).toBeLessThan(0.2);
+  });
+
+  it("scores a near-identical string (one interior typo) highly", () => {
+    expect(trigramSimilarity("dostoyevski", "dostoyefski")).toBeGreaterThan(0.7);
+  });
+
+  it("is symmetric", () => {
+    expect(trigramSimilarity("suç ve ceza", "suc ve ceza")).toBe(
+      trigramSimilarity("suc ve ceza", "suç ve ceza"),
+    );
+  });
+
+  it("stays high on a single-character difference at the very start of the string, unlike a prefix-weighted metric", () => {
+    // stringSimilarity() (Jaro-Winkler) only boosts a *shared* prefix - a
+    // mismatch in the very first character gets zero prefix bonus on top of
+    // the substitution itself. Trigram similarity has no prefix concept at
+    // all, so a start-position difference is scored the same as one
+    // anywhere else in the string, not specially penalized.
+    expect(trigramSimilarity("xostoyevski", "dostoyevski")).toBeGreaterThan(0.7);
+  });
+
+  it("handles empty and very short strings without throwing", () => {
+    expect(trigramSimilarity("", "")).toBe(1);
+    expect(trigramSimilarity("", "a")).toBe(0);
+    expect(trigramSimilarity("a", "a")).toBe(1);
+    expect(trigramSimilarity("a", "b")).toBe(0);
   });
 });
 
