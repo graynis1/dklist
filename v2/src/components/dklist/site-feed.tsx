@@ -28,6 +28,7 @@ import { ShareButton } from "@/components/dklist/share-button";
 import { Button } from "@/components/ui/button";
 import { formatRelativeTime } from "@/lib/utils";
 import { feedPostImageUrl } from "@/lib/image-urls";
+import { describeFeedItem } from "@/lib/feed-item-description";
 import { loadMoreFeedAction, deleteFeedPostAction, updateFeedPostAction } from "@/app/akis/actions";
 import type { FeedItem } from "@/db/queries/feed";
 
@@ -61,39 +62,6 @@ const GO_TO_LABEL: Record<string, string> = {
   club: "Kulübe Git",
 };
 
-function describe(item: FeedItem): { verb: string; target: string | null } {
-  const target = item.targetLabel ? `"${item.targetLabel}"` : null;
-  switch (item.reason) {
-    case "book_read":
-      return { verb: "kitabı okudu", target };
-    case "library_add":
-      return { verb: "kitaplığına ekledi", target };
-    case "rating":
-      if (item.entityKind === "book") return { verb: "kitabını puanladı", target };
-      if (item.entityKind === "writer") return { verb: "yazarını puanladı", target };
-      return { verb: "çevirmenini puanladı", target };
-    case "like":
-      if (item.entityKind === "book") return { verb: "kitabını beğendi", target };
-      if (item.entityKind === "writer") return { verb: "yazarını beğendi", target };
-      return { verb: "çevirmenini beğendi", target };
-    case "comment":
-      if (item.isQuote) return { verb: "bir alıntı paylaştı", target: null };
-      return { verb: "bir yorum yazdı", target: null };
-    case "follow":
-      return { verb: "takip etmeye başladı", target: item.targetLabel ? `@${item.targetLabel}` : null };
-    case "blog_published":
-      return { verb: "yeni bir blog yazısı yayınladı:", target };
-    case "store_listing":
-      return { verb: "askıda kitap ilanı verdi:", target };
-    case "author_post":
-      return { verb: "Yazarhane'de yeni bir yazı paylaştı", target: null };
-    case "club_join":
-      return { verb: "kulübüne katıldı", target };
-    case "feed_post":
-      return { verb: "bir gönderi paylaştı", target: null };
-  }
-}
-
 /**
  * Every feed item renders as a real post card now - the maintainer's blunt
  * correction ("gönderi tarzında olacak lan bu ne") after a first pass that
@@ -116,7 +84,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
   const [editError, setEditError] = useState<string | null>(null);
   const [isSavingEdit, startSaveEdit] = useTransition();
   const Icon = item.reason === "comment" && item.isQuote ? QuoteIcon : ICON_BY_REASON[item.reason];
-  const { verb, target } = describe(item);
+  const { verb, target } = describeFeedItem(item);
   const isPost = (item.reason === "comment" && Boolean(item.excerpt)) || item.reason === "feed_post";
   const isOwnPost = item.reason === "feed_post" && viewerId != null && viewerId === item.actorId;
 
