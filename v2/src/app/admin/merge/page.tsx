@@ -7,6 +7,7 @@ import { logAdminAction } from "@/db/queries/admin-log";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { MergeForm } from "@/components/dklist/merge-form";
+import { searchWritersAction, searchTranslatorsAction, searchPublishersAction } from "@/app/kitap/yeni/actions";
 
 // First real Phase 4 permission check - previously gated on "is signed in"
 // only, not any actual role, and (worse) the Server Action itself had no
@@ -112,7 +113,12 @@ async function AdminMergeContent({
           <CardTitle className="text-lg">Kayıtlar</CardTitle>
         </CardHeader>
         <CardContent>
-          <MergeForm action={merge} />
+          <MergeForm
+            action={merge}
+            searchWriters={searchWritersAction}
+            searchTranslators={searchTranslatorsAction}
+            searchPublishers={searchPublishersAction}
+          />
         </CardContent>
       </Card>
     </div>

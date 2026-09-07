@@ -4,21 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
-import { searchWritersAction, searchTranslatorsAction, searchPublishersAction } from "@/app/kitap/yeni/actions";
 
 type EntityKind = "work" | "writer" | "translator" | "publisher";
+type SearchAction = (query: string) => Promise<{ id: number; label: string }[]>;
 
 const ENTITY_LABELS: Record<EntityKind, string> = {
   work: "Kitap (Work)",
   writer: "Yazar",
   translator: "Çevirmen",
   publisher: "Yayınevi",
-};
-
-const SEARCH_ACTION: Partial<Record<EntityKind, (query: string) => Promise<{ id: number; label: string }[]>>> = {
-  writer: searchWritersAction,
-  translator: searchTranslatorsAction,
-  publisher: searchPublishersAction,
 };
 
 /**
@@ -38,10 +32,36 @@ const SEARCH_ACTION: Partial<Record<EntityKind, (query: string) => Promise<{ id:
  * is flagged in PLAN.md as its own, bigger, deliberately-deferred feature -
  * book has far more referencing tables than this tool's other three kinds,
  * and rushing that cascade risks real data loss on a live 98.5M-row table.
+ *
+ * The three search actions are passed in as props from the page (a Server
+ * Component) rather than imported directly here - a real bug caught via
+ * testing, not a style choice: importing a "use server" action straight
+ * into a "use client" file and calling it worked fine on /kitap/yeni's own
+ * EntitySearchPicker usages (imported+passed from ITS server-component
+ * page), but the identical pattern silently produced zero network calls
+ * when the import happened inside this already-client module instead -
+ * no thrown error, the debounced search just never fired. Passing the
+ * action across the server→client boundary as an explicit prop (the
+ * pattern Next.js actually documents) fixed it outright.
  */
-export function MergeForm({ action }: { action: (formData: FormData) => void }) {
+export function MergeForm({
+  action,
+  searchWriters,
+  searchTranslators,
+  searchPublishers,
+}: {
+  action: (formData: FormData) => void;
+  searchWriters: SearchAction;
+  searchTranslators: SearchAction;
+  searchPublishers: SearchAction;
+}) {
   const [kind, setKind] = useState<EntityKind>("work");
-  const searchAction = SEARCH_ACTION[kind];
+  const searchActionByKind: Partial<Record<EntityKind, SearchAction>> = {
+    writer: searchWriters,
+    translator: searchTranslators,
+    publisher: searchPublishers,
+  };
+  const searchAction = searchActionByKind[kind];
 
   return (
     <form action={action} className="flex flex-col gap-4">
