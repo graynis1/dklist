@@ -673,6 +673,12 @@ export const user = mysqlTable("user", {
 	twoFactorEnabled: tinyint("two_factor_enabled").notNull().default(0),
 	twoFactorCode: varchar("two_factor_code", { length: 10 }),
 	twoFactorCodeExpires: datetime("two_factor_code_expires", { mode: 'string' }),
+	// Süreli uzaklaştırma (temporary suspension) - customer's explicit ask,
+	// distinct from the existing indefinite `disable` toggle: this auto-
+	// lifts once suspendedUntil passes, no manual "unsuspend" step needed.
+	// See src/db/migrations/0045_user_suspension.sql.
+	suspendedUntil: datetime("suspended_until", { mode: 'string' }),
+	suspensionReason: varchar("suspension_reason", { length: 255 }),
 },
 (table) => [
 	index("IDX_8D93D649996A8449").on(table.readBooksId),

@@ -14,6 +14,11 @@ export interface UserAdminListItem {
   publisherName: string | null;
   writerId: number | null;
   writerName: string | null;
+  /** Null, or a future timestamp - null once it's passed is NOT guaranteed
+   * (nothing proactively clears it, see suspendUser()'s own doc comment),
+   * so callers must always compare against "now", never just truthiness. */
+  suspendedUntil: string | null;
+  suspensionReason: string | null;
 }
 
 /**
@@ -36,7 +41,19 @@ export async function getUserAdminList(page = 1, pageSize = 20, search = ""): Pr
   const safePage = Math.min(Math.max(1, page), lastPage);
 
   const rows = await db
-    .select({ id: user.id, username: user.username, mail: user.mail, userType: user.userType, disable: user.disable, publisherId: user.publisherId, publisherName: publisher.name, writerId: user.writerId, writerName: writer.name })
+    .select({
+      id: user.id,
+      username: user.username,
+      mail: user.mail,
+      userType: user.userType,
+      disable: user.disable,
+      publisherId: user.publisherId,
+      publisherName: publisher.name,
+      writerId: user.writerId,
+      writerName: writer.name,
+      suspendedUntil: user.suspendedUntil,
+      suspensionReason: user.suspensionReason,
+    })
     .from(user)
     .leftJoin(publisher, eq(user.publisherId, publisher.id))
     .leftJoin(writer, eq(user.writerId, writer.id))
@@ -46,7 +63,19 @@ export async function getUserAdminList(page = 1, pageSize = 20, search = ""): Pr
     .offset((safePage - 1) * safeSize);
 
   return {
-    items: rows.map((r) => ({ id: r.id, username: r.username, mail: r.mail, userType: r.userType, disabled: r.disable === 1, publisherId: r.publisherId, publisherName: r.publisherName, writerId: r.writerId, writerName: r.writerName })),
+    items: rows.map((r) => ({
+      id: r.id,
+      username: r.username,
+      mail: r.mail,
+      userType: r.userType,
+      disabled: r.disable === 1,
+      publisherId: r.publisherId,
+      publisherName: r.publisherName,
+      writerId: r.writerId,
+      writerName: r.writerName,
+      suspendedUntil: r.suspendedUntil,
+      suspensionReason: r.suspensionReason,
+    })),
     total,
     page: safePage,
     lastPage,
@@ -77,6 +106,30 @@ export async function toggleUserDisabled(userId: number): Promise<void> {
   if (!target) throw new Error("Kullanıcı bulunamadı.");
   if (target.userType === USER_TYPES.SuperAdmin) throw new Error("Bu kullanıcı üzerinde işlem yapılamaz.");
   await db.update(user).set({ disable: target.disable === 1 ? 0 : 1 }).where(eq(user.id, userId));
+}
+
+/**
+ * Süreli uzaklaştırma (temporary suspension) - customer's explicit ask,
+ * distinct from toggleUserDisabled() above (that one is indefinite/manual,
+ * this one carries its own expiry). Nothing needs to proactively "lift" it
+ * once `until` passes - auth.ts's login gate always compares against the
+ * current time, never just checks truthiness, so an expired suspension is
+ * already effectively inert; this just also clears the columns so the
+ * admin panel stops *showing* a stale suspended state after that.
+ */
+export async function suspendUser(userId: number, until: Date, reason: string | null): Promise<void> {
+  const [target] = await db.select({ userType: user.userType }).from(user).where(eq(user.id, userId)).limit(1);
+  if (!target) throw new Error("Kullanıcı bulunamadı.");
+  if (target.userType === USER_TYPES.SuperAdmin) throw new Error("Bu kullanıcı üzerinde işlem yapılamaz.");
+  if (until.getTime() <= Date.now()) throw new Error("Bitiş tarihi gelecekte olmalı.");
+  await db
+    .update(user)
+    .set({ suspendedUntil: until.toISOString().slice(0, 19).replace("T", " "), suspensionReason: reason })
+    .where(eq(user.id, userId));
+}
+
+export async function liftSuspension(userId: number): Promise<void> {
+  await db.update(user).set({ suspendedUntil: null, suspensionReason: null }).where(eq(user.id, userId));
 }
 
 export async function updateUserPublisher(userId: number, publisherId: number | null): Promise<void> {

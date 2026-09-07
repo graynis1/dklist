@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ROLE_LABELS, USER_TYPES, type UserType } from "@/lib/roles";
 import {
@@ -15,6 +16,8 @@ import {
   updateUserBadgesAction,
   setUserFrameAdminAction,
   banUserEmailAction,
+  suspendUserAction,
+  liftSuspensionAction,
 } from "@/app/admin/kullanicilar/actions";
 import { UserAssignmentPanel } from "@/components/dklist/user-assignment-panel";
 import { searchPublishersAction, searchWritersAction } from "@/app/kitap/yeni/actions";
@@ -79,6 +82,34 @@ export function UserAdminRow({
     });
   }
 
+  const isSuspended = Boolean(user.suspendedUntil && new Date(user.suspendedUntil) > new Date());
+  const [showSuspendPanel, setShowSuspendPanel] = useState(false);
+  const [suspendDays, setSuspendDays] = useState("7");
+  const [suspendReason, setSuspendReason] = useState("");
+
+  function suspend() {
+    const days = Number(suspendDays);
+    if (!window.confirm(`${user.username} kullanıcısını ${days} gün boyunca askıya almak istediğinizden emin misiniz?`)) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await suspendUserAction(user.id, days, suspendReason);
+      if (!result.status) setError(result.message ?? "Askıya alınamadı.");
+      else {
+        setShowSuspendPanel(false);
+        router.refresh();
+      }
+    });
+  }
+
+  function liftSuspend() {
+    setError(null);
+    startTransition(async () => {
+      const result = await liftSuspensionAction(user.id);
+      if (!result.status) setError(result.message ?? "Kaldırılamadı.");
+      else router.refresh();
+    });
+  }
+
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-border p-4">
     <div className="flex items-center gap-3">
@@ -86,6 +117,11 @@ export function UserAdminRow({
         <p className="font-medium">
           {user.username}
           {user.disabled && <span className="ml-2 rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">Devre dışı</span>}
+          {isSuspended && (
+            <span className="ml-2 rounded bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-600" title={user.suspensionReason ?? undefined}>
+              Askıda · {new Date(user.suspendedUntil!).toLocaleDateString("tr-TR")}&apos;e kadar
+            </span>
+          )}
         </p>
         <p className="text-xs text-muted-foreground">{user.mail}</p>
         {user.userType === USER_TYPES.Yayinevi && canMutate && (
@@ -137,9 +173,23 @@ export function UserAdminRow({
           direk siteden silmeye mi yarıyor?" - relabeled to make clear
           this is reversible and does NOT delete anything (unlike Hesabı
           Sil below), matching what it already actually does. */}
-      <Button variant="outline" size="sm" disabled={isPending || !canMutate} onClick={toggleDisabled} title="Geri alınabilir, hesabı silmez.">
-        {user.disabled ? "Askıyı Kaldır" : "Askıya Al"}
+      <Button variant="outline" size="sm" disabled={isPending || !canMutate} onClick={toggleDisabled} title="Süresiz, geri alınabilir, hesabı silmez.">
+        {user.disabled ? "Askıyı Kaldır" : "Süresiz Askıya Al"}
       </Button>
+
+      {/* Customer's explicit ask: a TIME-LIMITED suspension, distinct from
+          the indefinite toggle above - auto-lifts on its own once the
+          chosen duration passes. */}
+      {canMutate && !isSuspended && (
+        <Button variant="outline" size="sm" disabled={isPending} onClick={() => setShowSuspendPanel((s) => !s)} title="Süre dolunca otomatik kalkar.">
+          Süreli Uzaklaştır
+        </Button>
+      )}
+      {canMutate && isSuspended && (
+        <Button variant="outline" size="sm" disabled={isPending} onClick={liftSuspend} title="Süreli askıyı erken kaldır.">
+          Süreli Askıyı Kaldır
+        </Button>
+      )}
 
       {canMutate && (
         <Button variant="outline" size="sm" onClick={() => setShowAssignPanel((s) => !s)}>
@@ -176,6 +226,22 @@ export function UserAdminRow({
           onSaveBadges={(ids) => updateUserBadgesAction(user.id, ids)}
           onSaveFrame={(value) => setUserFrameAdminAction(user.id, value)}
         />
+      )}
+
+      {showSuspendPanel && canMutate && (
+        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Gün
+            <Input type="number" min={1} max={3650} className="w-20" value={suspendDays} onChange={(e) => setSuspendDays(e.target.value)} />
+          </label>
+          <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
+            Sebep (opsiyonel)
+            <Input value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)} placeholder="Kural ihlali, spam vb." />
+          </label>
+          <Button size="sm" disabled={isPending} onClick={suspend}>
+            Onayla
+          </Button>
+        </div>
       )}
     </li>
   );

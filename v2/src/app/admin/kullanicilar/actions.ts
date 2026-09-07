@@ -1,7 +1,7 @@
 "use server";
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
-import { updateUserRole, toggleUserDisabled, updateUserPublisher, updateUserBadges, getUserBadgeIds } from "@/db/queries/user-admin";
+import { updateUserRole, toggleUserDisabled, updateUserPublisher, updateUserBadges, getUserBadgeIds, suspendUser, liftSuspension } from "@/db/queries/user-admin";
 import { deleteUserAccount, banEmail } from "@/db/queries/user-delete";
 import { db } from "@/db";
 import { user } from "@/db/schema";
@@ -40,6 +40,33 @@ export async function toggleUserDisabledAction(userId: number): Promise<{ status
     return { status: true };
   } catch (error) {
     return { status: false, message: error instanceof Error ? error.message : "Güncellenemedi." };
+  }
+}
+
+/** `days` - how many days from now the suspension should last (validated
+ * as a small positive integer, not an arbitrary client-supplied date, so a
+ * malformed/past timestamp can never reach suspendUser()'s own check). */
+export async function suspendUserAction(userId: number, days: number, reason: string): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    if (!Number.isInteger(days) || days < 1 || days > 3650) throw new Error("Süre 1 ile 3650 gün arasında olmalıdır.");
+    const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    await suspendUser(userId, until, reason.trim() || null);
+    await logAdminAction(actor.id, "user:suspend", "user", userId, `${days} gün - ${reason.trim() || "sebep belirtilmedi"}`);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Askıya alınamadı." };
+  }
+}
+
+export async function liftSuspensionAction(userId: number): Promise<{ status: boolean; message?: string }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    await liftSuspension(userId);
+    await logAdminAction(actor.id, "user:suspend-lift", "user", userId);
+    return { status: true };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Kaldırılamadı." };
   }
 }
 

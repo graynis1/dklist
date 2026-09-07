@@ -53,6 +53,11 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
       if (errorCode === "two_factor_required") {
         return { status: "two_factor_required" };
       }
+      if (errorCode?.startsWith("account_suspended:")) {
+        const until = new Date(errorCode.slice("account_suspended:".length));
+        const formatted = until.toLocaleString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+        return { status: "error", message: `Hesabınız ${formatted} tarihine kadar geçici olarak askıya alınmıştır.` };
+      }
       return { status: "error", message: "Kullanıcı adı, şifre veya kod hatalı." };
     }
     throw error;

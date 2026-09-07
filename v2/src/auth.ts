@@ -20,6 +20,27 @@ export class TwoFactorRequiredError extends CredentialsSignin {
   code = "two_factor_required";
 }
 
+/**
+ * Süreli uzaklaştırma (temporary suspension) - customer's explicit ask for
+ * a time-limited ban, distinct from the existing indefinite `disable`
+ * toggle. Unlike a disabled account (which returns the same generic
+ * "kullanıcı adı veya şifre hatalı" as a wrong password, matching v1's
+ * user-enumeration protection), a suspended user genuinely needs to know
+ * *why* and *until when* - there's nothing to enumerate here, the account
+ * demonstrably exists and the password just checked out. The end date is
+ * packed into `code` itself (Auth.js's CredentialsSignin only reliably
+ * carries this one string field through to the client, see
+ * TwoFactorRequiredError's own comment above) as an ISO timestamp; the
+ * client-side login form parses it back out.
+ */
+export class AccountSuspendedError extends CredentialsSignin {
+  code: string;
+  constructor(until: string) {
+    super();
+    this.code = `account_suspended:${until}`;
+  }
+}
+
 function generateSixDigitCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
@@ -80,6 +101,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!passwordOk) return null;
         if (row.disable) return null;
+
+        // Compared in SQL-sourced string form directly - `suspendedUntil`
+        // is a plain "YYYY-MM-DD HH:MM:SS" MySQL DATETIME string (no
+        // timezone), and `new Date()` on that parses as local time in
+        // Node, same as `new Date()` "now" does - both sides consistent,
+        // avoiding the exact UTC-vs-local mismatch already documented
+        // above for the 2FA code-expiry comparison.
+        if (row.suspendedUntil && new Date(row.suspendedUntil) > new Date()) {
+          throw new AccountSuspendedError(row.suspendedUntil);
+        }
 
         // 2FA gate - only reached once username+password already checked
         // out. Fails open (skips the challenge) if mail isn't configured
