@@ -14,6 +14,8 @@
  * into inside an unrelated work session.
  */
 
+import { turkishLowercase } from "./turkish-text";
+
 // Edition/print-run noise phrases that show up inside book titles without
 // being part of the actual work title - stripped (as phrases, since several
 // are multi-word) before comparing. Order matters: longer phrases first so
@@ -30,15 +32,6 @@ const EDITION_NOISE_PHRASES = [
   "eksiksiz",
   "resimli",
 ];
-
-const TURKISH_LOWER_MAP: Record<string, string> = {
-  İ: "i",
-  I: "ı",
-};
-
-function turkishLowercase(s: string): string {
-  return s.replace(/[İI]/g, (c) => TURKISH_LOWER_MAP[c] ?? c).toLowerCase();
-}
 
 /**
  * Strips case, punctuation, parenthetical edition remarks (e.g. "(2. Baskı)"),
