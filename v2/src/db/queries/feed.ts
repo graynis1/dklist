@@ -89,6 +89,12 @@ export interface FeedItem {
   targetLabel: string | null;
   targetHref: string | null;
   excerpt: string | null;
+  /** Set only when this post is a reshare of another comment/quote
+   * (comment.shared_from_comment_id) - the original text being quoted,
+   * so the feed card doesn't read as disconnected from what it's actually
+   * replying to. See the real customer report this closes in feed.ts. */
+  quotedText: string | null;
+  quotedAuthorUsername: string | null;
   /** Only set when entityKind is "book" - lets the feed card show a real
    * cover/typeset jacket thumbnail instead of reading as a plain text log,
    * the concrete difference between a notification list and something that
@@ -254,7 +260,7 @@ export async function getSiteFeed(opts: {
 
   const commentRows = commentIds.size
     ? await db
-        .select({ id: comment.id, comment: comment.comment, commentType: comment.commentType, type: comment.type, targetId: comment.targetId })
+        .select({ id: comment.id, comment: comment.comment, commentType: comment.commentType, type: comment.type, targetId: comment.targetId, sharedFromCommentId: comment.sharedFromCommentId })
         .from(comment)
         .where(inArray(comment.id, [...commentIds]))
     : [];
@@ -265,6 +271,29 @@ export async function getSiteFeed(opts: {
     else if (c.type === "translator") translatorIds.add(id);
   }
   const commentById = new Map(commentRows.map((c) => [c.id, c]));
+
+  // Real customer report: reposting a comment/quote to the feed showed
+  // the reposter's own commentary but dropped the ORIGINAL quoted text
+  // entirely ("yazısı alıntı yapılan yazı yok... kime cevaben yazıldığı
+  // görülmeli") - a real, disconnected-looking post since shareEntityComment
+  // stores the link (comment.shared_from_comment_id) but nothing here ever
+  // read it. Fetched in a second small pass since the ids aren't known
+  // until the first comment batch resolves.
+  const sharedFromIds = new Set(commentRows.map((c) => c.sharedFromCommentId).filter((id): id is number => id != null));
+  const sharedFromRows = sharedFromIds.size
+    ? await db
+        .select({ id: comment.id, comment: comment.comment, userId: comment.userId })
+        .from(comment)
+        .where(inArray(comment.id, [...sharedFromIds]))
+    : [];
+  const sharedFromUserIds = new Set(sharedFromRows.map((r) => r.userId));
+  const sharedFromAuthors = sharedFromUserIds.size
+    ? await db.select({ id: user.id, username: user.username }).from(user).where(inArray(user.id, [...sharedFromUserIds]))
+    : [];
+  const sharedFromAuthorMap = new Map(sharedFromAuthors.map((u) => [u.id, u.username]));
+  const sharedFromById = new Map(
+    sharedFromRows.map((r) => [r.id, { comment: r.comment, authorUsername: sharedFromAuthorMap.get(r.userId) ?? null }]),
+  );
 
   const feedPostRows = feedPostIds.size
     ? await db
@@ -347,6 +376,8 @@ export async function getSiteFeed(opts: {
       replies: [] as FeedItem["replies"],
       readStatus: null as FeedItem["readStatus"],
       goalCount: null as FeedItem["goalCount"],
+      quotedText: null as FeedItem["quotedText"],
+      quotedAuthorUsername: null as FeedItem["quotedAuthorUsername"],
     };
 
     if (r.reason === "feed_post" && r.entityId) {
@@ -384,6 +415,9 @@ export async function getSiteFeed(opts: {
       // show real content, not a stub; matches v1's own Akış (which showed
       // up to 200 chars before a client-side "devamını gör" expand).
       const excerpt = c.comment.length > 400 ? `${c.comment.slice(0, 400)}...` : c.comment;
+      const sharedFrom = c.sharedFromCommentId != null ? sharedFromById.get(c.sharedFromCommentId) : undefined;
+      const quotedText = sharedFrom ? (sharedFrom.comment.length > 300 ? `${sharedFrom.comment.slice(0, 300)}...` : sharedFrom.comment) : null;
+      const quotedAuthorUsername = sharedFrom?.authorUsername ?? null;
       if (c.type === "book") {
         const b = bookMap.get(Number(c.targetId));
         return {
@@ -393,15 +427,17 @@ export async function getSiteFeed(opts: {
           targetLabel: b?.name ?? null,
           targetHref: b ? `/kitap/${b.slug}` : null,
           excerpt,
+          quotedText,
+          quotedAuthorUsername,
           bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage), score: b.score } : null,
         };
       }
       if (c.type === "writer") {
         const w = writerMap.get(Number(c.targetId));
-        return { ...base, entityKind: "writer", isQuote, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt, entityAvatarId: w?.id ?? null };
+        return { ...base, entityKind: "writer", isQuote, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt, quotedText, quotedAuthorUsername, entityAvatarId: w?.id ?? null };
       }
       const t = translatorMap.get(Number(c.targetId));
-      return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt, entityAvatarId: t?.id ?? null };
+      return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt, quotedText, quotedAuthorUsername, entityAvatarId: t?.id ?? null };
     }
 
     if ((r.reason === "book_read" || r.reason === "library_add" || r.reason === "reading_status" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {

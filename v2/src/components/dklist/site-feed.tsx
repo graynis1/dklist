@@ -350,6 +350,16 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
                 </p>
               )
             )}
+            {/* Real customer report: reposting a comment/quote showed the
+                reposter's own text with no trace of what they were quoting,
+                reading as disconnected from the actual conversation - "kime
+                cevaben yazıldığı görülmeli". */}
+            {item.quotedText && (
+              <blockquote className="mt-2 border-l-2 border-border pl-3 text-sm text-muted-foreground italic">
+                &ldquo;{item.quotedText}&rdquo;
+                {item.quotedAuthorUsername && <span className="not-italic"> — @{item.quotedAuthorUsername}</span>}
+              </blockquote>
+            )}
             {item.reason === "feed_post" && item.feedPostImage && (
               // Real customer report: "resmin bir bölümünü aktardığı için
               // dışarıdan anlaşılmaz kaldı" - a tall/portrait photo (a book

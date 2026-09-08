@@ -135,7 +135,7 @@ async function fetchCategoryPage(
     // cached - see getCategoryTurkishCount's identical fix above for the
     // full reasoning.
     const rows = (await db.execute(sql`
-      SELECT /*+ MAX_EXECUTION_TIME(15000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+      SELECT /*+ MAX_EXECUTION_TIME(25000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
         (b.image IS NOT NULL AND b.image != '') AS hasImage
       FROM book_category bc
       INNER JOIN book b ON b.id = bc.book_id
@@ -160,7 +160,7 @@ async function fetchCategoryPage(
   // low-traffic hours - see PLAN.md for the incident writeup.
   // Same "throw, don't cache a fallback" fix as the branch above.
   const rows = (await db.execute(sql`
-    SELECT /*+ MAX_EXECUTION_TIME(15000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+    SELECT /*+ MAX_EXECUTION_TIME(25000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
       (b.image IS NOT NULL AND b.image != '') AS hasImage
     FROM book b FORCE INDEX (${sql.raw(forceIndexName)})
     WHERE EXISTS (
@@ -271,7 +271,7 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
   // request. The caller (getBooksByCategory) now catches this, but per
   // REQUEST, not per cache entry.
   const rows = (await db.execute(sql`
-    SELECT /*+ MAX_EXECUTION_TIME(15000) */ COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
+    SELECT /*+ MAX_EXECUTION_TIME(25000) */ COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
     WHERE b.lang = 'tr' AND EXISTS (
       SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
     )
