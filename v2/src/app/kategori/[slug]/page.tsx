@@ -89,8 +89,16 @@ async function CategoryContent({
     books = result.items;
     total = result.total;
     lastPage = result.lastPage;
-  } catch {
-    // degraded view for this one request; the next one tries fresh.
+  } catch (err) {
+    // TEMP DEBUG (2026-09-09): logging the real error to diagnose the
+    // "0 kitap" regression report - remove once root-caused.
+    const { logServerError } = await import("@/db/queries/error-log");
+    await logServerError({
+      message: `kategori debug: ${err instanceof Error ? err.message : String(err)}`,
+      stack: err instanceof Error ? err.stack ?? null : null,
+      url: `/kategori/${slug}?sortBy=${sortBy}&page=${page}`,
+      source: "server",
+    }).catch(() => {});
   }
 
   return (
