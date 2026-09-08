@@ -27,11 +27,28 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "İptal",
 };
 
-const SORT_OPTIONS: { value: StoreSortBy; label: string }[] = [
+// Real customer question: "burada fiyat parametresi var bu artanana doğru
+// mu azalana doğru mu acaba? ikisine gerek varmı bir tanesi olması yeterli
+// mi?" - getStoreList() already supported both directions, the page just
+// never exposed a way to pick one (price always sorted highest-first).
+// Price is the one sort where both directions are genuinely useful (cheapest
+// first is a very standard marketplace expectation) - id/viewCount stay
+// single-direction, matching how they're used everywhere else on the site.
+type SortOption = "id" | "price-asc" | "price-desc" | "viewCount";
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "id", label: "En Yeni" },
-  { value: "price", label: "Fiyat" },
+  { value: "price-asc", label: "Fiyat: Düşükten Yükseğe" },
+  { value: "price-desc", label: "Fiyat: Yüksekten Düşüğe" },
   { value: "viewCount", label: "Görüntülenme" },
 ];
+
+function parseSortOption(value: string): { sortBy: StoreSortBy; orderBy: "asc" | "desc" } {
+  if (value === "price-asc") return { sortBy: "price", orderBy: "asc" };
+  if (value === "price-desc") return { sortBy: "price", orderBy: "desc" };
+  if (value === "viewCount") return { sortBy: "viewCount", orderBy: "desc" };
+  return { sortBy: "id", orderBy: "desc" };
+}
 
 export default function StoreListPage({ searchParams }: PageProps<"/askida-kitap">) {
   return (
@@ -78,15 +95,18 @@ async function StoreList({
   const search = typeof params.search === "string" ? params.search : "";
   const listingType: StoreListingTypeFilter =
     params.listingType === "free" || params.listingType === "paid" ? params.listingType : null;
-  const sortBy: StoreSortBy =
-    params.sortBy === "price" || params.sortBy === "viewCount" ? params.sortBy : "id";
+  const sortOption: SortOption =
+    params.sortBy === "price-asc" || params.sortBy === "price-desc" || params.sortBy === "viewCount"
+      ? params.sortBy
+      : "id";
+  const { sortBy, orderBy } = parseSortOption(sortOption);
 
-  const { items, total, lastPage } = await getStoreList({ page, pageSize: 40, search, listingType, sortBy });
+  const { items, total, lastPage } = await getStoreList({ page, pageSize: 40, search, listingType, sortBy, orderBy });
 
   const baseQuery: Record<string, string> = {};
   if (search) baseQuery.search = search;
   if (listingType) baseQuery.listingType = listingType;
-  if (sortBy !== "id") baseQuery.sortBy = sortBy;
+  if (sortOption !== "id") baseQuery.sortBy = sortOption;
   const qs = (extra: Record<string, string>) =>
     new URLSearchParams({ ...baseQuery, ...extra }).toString();
 
@@ -112,7 +132,7 @@ async function StoreList({
             <SelectItem value="paid">Ücretli</SelectItem>
           </SelectContent>
         </Select>
-        <Select name="sortBy" defaultValue={sortBy} items={SORT_OPTIONS}>
+        <Select name="sortBy" defaultValue={sortOption} items={SORT_OPTIONS}>
           <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>
