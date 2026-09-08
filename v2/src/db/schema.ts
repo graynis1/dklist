@@ -720,6 +720,8 @@ export const supportTicket = mysqlTable("support_ticket", {
 	message: varchar({ length: 1000 }).notNull(),
 	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
 	status: varchar({ length: 20 }).notNull().default('open'),
+	adminReply: text("admin_reply"),
+	repliedAt: datetime("replied_at", { mode: 'string' }),
 },
 (table) => [
 	primaryKey({ columns: [table.id], name: "support_ticket_id" }),

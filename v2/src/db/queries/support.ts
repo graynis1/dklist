@@ -2,6 +2,9 @@ import "server-only";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { supportTicket, user } from "@/db/schema";
+import { addNotification } from "@/db/queries/notifications";
+import { resolveSystemSenderId } from "@/db/queries/points";
+import { isMailConfigured, sendMail } from "@/lib/mailer";
 
 export interface FaqCategory {
   slug: string;
@@ -102,6 +105,9 @@ export interface SupportTicketListItem {
   createdAt: string;
   status: string;
   username: string | null;
+  userId: number | null;
+  adminReply: string | null;
+  repliedAt: string | null;
 }
 
 export async function getSupportTickets(statusFilter: "all" | "open" | "resolved" = "all"): Promise<SupportTicketListItem[]> {
@@ -114,6 +120,9 @@ export async function getSupportTickets(statusFilter: "all" | "open" | "resolved
       createdAt: supportTicket.createdAt,
       status: supportTicket.status,
       username: user.username,
+      userId: supportTicket.userId,
+      adminReply: supportTicket.adminReply,
+      repliedAt: supportTicket.repliedAt,
     })
     .from(supportTicket)
     .leftJoin(user, eq(supportTicket.userId, user.id))
@@ -125,4 +134,43 @@ export async function getSupportTickets(statusFilter: "all" | "open" | "resolved
 
 export async function setSupportTicketStatus(id: number, status: "open" | "resolved"): Promise<void> {
   await db.update(supportTicket).set({ status }).where(eq(supportTicket.id, id));
+}
+
+/**
+ * Real customer question (2026-09-09): "soru cevap yada yanıt gerekirse
+ * çözüldü dışında yanıt nasıl ilerler iletişim kanalı olarak" - the ticket
+ * queue only ever had an open/resolved status toggle, no way for an admin
+ * to actually write back. A signed-in requester (user_id set) gets a real
+ * in-app notification; a signed-out visitor (email-only ticket) gets an
+ * email instead, via the same Brevo transport as every other transactional
+ * email this app sends. Also marks the ticket resolved - a reply IS the
+ * resolution here, not a separate step the admin has to remember.
+ */
+export async function replyToSupportTicket(id: number, replyText: string): Promise<void> {
+  const trimmed = replyText.trim();
+  if (!trimmed) throw new Error("Yanıt boş olamaz.");
+
+  const [ticket] = await db.select().from(supportTicket).where(eq(supportTicket.id, id)).limit(1);
+  if (!ticket) throw new Error("Destek talebi bulunamadı.");
+
+  await db
+    .update(supportTicket)
+    .set({ adminReply: trimmed, repliedAt: new Date().toISOString().slice(0, 19).replace("T", " "), status: "resolved" })
+    .where(eq(supportTicket.id, id));
+
+  if (ticket.userId) {
+    const senderId = await resolveSystemSenderId();
+    if (senderId) {
+      const msg = `Destek talebinize yanıt verildi: ${trimmed}`;
+      await addNotification(ticket.userId, senderId, msg, msg);
+    }
+  } else if (isMailConfigured()) {
+    await sendMail(
+      ticket.email,
+      "DKList Destek Talebiniz Yanıtlandı",
+      `<p>Merhaba,</p><p>Gönderdiğiniz destek talebine yanıt verildi:</p><blockquote>${trimmed}</blockquote><p>DKList</p>`,
+    ).catch((err) => {
+      console.error("[support] reply email failed to send:", err);
+    });
+  }
 }

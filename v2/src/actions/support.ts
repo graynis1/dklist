@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { requireRole, USER_TYPES } from "@/lib/permission";
-import { createSupportTicket, setSupportTicketStatus, type CreateSupportTicketInput } from "@/db/queries/support";
+import { createSupportTicket, setSupportTicketStatus, replyToSupportTicket, type CreateSupportTicketInput } from "@/db/queries/support";
 import { getAiSupportResponse } from "@/lib/ai-support";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
@@ -38,4 +38,17 @@ export async function setSupportTicketStatusAction(
   }
   await setSupportTicketStatus(id, status);
   return { status: true };
+}
+
+export async function replyToSupportTicketAction(
+  id: number,
+  replyText: string,
+): Promise<{ status: boolean; message?: string }> {
+  try {
+    await requireRole([USER_TYPES.Admin, USER_TYPES.Mod]);
+    await replyToSupportTicket(id, replyText);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
 }

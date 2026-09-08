@@ -6,6 +6,7 @@ import { hasRole, USER_TYPES } from "@/lib/permission";
 import { getSupportTickets, FAQ_CATEGORIES } from "@/db/queries/support";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { SupportTicketStatusToggle } from "@/components/dklist/support-ticket-status-toggle";
+import { SupportTicketReplyForm } from "@/components/dklist/support-ticket-reply-form";
 
 const ALLOWED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
@@ -90,7 +91,10 @@ async function AdminSupportTicketsContent({
                 </p>
                 <p className="text-muted-foreground">{t.message}</p>
               </div>
-              <SupportTicketStatusToggle id={t.id} status={t.status} />
+              <div className="flex flex-col items-end gap-2">
+                <SupportTicketStatusToggle id={t.id} status={t.status} />
+                <SupportTicketReplyForm id={t.id} adminReply={t.adminReply} />
+              </div>
             </li>
           ))}
         </ul>
