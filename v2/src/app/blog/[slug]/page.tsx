@@ -287,7 +287,7 @@ async function BlogSidebar({ params }: { params: PageProps<"/blog/[slug]">["para
         </div>
       )}
       <Suspense fallback={null}>
-        <AdSlot placement="akis-sidebar" className="max-w-none px-0" />
+        <AdSlot placement="blog-post" className="max-w-none px-0" />
       </Suspense>
     </div>
   );

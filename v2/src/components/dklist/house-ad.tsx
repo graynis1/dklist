@@ -371,6 +371,19 @@ const HOUSE_ADS: Record<AdPlacementId, HouseAdSpec> = {
     accent: "oklch(0.8 0.13 55)",
     onAccent: "oklch(0.2 0.06 30)",
   },
+  // Customer's feedback doc (2026-09-07): blog had no dedicated placement -
+  // see ad-placements.ts's doc comment.
+  "blog-post": {
+    href: "/bloglar",
+    icon: PenToolIcon,
+    kicker: "DKList Blog",
+    title: "Kitap Dünyasından Yazılar",
+    sub: "Topluluğun kaleme aldığı yazıları keşfet, sen de kendi yazını paylaş.",
+    cta: "Bloglara Göz At",
+    edge: "linear-gradient(135deg, oklch(0.79 0.1 250), transparent 35%, transparent 65%, oklch(0.79 0.1 250))",
+    accent: "oklch(0.76 0.1 250)",
+    onAccent: "oklch(0.18 0.04 260)",
+  },
 };
 
 /** Corner glow + shimmering sweep + top-row (wordmark/disclosure) markup is

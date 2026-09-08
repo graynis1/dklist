@@ -141,9 +141,25 @@ export function MessageThread({
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Real customer report: "okumak için aşağı kaydırınca sayfa kendini
+  // sürekli atıyor" - the old effect force-scrolled to the bottom on EVERY
+  // `messages` change, including the 5s background poll, which always
+  // produced a new array reference even when nothing new arrived. Reading
+  // older messages got yanked back to the latest one every few seconds.
+  // Now only auto-scrolls when the viewer was already near the bottom (or
+  // this is the initial mount) - matches ordinary chat-app behavior, where
+  // scrolling up to read history is never fought by a background refresh.
+  const nearBottomRef = useRef(true);
+  const isFirstRenderRef = useRef(true);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      bottomRef.current?.scrollIntoView({ block: "end" });
+      return;
+    }
+    if (nearBottomRef.current) bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
 
   useEffect(() => {
@@ -169,6 +185,7 @@ export function MessageThread({
     const trimmed = text.trim();
     if (!trimmed) return;
     setText("");
+    nearBottomRef.current = true; // always jump to your own just-sent message
     startTransition(async () => {
       const result = await sendMessageAction(otherUsername, trimmed);
       if (result.status && result.sentId) {
@@ -203,7 +220,14 @@ export function MessageThread({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div
+        ref={scrollContainerRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+        }}
+        className="flex-1 overflow-y-auto px-4 py-4"
+      >
         {messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">Henüz mesaj yok - ilk mesajı sen gönder.</p>
         ) : (

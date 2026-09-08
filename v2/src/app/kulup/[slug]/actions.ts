@@ -12,6 +12,7 @@ import {
 import {
   joinClub,
   leaveClub,
+  removeClubMember,
   updateClubCurrentBook,
   updateClubDescription,
   updateClubName,
@@ -106,6 +107,20 @@ export async function leaveClubAction(clubId: number, slug: string): Promise<Act
   }
   try {
     await leaveClub(clubId, Number(session.user.id));
+    revalidatePath(`/kulup/${slug}`);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function removeClubMemberAction(clubId: number, slug: string, targetUserId: number): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    await removeClubMember(clubId, targetUserId, Number(session.user.id), session.user.userType ?? "");
     revalidatePath(`/kulup/${slug}`);
     return { status: true };
   } catch (err) {

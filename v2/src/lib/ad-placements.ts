@@ -49,6 +49,14 @@ export const AD_PLACEMENTS = [
   { id: "askida-kitap", label: "Askıda Kitap" },
   { id: "kulupler", label: "Kitap Kulüpleri Listesi" },
   { id: "listeler", label: "Listeler" },
+  // Customer's follow-up feedback doc (2026-09-07): "Blog kısmına reklam
+  // koyabilir miyiz orası da değerlendirilebilir unutmuşum" - the blog
+  // detail page was actually rendering an ad already, but it borrowed the
+  // "akis-sidebar" placement id wholesale (a copy/paste leftover), which
+  // meant an admin could not target the blog page specifically - any ad
+  // aimed at Akış's own sidebar would leak onto every blog post too, and
+  // there was no way to run a blog-only campaign. Real, separate placement.
+  { id: "blog-post", label: "Blog Yazısı" },
 ] as const;
 
 export type AdPlacementId = (typeof AD_PLACEMENTS)[number]["id"];

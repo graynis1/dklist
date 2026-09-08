@@ -221,6 +221,23 @@ export async function joinClub(clubId: number, userId: number): Promise<void> {
   updateTag("book-club-list");
 }
 
+/**
+ * Real customer question: "istenmeyen ve uygun olmayan kişiyi gruptan atıp
+ * yada almamak için kullanım açısından" (owner needs a way to remove an
+ * unwanted member) - the club had a join/leave path but nothing let the
+ * owner (or Admin/Mod) remove someone else. Owner can't remove themself
+ * this way (leaveClub already blocks that, matching "transfer or delete
+ * instead") or another owner-role row, since only one owner exists per club.
+ */
+export async function removeClubMember(clubId: number, targetUserId: number, actorUserId: number, actorUserType: string): Promise<void> {
+  await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  const [membership] = await db.select({ role: bookClubMember.role }).from(bookClubMember).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, targetUserId))).limit(1);
+  if (!membership) return;
+  if (membership.role === "owner") throw new Error("Kulüp sahibi çıkarılamaz.");
+  await db.delete(bookClubMember).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, targetUserId)));
+  updateTag("book-club-list");
+}
+
 export async function leaveClub(clubId: number, userId: number): Promise<void> {
   const [membership] = await db.select({ role: bookClubMember.role }).from(bookClubMember).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, userId))).limit(1);
   if (!membership) return;
