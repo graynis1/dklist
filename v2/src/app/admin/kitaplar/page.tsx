@@ -44,6 +44,17 @@ async function AdminBooksContent({
         description={`Kitap kayıtlarını yönet - toplam ${total} kayıt (tahmini).`}
       />
 
+      {/* Real gap found via customer question ("kitap ekleme kısmı var mı
+          yok mu kontrol et") - /kitap/yeni already existed and Admin
+          already had permission to use it (see DATA_ENTRY_ROLES), it just
+          had no link from here, so an admin browsing this panel would
+          never discover it. */}
+      <div className="mb-6">
+        <Link href="/kitap/yeni">
+          <Button>Yeni Kitap Ekle</Button>
+        </Link>
+      </div>
+
       <form action="/admin/kitaplar" className="mb-6 flex gap-2">
         <Input name="search" defaultValue={search} placeholder="Kitap adında ara..." />
         <Button type="submit" variant="outline">
