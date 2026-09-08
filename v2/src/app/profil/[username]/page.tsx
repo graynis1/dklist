@@ -159,6 +159,11 @@ async function ProfileContent({
   const profile = await getProfileByUsername(username);
 
   if (!profile) {
+    const { logServerError } = await import("@/db/queries/error-log");
+    await logServerError({
+      message: `profil debug: not found, username=${JSON.stringify(username)} len=${username.length} codePoints=${JSON.stringify(Array.from(username).map((c) => c.codePointAt(0)))}`,
+      url: `/profil/${username}`,
+    }).catch(() => {});
     notFound();
   }
 
