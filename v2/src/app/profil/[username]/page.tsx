@@ -170,6 +170,11 @@ async function ProfileContent({
   const profile = await getProfileByUsername(username);
 
   if (!profile) {
+    const { logServerError } = await import("@/db/queries/error-log");
+    await logServerError({
+      message: `profil debug2: rawUsername=${JSON.stringify(rawUsername)} decoded=${JSON.stringify(username)}`,
+      url: `/profil/${rawUsername}`,
+    }).catch(() => {});
     notFound();
   }
 
