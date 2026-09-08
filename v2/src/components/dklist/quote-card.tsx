@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ShareButton } from "@/components/dklist/share-button";
 
 /**
  * Alıntı-görsel paylaşım kartı - third item from the "what else could be
@@ -142,9 +143,17 @@ export function QuoteCard({ quoteText, sourceName }: { quoteText: string; source
             </Button>
             {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
               <Button size="sm" variant="ghost" className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground" disabled={isSharing} onClick={share}>
-                Paylaş
+                Cihazdan Paylaş
               </Button>
             )}
+            {/* Real customer report: no social-share fallback existed here
+                at all on desktop - same gap as PointsShareCard/
+                ReadingScoreCard/ReadingProgressShareCard, fixed the same
+                way. `quote` (not `url`) so the share link carries the real
+                quoted text as a query param - the entity page's own
+                generateMetadata already swaps its OG description for it
+                (see ShareButton's own doc comment on why). */}
+            <ShareButton content={`"${quoteText}" — ${sourceName}`} quote={quoteText} size="sm" />
           </>
         )}
       </div>

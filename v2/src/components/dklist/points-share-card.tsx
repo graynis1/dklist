@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ShareButton } from "@/components/dklist/share-button";
 
 export interface PointsShareStats {
   totalPoints: number;
@@ -135,9 +136,18 @@ export function PointsShareCard({ username, stats }: { username: string; stats: 
             </Button>
             {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
               <Button size="sm" variant="outline" disabled={isSharing} onClick={share}>
-                Paylaş
+                Cihazdan Paylaş
               </Button>
             )}
+            {/* Real customer report: "puan kartı oluşturuluyor ama paylaş
+                kısmında sosyal medya paylaşımı yok" - this card had no
+                fallback for desktop (where navigator.share doesn't exist)
+                at all, unlike ReadingGoalShareCard's identical pattern.
+                Same reasoning as there: WhatsApp/Facebook/X can only ever
+                attach a URL (they scrape its OG tags), never this local
+                canvas PNG, so this shares a real caption + profile link -
+                the actual image stays available via İndir/Cihazdan Paylaş. */}
+            <ShareButton content={`@${username} DKList'te ${stats.totalPoints.toLocaleString("tr-TR")} puana ulaştı! 🏆`} url={`/profil/${username}`} size="sm" />
           </>
         )}
       </div>

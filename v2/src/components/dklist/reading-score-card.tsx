@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ShareButton } from "@/components/dklist/share-button";
 import type { ReadingScoreStats } from "@/db/queries/profile";
 
 /**
@@ -129,9 +130,12 @@ export function ReadingScoreCard({ username, stats }: { username: string; stats:
             </Button>
             {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
               <Button size="sm" variant="outline" disabled={isSharing} onClick={share}>
-                Paylaş
+                Cihazdan Paylaş
               </Button>
             )}
+            {/* Same missing-social-share gap as the other canvas cards,
+                same fix. */}
+            <ShareButton content={`@${username} ${stats.year} yılında ${stats.booksRead} kitap okudu! 📚`} url={`/profil/${username}`} size="sm" />
           </>
         )}
       </div>

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TONE_STYLE, type BookCoverTone } from "@/components/dklist/book-cover";
+import { ShareButton } from "@/components/dklist/share-button";
 
 const STATUS_LABEL: Record<string, string> = {
   currentRead: "Şu an okuyorum",
@@ -181,9 +182,13 @@ export function ReadingProgressShareCard({
             </Button>
             {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
               <Button size="sm" variant="outline" disabled={isSharing} onClick={share}>
-                Paylaş
+                Cihazdan Paylaş
               </Button>
             )}
+            {/* Same missing-social-share gap as the other canvas cards,
+                same fix - default url (current book page) is correct here,
+                this card is only ever rendered on the book's own page. */}
+            <ShareButton content={`"${bookTitle}" — ${STATUS_LABEL[status]}${rating ? ` (${rating}/10)` : ""}`} size="sm" />
           </>
         )}
       </div>
