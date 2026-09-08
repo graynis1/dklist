@@ -14,6 +14,7 @@ export function CreateAdForm() {
   const [error, setError] = useState<string | null>(null);
   const [placement, setPlacement] = useState<string>(AD_PLACEMENTS[0].id);
   const formRef = useRef<HTMLFormElement>(null);
+  const recommendedSize = AD_PLACEMENTS.find((p) => p.id === placement)?.recommendedSize;
 
   function submit(formData: FormData) {
     setError(null);
@@ -45,6 +46,10 @@ export function CreateAdForm() {
           ))}
         </SelectContent>
       </Select>
+      {/* Same "what size do I even prepare" gap this closes on /reklam-ver -
+          shown here too since this is the other place someone picks a
+          placement and immediately needs to know what to upload. */}
+      {recommendedSize && <p className="text-xs text-muted-foreground">Önerilen görsel boyutu: {recommendedSize}</p>}
       <Input name="language" placeholder="Dil hedefleme (opsiyonel, örn: tr, en - boş = tüm diller)" />
       <Input name="linkUrl" placeholder="Bağlantı URL'si (opsiyonel)" />
       <Input type="number" name="sortOrder" placeholder="Sıra (küçük önce gösterilir)" defaultValue={0} />
