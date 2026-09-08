@@ -157,24 +157,19 @@ async function ProfileContent({
 }: {
   params: PageProps<"/profil/[username]">["params"];
 }) {
-  // Real customer-reported bug (2026-09-09), root-caused via direct
-  // logging: Next.js's dynamic route params for this segment are NOT
-  // reliably decoded - generateMetadata (above) got a real decoded
-  // username for the exact same request that reached this function
-  // still percent-encoded ("G%C3%BClten%20T%C3%BCrkel%20" instead of
-  // "Gülten Türkel "), so the DB lookup below found nothing and every
-  // profile with a space/non-ASCII character 404'd. See safeDecodeURIComponent's
-  // own doc comment for why this is safe to apply unconditionally.
+  // Real customer-reported bug (2026-09-09): Next.js's dynamic route
+  // params for this segment weren't reliably decoded for usernames
+  // needing URL escaping (spaces/non-ASCII characters), 404ing those
+  // profiles. Real fix is upstream now - usernames are restricted to
+  // characters that never need escaping at all (see registerUser()'s
+  // validation and the one-off normalization of existing accounts) -
+  // this decode stays as a harmless safety net for any edge case, not
+  // the primary fix.
   const { username: rawUsername } = await params;
   const username = safeDecodeURIComponent(rawUsername);
   const profile = await getProfileByUsername(username);
 
   if (!profile) {
-    const { logServerError } = await import("@/db/queries/error-log");
-    await logServerError({
-      message: `profil debug2: rawUsername=${JSON.stringify(rawUsername)} decoded=${JSON.stringify(username)}`,
-      url: `/profil/${rawUsername}`,
-    }).catch(() => {});
     notFound();
   }
 

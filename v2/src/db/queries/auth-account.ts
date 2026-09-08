@@ -98,6 +98,19 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
   if (password.length < 6) {
     throw new Error("Şifre en az 6 karakter olmalıdır.");
   }
+  // Real customer-reported bug (2026-09-09): usernames with spaces or
+  // Turkish/non-ASCII characters (never blocked before - v1 had no
+  // format check either) broke Next.js's own dynamic route param
+  // handling (generateMetadata and the page component received
+  // inconsistently decoded values for the same request, confirmed via
+  // direct logging), 404ing every profile/takipçi/takip-edilen link for
+  // that account. Rather than keep fighting framework internals,
+  // usernames are now restricted to characters that never need URL
+  // escaping in the first place - existing accounts were separately
+  // normalized to the same rule (see the one-off migration script).
+  if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+    throw new Error("Kullanıcı adı sadece harf, rakam, nokta, tire ve alt çizgi içerebilir (boşluk veya Türkçe karakter kullanılamaz).");
+  }
 
   for (const text of [name, surname, username, mail]) {
     if (isDirty(text)) {

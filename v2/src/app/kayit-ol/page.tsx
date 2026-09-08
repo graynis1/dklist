@@ -50,7 +50,13 @@ export default function RegisterPage({ searchParams }: PageProps<"/kayit-ol">) {
                 <Input name="name" placeholder="İsim" required />
                 <Input name="surname" placeholder="Soyisim" required />
               </div>
-              <Input name="username" placeholder="Kullanıcı adı" required />
+              <Input
+                name="username"
+                placeholder="Kullanıcı adı"
+                required
+                pattern="[a-zA-Z0-9_.\-]+"
+                title="Sadece harf, rakam, nokta, tire ve alt çizgi kullanılabilir (boşluk veya Türkçe karakter olmaz)."
+              />
               <Input name="mail" type="email" placeholder="E-posta" required />
               <div className="grid grid-cols-2 gap-4">
                 <Select name="sex" required>
