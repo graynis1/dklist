@@ -61,6 +61,7 @@ import { getTotalReadingMinutes } from "@/db/queries/reading-status";
 import { isUserPremium } from "@/db/queries/premium";
 import { ExpandableShelf } from "@/components/dklist/expandable-shelf";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { safeDecodeURIComponent } from "@/lib/utils";
 
 const STATUS_LABELS: Record<(typeof READ_STATUSES)[number], string> = {
   finishRead: "Okudum",
@@ -113,7 +114,8 @@ const STATUS_TINTS: Record<(typeof READ_STATUSES)[number], keyof typeof SECTION_
 };
 
 export async function generateMetadata({ params }: PageProps<"/profil/[username]">): Promise<Metadata> {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  const username = safeDecodeURIComponent(rawUsername);
   const profile = await getProfileByUsername(username);
   if (!profile) return {};
 
@@ -155,15 +157,19 @@ async function ProfileContent({
 }: {
   params: PageProps<"/profil/[username]">["params"];
 }) {
-  const { username } = await params;
+  // Real customer-reported bug (2026-09-09), root-caused via direct
+  // logging: Next.js's dynamic route params for this segment are NOT
+  // reliably decoded - generateMetadata (above) got a real decoded
+  // username for the exact same request that reached this function
+  // still percent-encoded ("G%C3%BClten%20T%C3%BCrkel%20" instead of
+  // "Gülten Türkel "), so the DB lookup below found nothing and every
+  // profile with a space/non-ASCII character 404'd. See safeDecodeURIComponent's
+  // own doc comment for why this is safe to apply unconditionally.
+  const { username: rawUsername } = await params;
+  const username = safeDecodeURIComponent(rawUsername);
   const profile = await getProfileByUsername(username);
 
   if (!profile) {
-    const { logServerError } = await import("@/db/queries/error-log");
-    await logServerError({
-      message: `profil debug: not found, username=${JSON.stringify(username)} len=${username.length} codePoints=${JSON.stringify(Array.from(username).map((c) => c.codePointAt(0)))}`,
-      url: `/profil/${username}`,
-    }).catch(() => {});
     notFound();
   }
 

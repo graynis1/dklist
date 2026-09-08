@@ -14,9 +14,11 @@ import { FollowButton } from "@/components/dklist/follow-button";
 import { AuthorPostForm } from "@/components/dklist/author-post-form";
 import { AuthorPostRow } from "@/components/dklist/author-post-row";
 import { ProfileLink } from "@/components/dklist/profile-link";
+import { safeDecodeURIComponent } from "@/lib/utils";
 
 export async function generateMetadata({ params }: PageProps<"/yazarhane/[username]">): Promise<Metadata> {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  const username = safeDecodeURIComponent(rawUsername);
   const hub = await getAuthorHubByUsername(username);
   if (!hub) return {};
 
@@ -44,7 +46,8 @@ async function AuthorHubContent({
 }: {
   params: PageProps<"/yazarhane/[username]">["params"];
 }) {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  const username = safeDecodeURIComponent(rawUsername);
   const hub = await getAuthorHubByUsername(username);
   if (!hub) notFound();
 

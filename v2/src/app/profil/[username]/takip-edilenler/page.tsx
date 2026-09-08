@@ -9,6 +9,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { FollowList } from "@/components/dklist/follow-list";
 import { getProfileByUsername, getFollowingList } from "@/db/queries/profile";
 import { ProfileLink } from "@/components/dklist/profile-link";
+import { safeDecodeURIComponent } from "@/lib/utils";
 
 export default function FollowingPage({ params }: PageProps<"/profil/[username]/takip-edilenler">) {
   return (
@@ -28,7 +29,8 @@ async function FollowingContent({
 }: {
   params: PageProps<"/profil/[username]/takip-edilenler">["params"];
 }) {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  const username = safeDecodeURIComponent(rawUsername);
   const profile = await getProfileByUsername(username);
   if (!profile) {
     notFound();
