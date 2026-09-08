@@ -17,3 +17,24 @@ export async function register() {
     });
   }
 }
+
+/**
+ * Real customer ask (2026-09-08): "sisteme çok geniş kapsamlı bir error
+ * log da koy" (put a comprehensive error log into the system) - the only
+ * error visibility that existed before this was `docker logs` (unstructured,
+ * unsearchable, gone after a restart/rotation). Next.js's own official hook
+ * for this - catches errors from Server Components, Route Handlers, and
+ * Server Actions with real request context. `err` may be React's processed
+ * version rather than the original throw, which is exactly what `digest`
+ * is for (see this file's own doc comment reference, and Next's own docs).
+ * Still `console.error`s too - this is additive, not a replacement for the
+ * existing log stream.
+ */
+export const onRequestError: import("next").Instrumentation.onRequestError = async (err, request) => {
+  console.error("[onRequestError]", request.path, err);
+  const { logServerError } = await import("@/db/queries/error-log");
+  const message = err instanceof Error ? err.message : String(err);
+  const stack = err instanceof Error ? (err.stack ?? null) : null;
+  const digest = typeof err === "object" && err !== null && "digest" in err ? String((err as { digest: unknown }).digest) : null;
+  await logServerError({ message, stack, url: request.path, method: request.method, source: "server", digest });
+};

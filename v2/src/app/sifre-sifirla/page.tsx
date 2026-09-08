@@ -81,7 +81,7 @@ async function ResetForm({
           Sıfırlama kodu e-posta adresinize gönderildi.
         </p>
       )}
-      <Input name="code" placeholder="Sıfırlama kodu" required maxLength={5} />
+      <Input name="code" placeholder="Sıfırlama kodu" required maxLength={5} className="uppercase" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" className="w-full">
         Şifreyi Sıfırla

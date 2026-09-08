@@ -335,12 +335,26 @@ export async function getBookAdminList(
   const lastPage = Math.max(1, Math.ceil(total / safeSize));
   const safePage = Math.min(Math.max(1, page), lastPage);
 
+  // Real customer-reported bug (2026-09-08): "admin panelde kitaplar
+  // başlığını açamıyorum, hata veriyor" - this ORDER BY previously led with
+  // `book.approve`, a near-constant column with no composite index behind
+  // it (confirmed via EXPLAIN: `type: ALL`, ~95.7M rows scanned, `Using
+  // filesort`, on every unfiltered page load - the exact disease class
+  // already fixed for category pages elsewhere in this codebase's history).
+  // Pending approvals already have their own dedicated, correctly-scoped
+  // review page (getPendingBookSubmissions() below - filters approve=0
+  // FIRST via the existing single-column index, then sorts a small result),
+  // so this general browse list never needed to surface them by sort order
+  // too - the inline "Onay bekliyor" badge (see the page component) still
+  // flags whichever pending books land in view. Sorting by `id` alone uses
+  // the primary key directly - no filesort, no scan, confirmed via EXPLAIN
+  // (`type: index`, `Using index`, no filesort).
   const items = await db
     .select({ id: book.id, name: book.name, orgName: book.orgName, lang: book.lang, publisherName: publisher.name, approve: book.approve })
     .from(book)
     .innerJoin(publisher, eq(book.publisherId, publisher.id))
     .where(whereClause)
-    .orderBy(book.approve, desc(book.id))
+    .orderBy(desc(book.id))
     .limit(safeSize)
     .offset((safePage - 1) * safeSize);
 

@@ -1262,3 +1262,20 @@ export const blogLike = mysqlTable("blog_like", {
 	index("idx_blog_like_blog").on(table.blogId),
 	primaryKey({ columns: [table.id], name: "blog_like_id" }),
 ]);
+
+export const errorLog = mysqlTable("error_log", {
+	id: int().autoincrement().notNull(),
+	message: text().notNull(),
+	stack: text(),
+	url: varchar({ length: 1000 }),
+	method: varchar({ length: 10 }),
+	userId: int("user_id"),
+	source: varchar({ length: 20 }).notNull().default("server"),
+	digest: varchar({ length: 50 }),
+	createdDate: datetime("created_date", { mode: "string" }).notNull(),
+},
+(table) => [
+	index("idx_error_log_created").on(table.createdDate),
+	index("idx_error_log_digest").on(table.digest),
+	primaryKey({ columns: [table.id], name: "error_log_id" }),
+]);

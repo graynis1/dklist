@@ -57,6 +57,7 @@ export const ADMIN_CATEGORIES: AdminCategory[] = [
       { href: "/admin/haftalik-kazanan", label: "Haftalık Kazanan", description: "Haftalık puan lideri ödülünü kaydet/teslim et", roles: [USER_TYPES.Admin] },
       { href: "/admin/ayin-kitabi", label: "Ayın Kitabı", description: "Topluluk okuma etkinliği için ayın kitabını belirle", roles: [USER_TYPES.Admin] },
       { href: "/admin/aktivite-gunlugu", label: "Aktivite Günlüğü", description: "Mod/Kütüphaneci/Admin yetkili işlemlerin denetim kaydı, kişi başına sayım", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
+      { href: "/admin/hata-gunlugu", label: "Hata Günlüğü", description: "Sunucu ve tarayıcı tarafında yakalanan gerçek hatalar, tekrar sayısına göre gruplu", roles: [USER_TYPES.Mod, USER_TYPES.Admin] },
     ],
   },
   {

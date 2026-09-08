@@ -55,7 +55,7 @@ async function VerifyForm({
             içinde gelmezse gereksiz/spam klasörünü de kontrol edin.
           </p>
         )}
-        <Input name="code" placeholder="Doğrulama kodu" required maxLength={5} />
+        <Input name="code" placeholder="Doğrulama kodu" required maxLength={5} className="uppercase" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full">
           Doğrula

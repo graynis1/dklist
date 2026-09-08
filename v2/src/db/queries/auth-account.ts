@@ -24,6 +24,33 @@ function generateToken(length = 30): string {
   return token;
 }
 
+// Real customer-reported bug (2026-09-08, via WhatsApp): a member's
+// verification code kept getting rejected, then rejected again after a
+// resend, then STILL rejected after the admin deleted and let them
+// re-register from scratch - ruling out stale data, pointing at the
+// comparison itself. Root cause: the 5-char code (generateToken(5)) drew
+// from a 63-character mixed-case alphabet and verifyMailCode()/
+// confirmPasswordReset() compared it with a plain `!==`, no normalization -
+// a code like "aB3fD" is genuinely hard to retype correctly from an email
+// (case, and visually-ambiguous 0/O/1/l/I), and the tiniest mismatch fails
+// silently with no hint why. Human-entered codes now draw from an
+// unambiguous, single-case, confusable-character-free alphabet, and the
+// comparison normalizes both sides (trim + uppercase) as a second layer -
+// belt and suspenders, since old pending codes issued before this fix are
+// still mixed-case in the database and must keep verifying correctly.
+const VERIFICATION_CODE_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // no 0/O/1/I/l
+function generateVerificationCode(length = 5): string {
+  const bytes = randomBytes(length);
+  let code = "";
+  for (let i = 0; i < length; i++) {
+    code += VERIFICATION_CODE_CHARS[bytes[i] % VERIFICATION_CODE_CHARS.length];
+  }
+  return code;
+}
+function normalizeCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
 export interface RegisterInput {
   name: string;
   surname: string;
@@ -98,7 +125,7 @@ export async function registerUser(input: RegisterInput): Promise<RegisterResult
     throw new Error("Bu e-posta adresi ile kayıt oluşturulamıyor.");
   }
 
-  const verificationCode = generateToken(5);
+  const verificationCode = generateVerificationCode();
   const passwordHash = await bcrypt.hash(password, 10);
 
   const [result] = await db.insert(user).values({
@@ -161,7 +188,7 @@ export async function resendVerificationCode(userId: number): Promise<ResendVeri
   if (!row) throw new Error("Kullanıcı bulunamadı.");
   if (row.mailAuth === 1) throw new Error("Hesabınız zaten doğrulanmış.");
 
-  const verificationCode = generateToken(5);
+  const verificationCode = generateVerificationCode();
   await db.update(user).set({ pendingCode: verificationCode }).where(eq(user.id, userId));
 
   const mailSent = isMailConfigured();
@@ -181,7 +208,7 @@ export async function verifyMailCode(userId: number, code: string): Promise<void
     .where(eq(user.id, userId))
     .limit(1);
 
-  if (!row || !row.pendingCode || row.pendingCode !== code) {
+  if (!row || !row.pendingCode || normalizeCode(row.pendingCode) !== normalizeCode(code)) {
     throw new Error("Doğrulama kodu yanlış.");
   }
 
@@ -208,7 +235,7 @@ export async function requestPasswordReset(target: string): Promise<ResetPasswor
     throw new Error("Böyle bir hesap yok.");
   }
 
-  const resetCode = generateToken(5);
+  const resetCode = generateVerificationCode();
   await db.update(user).set({ pendingCode: resetCode }).where(eq(user.id, row.id));
 
   const mailSent = isMailConfigured();
@@ -241,7 +268,7 @@ export async function resendResetCode(userId: number): Promise<ResendResetCodeRe
   const [row] = await db.select({ mail: user.mail, username: user.username }).from(user).where(eq(user.id, userId)).limit(1);
   if (!row) throw new Error("Kullanıcı bulunamadı.");
 
-  const resetCode = generateToken(5);
+  const resetCode = generateVerificationCode();
   await db.update(user).set({ pendingCode: resetCode }).where(eq(user.id, userId));
 
   const mailSent = isMailConfigured();
@@ -272,7 +299,7 @@ export async function confirmPasswordReset(userId: number, code: string): Promis
     .where(eq(user.id, userId))
     .limit(1);
 
-  if (!row || !row.pendingCode || row.pendingCode !== code) {
+  if (!row || !row.pendingCode || normalizeCode(row.pendingCode) !== normalizeCode(code)) {
     throw new Error("Yanlış kod.");
   }
 
