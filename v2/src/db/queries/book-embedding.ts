@@ -134,7 +134,22 @@ export async function semanticSearchBooks(term: string, limit = 8): Promise<Sema
   }
   if (queryVector.length === 0) return [];
 
-  const rows = await db.select({ bookId: bookEmbedding.bookId, embedding: bookEmbedding.embedding }).from(bookEmbedding);
+  // Real latent bug found 2026-09-08 while investigating chronic slowness:
+  // this ran with no WHERE/LIMIT at all - a full table scan of every stored
+  // embedding, on EVERY search request. Currently harmless only because
+  // `book_embedding` is empty in production (embeddings are computed lazily
+  // on new/re-approved submissions, never backfilled) - the moment it holds
+  // any real volume, every concurrent search would hold a full copy of the
+  // whole table in memory simultaneously, a genuine growing cost tied to
+  // both catalog size and request volume. Capped defensively so this can
+  // never regress into that shape unnoticed - a real ANN index (or external
+  // vector store) is the actual fix once this table is large enough for the
+  // cap to matter, see this function's own doc comment above.
+  const EMBEDDING_SCAN_CAP = 5000;
+  const rows = await db
+    .select({ bookId: bookEmbedding.bookId, embedding: bookEmbedding.embedding })
+    .from(bookEmbedding)
+    .limit(EMBEDDING_SCAN_CAP);
   if (rows.length === 0) return [];
 
   const scored = rows
