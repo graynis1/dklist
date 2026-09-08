@@ -26,6 +26,7 @@ import {
   getWeeklyGiftSettings,
 } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export default function LeaderboardPage({ searchParams }: PageProps<"/puan-tablosu">) {
   return (
@@ -193,9 +194,9 @@ async function LeaderboardContent({
                 <AvatarImage src={avatarUrl(entry.image) ?? undefined} />
                 <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <Link href={`/profil/${encodeURIComponent(entry.username)}`} className="flex-1 truncate text-sm font-medium hover:underline">
+              <ProfileLink username={entry.username} className="flex-1 truncate text-sm font-medium hover:underline">
                 @{entry.username}
-              </Link>
+              </ProfileLink>
               <span className="text-sm font-medium">{entry.points} puan</span>
             </li>
           ))}
@@ -215,9 +216,9 @@ async function LeaderboardContent({
             {pastWinners.map((w) => (
               <li key={w.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
                 <div className="flex flex-col">
-                  <Link href={`/profil/${encodeURIComponent(w.username)}`} className="font-medium hover:underline">
+                  <ProfileLink username={w.username} className="font-medium hover:underline">
                     @{w.username}
-                  </Link>
+                  </ProfileLink>
                   <span className="text-xs text-muted-foreground">{w.yearWeek} · {w.points} puan</span>
                 </div>
                 <div className="text-right text-xs text-muted-foreground">

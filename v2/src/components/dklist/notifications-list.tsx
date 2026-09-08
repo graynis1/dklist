@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { markAllReadAction, deleteNotificationAction, deleteAllNotificationsAction } from "@/app/bildirimler/actions";
 import type { NotificationItem } from "@/db/queries/notifications";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export function NotificationsList({ initialItems }: { initialItems: NotificationItem[] }) {
   const [items, setItems] = useState(initialItems);
@@ -77,9 +77,9 @@ export function NotificationsList({ initialItems }: { initialItems: Notification
               }`}
             >
               <span>
-                <Link href={`/profil/${encodeURIComponent(n.senderUsername)}`} className="font-medium hover:underline">
+                <ProfileLink username={n.senderUsername} className="font-medium hover:underline">
                   @{n.senderUsername}
-                </Link>
+                </ProfileLink>
                 <span className="ml-1">{n.contentTr}</span>
               </span>
               <button

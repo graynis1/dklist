@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { NOINDEX_METADATA } from "@/lib/seo";
 
 export const metadata: Metadata = NOINDEX_METADATA;
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
@@ -16,6 +15,7 @@ import { auth } from "@/auth";
 import { getConversations, getMessages, getMessageRequests } from "@/db/queries/messages";
 import { getProfileByUsername } from "@/db/queries/profile";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export default function MessagesPage({ searchParams }: PageProps<"/mesajlar">) {
   return (
@@ -119,9 +119,9 @@ async function MessagesContent({
                 frameTier={decorationFor(decorations, activeProfile.id).frameTier}
                 highestBadge={decorationFor(decorations, activeProfile.id).highestBadge}
               />
-              <Link href={`/profil/${encodeURIComponent(activeProfile.username)}`} className="font-medium hover:underline">
+              <ProfileLink username={activeProfile.username} className="font-medium hover:underline">
                 @{activeProfile.username}
-              </Link>
+              </ProfileLink>
             </div>
             <MessageThread
               key={activeProfile.username}

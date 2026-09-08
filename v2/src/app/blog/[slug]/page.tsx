@@ -25,6 +25,7 @@ import { BlogViewTracker } from "@/components/dklist/blog-view-tracker";
 import { addBlogCommentAction, addBlogReplyAction, shareBlogCommentAction } from "@/actions/blog";
 import { EyeIcon } from "lucide-react";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 const ELEVATED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 
@@ -148,9 +149,9 @@ async function BlogDetailContent({
         )}
         <span>
           {post.ownerUsername ? (
-            <Link href={`/profil/${encodeURIComponent(post.ownerUsername)}`} className="font-medium text-foreground hover:underline">
+            <ProfileLink username={post.ownerUsername} className="font-medium text-foreground hover:underline">
               @{post.ownerUsername}
-            </Link>
+            </ProfileLink>
           ) : null}
           {post.ownerUsername ? " · " : ""}
           {post.createdDate}

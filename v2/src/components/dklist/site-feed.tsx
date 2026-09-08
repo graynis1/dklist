@@ -33,6 +33,7 @@ import { formatRelativeTime } from "@/lib/utils";
 import { feedPostImageUrl } from "@/lib/image-urls";
 import { loadMoreFeedAction, deleteFeedPostAction, updateFeedPostAction } from "@/app/akis/actions";
 import type { FeedItem } from "@/db/queries/feed";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 const ICON_BY_REASON = {
   book_read: BookOpenIcon,
@@ -168,9 +169,9 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
       />
       <div className="flex min-w-0 flex-col">
         <div className="flex flex-wrap items-center gap-1.5 text-sm leading-tight">
-          <Link href={`/profil/${encodeURIComponent(item.actorUsername)}`} className="font-medium hover:underline">
+          <ProfileLink username={item.actorUsername} className="font-medium hover:underline">
             @{item.actorUsername}
-          </Link>
+          </ProfileLink>
           <span className="text-muted-foreground">{verb}</span>
           {target && !isPost && <span className="font-medium">{target}</span>}
         </div>

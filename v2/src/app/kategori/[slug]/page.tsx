@@ -90,11 +90,18 @@ async function CategoryContent({
     total = result.total;
     lastPage = result.lastPage;
   } catch (err) {
-    // TEMP DEBUG (2026-09-09): logging the real error to diagnose the
-    // "0 kitap" regression report - remove once root-caused.
+    // Real customer-reported bug (2026-09-09): "sıralama olmuş ama
+    // kategorilerde 0 kitap diyor" - root-caused via this exact logging:
+    // getBooksByCategory's MAX_EXECUTION_TIME circuit breaker was tripping
+    // on real, cold (never-cached) category+sort combinations under real
+    // disk load, throwing instead of hanging, exactly as designed - but a
+    // degraded "no books" result is still a bad first impression. Kept
+    // permanently (not removed after diagnosis) since a tripped circuit
+    // breaker is a genuinely useful signal to have in the error log going
+    // forward, not just for this one investigation.
     const { logServerError } = await import("@/db/queries/error-log");
     await logServerError({
-      message: `kategori debug: ${err instanceof Error ? err.message : String(err)}`,
+      message: `kategori circuit-breaker: ${err instanceof Error ? err.message : String(err)}`,
       stack: err instanceof Error ? err.stack ?? null : null,
       url: `/kategori/${slug}?sortBy=${sortBy}&page=${page}`,
       source: "server",

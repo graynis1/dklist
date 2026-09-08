@@ -11,6 +11,7 @@ import { getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
 import { currentISOWeek } from "@/lib/iso-week";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -77,7 +78,7 @@ export async function CommunityRightRail() {
           <ul className="flex flex-col gap-3">
             {suggestions.map((s) => (
               <li key={s.id} className="flex items-center gap-2.5">
-                <Link href={`/profil/${encodeURIComponent(s.username)}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+                <ProfileLink username={s.username} className="flex min-w-0 flex-1 items-center gap-2.5">
                   <EntityAvatar
                     id={s.id}
                     name={s.username}
@@ -92,7 +93,7 @@ export async function CommunityRightRail() {
                     <span className="truncate text-sm font-medium">@{s.username}</span>
                     <span className="text-xs text-muted-foreground">{s.sharedBookCount} ortak kitap</span>
                   </div>
-                </Link>
+                </ProfileLink>
                 <FollowButton targetUserId={s.id} initialFollowing={false} className="h-7 shrink-0 px-2.5 text-xs" />
               </li>
             ))}
@@ -105,7 +106,7 @@ export async function CommunityRightRail() {
           <ul className="flex flex-col gap-2.5">
             {leaders.map((l, i) => (
               <li key={l.userId}>
-                <Link href={`/profil/${encodeURIComponent(l.username)}`} className="flex items-center gap-2.5 rounded-lg -m-1.5 p-1.5 transition-colors hover:bg-accent">
+                <ProfileLink username={l.username} className="flex items-center gap-2.5 rounded-lg -m-1.5 p-1.5 transition-colors hover:bg-accent">
                   <span className="text-base leading-none">{MEDALS[i]}</span>
                   <EntityAvatar
                     id={l.userId}
@@ -119,7 +120,7 @@ export async function CommunityRightRail() {
                   />
                   <span className="truncate text-sm font-medium">@{l.username}</span>
                   <span className="ml-auto shrink-0 text-xs text-muted-foreground">{l.points} puan</span>
-                </Link>
+                </ProfileLink>
               </li>
             ))}
           </ul>

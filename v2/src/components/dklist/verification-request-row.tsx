@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { approveVerificationAction, rejectVerificationAction } from "@/app/admin/dogrulama/actions";
 import type { PendingVerificationItem } from "@/db/queries/identity-verification";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export function VerificationRequestRow({ item }: { item: PendingVerificationItem }) {
   const [resolved, setResolved] = useState(false);
@@ -37,9 +37,9 @@ export function VerificationRequestRow({ item }: { item: PendingVerificationItem
     <li className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href={`/profil/${encodeURIComponent(item.username)}`} className="font-medium hover:underline">
+          <ProfileLink username={item.username} className="font-medium hover:underline">
             @{item.username}
-          </Link>
+          </ProfileLink>
           {item.note && <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>}
           <p className="text-xs text-muted-foreground/70">{item.submittedAt}</p>
         </div>

@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
@@ -11,6 +10,7 @@ import { RecordWinnerForm } from "@/components/dklist/record-winner-form";
 import { FulfillWinnerButton } from "@/components/dklist/fulfill-winner-button";
 import { DeleteWinnerButton } from "@/components/dklist/delete-winner-button";
 import { WeeklyGiftSettingsForm } from "@/components/dklist/weekly-gift-settings-form";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 // Choosing/mailing the actual free book is a real admin action (recording a
 // weekly winner, unlike simply viewing the leaderboard) - Admin-only, same
@@ -81,9 +81,9 @@ async function AdminWeeklyWinnerContent() {
             {pastWinners.map((w) => (
               <li key={w.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
                 <div>
-                  <Link href={`/profil/${encodeURIComponent(w.username)}`} className="font-medium hover:underline">
+                  <ProfileLink username={w.username} className="font-medium hover:underline">
                     @{w.username}
-                  </Link>
+                  </ProfileLink>
                   <span className="text-xs text-muted-foreground"> · {w.yearWeek} · {w.points} puan</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

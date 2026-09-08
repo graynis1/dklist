@@ -12,6 +12,7 @@ import { RemoveFromListButton } from "@/components/dklist/remove-from-list-butto
 import { ListManageDetails } from "@/components/dklist/list-manage-details";
 import { ShareButton } from "@/components/dklist/share-button";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export async function generateMetadata({ params }: PageProps<"/liste/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -77,9 +78,9 @@ async function ListDetailContent({
         <h1 className="font-heading text-4xl font-medium tracking-tight">{list.title}</h1>
         {list.description && <p className="max-w-2xl text-muted-foreground">{list.description}</p>}
         <p className="text-sm text-muted-foreground">
-          <Link href={`/profil/${encodeURIComponent(list.ownerUsername)}`} className="hover:underline">
+          <ProfileLink username={list.ownerUsername} className="hover:underline">
             @{list.ownerUsername}
-          </Link>{" "}
+          </ProfileLink>{" "}
           · {list.books.length} kitap{!list.isPublic && " · Gizli"}
         </p>
         {isOwner && <ListManageDetails listId={list.id} title={list.title} description={list.description} isPublic={list.isPublic} />}

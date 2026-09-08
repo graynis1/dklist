@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 import { NOINDEX_METADATA } from "@/lib/seo";
 
 export const metadata: Metadata = NOINDEX_METADATA;
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { FollowList } from "@/components/dklist/follow-list";
 import { getProfileByUsername, getFollowersList } from "@/db/queries/profile";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export default function FollowersPage({ params }: PageProps<"/profil/[username]/takipciler">) {
   return (
@@ -40,9 +40,9 @@ async function FollowersContent({
     <>
       <div className="mb-8 flex flex-col gap-2">
         <SectionLabel>
-          <Link href={`/profil/${encodeURIComponent(username)}`} className="hover:underline">
+          <ProfileLink username={username} className="hover:underline">
             @{username}
-          </Link>
+          </ProfileLink>
         </SectionLabel>
         <h1 className="font-heading text-3xl font-medium tracking-tight">Takipçiler</h1>
       </div>

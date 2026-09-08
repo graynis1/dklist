@@ -9,6 +9,7 @@ import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations
 import { feedPostImageUrl } from "@/lib/image-urls";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { formatRelativeTime } from "@/lib/utils";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 /**
  * Real permalink for a standalone feed post - see getFeedPostById()'s doc
@@ -67,9 +68,9 @@ async function FeedPostContent({ params }: { params: PageProps<"/gonderi/[id]">[
             highestBadge={decoration.highestBadge}
           />
           <div className="flex flex-col">
-            <Link href={`/profil/${encodeURIComponent(post.authorUsername)}`} className="font-medium hover:underline">
+            <ProfileLink username={post.authorUsername} className="font-medium hover:underline">
               @{post.authorUsername}
-            </Link>
+            </ProfileLink>
             <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>
           </div>
         </div>

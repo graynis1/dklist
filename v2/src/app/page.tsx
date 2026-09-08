@@ -22,6 +22,7 @@ import { FollowButton } from "@/components/dklist/follow-button";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { RecentlyViewedShelf } from "@/components/dklist/recently-viewed-shelf";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 const STATS = [
   { value: "98M+", label: "Katalogdaki Kitap" },
@@ -440,7 +441,7 @@ async function FollowSuggestionsWidget() {
           key={s.id}
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-2 pl-1 text-sm"
         >
-          <Link href={`/profil/${encodeURIComponent(s.username)}`} className="flex items-center gap-2 hover:underline">
+          <ProfileLink username={s.username} className="flex items-center gap-2 hover:underline">
             <EntityAvatar
               id={s.id}
               name={s.username}
@@ -452,7 +453,7 @@ async function FollowSuggestionsWidget() {
               highestBadge={decorationFor(decorations, s.id).highestBadge}
             />
             @{s.username}
-          </Link>
+          </ProfileLink>
           <span className="text-xs text-muted-foreground">{s.sharedBookCount} ortak kitap</span>
           <FollowButton targetUserId={s.id} initialFollowing={false} />
         </div>

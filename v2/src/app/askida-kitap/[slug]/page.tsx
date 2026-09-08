@@ -27,6 +27,7 @@ import { getEntityComments, getRepliesForComments } from "@/db/queries/comments"
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { rateSellerAction, addSellerReviewAction, addSellerReviewReplyAction, shareSellerReviewAction } from "./actions";
 import { Button } from "@/components/ui/button";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Mevcut",
@@ -120,9 +121,9 @@ async function StoreDetailContent({
           {item.title}
         </h1>
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href={`/profil/${encodeURIComponent(item.ownerUsername)}`} className="hover:underline">
+          <ProfileLink username={item.ownerUsername} className="hover:underline">
             @{item.ownerUsername}
-          </Link>
+          </ProfileLink>
           {/* Real customer report: "satıcı için satıcı puanı... İlanda ki
               isminin yanında görünmeli" - Trendyol-style. */}
           {item.ownerSellerScore != null && (

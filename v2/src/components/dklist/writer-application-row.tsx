@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { approveWriterApplicationAction, rejectWriterApplicationAction } from "@/app/admin/yazar-basvurulari/actions";
 import type { PendingWriterApplication } from "@/db/queries/yazarhane";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export function WriterApplicationRow({ item }: { item: PendingWriterApplication }) {
   const [resolved, setResolved] = useState(false);
@@ -36,9 +36,9 @@ export function WriterApplicationRow({ item }: { item: PendingWriterApplication 
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div>
-        <Link href={`/profil/${encodeURIComponent(item.username)}`} className="font-medium hover:underline">
+        <ProfileLink username={item.username} className="font-medium hover:underline">
           @{item.username}
-        </Link>
+        </ProfileLink>
         {item.proposedWriterName && (
           <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
             Katalog eşleşmesi: {item.proposedWriterName}

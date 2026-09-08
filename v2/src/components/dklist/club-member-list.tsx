@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { XIcon } from "lucide-react";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 interface ActionResult {
   status: boolean;
@@ -50,10 +50,10 @@ export function ClubMemberList({
               key={m.userId}
               className="flex items-center gap-1 rounded-full border border-border py-1 pr-1 pl-3 text-sm"
             >
-              <Link href={`/profil/${encodeURIComponent(m.username)}`} className="hover:underline">
+              <ProfileLink username={m.username} className="hover:underline">
                 @{m.username}
                 {m.role === "owner" && <span className="ml-1 text-xs text-muted-foreground">(kurucu)</span>}
-              </Link>
+              </ProfileLink>
               {canManage && m.role !== "owner" && (
                 <button
                   type="button"

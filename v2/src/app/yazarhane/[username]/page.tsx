@@ -13,6 +13,7 @@ import { getFollowCounts, isFollowing } from "@/db/queries/profile";
 import { FollowButton } from "@/components/dklist/follow-button";
 import { AuthorPostForm } from "@/components/dklist/author-post-form";
 import { AuthorPostRow } from "@/components/dklist/author-post-row";
+import { ProfileLink } from "@/components/dklist/profile-link";
 
 export async function generateMetadata({ params }: PageProps<"/yazarhane/[username]">): Promise<Metadata> {
   const { username } = await params;
@@ -78,9 +79,9 @@ async function AuthorHubContent({
             {hub.writerBiyo ?? hub.biyo ?? "Bu yazar henüz bir biyografi eklemedi."}
           </p>
           <div className="flex gap-4 text-sm text-muted-foreground">
-            <Link href={`/profil/${encodeURIComponent(hub.username)}/takipciler`} className="hover:underline">
+            <ProfileLink username={hub.username} suffix="/takipciler" className="hover:underline">
               <strong className="text-foreground">{counts.followers}</strong> takipçi
-            </Link>
+            </ProfileLink>
           </div>
         </div>
         {viewerId && !isOwnHub && (
