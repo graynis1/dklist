@@ -64,7 +64,16 @@ export default function AdvertiseWithUsPage() {
                     <HouseAd placement={p.id} className="h-full px-0" />
                   </div>
                 </div>
-                <p className="border-t border-border p-3 text-sm font-medium">{p.label}</p>
+                <div className="border-t border-border p-3">
+                  <p className="text-sm font-medium">{p.label}</p>
+                  {/* Customer's ask (2026-09-05 doc, "reklam boyutları
+                      belirtilebilir mi"): the preview above shows WHERE an ad
+                      renders, but not what pixel dimensions to prepare - an
+                      advertiser can't tell that from a scaled-down screenshot
+                      alone. See ad-placements.ts's doc comment for how each
+                      size was derived from the real rendered layout. */}
+                  <p className="mt-0.5 text-xs text-muted-foreground">Önerilen boyut: {p.recommendedSize}</p>
+                </div>
               </li>
             ))}
           </ul>
