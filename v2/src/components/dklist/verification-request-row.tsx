@@ -37,7 +37,7 @@ export function VerificationRequestRow({ item }: { item: PendingVerificationItem
     <li className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href={`/profil/${item.username}`} className="font-medium hover:underline">
+          <Link href={`/profil/${encodeURIComponent(item.username)}`} className="font-medium hover:underline">
             @{item.username}
           </Link>
           {item.note && <p className="mt-1 text-sm text-muted-foreground">{item.note}</p>}

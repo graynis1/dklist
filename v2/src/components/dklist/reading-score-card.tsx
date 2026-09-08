@@ -135,7 +135,7 @@ export function ReadingScoreCard({ username, stats }: { username: string; stats:
             )}
             {/* Same missing-social-share gap as the other canvas cards,
                 same fix. */}
-            <ShareButton content={`@${username} ${stats.year} yılında ${stats.booksRead} kitap okudu! 📚`} url={`/profil/${username}`} size="sm" />
+            <ShareButton content={`@${username} ${stats.year} yılında ${stats.booksRead} kitap okudu! 📚`} url={`/profil/${encodeURIComponent(username)}`} size="sm" />
           </>
         )}
       </div>

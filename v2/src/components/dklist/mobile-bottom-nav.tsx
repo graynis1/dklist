@@ -84,7 +84,7 @@ async function SignedInItems() {
         )}
       </Link>
       <Link
-        href={`/profil/${session.user.name}`}
+        href={`/profil/${encodeURIComponent(session.user.name ?? "")}`}
         className="flex flex-col items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
       >
         <CircleUserIcon className="size-5" />

@@ -430,7 +430,7 @@ export async function getSiteFeed(opts: {
 
     if (r.reason === "follow" && r.entityId) {
       const u = userMap.get(r.entityId);
-      return { ...base, entityKind: "user", isQuote: false, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${u.username}` : null, excerpt: null };
+      return { ...base, entityKind: "user", isQuote: false, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${encodeURIComponent(u.username)}` : null, excerpt: null };
     }
 
     if (r.reason === "blog_published" && r.entityId) {
@@ -456,7 +456,7 @@ export async function getSiteFeed(opts: {
       // Same "no real entity, own profile is the destination" shape as
       // author_post - a goal isn't a row with its own page, it's an
       // attribute of the actor's own current-year reading stats.
-      return { ...base, entityKind: "user", isQuote: false, targetLabel: null, targetHref: `/profil/${r.actorUsername}`, excerpt: null, goalCount: goalCountByUser.get(r.actorId) ?? null };
+      return { ...base, entityKind: "user", isQuote: false, targetLabel: null, targetHref: `/profil/${encodeURIComponent(r.actorUsername)}`, excerpt: null, goalCount: goalCountByUser.get(r.actorId) ?? null };
     }
 
     return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null };

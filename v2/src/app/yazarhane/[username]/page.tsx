@@ -78,7 +78,7 @@ async function AuthorHubContent({
             {hub.writerBiyo ?? hub.biyo ?? "Bu yazar henüz bir biyografi eklemedi."}
           </p>
           <div className="flex gap-4 text-sm text-muted-foreground">
-            <Link href={`/profil/${hub.username}/takipciler`} className="hover:underline">
+            <Link href={`/profil/${encodeURIComponent(hub.username)}/takipciler`} className="hover:underline">
               <strong className="text-foreground">{counts.followers}</strong> takipçi
             </Link>
           </div>

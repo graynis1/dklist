@@ -147,7 +147,7 @@ export function PointsShareCard({ username, stats }: { username: string; stats: 
                 attach a URL (they scrape its OG tags), never this local
                 canvas PNG, so this shares a real caption + profile link -
                 the actual image stays available via İndir/Cihazdan Paylaş. */}
-            <ShareButton content={`@${username} DKList'te ${stats.totalPoints.toLocaleString("tr-TR")} puana ulaştı! 🏆`} url={`/profil/${username}`} size="sm" />
+            <ShareButton content={`@${username} DKList'te ${stats.totalPoints.toLocaleString("tr-TR")} puana ulaştı! 🏆`} url={`/profil/${encodeURIComponent(username)}`} size="sm" />
           </>
         )}
       </div>

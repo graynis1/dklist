@@ -385,13 +385,18 @@ async function getCategoryCandidatePool(
   // fetchCategoryPage - MAX_EXECUTION_TIME aborts a runaway plan with a
   // catchable error instead of letting it hang (and drag every other
   // query on this instance down with it) for however long it takes.
-  // Falls back to an empty "Benzer Kitaplar" section on timeout, not a
-  // crashed page.
-  let rows: unknown;
-  try {
-    rows =
-      categorySize < LARGE_CATEGORY_POOL_THRESHOLD
-        ? (await db.execute(sql`
+  //
+  // Real fix (2026-09-09): this used to catch the timeout and fall back to
+  // an empty pool - except this whole function is `"use cache"`, so that
+  // empty "Benzer Kitaplar" result got cached as truth for hours (the
+  // exact bug just found and fixed in books.ts's getBooksByCategory/
+  // getCategoryTurkishCount - missed here on that pass). No longer caught
+  // here - the throw propagates out of this cached function so Next never
+  // commits a cache entry for a transient failure; getSimilarBooks below
+  // (uncached) catches it per-request instead.
+  const rows: unknown =
+    categorySize < LARGE_CATEGORY_POOL_THRESHOLD
+      ? (await db.execute(sql`
             SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
               (b.image IS NOT NULL AND b.image != '') AS hasImage
             FROM book_category bc
@@ -423,9 +428,6 @@ async function getCategoryCandidatePool(
             ORDER BY b.score DESC
             LIMIT ${poolSize}
           `))[0];
-  } catch {
-    rows = [];
-  }
 
   return (rows as Omit<SimilarBook, "writers">[]).map((row) => ({ ...row, hasImage: Boolean(row.hasImage) }));
 }
@@ -457,11 +459,14 @@ export async function getSimilarBooks(bookId: number, categoryId: number, limit 
   // so the pool query stays cacheable across every book in this category)
   // might itself be one of the top results.
   const poolSize = limit * 4 + 4;
-  let pool = lang ? await getCategoryCandidatePool(categoryId, poolSize, lang) : [];
+  // getCategoryCandidatePool can throw on a MAX_EXECUTION_TIME timeout
+  // (deliberate - see its own doc comment) - caught here, per request,
+  // outside its cache boundary, same fix as getBooksByCategory in books.ts.
+  let pool = lang ? await getCategoryCandidatePool(categoryId, poolSize, lang).catch(() => []) : [];
   let rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
 
   if (rows.length < limit) {
-    pool = await getCategoryCandidatePool(categoryId, poolSize);
+    pool = await getCategoryCandidatePool(categoryId, poolSize).catch(() => []);
     rows = pool.filter((r) => r.id !== bookId).slice(0, limit * 4);
   }
 

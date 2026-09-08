@@ -39,7 +39,7 @@ export async function CommunitySidebarNav() {
 
   const links = [
     { href: "/akis", label: "Akış", icon: Rss },
-    ...(username ? [{ href: `/profil/${username}`, label: "Profilim", icon: CircleUserIcon }] : []),
+    ...(username ? [{ href: `/profil/${encodeURIComponent(username)}`, label: "Profilim", icon: CircleUserIcon }] : []),
     ...(userId
       ? [
           { href: "/bildirimler", label: "Bildirimler", icon: BellIcon, badge: notifCount },
@@ -60,7 +60,7 @@ export async function CommunitySidebarNav() {
     <nav className="flex flex-col gap-1 rounded-xl border border-border bg-card p-3">
       {username && userId && (
         <Link
-          href={`/profil/${username}`}
+          href={`/profil/${encodeURIComponent(username)}`}
           className="mb-1 flex items-center gap-2.5 rounded-lg p-2.5 transition-colors hover:bg-accent"
         >
           <EntityAvatar

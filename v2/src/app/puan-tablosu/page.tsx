@@ -193,7 +193,7 @@ async function LeaderboardContent({
                 <AvatarImage src={avatarUrl(entry.image) ?? undefined} />
                 <AvatarFallback>{entry.username.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <Link href={`/profil/${entry.username}`} className="flex-1 truncate text-sm font-medium hover:underline">
+              <Link href={`/profil/${encodeURIComponent(entry.username)}`} className="flex-1 truncate text-sm font-medium hover:underline">
                 @{entry.username}
               </Link>
               <span className="text-sm font-medium">{entry.points} puan</span>
@@ -215,7 +215,7 @@ async function LeaderboardContent({
             {pastWinners.map((w) => (
               <li key={w.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
                 <div className="flex flex-col">
-                  <Link href={`/profil/${w.username}`} className="font-medium hover:underline">
+                  <Link href={`/profil/${encodeURIComponent(w.username)}`} className="font-medium hover:underline">
                     @{w.username}
                   </Link>
                   <span className="text-xs text-muted-foreground">{w.yearWeek} · {w.points} puan</span>

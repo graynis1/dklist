@@ -77,7 +77,7 @@ export function NotificationsList({ initialItems }: { initialItems: Notification
               }`}
             >
               <span>
-                <Link href={`/profil/${n.senderUsername}`} className="font-medium hover:underline">
+                <Link href={`/profil/${encodeURIComponent(n.senderUsername)}`} className="font-medium hover:underline">
                   @{n.senderUsername}
                 </Link>
                 <span className="ml-1">{n.contentTr}</span>

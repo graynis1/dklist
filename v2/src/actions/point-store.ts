@@ -11,7 +11,7 @@ export async function redeemRewardAction(rewardId: number): Promise<{ status: bo
   const result = await redeemReward(Number(session.user.id), rewardId);
   if (result.status) {
     revalidatePath("/puan-magazasi");
-    revalidatePath(`/profil/${session.user.name ?? ""}`);
+    revalidatePath(`/profil/${encodeURIComponent(session.user.name ?? "")}`);
   }
   return result;
 }
@@ -23,7 +23,7 @@ export async function setActiveProfileFrameAction(rewardValue: string | null): P
   try {
     await setActiveProfileFrame(Number(session.user.id), rewardValue);
     revalidatePath("/puan-magazasi");
-    revalidatePath(`/profil/${session.user.name ?? ""}`);
+    revalidatePath(`/profil/${encodeURIComponent(session.user.name ?? "")}`);
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };

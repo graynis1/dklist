@@ -50,7 +50,7 @@ export function ClubMemberList({
               key={m.userId}
               className="flex items-center gap-1 rounded-full border border-border py-1 pr-1 pl-3 text-sm"
             >
-              <Link href={`/profil/${m.username}`} className="hover:underline">
+              <Link href={`/profil/${encodeURIComponent(m.username)}`} className="hover:underline">
                 @{m.username}
                 {m.role === "owner" && <span className="ml-1 text-xs text-muted-foreground">(kurucu)</span>}
               </Link>

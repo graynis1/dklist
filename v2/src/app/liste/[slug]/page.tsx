@@ -77,7 +77,7 @@ async function ListDetailContent({
         <h1 className="font-heading text-4xl font-medium tracking-tight">{list.title}</h1>
         {list.description && <p className="max-w-2xl text-muted-foreground">{list.description}</p>}
         <p className="text-sm text-muted-foreground">
-          <Link href={`/profil/${list.ownerUsername}`} className="hover:underline">
+          <Link href={`/profil/${encodeURIComponent(list.ownerUsername)}`} className="hover:underline">
             @{list.ownerUsername}
           </Link>{" "}
           · {list.books.length} kitap{!list.isPublic && " · Gizli"}

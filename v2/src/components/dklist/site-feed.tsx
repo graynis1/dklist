@@ -168,7 +168,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
       />
       <div className="flex min-w-0 flex-col">
         <div className="flex flex-wrap items-center gap-1.5 text-sm leading-tight">
-          <Link href={`/profil/${item.actorUsername}`} className="font-medium hover:underline">
+          <Link href={`/profil/${encodeURIComponent(item.actorUsername)}`} className="font-medium hover:underline">
             @{item.actorUsername}
           </Link>
           <span className="text-muted-foreground">{verb}</span>

@@ -40,7 +40,7 @@ async function FollowingContent({
     <>
       <div className="mb-8 flex flex-col gap-2">
         <SectionLabel>
-          <Link href={`/profil/${username}`} className="hover:underline">
+          <Link href={`/profil/${encodeURIComponent(username)}`} className="hover:underline">
             @{username}
           </Link>
         </SectionLabel>

@@ -41,7 +41,7 @@ async function AuthStatusContent() {
   return (
     <div className="flex items-center gap-2">
       <Link
-        href={`/profil/${session.user.name}`}
+        href={`/profil/${encodeURIComponent(session.user.name ?? "")}`}
         className="flex items-center gap-2"
       >
         <Avatar className="size-9">

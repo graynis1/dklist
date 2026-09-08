@@ -120,7 +120,7 @@ async function StoreDetailContent({
           {item.title}
         </h1>
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href={`/profil/${item.ownerUsername}`} className="hover:underline">
+          <Link href={`/profil/${encodeURIComponent(item.ownerUsername)}`} className="hover:underline">
             @{item.ownerUsername}
           </Link>
           {/* Real customer report: "satıcı için satıcı puanı... İlanda ki

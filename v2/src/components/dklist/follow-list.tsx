@@ -12,7 +12,7 @@ export function FollowList({ items, emptyMessage }: { items: FollowListItem[]; e
       {items.map((u) => (
         <li key={u.id}>
           <Link
-            href={`/profil/${u.username}`}
+            href={`/profil/${encodeURIComponent(u.username)}`}
             className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-accent"
           >
             <Avatar className="size-9 text-sm">

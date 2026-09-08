@@ -207,7 +207,7 @@ async function TopReadersShelf() {
       {readers.map((r) => (
         <Link
           key={r.id}
-          href={`/profil/${r.username}`}
+          href={`/profil/${encodeURIComponent(r.username)}`}
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm transition-colors hover:bg-accent"
         >
           <EntityAvatar
@@ -260,7 +260,7 @@ async function WeeklyLeaderWidget() {
       {topThree.map((entry, i) => (
         <Link
           key={entry.userId}
-          href={`/profil/${entry.username}`}
+          href={`/profil/${encodeURIComponent(entry.username)}`}
           className="flex items-center gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
         >
           <span className="text-2xl">{MEDALS[i]}</span>
@@ -440,7 +440,7 @@ async function FollowSuggestionsWidget() {
           key={s.id}
           className="flex items-center gap-2 rounded-full border border-border py-1 pr-2 pl-1 text-sm"
         >
-          <Link href={`/profil/${s.username}`} className="flex items-center gap-2 hover:underline">
+          <Link href={`/profil/${encodeURIComponent(s.username)}`} className="flex items-center gap-2 hover:underline">
             <EntityAvatar
               id={s.id}
               name={s.username}

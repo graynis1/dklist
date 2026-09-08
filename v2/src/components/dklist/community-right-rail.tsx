@@ -77,7 +77,7 @@ export async function CommunityRightRail() {
           <ul className="flex flex-col gap-3">
             {suggestions.map((s) => (
               <li key={s.id} className="flex items-center gap-2.5">
-                <Link href={`/profil/${s.username}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+                <Link href={`/profil/${encodeURIComponent(s.username)}`} className="flex min-w-0 flex-1 items-center gap-2.5">
                   <EntityAvatar
                     id={s.id}
                     name={s.username}
@@ -105,7 +105,7 @@ export async function CommunityRightRail() {
           <ul className="flex flex-col gap-2.5">
             {leaders.map((l, i) => (
               <li key={l.userId}>
-                <Link href={`/profil/${l.username}`} className="flex items-center gap-2.5 rounded-lg -m-1.5 p-1.5 transition-colors hover:bg-accent">
+                <Link href={`/profil/${encodeURIComponent(l.username)}`} className="flex items-center gap-2.5 rounded-lg -m-1.5 p-1.5 transition-colors hover:bg-accent">
                   <span className="text-base leading-none">{MEDALS[i]}</span>
                   <EntityAvatar
                     id={l.userId}

@@ -94,14 +94,25 @@ export interface CategoryBookListItem {
  */
 const LARGE_CATEGORY_SUBSET_THRESHOLD = 20_000;
 
+export type CategorySortBy = "viewCount" | "score";
+
 async function fetchCategoryPage(
   categoryId: number,
   lang: "tr" | "not-tr",
   totalCategorySize: number,
   limit: number,
   offset: number,
+  sortBy: CategorySortBy,
 ): Promise<Omit<CategoryBookListItem, "writers">[]> {
   const langCondition = lang === "tr" ? sql`b.lang = 'tr'` : sql`b.lang != 'tr'`;
+  // Real customer ask (2026-09-09): "kitaplar başlığındaki gibi puana yada
+  // popülerliğe göre sıralanabilir yapabilir miyiz" - same two options
+  // /kitaplar already offers. Both columns already have the indexes this
+  // needs (idx_book_score/idx_book_viewcount globally, idx_book_lang_score
+  // for the small-category branch's lang-scoped case) - no new index
+  // required, unlike the viewCount-only version this replaced.
+  const orderColumn = sortBy === "score" ? sql`b.score` : sql`b.view_count`;
+  const forceIndexName = sortBy === "score" ? "idx_book_score" : "idx_book_viewcount";
 
   // EMERGENCY CIRCUIT BREAKER (2026-09-06): both branches below are raw,
   // hand-tuned query plans this file already documents as having gone
@@ -116,20 +127,23 @@ async function fetchCategoryPage(
   // request that hits this budget still shows a degraded result, not the
   // real one.
   if (totalCategorySize < LARGE_CATEGORY_SUBSET_THRESHOLD) {
-    try {
-      const rows = (await db.execute(sql`
-        SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-          (b.image IS NOT NULL AND b.image != '') AS hasImage
-        FROM book_category bc
-        INNER JOIN book b ON b.id = bc.book_id
-        WHERE bc.category_id = ${categoryId} AND ${langCondition}
-        ORDER BY b.view_count DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `))[0];
-      return rows as unknown as Omit<CategoryBookListItem, "writers">[];
-    } catch {
-      return [];
-    }
+    // Real customer-reported bug (2026-09-09): this used to catch its own
+    // MAX_EXECUTION_TIME timeout and return [] - fine as a per-request
+    // degradation, except the CALLER (getBooksByCategory) is `"use cache"`,
+    // so that empty fallback got cached for hours as if it were the real
+    // page of books. Now throws instead, so a transient failure is never
+    // cached - see getCategoryTurkishCount's identical fix above for the
+    // full reasoning.
+    const rows = (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+        (b.image IS NOT NULL AND b.image != '') AS hasImage
+      FROM book_category bc
+      INNER JOIN book b ON b.id = bc.book_id
+      WHERE bc.category_id = ${categoryId} AND ${langCondition}
+      ORDER BY ${orderColumn} DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `))[0];
+    return rows as unknown as Omit<CategoryBookListItem, "writers">[];
   }
 
   // TEMPORARY (2026-09-06): the lang-scoped idx_book_lang_viewcount index
@@ -144,34 +158,43 @@ async function fetchCategoryPage(
   // size now (the actual bug fixed this pass) rather than the wrong,
   // filtered-count signal. Revisit once the index can be rebuilt during
   // low-traffic hours - see PLAN.md for the incident writeup.
-  try {
-    const rows = (await db.execute(sql`
-      SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
-        (b.image IS NOT NULL AND b.image != '') AS hasImage
-      FROM book b FORCE INDEX (idx_book_viewcount)
-      WHERE EXISTS (
-        SELECT 1 FROM book_category bc
-        WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-      ) AND ${langCondition}
-      ORDER BY b.view_count DESC
-      LIMIT ${limit} OFFSET ${offset}
-    `))[0];
-    return rows as unknown as Omit<CategoryBookListItem, "writers">[];
-  } catch {
-    return [];
-  }
+  // Same "throw, don't cache a fallback" fix as the branch above.
+  const rows = (await db.execute(sql`
+    SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+      (b.image IS NOT NULL AND b.image != '') AS hasImage
+    FROM book b FORCE INDEX (${sql.raw(forceIndexName)})
+    WHERE EXISTS (
+      SELECT 1 FROM book_category bc
+      WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+    ) AND ${langCondition}
+    ORDER BY ${orderColumn} DESC
+    LIMIT ${limit} OFFSET ${offset}
+  `))[0];
+  return rows as unknown as Omit<CategoryBookListItem, "writers">[];
 }
 
 export async function getBooksByCategory(
   categoryId: number,
   page = 1,
   pageSize = 40,
+  sortBy: CategorySortBy = "viewCount",
 ): Promise<{ items: CategoryBookListItem[]; total: number; trCount: number; lastPage: number }> {
   "use cache";
   cacheLife("hours");
-  cacheTag(`category-books:${categoryId}`);
+  // sortBy included in the tag - different sorts must not share a cache
+  // entry, or picking "puana göre" would just show the viewCount-sorted
+  // page that happened to be cached first.
+  cacheTag(`category-books:${categoryId}:${sortBy}`);
 
   const safeSize = Math.min(100, Math.max(1, pageSize));
+  // Real customer-reported bug (2026-09-09): getCategoryTurkishCount and
+  // fetchCategoryPage now THROW on a MAX_EXECUTION_TIME timeout instead of
+  // silently returning 0/[] - deliberately NOT caught here. This whole
+  // function is `"use cache"`; catching internally would mean a transient
+  // failure still returns "normally" and gets cached as truth for hours.
+  // Letting the throw propagate all the way out means Next commits no
+  // cache entry at all for a failed attempt - the calling page catches it
+  // instead, per-request, so the next request tries fresh.
   const [total, trCount] = await Promise.all([
     getCategoryBookCount(categoryId),
     getCategoryTurkishCount(categoryId),
@@ -183,14 +206,14 @@ export async function getBooksByCategory(
   const items: Omit<CategoryBookListItem, "writers">[] = [];
 
   if (offset < trCount) {
-    const trRows = await fetchCategoryPage(categoryId, "tr", total, safeSize, offset);
+    const trRows = await fetchCategoryPage(categoryId, "tr", total, safeSize, offset, sortBy);
     items.push(...trRows);
   }
 
   if (items.length < safeSize) {
     const remaining = safeSize - items.length;
     const nonTrOffset = Math.max(0, offset - trCount);
-    const otherRows = await fetchCategoryPage(categoryId, "not-tr", total, remaining, nonTrOffset);
+    const otherRows = await fetchCategoryPage(categoryId, "not-tr", total, remaining, nonTrOffset, sortBy);
     items.push(...otherRows);
   }
 
@@ -234,21 +257,26 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
   cacheLife("days");
   cacheTag(`category-tr-count:${categoryId}`);
 
-  // Same emergency circuit breaker as fetchCategoryPage above - falls
-  // back to 0 (treated as "no Turkish books in this category yet") on
-  // timeout rather than hanging; a wrong 0 here just means that category
-  // temporarily shows as if it had no Turkish bucket, not a crash.
-  try {
-    const rows = (await db.execute(sql`
-      SELECT /*+ MAX_EXECUTION_TIME(8000) */ COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
-      WHERE b.lang = 'tr' AND EXISTS (
-        SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-      )
-    `))[0] as unknown as { n: number }[];
-    return Number(rows[0]?.n ?? 0);
-  } catch {
-    return 0;
-  }
+  // Real customer-reported bug (2026-09-09): "bazılarında Türkçe ilk sırada
+  // gelme özelliği işlemiyor gibi" (works for some categories, not others) -
+  // root cause was this function catching its own MAX_EXECUTION_TIME
+  // timeout and returning 0, which `"use cache"` + `cacheLife("days")`
+  // then cached as if it were the REAL count for days. Any category that
+  // happened to be first-viewed during a slow/loaded moment got permanently
+  // stuck showing "no Turkish books" until that cache tag expired - not a
+  // per-category bug, a per-moment one, which is exactly why it looked
+  // random. Fixed by letting the timeout throw instead of swallowing it -
+  // Next's cache only commits a value when the function returns normally,
+  // so a transient failure is never cached, just retried on the next
+  // request. The caller (getBooksByCategory) now catches this, but per
+  // REQUEST, not per cache entry.
+  const rows = (await db.execute(sql`
+    SELECT /*+ MAX_EXECUTION_TIME(8000) */ COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
+    WHERE b.lang = 'tr' AND EXISTS (
+      SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+    )
+  `))[0] as unknown as { n: number }[];
+  return Number(rows[0]?.n ?? 0);
 }
 
 export interface CategorySummary {

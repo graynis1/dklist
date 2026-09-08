@@ -119,7 +119,7 @@ async function MessagesContent({
                 frameTier={decorationFor(decorations, activeProfile.id).frameTier}
                 highestBadge={decorationFor(decorations, activeProfile.id).highestBadge}
               />
-              <Link href={`/profil/${activeProfile.username}`} className="font-medium hover:underline">
+              <Link href={`/profil/${encodeURIComponent(activeProfile.username)}`} className="font-medium hover:underline">
                 @{activeProfile.username}
               </Link>
             </div>

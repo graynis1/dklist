@@ -153,5 +153,5 @@ export async function updateProfileAction(formData: FormData) {
     redirect(`/profil/duzenle?error=${encodeURIComponent((err as Error).message)}`);
   }
 
-  redirect(`/profil/${username}`);
+  redirect(`/profil/${encodeURIComponent(username)}`);
 }

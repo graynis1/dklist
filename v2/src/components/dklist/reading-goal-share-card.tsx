@@ -160,7 +160,7 @@ export function ReadingGoalShareCard({
                 above for an actual image post. */}
             <ShareButton
               content={`@${username} bu yıl (${year}) okuma hedefinin %${pct}'ini tamamladı! 📚`}
-              url={`/profil/${username}`}
+              url={`/profil/${encodeURIComponent(username)}`}
               size="sm"
             />
           </>

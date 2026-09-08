@@ -36,7 +36,7 @@ export function WriterApplicationRow({ item }: { item: PendingWriterApplication 
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div>
-        <Link href={`/profil/${item.username}`} className="font-medium hover:underline">
+        <Link href={`/profil/${encodeURIComponent(item.username)}`} className="font-medium hover:underline">
           @{item.username}
         </Link>
         {item.proposedWriterName && (

@@ -120,7 +120,7 @@ export async function generateMetadata({ params }: PageProps<"/profil/[username]
   return pageMetadata({
     title: `@${profile.username}`,
     description: truncateDescription(profile.biyo || `@${profile.username} DKList'te - okuma durumu, kitaplığı ve etkinliği.`),
-    path: `/profil/${profile.username}`,
+    path: `/profil/${encodeURIComponent(profile.username)}`,
     // Gizli hesaplar arama motorunda hiç görünmesin - okuma geçmişi/
     // kitaplığı zaten sadece takipçilere açık, ama profil sayfasının
     // kendisi de aranabilir kalmamalı.
@@ -394,13 +394,13 @@ async function ProfileContent({
               icon={UsersIcon}
               label="Takipçi"
               value={counts.followers}
-              href={`/profil/${profile.username}/takipciler`}
+              href={`/profil/${encodeURIComponent(profile.username)}/takipciler`}
             />
             <SidebarStatRow
               icon={UserPlusIcon}
               label="Takip"
               value={counts.following}
-              href={`/profil/${profile.username}/takip-edilenler`}
+              href={`/profil/${encodeURIComponent(profile.username)}/takip-edilenler`}
             />
             {totalReadingMinutes > 0 && (
               <SidebarStatRow

@@ -234,7 +234,7 @@ async function Results({
             {users.map((u) => (
               <Link
                 key={u.id}
-                href={`/profil/${u.username}`}
+                href={`/profil/${encodeURIComponent(u.username)}`}
                 className="rounded-full border border-border px-3 py-1 text-sm hover:bg-accent"
               >
                 @{u.username}

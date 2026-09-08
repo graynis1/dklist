@@ -81,7 +81,7 @@ async function AdminWeeklyWinnerContent() {
             {pastWinners.map((w) => (
               <li key={w.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
                 <div>
-                  <Link href={`/profil/${w.username}`} className="font-medium hover:underline">
+                  <Link href={`/profil/${encodeURIComponent(w.username)}`} className="font-medium hover:underline">
                     @{w.username}
                   </Link>
                   <span className="text-xs text-muted-foreground"> · {w.yearWeek} · {w.points} puan</span>

@@ -148,7 +148,7 @@ async function BlogDetailContent({
         )}
         <span>
           {post.ownerUsername ? (
-            <Link href={`/profil/${post.ownerUsername}`} className="font-medium text-foreground hover:underline">
+            <Link href={`/profil/${encodeURIComponent(post.ownerUsername)}`} className="font-medium text-foreground hover:underline">
               @{post.ownerUsername}
             </Link>
           ) : null}

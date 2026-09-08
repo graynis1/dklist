@@ -604,7 +604,7 @@ async function BookDetailContent({
               {readers.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/profil/${r.username}`}
+                  href={`/profil/${encodeURIComponent(r.username)}`}
                   className="flex items-center gap-2 rounded-full border border-border py-1 pr-3 pl-1 text-sm hover:bg-accent"
                 >
                   <EntityAvatar

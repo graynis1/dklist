@@ -67,7 +67,7 @@ async function FeedPostContent({ params }: { params: PageProps<"/gonderi/[id]">[
             highestBadge={decoration.highestBadge}
           />
           <div className="flex flex-col">
-            <Link href={`/profil/${post.authorUsername}`} className="font-medium hover:underline">
+            <Link href={`/profil/${encodeURIComponent(post.authorUsername)}`} className="font-medium hover:underline">
               @{post.authorUsername}
             </Link>
             <span className="text-xs text-muted-foreground">{formatRelativeTime(post.createdAt)}</span>

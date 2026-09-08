@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SearchIcon, XIcon } from "lucide-react";
@@ -82,8 +83,9 @@ export function MobileSearchTrigger() {
         <SearchIcon className="size-5" />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 bg-background lg:hidden">
+      {open &&
+        createPortal(
+          <div className="fixed inset-0 z-50 bg-background lg:hidden">
           <div className="flex h-20 items-center gap-3 border-b border-border px-4">
             <form onSubmit={submit} className="relative flex-1">
               <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -148,8 +150,9 @@ export function MobileSearchTrigger() {
               </Link>
             )}
           </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

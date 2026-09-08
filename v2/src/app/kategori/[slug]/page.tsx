@@ -6,9 +6,19 @@ import { SiteHeader } from "@/components/dklist/site-header";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { StarRating, SectionLabel } from "@/components/dklist/star-rating";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
-import { getCategoryBySlug, getBooksByCategory } from "@/db/queries/books";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { getCategoryBySlug, getBooksByCategory, type CategorySortBy } from "@/db/queries/books";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { pageMetadata } from "@/lib/seo";
+
+// Real customer ask (2026-09-09): "kitaplar başlığındaki gibi puana yada
+// popülerliğe göre sıralanabilir yapabilir miyiz... aynı format" - same
+// two options and the same Select/Button form shape as /kitaplar.
+const SORT_OPTIONS: { value: CategorySortBy; label: string }[] = [
+  { value: "viewCount", label: "Popülerlik" },
+  { value: "score", label: "Puan" },
+];
 
 export async function generateMetadata({ params }: PageProps<"/kategori/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -54,8 +64,9 @@ async function CategoryContent({
   searchParams: PageProps<"/kategori/[slug]">["searchParams"];
 }) {
   const { slug } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, sortBy: sortByParam } = await searchParams;
   const page = Number(pageParam ?? "1") || 1;
+  const sortBy: CategorySortBy = sortByParam === "score" ? "score" : "viewCount";
   const cat = await getCategoryBySlug(slug);
 
   if (!cat) {
@@ -65,7 +76,22 @@ async function CategoryContent({
   // Real customer ask: "Kategorilerde Türkçe en ilk sırada listelenmişti
   // daha önce uygulamada çok iyi olur" - see getBooksByCategory()'s own doc
   // comment for why this needed two separate queries instead of one sort.
-  const { items: books, total, lastPage } = await getBooksByCategory(cat.id, page, 40);
+  // Real bug fix (2026-09-09): getBooksByCategory can now THROW (a
+  // deliberate change - see its own doc comment on why a transient timeout
+  // must never be cached as if it were the real page) - caught here, per
+  // request, well outside any cache boundary, so a degraded/empty result
+  // this one time never poisons what the next visitor sees.
+  let books: Awaited<ReturnType<typeof getBooksByCategory>>["items"] = [];
+  let total = 0;
+  let lastPage = 1;
+  try {
+    const result = await getBooksByCategory(cat.id, page, 40, sortBy);
+    books = result.items;
+    total = result.total;
+    lastPage = result.lastPage;
+  } catch {
+    // degraded view for this one request; the next one tries fresh.
+  }
 
   return (
     <section className="mx-auto max-w-[100rem] px-6 py-16 lg:py-20">
@@ -75,9 +101,27 @@ async function CategoryContent({
           {cat.name}
         </h1>
         <p className="text-muted-foreground">
-          {total} kitap · Türkçe baskılar önce, sonra görüntülenmeye göre sıralı
+          {total} kitap · Türkçe baskılar önce, sonra {sortBy === "score" ? "puana" : "görüntülenmeye"} göre sıralı
         </p>
       </div>
+
+      <form action={`/kategori/${cat.slug}`} className="mb-8 flex flex-wrap items-center gap-2">
+        <Select name="sortBy" defaultValue={sortBy} items={SORT_OPTIONS}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button type="submit" variant="outline">
+          Filtrele
+        </Button>
+      </form>
 
       <Suspense fallback={null}>
         <AdSlot placement="kategori-sayfasi" className="mb-10 max-w-none px-0" />
@@ -121,7 +165,11 @@ async function CategoryContent({
             ))}
           </div>
 
-          <PaginationNav page={page} lastPage={lastPage} hrefForPage={(p) => `/kategori/${cat.slug}?page=${p}`} />
+          <PaginationNav
+            page={page}
+            lastPage={lastPage}
+            hrefForPage={(p) => `/kategori/${cat.slug}?page=${p}${sortBy !== "viewCount" ? `&sortBy=${sortBy}` : ""}`}
+          />
         </>
       )}
     </section>
