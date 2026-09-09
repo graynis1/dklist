@@ -329,6 +329,7 @@ export async function toggleFollow(followerId: number, followedId: number): Prom
         followerId,
         `" ${follower.username} " sizi takip etmeye başladı`,
         `"${follower.username}" started following you`,
+        "follow",
       );
     }
     await awardPoints(followerId, (await getPointSettings()).follow, "follow", `follow:${followedId}`);

@@ -17,6 +17,10 @@ import {
   updateClubDescription,
   updateClubName,
   deleteClub,
+  getClubJoinRequests,
+  approveClubJoinRequest,
+  rejectClubJoinRequest,
+  setClubRequiresApproval,
 } from "@/db/queries/book-clubs";
 import { getBookList } from "@/db/queries/books";
 
@@ -86,13 +90,60 @@ export async function shareCommentAction(
   }
 }
 
-export async function joinClubAction(clubId: number, slug: string): Promise<ActionResult> {
+export async function joinClubAction(clubId: number, slug: string): Promise<ActionResult & { pending?: boolean }> {
   const session = await auth();
   if (!session?.user?.id) {
     return { status: false, message: "Giriş yapmalısınız." };
   }
   try {
-    await joinClub(clubId, Number(session.user.id));
+    const { pending } = await joinClub(clubId, Number(session.user.id));
+    revalidatePath(`/kulup/${slug}`);
+    return { status: true, pending };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function getClubJoinRequestsAction(clubId: number): Promise<{ status: boolean; message?: string; items?: { userId: number; username: string; requestedAt: string }[] }> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+  try {
+    const items = await getClubJoinRequests(clubId, Number(session.user.id), session.user.userType ?? "");
+    return { status: true, items };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function approveClubJoinRequestAction(clubId: number, targetUserId: number, slug: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+  try {
+    await approveClubJoinRequest(clubId, targetUserId, Number(session.user.id), session.user.userType ?? "");
+    revalidatePath(`/kulup/${slug}`);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function rejectClubJoinRequestAction(clubId: number, targetUserId: number, slug: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+  try {
+    await rejectClubJoinRequest(clubId, targetUserId, Number(session.user.id), session.user.userType ?? "");
+    revalidatePath(`/kulup/${slug}`);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function setClubRequiresApprovalAction(clubId: number, requiresApproval: boolean, slug: string): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { status: false, message: "Giriş yapmalısınız." };
+  try {
+    await setClubRequiresApproval(clubId, requiresApproval, Number(session.user.id), session.user.userType ?? "");
     revalidatePath(`/kulup/${slug}`);
     return { status: true };
   } catch (err) {

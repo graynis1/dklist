@@ -64,7 +64,17 @@ export default function AdvertiseWithUsPage() {
                     <HouseAd placement={p.id} className="h-full px-0" />
                   </div>
                 </div>
-                <p className="border-t border-border p-3 text-sm font-medium">{p.label}</p>
+                <div className="border-t border-border p-3">
+                  <p className="text-sm font-medium">{p.label}</p>
+                  {/* Customer's ask: exact creative dimensions, so an
+                      advertiser knows what they're actually designing for -
+                      the real, current container sizes (see ad-slot.tsx/
+                      skyscraper-ads.tsx), not an invented IAB standard size
+                      this system was never built against. */}
+                  <p className="text-xs text-muted-foreground">
+                    {p.id.startsWith("skyscraper") ? "160px genişlik × ekrana göre değişken yükseklik (en fazla 850px), sabit/sticky" : "en fazla 768px genişlik, içeriğe göre değişken yükseklik"}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>

@@ -2,10 +2,11 @@ import "server-only";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { bookClub, bookClubMember, user, book, writerBook, writer } from "@/db/schema";
+import { bookClub, bookClubMember, bookClubJoinRequest, user, book, writerBook, writer } from "@/db/schema";
 import { isDuplicateKeyError } from "@/lib/db-errors";
 import { hasRole, USER_TYPES } from "@/lib/roles";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
+import { addNotification } from "@/db/queries/notifications";
 
 /**
  * Book clubs / group reading - maintainer's explicit ask, built from scratch
@@ -154,6 +155,7 @@ export interface ClubDetail {
   currentBookWriters: string[];
   memberCount: number;
   members: ClubMember[];
+  requiresApproval: boolean;
 }
 
 export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
@@ -173,6 +175,7 @@ export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
       // widget showed only name/author text, no cover - "daha görsel bir
       // hava katmazmıydı?" (wouldn't it add a more visual feel?).
       currentBookHasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+      requiresApproval: bookClub.requiresApproval,
     })
     .from(bookClub)
     .leftJoin(user, eq(bookClub.ownerId, user.id))
@@ -181,7 +184,7 @@ export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
     .limit(1);
 
   if (!row) return null;
-  const club = { ...row, currentBookHasImage: Boolean(row.currentBookHasImage) };
+  const club = { ...row, currentBookHasImage: Boolean(row.currentBookHasImage), requiresApproval: Boolean(row.requiresApproval) };
 
   const memberRows = await db
     .select({ userId: bookClubMember.userId, username: user.username, role: bookClubMember.role, joinedAt: bookClubMember.joinedAt })
@@ -208,17 +211,106 @@ export async function isClubMember(clubId: number, userId: number): Promise<bool
   return !!row;
 }
 
-export async function joinClub(clubId: number, userId: number): Promise<void> {
-  const [club] = await db.select({ id: bookClub.id }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+/**
+ * Customer's revisited ask: private clubs previously only had the
+ * "unlisted, not access-controlled" model - a real approval gate now exists
+ * per-club (see `requiresApproval`), opt-in so nothing changes for clubs
+ * that never turn it on. Returns "pending" rather than joining outright
+ * when the gate is on, so the caller/UI can show the right state.
+ */
+export async function joinClub(clubId: number, userId: number): Promise<{ pending: boolean }> {
+  const [club] = await db.select({ id: bookClub.id, ownerId: bookClub.ownerId, name: bookClub.name, requiresApproval: bookClub.requiresApproval }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
   if (!club) throw new Error("Kulüp bulunamadı.");
+
+  if (club.requiresApproval) {
+    const already = await isClubMember(clubId, userId);
+    if (already) return { pending: false };
+    try {
+      await db.insert(bookClubJoinRequest).values({ clubId, userId, requestedAt: nowSql() });
+    } catch (err) {
+      if (isDuplicateKeyError(err, "uniq_book_club_join_request")) return { pending: true }; // already requested
+      throw err;
+    }
+    if (club.ownerId) {
+      const [requester] = await db.select({ username: user.username }).from(user).where(eq(user.id, userId)).limit(1);
+      if (requester) {
+        await addNotification(
+          club.ownerId,
+          userId,
+          `"${requester.username}" "${club.name}" kulübüne katılmak istiyor.`,
+          `"${requester.username}" wants to join "${club.name}".`,
+          "club",
+        );
+      }
+    }
+    return { pending: true };
+  }
+
   try {
     await db.insert(bookClubMember).values({ clubId, userId, role: "member", joinedAt: nowSql() });
   } catch (err) {
-    if (isDuplicateKeyError(err, "uniq_book_club_member")) return; // already a member, not an error
+    if (isDuplicateKeyError(err, "uniq_book_club_member")) return { pending: false }; // already a member, not an error
     throw err;
   }
   await awardPoints(userId, (await getPointSettings()).clubJoin, "club_join", `club_join:${userId}:${clubId}`);
   updateTag("book-club-list");
+  return { pending: false };
+}
+
+export async function hasPendingClubJoinRequest(clubId: number, userId: number): Promise<boolean> {
+  const [row] = await db.select({ id: bookClubJoinRequest.id }).from(bookClubJoinRequest).where(and(eq(bookClubJoinRequest.clubId, clubId), eq(bookClubJoinRequest.userId, userId))).limit(1);
+  return !!row;
+}
+
+export interface ClubJoinRequestItem {
+  userId: number;
+  username: string;
+  requestedAt: string;
+}
+
+export async function getClubJoinRequests(clubId: number, actorUserId: number, actorUserType: string): Promise<ClubJoinRequestItem[]> {
+  await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  return db
+    .select({ userId: bookClubJoinRequest.userId, username: user.username, requestedAt: bookClubJoinRequest.requestedAt })
+    .from(bookClubJoinRequest)
+    .innerJoin(user, eq(bookClubJoinRequest.userId, user.id))
+    .where(eq(bookClubJoinRequest.clubId, clubId))
+    .orderBy(bookClubJoinRequest.requestedAt);
+}
+
+export async function approveClubJoinRequest(clubId: number, targetUserId: number, actorUserId: number, actorUserType: string): Promise<void> {
+  await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  const [req] = await db.select({ id: bookClubJoinRequest.id }).from(bookClubJoinRequest).where(and(eq(bookClubJoinRequest.clubId, clubId), eq(bookClubJoinRequest.userId, targetUserId))).limit(1);
+  if (!req) throw new Error("İstek bulunamadı.");
+
+  await db.delete(bookClubJoinRequest).where(eq(bookClubJoinRequest.id, req.id));
+  try {
+    await db.insert(bookClubMember).values({ clubId, userId: targetUserId, role: "member", joinedAt: nowSql() });
+  } catch (err) {
+    if (!isDuplicateKeyError(err, "uniq_book_club_member")) throw err;
+  }
+  await awardPoints(targetUserId, (await getPointSettings()).clubJoin, "club_join", `club_join:${targetUserId}:${clubId}`);
+
+  const [club] = await db.select({ name: bookClub.name }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  if (club) {
+    await addNotification(targetUserId, actorUserId, `"${club.name}" kulübüne katılma isteğin onaylandı.`, `Your request to join "${club.name}" was approved.`, "club");
+  }
+  updateTag("book-club-list");
+}
+
+export async function rejectClubJoinRequest(clubId: number, targetUserId: number, actorUserId: number, actorUserType: string): Promise<void> {
+  await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  await db.delete(bookClubJoinRequest).where(and(eq(bookClubJoinRequest.clubId, clubId), eq(bookClubJoinRequest.userId, targetUserId)));
+
+  const [club] = await db.select({ name: bookClub.name }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  if (club) {
+    await addNotification(targetUserId, actorUserId, `"${club.name}" kulübüne katılma isteğin reddedildi.`, `Your request to join "${club.name}" was declined.`, "club");
+  }
+}
+
+export async function setClubRequiresApproval(clubId: number, requiresApproval: boolean, actorUserId: number, actorUserType: string): Promise<void> {
+  await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  await db.update(bookClub).set({ requiresApproval: requiresApproval ? 1 : 0 }).where(eq(bookClub.id, clubId));
 }
 
 /**
@@ -255,9 +347,37 @@ async function requireClubManagePermission(clubId: number, actorUserId: number, 
   if (club.ownerId !== actorUserId) throw new Error("Bu işlem için yetkiniz yok.");
 }
 
+/**
+ * Customer's ask: club members should get notified of new club activity -
+ * picking the next book is the one real "event" a club has (there's no
+ * separate club-announcement/post feature). Every member except whoever
+ * made the change gets notified, gated by the "club" notification-type
+ * preference (see notifications.ts) so members who'd rather not get pinged
+ * for every pick can opt out.
+ */
 export async function updateClubCurrentBook(clubId: number, bookId: number | null, actorUserId: number, actorUserType: string): Promise<void> {
   await requireClubManagePermission(clubId, actorUserId, actorUserType);
   await db.update(bookClub).set({ currentBookId: bookId }).where(eq(bookClub.id, clubId));
+
+  if (bookId == null) return;
+  const [club] = await db.select({ name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  const [newBook] = await db.select({ name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
+  if (!club || !newBook) return;
+
+  const members = await db
+    .select({ userId: bookClubMember.userId })
+    .from(bookClubMember)
+    .where(and(eq(bookClubMember.clubId, clubId), sql`${bookClubMember.userId} != ${actorUserId}`));
+
+  for (const m of members) {
+    await addNotification(
+      m.userId,
+      actorUserId,
+      `"${club.name}" kulübü yeni kitabını seçti: "${newBook.name}"`,
+      `"${club.name}" picked a new book: "${newBook.name}"`,
+      "club",
+    );
+  }
 }
 
 export async function updateClubDescription(clubId: number, description: string, actorUserId: number, actorUserType: string): Promise<void> {

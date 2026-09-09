@@ -403,6 +403,7 @@ async function notifyWishlistersOfNewListing(bookId: number, listingOwnerId: num
       senderId,
       `Okuma listendeki "${bookRow.name}" için yeni bir ikinci el ilan var.`,
       `A secondhand listing appeared for "${bookRow.name}", a book on your want-to-read list.`,
+      "marketplace",
     );
   }
 }
@@ -472,6 +473,30 @@ export async function updateStoreStatus(
     .update(store)
     .set({ status, isActive: status === "active" ? 1 : 0 })
     .where(eq(store.id, storeId));
+}
+
+/**
+ * Customer's ask: seller reviews should only be possible between people who
+ * actually transacted - free (non-Iyzico) listings had no "who did this go
+ * to" record at all, so this is the real "mark as sold to X" step that was
+ * missing. Recording the buyer here (rather than a separate confirmation
+ * step from the buyer's side) is a deliberate, simpler scope call - the
+ * seller is the one already taking the "verildi" action, and a false claim
+ * here only unlocks a review slot, it doesn't move money or goods.
+ */
+export async function markStoreCompletedWithBuyer(userId: number, storeId: number, buyerUsername: string): Promise<void> {
+  const [row] = await db.select({ ownerId: store.ownerId }).from(store).where(eq(store.id, storeId)).limit(1);
+  if (!row) throw new Error("Böyle bir ilan yok.");
+  if (row.ownerId !== userId) throw new Error("Yetkisiz istek.");
+
+  const trimmed = buyerUsername.trim();
+  if (!trimmed) throw new Error("Alıcının kullanıcı adını girin.");
+
+  const [buyer] = await db.select({ id: user.id }).from(user).where(eq(user.username, trimmed)).limit(1);
+  if (!buyer) throw new Error("Bu kullanıcı adına sahip bir üye bulunamadı.");
+  if (buyer.id === userId) throw new Error("Kendinizi alıcı olarak işaretleyemezsiniz.");
+
+  await db.update(store).set({ status: "completed", isActive: 0, soldToUserId: buyer.id }).where(eq(store.id, storeId));
 }
 
 export interface MyStoreItem {

@@ -176,7 +176,26 @@ async function checkMilestoneBadges(userId: number): Promise<void> {
         senderId,
         `Yeni rozet kazandın: "${milestone.name}" (${milestone.comment}).`,
         `New badge earned: "${milestone.nameUs}" (${milestone.commentUs}).`,
+        "badge",
       );
+    }
+    // Customer's ask: "puan kazanma olaylarının akışa düşmesi" - logging
+    // every +1/+2 transaction would be noise, so the feed gets this real
+    // milestone instead (see feed.ts's "badge_earned" reason). 0 points -
+    // this doesn't itself earn anything, it's a feed marker for the points
+    // the user already earned via the actions above. Inserted directly
+    // (not via awardPoints()) so it can't recursively re-trigger this same
+    // function - awardPoints() always re-checks milestones after a write.
+    try {
+      await db.insert(pointTransaction).values({
+        userId,
+        points: 0,
+        reason: "badge_earned",
+        reasonKey: `badge_earned:${userId}:${badgeId}`,
+        createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
+      });
+    } catch (err) {
+      if (!isDuplicateKeyError(err, "uq_point_transaction_user_reason_key")) throw err;
     }
   }
 }
@@ -575,6 +594,7 @@ export async function recordWeeklyWinner(
       senderId,
       `Tebrikler! ${yearWeek} haftasının en aktif okuru sensin (${points} puan).${prizeText}`,
       `Congratulations! You're the top reader for week ${yearWeek} (${points} points).${prizeText}`,
+      "badge",
     );
   }
 

@@ -1,8 +1,9 @@
 import "server-only";
-import { and, eq, inArray, like, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { user, publisher, writer, badges, userBadges } from "@/db/schema";
 import { isProtectedFromRoleChange, USER_TYPES, type UserType } from "@/lib/permission";
+import { isMailConfigured, sendMail } from "@/lib/mailer";
 
 export interface UserAdminListItem {
   id: number;
@@ -19,7 +20,25 @@ export interface UserAdminListItem {
    * so callers must always compare against "now", never just truthiness. */
   suspendedUntil: string | null;
   suspensionReason: string | null;
+  sex: string;
+  livingCity: string | null;
+  birthDate: string;
+  createdDate: string;
 }
+
+/**
+ * Customer's ask ("demografik sort/filtre + toplu mail") - real, bounded
+ * new scope, previously flagged as an open decision (see PLAN.md). City is
+ * matched exactly (not fuzzy) since it's a free-text field with real
+ * inconsistent casing/whitespace in this data - an admin picks from
+ * getDistinctCities() below rather than typing it blind.
+ */
+export interface UserAdminFilters {
+  sex?: string;
+  livingCity?: string;
+}
+
+export type UserAdminSortBy = "id" | "createdDate" | "birthDate" | "username";
 
 /**
  * Ports v1's real UserController::getUserForAdmin() - Kütüphaneci("Mod")/
@@ -28,17 +47,24 @@ export interface UserAdminListItem {
  * this data anyway, but the exclusion is still ported faithfully) - it's
  * the one account type this panel can never touch, by design.
  */
-export async function getUserAdminList(page = 1, pageSize = 20, search = ""): Promise<{ items: UserAdminListItem[]; total: number; page: number; lastPage: number }> {
+export async function getUserAdminList(
+  page = 1,
+  pageSize = 20,
+  search = "",
+  filters: UserAdminFilters = {},
+  sortBy: UserAdminSortBy = "id",
+  sortDir: "asc" | "desc" = "desc",
+): Promise<{ items: UserAdminListItem[]; total: number; page: number; lastPage: number }> {
   const safeSize = Math.min(100, Math.max(1, pageSize));
-  const trimmedSearch = search.trim();
-  const whereClause = trimmedSearch
-    ? and(ne(user.userType, USER_TYPES.SuperAdmin), like(sql`LOWER(${user.username})`, sql`LOWER(${`%${trimmedSearch}%`})`))
-    : ne(user.userType, USER_TYPES.SuperAdmin);
+  const whereClause = buildUserAdminWhere(search, filters);
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(user).where(whereClause);
   const total = Number(countRow?.count ?? 0);
   const lastPage = Math.max(1, Math.ceil(total / safeSize));
   const safePage = Math.min(Math.max(1, page), lastPage);
+
+  const sortColumn = { id: user.id, createdDate: user.createdDate, birthDate: user.birthDate, username: user.username }[sortBy];
+  const orderFn = sortDir === "asc" ? asc : desc;
 
   const rows = await db
     .select({
@@ -53,12 +79,16 @@ export async function getUserAdminList(page = 1, pageSize = 20, search = ""): Pr
       writerName: writer.name,
       suspendedUntil: user.suspendedUntil,
       suspensionReason: user.suspensionReason,
+      sex: user.sex,
+      livingCity: user.livingCity,
+      birthDate: user.birthDate,
+      createdDate: user.createdDate,
     })
     .from(user)
     .leftJoin(publisher, eq(user.publisherId, publisher.id))
     .leftJoin(writer, eq(user.writerId, writer.id))
     .where(whereClause)
-    .orderBy(user.id)
+    .orderBy(orderFn(sortColumn))
     .limit(safeSize)
     .offset((safePage - 1) * safeSize);
 
@@ -75,11 +105,82 @@ export async function getUserAdminList(page = 1, pageSize = 20, search = ""): Pr
       writerName: r.writerName,
       suspendedUntil: r.suspendedUntil,
       suspensionReason: r.suspensionReason,
+      sex: r.sex,
+      livingCity: r.livingCity,
+      birthDate: r.birthDate,
+      createdDate: r.createdDate,
     })),
     total,
     page: safePage,
     lastPage,
   };
+}
+
+function buildUserAdminWhere(search: string, filters: UserAdminFilters) {
+  const conditions = [ne(user.userType, USER_TYPES.SuperAdmin)];
+  const trimmedSearch = search.trim();
+  if (trimmedSearch) conditions.push(like(sql`LOWER(${user.username})`, sql`LOWER(${`%${trimmedSearch}%`})`));
+  if (filters.sex) conditions.push(eq(user.sex, filters.sex));
+  if (filters.livingCity) conditions.push(eq(user.livingCity, filters.livingCity));
+  return and(...conditions);
+}
+
+/** Feeds the city filter dropdown with real values only, not free typing
+ * against a messy free-text column. */
+export async function getDistinctUserCities(): Promise<string[]> {
+  const rows = await db
+    .select({ city: user.livingCity })
+    .from(user)
+    .where(and(ne(user.userType, USER_TYPES.SuperAdmin), sql`${user.livingCity} is not null and ${user.livingCity} != ''`))
+    .groupBy(user.livingCity)
+    .orderBy(asc(user.livingCity));
+  return rows.map((r) => r.city).filter((c): c is string => c != null);
+}
+
+const BULK_MAIL_MAX_RECIPIENTS = 2000;
+
+/**
+ * Customer's ask: "toplu mail gönderme kriterlere göre" - sends to every
+ * user matching the current search+filters (not just the visible page),
+ * capped hard at BULK_MAIL_MAX_RECIPIENTS as a blunt safety net against a
+ * fat-fingered "no filter at all" blast. Best-effort per recipient (one bad
+ * address doesn't abort the whole batch) - real failures are counted and
+ * returned, not silently swallowed.
+ */
+export async function sendBulkMailToFilteredUsers(
+  search: string,
+  filters: UserAdminFilters,
+  subject: string,
+  bodyHtml: string,
+): Promise<{ sent: number; failed: number; total: number; capped: boolean }> {
+  if (!isMailConfigured()) throw new Error("E-posta gönderimi yapılandırılmamış.");
+  const trimmedSubject = subject.trim();
+  if (!trimmedSubject) throw new Error("Konu boş olamaz.");
+  if (!bodyHtml.trim()) throw new Error("Mesaj içeriği boş olamaz.");
+
+  const whereClause = buildUserAdminWhere(search, filters);
+  const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(user).where(whereClause);
+  const total = Number(countRow?.count ?? 0);
+
+  const rows = await db
+    .select({ mail: user.mail })
+    .from(user)
+    .where(whereClause)
+    .limit(BULK_MAIL_MAX_RECIPIENTS);
+
+  let sent = 0;
+  let failed = 0;
+  for (const r of rows) {
+    try {
+      await sendMail(r.mail, trimmedSubject, bodyHtml);
+      sent += 1;
+    } catch (err) {
+      failed += 1;
+      console.error("[bulk-mail] failed to send to", r.mail, err);
+    }
+  }
+
+  return { sent, failed, total, capped: total > BULK_MAIL_MAX_RECIPIENTS };
 }
 
 const ASSIGNABLE_ROLES: string[] = Object.values(USER_TYPES).filter((t) => t !== USER_TYPES.SuperAdmin);

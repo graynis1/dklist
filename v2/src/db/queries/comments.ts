@@ -9,6 +9,7 @@ import { extractHashtagTags } from "@/lib/hashtag";
 import { findFlaggedWords } from "@/lib/dirty-controller";
 import { isLikelyAbusive, isOffTopicFromBooks } from "@/lib/moderation";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import { hasTransactedWithSeller } from "@/db/queries/rating";
 import type { FrameTier } from "@/lib/profile-frame-tier";
 
 /**
@@ -201,6 +202,7 @@ export async function notifyHashtaggedReaders(text: string, taggerUserId: number
       taggerUserId,
       `" ${tagger.username} " sizi bir okur olarak etiketledi.`,
       `"${tagger.username}" tagged you as a reader.`,
+      "mention",
     );
   }
 }
@@ -250,6 +252,12 @@ export async function shareEntityComment(
 
   if (!original || original.type !== targetType) {
     throw new Error("Paylaşılacak gönderi bulunamadı.");
+  }
+  // A share re-inserts a new "user"-type row against the same seller - the
+  // same transaction gate as a fresh review applies, otherwise it would be
+  // a trivial bypass (repost someone else's review as your own by "sharing" it).
+  if (targetType === "user" && !(await hasTransactedWithSeller(userId, original.targetId))) {
+    throw new Error("Bu satıcıyı değerlendirebilmek için ondan bir ilan satın almış olmanız gerekir.");
   }
   if (trimmed) await checkModerationOrThrow(trimmed);
 
@@ -301,6 +309,11 @@ export async function addEntityComment(
   }
   if (trimmed.length > 2000) {
     throw new Error("Yorum en fazla 2000 karakter olabilir.");
+  }
+  // "user" targetType is a seller review (see rating.ts's rateUser doc
+  // comment) - gated to real buyer/seller pairs only, same as the score.
+  if (targetType === "user" && !(await hasTransactedWithSeller(userId, targetId))) {
+    throw new Error("Bu satıcıyı değerlendirebilmek için ondan bir ilan satın almış olmanız gerekir.");
   }
   await checkModerationOrThrow(trimmed);
 

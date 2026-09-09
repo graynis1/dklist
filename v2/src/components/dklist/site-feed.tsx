@@ -21,6 +21,7 @@ import {
   BookmarkIcon,
   TargetIcon,
   TrophyIcon,
+  AwardIcon,
 } from "lucide-react";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
@@ -50,6 +51,7 @@ const ICON_BY_REASON = {
   reading_status: BookmarkIcon,
   reading_goal_set: TargetIcon,
   reading_goal_achieved: TrophyIcon,
+  badge_earned: AwardIcon,
 } as const;
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -66,6 +68,7 @@ const GO_TO_LABEL: Record<string, string> = {
   blog: "Yazıyı Oku",
   store: "İlanı Gör",
   club: "Kulübe Git",
+  publisher: "Yayınevine Git",
 };
 
 function describe(item: FeedItem): { verb: string; target: string | null } {
@@ -82,7 +85,9 @@ function describe(item: FeedItem): { verb: string; target: string | null } {
     case "like":
       if (item.entityKind === "book") return { verb: "kitabını beğendi", target };
       if (item.entityKind === "writer") return { verb: "yazarını beğendi", target };
-      return { verb: "çevirmenini beğendi", target };
+      if (item.entityKind === "translator") return { verb: "çevirmenini beğendi", target };
+      if (item.entityKind === "blog") return { verb: "blog yazısını beğendi:", target };
+      return { verb: "yayınevini beğendi", target };
     case "comment":
       if (item.isQuote) return { verb: "bir alıntı paylaştı", target: null };
       return { verb: "bir yorum yazdı", target: null };
@@ -108,6 +113,11 @@ function describe(item: FeedItem): { verb: string; target: string | null } {
     case "reading_goal_achieved":
       return {
         verb: item.goalCount ? `${item.goalCount} kitaplık yıllık okuma hedefine ulaştı! 🎉` : "yıllık okuma hedefine ulaştı! 🎉",
+        target: null,
+      };
+    case "badge_earned":
+      return {
+        verb: item.badgeName ? `"${item.badgeName}" rozetini kazandı! 🏆` : "yeni bir rozet kazandı! 🏆",
         target: null,
       };
   }

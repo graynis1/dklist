@@ -345,11 +345,21 @@ export async function setBlogReaction(userId: number, blogId: number, value: 1 |
       return { reaction: null };
     }
     await db.update(blogLike).set({ value }).where(eq(blogLike.id, existing.id));
+    if (value === 1) await awardBlogLikePoints(userId, blogId);
     return { reaction: value };
   }
 
   await db.insert(blogLike).values({ userId, blogId, value });
+  if (value === 1) await awardBlogLikePoints(userId, blogId);
   return { reaction: value };
+}
+
+/** Same idempotent shape as toggleBookLike/toggleWriterLike (etc.) - the
+ * reasonKey is per-(user,blog), so re-liking after a dislike never re-earns.
+ * Only fires on genuine "beğen", never "beğenme" (dislike). Also feeds the
+ * homepage activity feed via the "like" reason's existing "blog" kind. */
+async function awardBlogLikePoints(userId: number, blogId: number): Promise<void> {
+  await awardPoints(userId, (await getPointSettings()).like, "like", `like:blog:${blogId}`);
 }
 
 /** Blogger's own per-post toggle - "bloger eğer isterse yorum yapmayı

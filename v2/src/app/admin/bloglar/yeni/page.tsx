@@ -2,11 +2,12 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { hasRole, USER_TYPES } from "@/lib/permission";
-import { createBlogAction } from "@/actions/blog";
+import { createBlogAction, uploadBlogInlineImageAction } from "@/actions/blog";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RichTextEditor } from "@/components/dklist/rich-text-editor";
 
 const BLOG_AUTHOR_ROLES = [USER_TYPES.Blogger, USER_TYPES.Mod, USER_TYPES.Admin];
 
@@ -69,15 +70,10 @@ async function AdminNewBlogContent({
                 className="w-full rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-ring"
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm">
+            <div className="flex flex-col gap-1.5 text-sm">
               İçerik
-              <textarea
-                name="content"
-                required
-                rows={12}
-                className="w-full rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-ring"
-              />
-            </label>
+              <RichTextEditor name="content" uploadAction={uploadBlogInlineImageAction} />
+            </div>
             <label className="flex flex-col gap-1.5 text-sm">
               Kapak Resmi
               <input name="image" type="file" accept="image/*" required className="text-sm" />

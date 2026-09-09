@@ -2,8 +2,42 @@ import "server-only";
 import { updateTag } from "next/cache";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { dknotifiaction, user } from "@/db/schema";
+import { dknotifiaction, notificationPreference, user } from "@/db/schema";
 import { publishUserEvent } from "@/lib/event-bus";
+import { CONFIGURABLE_NOTIFICATION_TYPES, type NotificationType } from "@/lib/notification-types";
+
+export type { NotificationType } from "@/lib/notification-types";
+export { NOTIFICATION_TYPES, CONFIGURABLE_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from "@/lib/notification-types";
+
+export async function getNotificationPreferences(userId: number): Promise<Record<(typeof CONFIGURABLE_NOTIFICATION_TYPES)[number], boolean>> {
+  const rows = await db
+    .select({ type: notificationPreference.type, enabled: notificationPreference.enabled })
+    .from(notificationPreference)
+    .where(eq(notificationPreference.userId, userId));
+  const overrides = new Map(rows.map((r) => [r.type, Boolean(r.enabled)]));
+  const result = {} as Record<(typeof CONFIGURABLE_NOTIFICATION_TYPES)[number], boolean>;
+  for (const type of CONFIGURABLE_NOTIFICATION_TYPES) {
+    result[type] = overrides.get(type) ?? true;
+  }
+  return result;
+}
+
+export async function setNotificationPreference(userId: number, type: NotificationType, enabled: boolean): Promise<void> {
+  await db
+    .insert(notificationPreference)
+    .values({ userId, type, enabled: enabled ? 1 : 0 })
+    .onDuplicateKeyUpdate({ set: { enabled: enabled ? 1 : 0 } });
+}
+
+async function isNotificationTypeEnabled(userId: number, type: NotificationType): Promise<boolean> {
+  if (!(CONFIGURABLE_NOTIFICATION_TYPES as readonly string[]).includes(type)) return true;
+  const [row] = await db
+    .select({ enabled: notificationPreference.enabled })
+    .from(notificationPreference)
+    .where(and(eq(notificationPreference.userId, userId), eq(notificationPreference.type, type)))
+    .limit(1);
+  return row ? Boolean(row.enabled) : true; // no row = default enabled
+}
 
 /**
  * v1's NotifyManager::addNotification() (the actual user-facing notification
@@ -18,8 +52,10 @@ export async function addNotification(
   senderUserId: number,
   messageTr: string,
   messageUs: string,
+  type: NotificationType = "system",
 ): Promise<void> {
   if (ownerUserId === senderUserId) return;
+  if (!(await isNotificationTypeEnabled(ownerUserId, type))) return;
 
   const [existing] = await db
     .select({ id: dknotifiaction.id })
@@ -41,6 +77,7 @@ export async function addNotification(
     commentTr: messageTr,
     commentUs: messageUs,
     view: 0,
+    type,
   });
 
   updateTag(`notifications:${ownerUserId}`);

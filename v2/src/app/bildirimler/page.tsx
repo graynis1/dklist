@@ -7,8 +7,9 @@ import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
 import { NotificationsList } from "@/components/dklist/notifications-list";
+import { NotificationPreferences } from "@/components/dklist/notification-preferences";
 import { auth } from "@/auth";
-import { getNotifications } from "@/db/queries/notifications";
+import { getNotifications, getNotificationPreferences } from "@/db/queries/notifications";
 import { AdSlot } from "@/components/dklist/ad-slot";
 
 export default function NotificationsPage() {
@@ -25,10 +26,24 @@ export default function NotificationsPage() {
         <Suspense fallback={null}>
           <AdSlot placement="bildirimler" className="mb-6 max-w-none px-0" />
         </Suspense>
+        <Suspense fallback={null}>
+          <NotificationPreferencesContent />
+        </Suspense>
         <Suspense fallback={<NotificationsSkeleton />}>
           <NotificationsContent />
         </Suspense>
       </div>
+    </div>
+  );
+}
+
+async function NotificationPreferencesContent() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const prefs = await getNotificationPreferences(Number(session.user.id));
+  return (
+    <div className="mb-6">
+      <NotificationPreferences initialPreferences={prefs} />
     </div>
   );
 }

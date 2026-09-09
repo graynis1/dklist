@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 interface ActionResult {
   status: boolean;
   message?: string;
+  pending?: boolean;
 }
 
 export function ClubJoinButton({
@@ -15,6 +16,7 @@ export function ClubJoinButton({
   slug,
   isMember,
   isOwner,
+  isPendingRequest,
   signedIn,
   joinAction,
   leaveAction,
@@ -23,12 +25,14 @@ export function ClubJoinButton({
   slug: string;
   isMember: boolean;
   isOwner: boolean;
+  isPendingRequest: boolean;
   signedIn: boolean;
   joinAction: (clubId: number, slug: string) => Promise<ActionResult>;
   leaveAction: (clubId: number, slug: string) => Promise<ActionResult>;
 }) {
   const router = useRouter();
   const [member, setMember] = useState(isMember);
+  const [pending, setPending] = useState(isPendingRequest);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -44,6 +48,10 @@ export function ClubJoinButton({
     return <Button variant="outline" disabled>Kurucusun</Button>;
   }
 
+  if (pending && !member) {
+    return <Button variant="outline" disabled>Onay Bekleniyor</Button>;
+  }
+
   return (
     <div className="flex flex-col items-end gap-1">
       <Button
@@ -54,7 +62,13 @@ export function ClubJoinButton({
             setError(null);
             const result = member ? await leaveAction(clubId, slug) : await joinAction(clubId, slug);
             if (result.status) {
-              setMember(!member);
+              if (member) {
+                setMember(false);
+              } else if (result.pending) {
+                setPending(true);
+              } else {
+                setMember(true);
+              }
               router.refresh();
             } else {
               setError(result.message ?? "İşlem başarısız oldu.");

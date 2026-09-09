@@ -8,7 +8,7 @@ import { SectionLabel } from "@/components/dklist/star-rating";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { EntityComments } from "@/components/dklist/entity-comments";
 import { auth } from "@/auth";
-import { getClubBySlug } from "@/db/queries/book-clubs";
+import { getClubBySlug, hasPendingClubJoinRequest } from "@/db/queries/book-clubs";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getCommentLikeStates } from "@/db/queries/comment-likes";
 import { hasRole, USER_TYPES } from "@/lib/roles";
@@ -24,6 +24,10 @@ import {
   updateClubDescriptionAction,
   updateClubNameAction,
   deleteClubAction,
+  getClubJoinRequestsAction,
+  approveClubJoinRequestAction,
+  rejectClubJoinRequestAction,
+  setClubRequiresApprovalAction,
 } from "./actions";
 import { ClubJoinButton } from "@/components/dklist/club-join-button";
 import { ClubMemberList } from "@/components/dklist/club-member-list";
@@ -31,6 +35,8 @@ import { ClubManageBook } from "@/components/dklist/club-manage-book";
 import { ClubManageDetails } from "@/components/dklist/club-manage-description";
 import { ClubDeleteButton } from "@/components/dklist/club-delete-button";
 import { ShareButton } from "@/components/dklist/share-button";
+import { ClubJoinRequestsPanel } from "@/components/dklist/club-join-requests-panel";
+import { ClubApprovalToggle } from "@/components/dklist/club-approval-toggle";
 
 export async function generateMetadata({ params, searchParams }: PageProps<"/kulup/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -81,6 +87,7 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
   const canManage = userId
     ? club.ownerId === userId || hasRole(session?.user?.userType, [USER_TYPES.Admin, USER_TYPES.Mod])
     : false;
+  const isPendingRequest = userId && !isMember && club.requiresApproval ? await hasPendingClubJoinRequest(club.id, userId) : false;
 
   const comments = await getEntityComments(club.id, "bookClub");
   const commentIds = comments.map((c) => c.id);
@@ -113,6 +120,7 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
               slug={club.slug}
               isMember={isMember}
               isOwner={club.ownerId === userId}
+              isPendingRequest={isPendingRequest}
               signedIn={Boolean(userId)}
               joinAction={joinClubAction}
               leaveAction={leaveClubAction}
@@ -173,6 +181,21 @@ async function ClubDetailContent({ params }: { params: PageProps<"/kulup/[slug]"
           />
         )}
       </div>
+
+      {canManage && (
+        <div className="mb-6 flex flex-col gap-3">
+          <ClubApprovalToggle clubId={club.id} slug={club.slug} initialRequiresApproval={club.requiresApproval} action={setClubRequiresApprovalAction} />
+          {club.requiresApproval && (
+            <ClubJoinRequestsPanel
+              clubId={club.id}
+              slug={club.slug}
+              loadAction={getClubJoinRequestsAction}
+              approveAction={approveClubJoinRequestAction}
+              rejectAction={rejectClubJoinRequestAction}
+            />
+          )}
+        </div>
+      )}
 
       <div className="mb-10 flex flex-col gap-2">
         <SectionLabel>Üyeler ({club.memberCount})</SectionLabel>

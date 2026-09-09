@@ -26,16 +26,9 @@ import { addBlogCommentAction, addBlogReplyAction, shareBlogCommentAction } from
 import { EyeIcon } from "lucide-react";
 import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { ProfileLink } from "@/components/dklist/profile-link";
+import { looksLikeHtml } from "@/lib/blog-content";
 
 const ELEVATED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
-
-/** A cheap real-tag sniff (not a full HTML validator) - good enough to tell
- * "this is markup" apart from plain text that happens to contain a bare
- * `<`/`>` character (e.g. "5 < 10 kitap okudum"). See the content-rendering
- * comment below for why this distinction exists at all. */
-function looksLikeHtml(text: string): boolean {
-  return /<\/?(p|div|h[1-6]|strong|em|b|i|ul|ol|li|a|img|br|span|blockquote)\b[^>]*>/i.test(text);
-}
 
 export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): Promise<Metadata> {
   const { slug } = await params;

@@ -1,7 +1,17 @@
 "use server";
 
 import { requireRole, USER_TYPES } from "@/lib/permission";
-import { updateUserRole, toggleUserDisabled, updateUserPublisher, updateUserBadges, getUserBadgeIds, suspendUser, liftSuspension } from "@/db/queries/user-admin";
+import {
+  updateUserRole,
+  toggleUserDisabled,
+  updateUserPublisher,
+  updateUserBadges,
+  getUserBadgeIds,
+  suspendUser,
+  liftSuspension,
+  sendBulkMailToFilteredUsers,
+  type UserAdminFilters,
+} from "@/db/queries/user-admin";
 import { deleteUserAccount, banEmail } from "@/db/queries/user-delete";
 import { db } from "@/db";
 import { user } from "@/db/schema";
@@ -157,6 +167,25 @@ export async function deleteUserAccountAction(userId: number): Promise<{ status:
  * Bans the account's CURRENT email (works whether the account still
  * exists or was already deleted) - a deliberately separate action from
  * delete, not a checkbox bundled into it. */
+/** Customer's ask: "toplu mail gönderme kriterlere göre" - sends to every
+ * user currently matching the panel's search+filters, not just the visible
+ * page. Admin-only, logged like every other mutating action here. */
+export async function sendBulkMailAction(
+  search: string,
+  filters: UserAdminFilters,
+  subject: string,
+  bodyHtml: string,
+): Promise<{ status: boolean; message?: string; sent?: number; failed?: number; total?: number; capped?: boolean }> {
+  try {
+    const actor = await requireRole(ADMIN_ONLY);
+    const result = await sendBulkMailToFilteredUsers(search, filters, subject, bodyHtml);
+    await logAdminAction(actor.id, "user:bulk-mail", "user", undefined, `${result.sent}/${result.total} - "${subject.trim()}"`);
+    return { status: true, ...result };
+  } catch (error) {
+    return { status: false, message: error instanceof Error ? error.message : "Gönderilemedi." };
+  }
+}
+
 export async function banUserEmailAction(userId: number): Promise<{ status: boolean; message?: string }> {
   try {
     const actor = await requireRole(ADMIN_ONLY);

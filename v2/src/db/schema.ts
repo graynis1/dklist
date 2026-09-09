@@ -216,11 +216,27 @@ export const dknotifiaction = mysqlTable("dknotifiaction", {
 	commentTr: longtext("comment_tr").notNull(),
 	commentUs: longtext("comment_us").notNull(),
 	meta: longtext(),
+	// Migration 0048 - see notifications.ts's NotificationType/preference gate.
+	type: varchar({ length: 30 }).notNull().default("system"),
 },
 (table) => [
 	index("IDX_5E795EC62B18554A").on(table.ownerUserId),
 	index("IDX_5E795EC62A98155E").on(table.senderUserId),
 	primaryKey({ columns: [table.id], name: "dknotifiaction_id"}),
+]);
+
+// Migration 0048 - per-type opt-in/out (customer's explicit ask). Missing
+// row for a (user, type) pair means enabled - see getNotificationPreferences().
+export const notificationPreference = mysqlTable("notification_preference", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	type: varchar({ length: 30 }).notNull(),
+	enabled: tinyint().notNull().default(1),
+},
+(table) => [
+	unique("uq_notification_preference_user_type").on(table.userId, table.type),
+	index("idx_notification_preference_user").on(table.userId),
+	primaryKey({ columns: [table.id], name: "notification_preference_id" }),
 ]);
 
 export const follow = mysqlTable("follow", {
@@ -523,6 +539,10 @@ export const store = mysqlTable("store", {
 	status: varchar({ length: 20 }).notNull(),
 	listingType: varchar("listing_type", { length: 10 }).notNull(),
 	viewCount: int("view_count").notNull(),
+	// Migration 0050 - set when the owner marks a free listing "completed"
+	// with a known buyer. See store.ts's markStoreCompletedWithBuyer() and
+	// rating.ts's hasTransactedWithSeller() (the seller-review gate).
+	soldToUserId: int("sold_to_user_id").references(() => user.id, { onDelete: "set null" }),
 },
 (table) => [
 	index("IDX_FF57587716A2B381").on(table.bookId),
@@ -531,6 +551,7 @@ export const store = mysqlTable("store", {
 	index("idx_store_listingtype").on(table.listingType),
 	index("idx_store_viewcount").on(table.viewCount),
 	index("idx_store_price").on(table.price),
+	index("idx_store_sold_to_user").on(table.soldToUserId),
 	primaryKey({ columns: [table.id], name: "store_id"}),
 ]);
 
@@ -1192,12 +1213,29 @@ export const bookClub = mysqlTable("book_club", {
 	currentBookId: int("current_book_id").references(() => book.id),
 	visibility: varchar({ length: 10 }).notNull().default("public"),
 	createdDate: datetime("created_date", { mode: 'string' }).notNull(),
+	// Migration 0049 - opt-in gate, off by default (see joinClub()'s own
+	// doc comment for why this is additive, not a behavior change for
+	// existing private clubs).
+	requiresApproval: tinyint("requires_approval").notNull().default(0),
 },
 (table) => [
 	unique("uniq_book_club_slug").on(table.slug),
 	index("idx_book_club_owner").on(table.ownerId),
 	index("idx_book_club_current_book").on(table.currentBookId),
 	primaryKey({ columns: [table.id], name: "book_club_id" }),
+]);
+
+// Migration 0049 - pending join requests for clubs with requiresApproval=1.
+export const bookClubJoinRequest = mysqlTable("book_club_join_request", {
+	id: int().autoincrement().notNull(),
+	clubId: int("club_id").notNull().references(() => bookClub.id, { onDelete: "cascade" }),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	requestedAt: datetime("requested_at", { mode: 'string' }).notNull(),
+},
+(table) => [
+	unique("uniq_book_club_join_request").on(table.clubId, table.userId),
+	index("idx_book_club_join_request_club").on(table.clubId),
+	primaryKey({ columns: [table.id], name: "book_club_join_request_id" }),
 ]);
 
 export const bookClubMember = mysqlTable("book_club_member", {

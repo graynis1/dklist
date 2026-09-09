@@ -14,6 +14,8 @@ import {
   follow,
   feedPost,
   readPurpose,
+  publisher,
+  badges,
 } from "@/db/schema";
 import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
 import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
@@ -56,6 +58,11 @@ const FEED_REASONS = [
   "reading_status",
   "reading_goal_set",
   "reading_goal_achieved",
+  // Customer's ask (2026-09-09 feedback batch): "puan kazanma... olaylarının
+  // akışa düşmesi" - logging every single +1/+2 transaction would be pure
+  // noise, so this fires only on a genuinely new lifetime-point milestone
+  // badge (see points.ts's checkMilestoneBadges) - a real, feed-worthy event.
+  "badge_earned",
 ] as const;
 
 export type FeedReason = (typeof FEED_REASONS)[number];
@@ -84,7 +91,7 @@ export interface FeedItem {
   frameTier: FrameTier;
   highestBadge: { name: string; threshold: number } | null;
   reason: FeedReason;
-  entityKind: "book" | "writer" | "translator" | "user" | "blog" | "store" | "club" | null;
+  entityKind: "book" | "writer" | "translator" | "user" | "blog" | "store" | "club" | "publisher" | null;
   isQuote: boolean;
   targetLabel: string | null;
   targetHref: string | null;
@@ -132,6 +139,10 @@ export interface FeedItem {
    * actor's current-year target, so the card can show "50 kitap" rather
    * than a bare, numberless announcement. */
   goalCount: number | null;
+  /** Only set for reason "badge_earned" - the milestone badge's display
+   * name, so the card can read "'Kitap Kurdu' rozetini kazandı" rather than
+   * a bare, nameless announcement. */
+  badgeName: string | null;
 }
 
 function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedItem["entityKind"]; entityId: number | null } {
@@ -146,7 +157,9 @@ function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedIt
     case "rating":
     case "like": {
       const kind = parts[1];
-      if (kind !== "book" && kind !== "writer" && kind !== "translator") return { entityKind: null, entityId: null };
+      if (kind !== "book" && kind !== "writer" && kind !== "translator" && kind !== "blog" && kind !== "publisher") {
+        return { entityKind: null, entityId: null };
+      }
       return { entityKind: kind, entityId: Number(parts[2]) || null };
     }
     case "follow":
@@ -166,6 +179,8 @@ function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedIt
     case "reading_goal_set":
     case "reading_goal_achieved":
       return { entityKind: null, entityId: null }; // resolved via the actor's own current-year goal, see goalUserIds below
+    case "badge_earned":
+      return { entityKind: null, entityId: Number(parts[2]) || null }; // parts[2] is the badge id, resolved via badgeIds below
     default:
       return { entityKind: null, entityId: null };
   }
@@ -241,6 +256,8 @@ export async function getSiteFeed(opts: {
   const blogIds = new Set<number>();
   const storeIds = new Set<number>();
   const clubIds = new Set<number>();
+  const publisherIds = new Set<number>();
+  const badgeIds = new Set<number>();
   const commentIds = new Set<number>();
   const feedPostIds = new Set<number>();
   const goalUserIds = new Set<number>();
@@ -249,6 +266,7 @@ export async function getSiteFeed(opts: {
     if (r.reason === "comment" && r.entityId) commentIds.add(r.entityId);
     else if (r.reason === "feed_post" && r.entityId) feedPostIds.add(r.entityId);
     else if (r.reason === "reading_goal_set" || r.reason === "reading_goal_achieved") goalUserIds.add(r.actorId);
+    else if (r.reason === "badge_earned" && r.entityId) badgeIds.add(r.entityId);
     else if (r.entityKind === "book" && r.entityId) bookIds.add(r.entityId);
     else if (r.entityKind === "writer" && r.entityId) writerIds.add(r.entityId);
     else if (r.entityKind === "translator" && r.entityId) translatorIds.add(r.entityId);
@@ -256,6 +274,7 @@ export async function getSiteFeed(opts: {
     else if (r.entityKind === "blog" && r.entityId) blogIds.add(r.entityId);
     else if (r.entityKind === "store" && r.entityId) storeIds.add(r.entityId);
     else if (r.entityKind === "club" && r.entityId) clubIds.add(r.entityId);
+    else if (r.entityKind === "publisher" && r.entityId) publisherIds.add(r.entityId);
   }
 
   const commentRows = commentIds.size
@@ -269,6 +288,14 @@ export async function getSiteFeed(opts: {
     if (c.type === "book") bookIds.add(id);
     else if (c.type === "writer") writerIds.add(id);
     else if (c.type === "translator") translatorIds.add(id);
+    // Real bug fix: blog/bookClub/user comments used to fall through to
+    // the translator lookup below (wrong id space entirely - a blog
+    // comment's targetId would be looked up in the translator table and
+    // almost always come back empty), silently rendering as a broken,
+    // link-less card. Each type now resolves against its own real table.
+    else if (c.type === "blog") blogIds.add(id);
+    else if (c.type === "bookClub") clubIds.add(id);
+    else if (c.type === "user") userIds.add(id);
   }
   const commentById = new Map(commentRows.map((c) => [c.id, c]));
 
@@ -315,6 +342,8 @@ export async function getSiteFeed(opts: {
     blogRows,
     storeRows,
     clubRows,
+    publisherRows,
+    badgeRows,
     likeStates,
     postLikeStates,
     repliesByComment,
@@ -334,6 +363,8 @@ export async function getSiteFeed(opts: {
     blogIds.size ? db.select({ id: blog.id, title: blog.title, slug: blog.slug }).from(blog).where(inArray(blog.id, [...blogIds])) : Promise.resolve([]),
     storeIds.size ? db.select({ id: store.id, title: store.title, slug: store.slug }).from(store).where(inArray(store.id, [...storeIds])) : Promise.resolve([]),
     clubIds.size ? db.select({ id: bookClub.id, name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(inArray(bookClub.id, [...clubIds])) : Promise.resolve([]),
+    publisherIds.size ? db.select({ id: publisher.id, name: publisher.name, slug: publisher.slug }).from(publisher).where(inArray(publisher.id, [...publisherIds])) : Promise.resolve([]),
+    badgeIds.size ? db.select({ id: badges.id, name: badges.name }).from(badges).where(inArray(badges.id, [...badgeIds])) : Promise.resolve([]),
     getCommentLikeStates(opts.viewerId ?? null, [...commentIds]),
     getFeedPostLikeStates(opts.viewerId ?? null, [...feedPostIds]),
     getRepliesForComments([...commentIds]),
@@ -355,6 +386,8 @@ export async function getSiteFeed(opts: {
   const blogMap = new Map(blogRows.map((b) => [b.id, b]));
   const storeMap = new Map(storeRows.map((s) => [s.id, s]));
   const clubMap = new Map(clubRows.map((c) => [c.id, c]));
+  const publisherMap = new Map(publisherRows.map((p) => [p.id, p]));
+  const badgeMap = new Map(badgeRows.map((b) => [b.id, b]));
 
   const items: FeedItem[] = parsed.map((r): FeedItem => {
     const base = {
@@ -378,7 +411,13 @@ export async function getSiteFeed(opts: {
       goalCount: null as FeedItem["goalCount"],
       quotedText: null as FeedItem["quotedText"],
       quotedAuthorUsername: null as FeedItem["quotedAuthorUsername"],
+      badgeName: null as FeedItem["badgeName"],
     };
+
+    if (r.reason === "badge_earned" && r.entityId) {
+      const b = badgeMap.get(r.entityId);
+      return { ...base, entityKind: null, isQuote: false, targetLabel: null, targetHref: null, excerpt: null, badgeName: b?.name ?? null };
+    }
 
     if (r.reason === "feed_post" && r.entityId) {
       const p = feedPostById.get(r.entityId);
@@ -436,8 +475,21 @@ export async function getSiteFeed(opts: {
         const w = writerMap.get(Number(c.targetId));
         return { ...base, entityKind: "writer", isQuote, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt, quotedText, quotedAuthorUsername, entityAvatarId: w?.id ?? null };
       }
-      const t = translatorMap.get(Number(c.targetId));
-      return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt, quotedText, quotedAuthorUsername, entityAvatarId: t?.id ?? null };
+      if (c.type === "translator") {
+        const t = translatorMap.get(Number(c.targetId));
+        return { ...base, entityKind: "translator", isQuote, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt, quotedText, quotedAuthorUsername, entityAvatarId: t?.id ?? null };
+      }
+      if (c.type === "blog") {
+        const bl = blogMap.get(Number(c.targetId));
+        return { ...base, entityKind: "blog", isQuote, targetLabel: bl?.title ?? null, targetHref: bl ? `/blog/${bl.slug}` : null, excerpt, quotedText, quotedAuthorUsername };
+      }
+      if (c.type === "bookClub") {
+        const cl = clubMap.get(Number(c.targetId));
+        return { ...base, entityKind: "club", isQuote, targetLabel: cl?.name ?? null, targetHref: cl ? `/kulup/${cl.slug}` : null, excerpt, quotedText, quotedAuthorUsername };
+      }
+      // "user" - a seller/profile review, targetId is the reviewed user's id.
+      const u = userMap.get(Number(c.targetId));
+      return { ...base, entityKind: "user", isQuote, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${encodeURIComponent(u.username)}` : null, excerpt, quotedText, quotedAuthorUsername };
     }
 
     if ((r.reason === "book_read" || r.reason === "library_add" || r.reason === "reading_status" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
@@ -462,6 +514,16 @@ export async function getSiteFeed(opts: {
     if ((r.reason === "rating" || r.reason === "like") && r.entityKind === "translator" && r.entityId) {
       const t = translatorMap.get(r.entityId);
       return { ...base, entityKind: "translator", isQuote: false, targetLabel: t?.name ?? null, targetHref: t ? `/cevirmen/${t.slug}` : null, excerpt: null };
+    }
+
+    if (r.reason === "like" && r.entityKind === "blog" && r.entityId) {
+      const bl = blogMap.get(r.entityId);
+      return { ...base, entityKind: "blog", isQuote: false, targetLabel: bl?.title ?? null, targetHref: bl ? `/blog/${bl.slug}` : null, excerpt: null };
+    }
+
+    if (r.reason === "like" && r.entityKind === "publisher" && r.entityId) {
+      const p = publisherMap.get(r.entityId);
+      return { ...base, entityKind: "publisher", isQuote: false, targetLabel: p?.name ?? null, targetHref: p ? `/yayinevi/${p.slug}` : null, excerpt: null };
     }
 
     if (r.reason === "follow" && r.entityId) {

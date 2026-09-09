@@ -5,7 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { book, writer, writerBook } from "@/db/schema";
-import { createStore, toggleStoreFavorite, deleteStore, updateStoreStatus } from "@/db/queries/store";
+import { createStore, toggleStoreFavorite, deleteStore, updateStoreStatus, markStoreCompletedWithBuyer } from "@/db/queries/store";
 import { getBookList } from "@/db/queries/books";
 import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
 
@@ -132,6 +132,26 @@ export async function markStoreStatusAction(
   }
   try {
     await updateStoreStatus(Number(session.user.id), storeId, status);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+/** Customer's ask: seller reviews restricted to real buyer/seller pairs -
+ * this is the "mark as sold to X" step a free listing needs to unlock that
+ * for its buyer (see store.ts's markStoreCompletedWithBuyer() and
+ * rating.ts's hasTransactedWithSeller()). */
+export async function markStoreCompletedWithBuyerAction(
+  storeId: number,
+  buyerUsername: string,
+): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    await markStoreCompletedWithBuyer(Number(session.user.id), storeId, buyerUsername);
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };

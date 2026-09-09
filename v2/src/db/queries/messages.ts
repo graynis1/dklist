@@ -455,6 +455,7 @@ export async function sendMessage(
       senderId,
       `Sana bir mesaj gönderdi: "${notifyText}"`,
       `Sent you a message: "${notifyText}"`,
+      "message",
     );
   }
 

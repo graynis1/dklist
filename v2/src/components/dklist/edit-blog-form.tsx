@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateBlogAction } from "@/actions/blog";
+import { updateBlogAction, uploadBlogInlineImageAction } from "@/actions/blog";
+import { RichTextEditor } from "@/components/dklist/rich-text-editor";
 
 export function EditBlogForm({
   blogId,
@@ -51,16 +52,10 @@ export function EditBlogForm({
           className="w-full rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-ring"
         />
       </label>
-      <label className="flex flex-col gap-1.5 text-sm">
+      <div className="flex flex-col gap-1.5 text-sm">
         İçerik
-        <textarea
-          name="content"
-          defaultValue={initialContent}
-          required
-          rows={10}
-          className="w-full rounded-lg border border-border bg-background p-2 text-sm outline-none focus:border-ring"
-        />
-      </label>
+        <RichTextEditor name="content" defaultValue={initialContent} uploadAction={uploadBlogInlineImageAction} />
+      </div>
       <label className="flex flex-col gap-1.5 text-sm">
         Kapak Resmi (değiştirmek için seçin, boş bırakabilirsiniz)
         <input name="image" type="file" accept="image/*" className="text-sm" />

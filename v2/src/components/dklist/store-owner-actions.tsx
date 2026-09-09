@@ -3,28 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { deleteStoreAction, markStoreStatusAction } from "@/app/askida-kitap/actions";
+import { Input } from "@/components/ui/input";
+import { deleteStoreAction, markStoreStatusAction, markStoreCompletedWithBuyerAction } from "@/app/askida-kitap/actions";
 
 export function StoreOwnerActions({ storeId, status }: { storeId: number; status: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [markingSold, setMarkingSold] = useState(false);
+  const [buyerUsername, setBuyerUsername] = useState("");
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
-        {status === "active" && (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() =>
-              startTransition(async () => {
-                await markStoreStatusAction(storeId, "completed");
-                router.refresh();
-              })
-            }
-          >
+        {status === "active" && !markingSold && (
+          <Button variant="outline" size="sm" disabled={isPending} onClick={() => setMarkingSold(true)}>
             Verildi Olarak İşaretle
           </Button>
         )}
@@ -69,6 +62,41 @@ export function StoreOwnerActions({ storeId, status }: { storeId: number; status
           İlanı Sil
         </Button>
       </div>
+
+      {markingSold && (
+        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+          <p className="text-xs text-muted-foreground">
+            Kitabı aldığı kişinin kullanıcı adını yazarsan, o kişi seni satıcı olarak değerlendirebilir hale gelir.
+            Bilmiyorsan boş bırakıp devam edebilirsin.
+          </p>
+          <Input value={buyerUsername} onChange={(e) => setBuyerUsername(e.target.value)} placeholder="Alıcının kullanıcı adı (opsiyonel)" />
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={isPending}
+              onClick={() =>
+                startTransition(async () => {
+                  setError(null);
+                  const result = buyerUsername.trim()
+                    ? await markStoreCompletedWithBuyerAction(storeId, buyerUsername.trim())
+                    : await markStoreStatusAction(storeId, "completed");
+                  if (result.status) {
+                    setMarkingSold(false);
+                    router.refresh();
+                  } else {
+                    setError(result.message ?? "İşaretlenemedi.");
+                  }
+                })
+              }
+            >
+              Onayla
+            </Button>
+            <Button size="sm" variant="ghost" disabled={isPending} onClick={() => setMarkingSold(false)}>
+              Vazgeç
+            </Button>
+          </div>
+        </div>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

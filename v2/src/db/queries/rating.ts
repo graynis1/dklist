@@ -1,8 +1,8 @@
 import "server-only";
 import { updateTag } from "next/cache";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { score, book, writer, translator, user } from "@/db/schema";
+import { score, book, writer, translator, user, store, storeOrder } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
 
 const BOOK_TARGET_TYPE = "book";
@@ -253,12 +253,44 @@ export async function getUserSellerRating(raterId: number, sellerId: number): Pr
   return row?.score ?? null;
 }
 
+/**
+ * Customer's ask: seller reviews should be limited to people who actually
+ * transacted, not anyone browsing the seller's profile - real via either
+ * path a purchase can take on this site: a paid (Iyzico) order reaching at
+ * least "paid", or a free listing the seller explicitly marked completed
+ * with this exact buyer (see store.ts's markStoreCompletedWithBuyer()).
+ */
+export async function hasTransactedWithSeller(raterId: number, sellerId: number): Promise<boolean> {
+  const [freeMatch] = await db
+    .select({ id: store.id })
+    .from(store)
+    .where(and(eq(store.ownerId, sellerId), eq(store.soldToUserId, raterId)))
+    .limit(1);
+  if (freeMatch) return true;
+
+  const [paidMatch] = await db
+    .select({ id: storeOrder.id })
+    .from(storeOrder)
+    .where(
+      and(
+        eq(storeOrder.sellerId, sellerId),
+        eq(storeOrder.buyerId, raterId),
+        or(eq(storeOrder.status, "paid"), eq(storeOrder.status, "shipped"), eq(storeOrder.status, "completed")),
+      ),
+    )
+    .limit(1);
+  return Boolean(paidMatch);
+}
+
 export async function rateUser(raterId: number, sellerId: number, value: number): Promise<{ newAverage: number }> {
   if (!Number.isInteger(value) || value < 1 || value > 10) {
     throw new Error("Puan 1 ile 10 arasında bir tam sayı olmalıdır.");
   }
   if (raterId === sellerId) {
     throw new Error("Kendinize puan veremezsiniz.");
+  }
+  if (!(await hasTransactedWithSeller(raterId, sellerId))) {
+    throw new Error("Bu satıcıyı değerlendirebilmek için ondan bir ilan satın almış/almış olmanız gerekir.");
   }
 
   await db.transaction(async (tx) => {
