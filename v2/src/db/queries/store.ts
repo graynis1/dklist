@@ -592,6 +592,17 @@ export async function getMyFavoriteStores(userId: number): Promise<FavoriteStore
   }));
 }
 
+/**
+ * Real bug found live (2026-09-10, while verifying the new store-og-image
+ * feature): some listings' pictures are legacy full Cloudinary URLs
+ * (imported data, same situation as blog.image - see blogImageUrl's own
+ * identical guard), not bare local filenames. Without this check, every
+ * such photo was silently broken everywhere it's shown (gallery, og:image)
+ * - /api/store-image/[filename] strips the value down to path.basename()
+ * and looks for it on local disk, where it was never actually uploaded.
+ */
 export function storeImageUrl(imageName: string | null): string | null {
-  return imageName ? `/api/store-image/${imageName}` : null;
+  if (!imageName) return null;
+  if (/^https?:\/\//i.test(imageName)) return imageName;
+  return `/api/store-image/${imageName}`;
 }

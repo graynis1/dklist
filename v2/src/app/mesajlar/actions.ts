@@ -3,7 +3,7 @@
 import { auth } from "@/auth";
 import { and, desc, eq, inArray, like } from "drizzle-orm";
 import { db } from "@/db";
-import { user, store } from "@/db/schema";
+import { user, store, storePicture } from "@/db/schema";
 import {
   sendMessage,
   deleteMessage,
@@ -153,14 +153,25 @@ export async function acceptRequestAction(otherUsername: string): Promise<{ stat
  * from the conversation. Both return the generic {id,label} shape
  * EntitySearchPicker-style pickers expect.
  */
-export async function searchBooksForAttachAction(query: string): Promise<{ id: number; label: string }[]> {
+/**
+ * Real customer ask (2026-09-10): "kitap aramadaki gibi görselleri ile
+ * gelirse daha hoş olur" - this used to return bare {id,label}, rendering
+ * as a generic icon regardless of the real book/listing. hasImage/image
+ * were already computed by searchBooks()/getStoreList()'s own first-
+ * image lookup - just weren't threaded through to this specific picker.
+ */
+export async function searchBooksForAttachAction(
+  query: string,
+): Promise<{ id: number; label: string; hasImage: boolean }[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
   const results = await searchBooks(trimmed, 8);
-  return results.map((b) => ({ id: b.id, label: b.name }));
+  return results.map((b) => ({ id: b.id, label: b.name, hasImage: b.hasImage }));
 }
 
-export async function searchStoreForAttachAction(query: string): Promise<{ id: number; label: string }[]> {
+export async function searchStoreForAttachAction(
+  query: string,
+): Promise<{ id: number; label: string; image: string | null }[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
   const rows = await db
@@ -169,7 +180,16 @@ export async function searchStoreForAttachAction(query: string): Promise<{ id: n
     .where(and(eq(store.isActive, 1), like(store.title, `${trimmed}%`)))
     .orderBy(desc(store.viewCount))
     .limit(8);
-  return rows.map((r) => ({ id: r.id, label: r.title }));
+  if (rows.length === 0) return [];
+  const pictureRows = await db
+    .select({ advertId: storePicture.advertId, imageName: storePicture.imageName })
+    .from(storePicture)
+    .where(inArray(storePicture.advertId, rows.map((r) => r.id)));
+  const firstImageByStore = new Map<number, string>();
+  for (const p of pictureRows) {
+    if (!firstImageByStore.has(p.advertId)) firstImageByStore.set(p.advertId, p.imageName);
+  }
+  return rows.map((r) => ({ id: r.id, label: r.title, image: firstImageByStore.get(r.id) ?? null }));
 }
 
 /** Polled from the client to pick up new incoming messages - matches v1's

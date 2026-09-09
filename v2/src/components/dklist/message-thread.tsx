@@ -11,11 +11,14 @@ import {
   searchStoreForAttachAction,
 } from "@/app/mesajlar/actions";
 import { formatRelativeTime } from "@/lib/utils";
+import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import type { MessageItem } from "@/db/queries/messages";
 
 interface AttachOption {
   id: number;
   label: string;
+  hasImage?: boolean;
+  image?: string | null;
 }
 
 /**
@@ -103,7 +106,24 @@ function AttachPopover({ onSend, disabled }: { onSend: (type: "book" | "store", 
                     }}
                     className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent"
                   >
-                    {kind === "book" ? <BookOpenIcon className="size-4 shrink-0 text-muted-foreground" /> : <TagIcon className="size-4 shrink-0 text-muted-foreground" />}
+                    {kind === "book" ? (
+                      <BookCover
+                        title={r.label}
+                        author=""
+                        tone={toneForId(r.id)}
+                        bookId={r.id}
+                        hasImage={Boolean(r.hasImage)}
+                        size="sm"
+                        className="w-7 shrink-0"
+                      />
+                    ) : r.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/api/store-image/${r.image}`} alt="" className="size-7 shrink-0 rounded object-cover" />
+                    ) : (
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded bg-muted">
+                        <TagIcon className="size-3.5 text-muted-foreground" />
+                      </span>
+                    )}
                     <span className="truncate">{r.label}</span>
                   </button>
                 </li>
