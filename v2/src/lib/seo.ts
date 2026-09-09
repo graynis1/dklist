@@ -32,6 +32,12 @@ export function pageMetadata({
   noIndex?: boolean;
 }): Metadata {
   const ogImage = image ?? DEFAULT_OG_IMAGE;
+  // Only the fallback icon's real dimensions/format are actually known here -
+  // a caller-supplied `image` (a blog cover, a book-adjacent photo) could be
+  // any size/format, and claiming wrong dimensions to a crawler is worse
+  // than omitting them (a mismatched size can make Facebook reject/mis-crop
+  // the preview rather than just falling back gracefully).
+  const ogImageMeta = image ? { url: ogImage } : { url: ogImage, width: 512, height: 512, type: "image/png" };
   return {
     title,
     description,
@@ -42,7 +48,13 @@ export function pageMetadata({
       description,
       url: path,
       type: "website",
-      images: [{ url: ogImage }],
+      // Real customer report (2026-09-09): a Facebook share showed a blank
+      // preview card despite og:image being present and reachable
+      // (verified live via curl) - width/height/type aren't strictly
+      // required by Facebook's crawler, but their absence is a known real
+      // contributor to inconsistent preview rendering for some crawler
+      // paths. Cheap, safe robustness addition either way.
+      images: [ogImageMeta],
     },
     twitter: {
       card: "summary_large_image",

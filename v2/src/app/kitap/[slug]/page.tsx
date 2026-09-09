@@ -90,11 +90,17 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/kit
     // image to pageMetadata(), so og:image was always absent - Facebook's
     // crawler has fallback heuristics that can still produce a preview
     // without one, but WhatsApp's does not, which is exactly the
-    // Facebook-works/WhatsApp-doesn't split the customer saw. Only set
-    // when the book actually has a real cover photo (/kapak/[id] 404s
-    // otherwise, see kapak/[id]/route.ts) - metadataBase in layout.tsx
-    // resolves this relative path to an absolute URL automatically.
-    image: book.hasImage ? `/kapak/${book.id}` : undefined,
+    // Facebook-works/WhatsApp-doesn't split the customer saw. Real cover
+    // photo when the book has one (/kapak/[id] 404s otherwise, see
+    // kapak/[id]/route.ts); otherwise a real, book-specific generated
+    // typeset-jacket image (title+author+color tone, same design the
+    // site's own BookCover renders) instead of the bare site logo every
+    // no-cover book (~55-60% of the catalog) was falling back to - a
+    // second, real customer report (2026-09-09): "kitap paylaşımı
+    // düzelmişti sanki ama böyle gidiyor" (thought book sharing was
+    // fixed, but this is what it looks like) - metadataBase in
+    // layout.tsx resolves either relative path to an absolute URL.
+    image: book.hasImage ? `/kapak/${book.id}` : `/api/book-og-image/${book.id}`,
   });
 }
 
