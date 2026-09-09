@@ -14,6 +14,7 @@ const TABS: { value: NoticeTypeFilter; label: string }[] = [
   { value: "comment", label: "Yorum Şikayetleri" },
   { value: "user_report", label: "Kullanıcı Şikayetleri" },
   { value: "book_data_error", label: "Kitap Veri Hataları" },
+  { value: "missing_entity", label: "Eksik Kayıt Bildirimleri" },
   { value: "auto_flag", label: "Otomatik Bayraklar" },
 ];
 
@@ -110,6 +111,10 @@ async function AdminNoticesContent({
                     </p>
                     <p className="text-muted-foreground">{n.reason}</p>
                   </>
+                ) : n.type === "missing_entity" ? (
+                  <p>
+                    <strong>@{n.reporterUsername ?? "?"}</strong> eksik kayıt bildirdi: {n.reason}
+                  </p>
                 ) : n.type === "auto_flag_comment" || n.type === "auto_flag_subcomment" ? (
                   <>
                     <p>

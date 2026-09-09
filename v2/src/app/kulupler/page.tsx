@@ -76,7 +76,10 @@ async function MyClubsSection() {
             className="rounded-full border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent"
           >
             {c.name}
-            {c.role === "owner" && <span className="ml-1.5 text-xs text-muted-foreground">(kurucu)</span>}
+            <span className="ml-1.5 text-xs text-muted-foreground">
+              ({c.visibility === "private" ? "gizli" : "herkese açık"}
+              {c.role === "owner" ? ", kurucu" : ""})
+            </span>
           </Link>
         ))}
       </div>

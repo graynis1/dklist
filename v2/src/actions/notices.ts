@@ -5,9 +5,11 @@ import { requireRole, USER_TYPES } from "@/lib/permission";
 import {
   reportComment,
   reportBookDataError,
+  reportMissingEntity,
   resolveNotice,
   deleteNotice,
   type NoticeCommentType,
+  type MissingEntityType,
 } from "@/db/queries/notices";
 import { logAdminAction } from "@/db/queries/admin-log";
 
@@ -35,6 +37,18 @@ export async function reportBookDataErrorAction(
     return { status: false, message: "Giriş yapmalısınız." };
   }
   return reportBookDataError(Number(session.user.id), bookId, reason);
+}
+
+export async function reportMissingEntityAction(
+  entityType: MissingEntityType,
+  name: string,
+  url: string,
+): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  return reportMissingEntity(Number(session.user.id), entityType, name, url);
 }
 
 export async function resolveNoticeAction(id: number): Promise<{ status: boolean; message?: string }> {

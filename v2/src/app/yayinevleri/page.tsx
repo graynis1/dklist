@@ -16,6 +16,7 @@ import { getPublisherList } from "@/db/queries/publishers";
 import { toneForId, TONE_STYLE } from "@/components/dklist/book-cover";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { ReportMissingEntityButton } from "@/components/dklist/report-missing-entity-button";
 
 export default function PublisherListPage({ searchParams }: PageProps<"/yayinevleri">) {
   return (
@@ -57,11 +58,14 @@ async function PublisherList({
 
   return (
     <div>
-      <form action="/yayinevleri" className="mb-8 flex gap-2">
+      <form action="/yayinevleri" className="mb-8 flex items-center gap-2">
         <Input name="search" defaultValue={search} placeholder="Yayınevi adında ara..." className="max-w-xs" />
         <Button type="submit" variant="outline">
           Ara
         </Button>
+        <div className="ml-auto">
+          <ReportMissingEntityButton entityType="publisher" />
+        </div>
       </form>
 
       <Suspense fallback={null}>

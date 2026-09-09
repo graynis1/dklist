@@ -162,7 +162,7 @@ export interface NoticeListItem {
   bookSlug: string | null;
 }
 
-export type NoticeTypeFilter = "all" | "comment" | "user_report" | "book_data_error" | "auto_flag";
+export type NoticeTypeFilter = "all" | "comment" | "user_report" | "book_data_error" | "auto_flag" | "missing_entity";
 
 /** "Hata bildir" (book data-error report) button on the book page - a new
  * notice type feeding the same admin moderation queue as user/comment
@@ -193,6 +193,48 @@ export async function reportBookDataError(
   return { status: true };
 }
 
+export type MissingEntityType = "book" | "writer" | "publisher" | "translator";
+
+const MISSING_ENTITY_LABELS: Record<MissingEntityType, string> = {
+  book: "Kitap",
+  writer: "Yazar",
+  publisher: "Yayınevi",
+  translator: "Çevirmen",
+};
+
+/**
+ * Real customer ask (2026-09-10): a visible "eksik [kitap/yazar/yayınevi/
+ * çevirmen] bildir" near each search box, submitting a name + a source
+ * URL for admin review before anything gets added - same moderation-queue
+ * reuse as reportBookDataError() (a new notice.type, not a new table).
+ * Requires a URL, matching the customer's own explicit reasoning
+ * ("kaynak gerekmeden tespit etmemiz zor olabilir") - this is a report
+ * about something that doesn't exist YET, so there's no real row to FK
+ * to; the type/name/url are folded into `reason` as plain readable text
+ * rather than inventing dedicated columns for a single report type.
+ */
+export async function reportMissingEntity(
+  reporterId: number,
+  entityType: MissingEntityType,
+  name: string,
+  url: string,
+): Promise<{ status: boolean; message?: string }> {
+  const trimmedName = name.trim();
+  const trimmedUrl = url.trim();
+  if (!trimmedName) return { status: false, message: "Lütfen bir isim girin." };
+  if (!/^https?:\/\//i.test(trimmedUrl)) return { status: false, message: "Lütfen geçerli bir kaynak bağlantısı (https://...) girin." };
+
+  await db.insert(notice).values({
+    type: "missing_entity",
+    reporterUserId: reporterId,
+    reason: `[${MISSING_ENTITY_LABELS[entityType]}] ${trimmedName} — Kaynak: ${trimmedUrl}`,
+    createdAt: nowSql(),
+    isResolved: 0,
+  });
+
+  return { status: true };
+}
+
 /** Admin/Mod-only listing - matches NoticeController::getAll()'s pagination
  * and per-type field shape (a user-report row surfaces the reported/reporter
  * users, a comment-report row surfaces the flagged comment + its owner). */
@@ -212,7 +254,9 @@ export async function getNotices(
           ? eq(notice.type, "book_data_error")
           : typeFilter === "auto_flag"
             ? sql`${notice.type} IN ('auto_flag_comment', 'auto_flag_subcomment')`
-            : undefined;
+            : typeFilter === "missing_entity"
+              ? eq(notice.type, "missing_entity")
+              : undefined;
 
   const [countRow] = await db
     .select({ count: sql<number>`count(*)` })
@@ -286,6 +330,25 @@ export async function getNotices(
         commentOwnerId: null,
         bookName: bookRow.name,
         bookSlug: bookRow.slug,
+      });
+    } else if (row.type === "missing_entity") {
+      const reporter = row.reporterUserId
+        ? (await db.select({ username: user.username }).from(user).where(eq(user.id, row.reporterUserId)).limit(1))[0]
+        : undefined;
+
+      items.push({
+        id: row.id,
+        type: row.type,
+        createdAt: row.createdAt,
+        isResolved: Boolean(row.isResolved),
+        reason: row.reason,
+        reportedUser: null,
+        reporterUsername: reporter?.username ?? null,
+        commentText: null,
+        commentOwnerUsername: null,
+        commentOwnerId: null,
+        bookName: null,
+        bookSlug: null,
       });
     } else {
       if (!row.commentId) continue;

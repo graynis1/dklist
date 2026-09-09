@@ -17,6 +17,7 @@ import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { getTranslatorList } from "@/db/queries/translators";
 import { translatorImageUrl } from "@/lib/image-urls";
 import { AdSlot } from "@/components/dklist/ad-slot";
+import { ReportMissingEntityButton } from "@/components/dklist/report-missing-entity-button";
 
 export default function TranslatorListPage({ searchParams }: PageProps<"/cevirmenler">) {
   return (
@@ -58,11 +59,14 @@ async function TranslatorList({
 
   return (
     <div>
-      <form action="/cevirmenler" className="mb-8 flex gap-2">
+      <form action="/cevirmenler" className="mb-8 flex items-center gap-2">
         <Input name="search" defaultValue={search} placeholder="Çevirmen adında ara..." className="max-w-xs" />
         <Button type="submit" variant="outline">
           Ara
         </Button>
+        <div className="ml-auto">
+          <ReportMissingEntityButton entityType="translator" />
+        </div>
       </form>
 
       <Suspense fallback={null}>

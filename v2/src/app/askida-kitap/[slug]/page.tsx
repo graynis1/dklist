@@ -44,6 +44,11 @@ export async function generateMetadata({ params }: PageProps<"/askida-kitap/[slu
     title: listing.title,
     description: truncateDescription(listing.content || listing.title),
     path: `/askida-kitap/${listing.slug}`,
+    // Real customer report (2026-09-10): sharing a listing showed the
+    // generic site logo, not the listing itself. A real uploaded photo
+    // (common - unlike books, most listings have one) is used directly;
+    // /api/store-og-image only covers the no-photo case.
+    image: listing.pictures[0] ? storeImageUrl(listing.pictures[0])! : `/api/store-og-image/${listing.id}`,
     // Tamamlanmış/iptal edilmiş ilanlar arama sonuçlarında kalmasın.
     noIndex: listing.status !== "active",
   });

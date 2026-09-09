@@ -16,6 +16,7 @@ import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { getWriterList } from "@/db/queries/writers";
 import { writerImageUrl } from "@/lib/image-urls";
+import { ReportMissingEntityButton } from "@/components/dklist/report-missing-entity-button";
 
 export default function WriterListPage({ searchParams }: PageProps<"/yazarlar">) {
   return (
@@ -57,11 +58,14 @@ async function WriterList({
 
   return (
     <div>
-      <form action="/yazarlar" className="mb-8 flex gap-2">
+      <form action="/yazarlar" className="mb-8 flex items-center gap-2">
         <Input name="search" defaultValue={search} placeholder="Yazar adında ara..." className="max-w-xs" />
         <Button type="submit" variant="outline">
           Ara
         </Button>
+        <div className="ml-auto">
+          <ReportMissingEntityButton entityType="writer" />
+        </div>
       </form>
 
       <Suspense fallback={null}>

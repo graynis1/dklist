@@ -417,11 +417,19 @@ export interface UserClubSummary {
   name: string;
   slug: string;
   role: string;
+  visibility: string;
 }
 
+/**
+ * Real customer report (2026-09-10): "kulübün gizli yada genele açık
+ * olduğu yazmalı ... girince gruplarından hangisi nasıldı belli
+ * olmuyor" - the club DETAIL page already shows "Gizli"/"Herkese Açık"
+ * clearly, but this list (the signed-in user's own club chips on
+ * /kulupler) showed none of that before you actually clicked in.
+ */
 export async function getUserClubs(userId: number): Promise<UserClubSummary[]> {
   const rows = await db
-    .select({ id: bookClub.id, name: bookClub.name, slug: bookClub.slug, role: bookClubMember.role })
+    .select({ id: bookClub.id, name: bookClub.name, slug: bookClub.slug, role: bookClubMember.role, visibility: bookClub.visibility })
     .from(bookClubMember)
     .innerJoin(bookClub, eq(bookClubMember.clubId, bookClub.id))
     .where(eq(bookClubMember.userId, userId))

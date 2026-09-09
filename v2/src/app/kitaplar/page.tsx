@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { AdSlot } from "@/components/dklist/ad-slot";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
+import { ReportMissingEntityButton } from "@/components/dklist/report-missing-entity-button";
 import { getBookList, getTopCategories, type BookSortBy } from "@/db/queries/books";
 
 const SORT_OPTIONS: { value: BookSortBy; label: string }[] = [
@@ -117,6 +118,9 @@ async function BookListContent({
         <Button type="submit" variant="outline">
           Filtrele
         </Button>
+        <div className="ml-auto">
+          <ReportMissingEntityButton entityType="book" />
+        </div>
       </form>
 
       <Suspense fallback={null}>
