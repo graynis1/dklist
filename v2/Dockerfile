@@ -39,9 +39,11 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.ts ./next.config.ts
 
-# uploads/ (avatars, badges, blog images, and the cover-image cache) is a
-# volume mount point, not baked into the image - see docker-compose.yml.
-RUN mkdir -p uploads
+# uploads/ (avatars, badges, blog images, and the cover-image cache) and
+# .cache/hf-transformers (the local embedding model's download cache, see
+# src/lib/embeddings.ts) are volume mount points, not baked into the image
+# - see docker-compose.yml.
+RUN mkdir -p uploads .cache/hf-transformers
 
 EXPOSE 3000
 CMD ["npm", "start"]

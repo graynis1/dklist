@@ -19,6 +19,19 @@ import "server-only";
  * identical underlying reason: next dev's HMR re-evaluates this module on
  * nearly every file save, and re-loading a ~100MB ONNX model on every
  * save would make dev unusable.
+ *
+ * Real bug found 2026-09-09 (customer report: a "paylaş" that used to
+ * confirm instantly stopped confirming): the library's default cache dir
+ * is *inside* node_modules (node_modules/@huggingface/transformers/.cache),
+ * which the production Dockerfile reinstalls from scratch on every deploy
+ * and which docker-compose.yml never mounted as a volume - so every
+ * redeploy silently discarded the downloaded model, forcing the ~100MB
+ * re-download (from huggingface.co, over this VPS's own bandwidth) to
+ * happen again inside whichever real request first triggered moderation,
+ * looking exactly like a hang/non-confirmation. Pinning `env.cacheDir` to
+ * a stable path outside node_modules, mounted as its own named Docker
+ * volume (`v2_hf_cache`, see docker-compose.yml), makes the download
+ * survive every future redeploy - only the very first deploy ever pays it.
  */
 
 export const EMBEDDING_MODEL = "Xenova/paraphrase-multilingual-MiniLM-L12-v2";
@@ -32,9 +45,10 @@ const g = globalThis as unknown as { __dklistEmbedder?: Promise<FeatureExtractio
 
 function loadEmbedder(): Promise<FeatureExtractionPipeline> {
   if (!g.__dklistEmbedder) {
-    g.__dklistEmbedder = import("@huggingface/transformers").then(({ pipeline }) =>
-      pipeline("feature-extraction", EMBEDDING_MODEL) as unknown as Promise<FeatureExtractionPipeline>,
-    );
+    g.__dklistEmbedder = import("@huggingface/transformers").then(({ env, pipeline }) => {
+      env.cacheDir = process.env.HF_CACHE_DIR ?? env.cacheDir;
+      return pipeline("feature-extraction", EMBEDDING_MODEL) as unknown as Promise<FeatureExtractionPipeline>;
+    });
   }
   return g.__dklistEmbedder;
 }
