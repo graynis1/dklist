@@ -405,6 +405,7 @@ export function EntityComments({
   }
 
   function submitShare(original: BookComment, commentary: string) {
+    setError(null);
     startTransition(async () => {
       const result = await shareCommentAction(original.id, commentary);
       if (result.status) {
@@ -423,6 +424,14 @@ export function EntityComments({
           ...prev,
         ]);
         setShareFormFor(null);
+      } else {
+        // Real gap found via customer report (2026-09-09/10): a failed
+        // share (moderation rejection, a transient error, anything) left
+        // the form open with zero feedback - looked exactly like "used to
+        // confirm instantly, now doesn't" from the user's side, even
+        // though the server had already responded. Surface the real
+        // message rather than silently doing nothing.
+        setError(result.message ?? "Paylaşılamadı.");
       }
     });
   }

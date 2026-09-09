@@ -29,6 +29,21 @@ const nextConfig: NextConfig = {
   // keeps it a real runtime require() from its own node_modules location,
   // where its DLL search path is intact.
   serverExternalPackages: ["iyzipay", "sharp"],
+  // Real bug found via customer report (2026-09-10): "bazısı oluyor
+  // bazısı olmadı" (some image uploads work, some don't) - every image
+  // upload (manual "Resim Ekle", or a paste's recovered image) goes
+  // through a Server Action, and Next's own default body-size limit for
+  // those is 1MB, silently rejecting the request *before* saveUploadedImage
+  // (which already allows up to 15MB) ever runs. Any real photo/Word-
+  // embedded image over roughly 1MB was hitting this framework-level wall,
+  // not a bug in the upload code itself. Matched to the same 15MB ceiling
+  // saveUploadedImage() already enforces, plus headroom for multipart
+  // overhead (see this option's own doc comment on that).
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "16mb",
+    },
+  },
 };
 
 export default nextConfig;
