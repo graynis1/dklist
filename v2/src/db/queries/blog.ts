@@ -2,7 +2,7 @@ import "server-only";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, like, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { blog, user, blogLike } from "@/db/schema";
 import { isDirty } from "@/lib/dirty-controller";
@@ -67,6 +67,7 @@ export async function getBlogList(
   page = 1,
   pageSize = 10,
   search = "",
+  excludeId?: number,
 ): Promise<{ items: BlogListItem[]; total: number; page: number; lastPage: number }> {
   "use cache";
   cacheLife("minutes");
@@ -77,7 +78,7 @@ export async function getBlogList(
 
   const safeSize = Math.min(100, Math.max(1, pageSize));
   const trimmedSearch = search.trim();
-  const whereClause = trimmedSearch
+  const searchClause = trimmedSearch
     ? and(
         eq(blog.approved, 1),
         or(
@@ -87,6 +88,10 @@ export async function getBlogList(
         ),
       )
     : eq(blog.approved, 1);
+  // Only used by /bloglar to keep its most-viewed "featured" pick (see
+  // getFeaturedBlogPost()) from also showing a second time in the plain
+  // list right below it.
+  const whereClause = excludeId ? and(searchClause, ne(blog.id, excludeId)) : searchClause;
 
   const [countRow] = await db.select({ count: sql<number>`count(*)` }).from(blog).where(whereClause);
   const total = Number(countRow?.count ?? 0);
@@ -129,6 +134,52 @@ export async function getBlogList(
     }));
 
   return { items, total, page: effectivePage, lastPage };
+}
+
+/**
+ * The /bloglar hero slot - real customer report (2026-09-10): it was
+ * just `items[0]` of the normal by-recency list, so "featured" always
+ * meant "whatever was posted most recently", not genuinely featured.
+ * Most-viewed (view_count) is the honest signal already available on
+ * this table, no new column needed.
+ */
+export async function getFeaturedBlogPost(): Promise<BlogListItem | null> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("blog-list");
+
+  const [row] = await db
+    .select({
+      id: blog.id,
+      title: blog.title,
+      preview: blog.preview,
+      slug: blog.slug,
+      createdDate: blog.createdDate,
+      image: blog.image,
+      ownerId: user.id,
+      ownerUsername: user.username,
+      ownerImage: user.image,
+      ownerMailAuth: user.mailAuth,
+      ownerDisable: user.disable,
+    })
+    .from(blog)
+    .leftJoin(user, eq(blog.ownerId, user.id))
+    .where(eq(blog.approved, 1))
+    .orderBy(desc(blog.viewCount))
+    .limit(1);
+
+  if (!row || (row.ownerUsername && (!row.ownerMailAuth || row.ownerDisable))) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    preview: row.preview,
+    slug: row.slug,
+    createdDate: row.createdDate,
+    ownerId: row.ownerId,
+    ownerUsername: row.ownerUsername,
+    ownerImage: row.ownerImage,
+    img: blogImageUrl(row.image),
+  };
 }
 
 /**

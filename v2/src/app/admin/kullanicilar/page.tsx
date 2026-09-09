@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { hasRole, USER_TYPES } from "@/lib/permission";
-import { getUserAdminList, getDistinctUserCities, type UserAdminSortBy } from "@/db/queries/user-admin";
+import { hasRole, USER_TYPES, ROLE_LABELS } from "@/lib/permission";
+import { getUserAdminList, getDistinctUserCities, getDistinctUserSexValues, type UserAdminSortBy } from "@/db/queries/user-admin";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { PaginationNav } from "@/components/dklist/pagination-nav";
 import { Input } from "@/components/ui/input";
@@ -42,17 +42,24 @@ async function AdminUsersContent({
   const search = typeof params.search === "string" ? params.search : "";
   const sex = typeof params.sex === "string" ? params.sex : "";
   const city = typeof params.city === "string" ? params.city : "";
+  const role = typeof params.role === "string" ? params.role : "";
   const sortByParam = typeof params.sortBy === "string" ? params.sortBy : "id";
   const sortBy = (["id", "createdDate", "birthDate", "username"] as const).includes(sortByParam as UserAdminSortBy)
     ? (sortByParam as UserAdminSortBy)
     : "id";
   const sortDir = params.sortDir === "asc" ? "asc" : "desc";
-  const filters = { sex: sex || undefined, livingCity: city || undefined };
+  const filters = { sex: sex || undefined, livingCity: city || undefined, userType: role || undefined };
 
-  const [{ items, total, lastPage }, cities] = await Promise.all([
+  const [{ items, total, lastPage }, cities, sexValues] = await Promise.all([
     getUserAdminList(page, 20, search, filters, sortBy, sortDir),
     getDistinctUserCities(),
+    getDistinctUserSexValues(),
   ]);
+  // Roles a real account can actually carry in this list (SuperAdmin is
+  // already excluded from the list itself) - not every value in
+  // ROLE_LABELS, so the dropdown doesn't offer a filter that can never
+  // match anything.
+  const filterableRoles = Object.values(USER_TYPES).filter((t) => t !== USER_TYPES.SuperAdmin);
   const canMutate = hasRole(session.user.userType, [USER_TYPES.Admin]);
   // Was gated SuperAdmin-only (matching v1's deleteUserAdmin()) - fixed
   // 2026-09-08, see actions.ts's own comment on deleteUserAccountAction
@@ -60,7 +67,7 @@ async function AdminUsersContent({
   const canDelete = canMutate;
 
   const qs = (overrides: Record<string, string>) => {
-    const merged: Record<string, string> = { search, sex, city, sortBy, sortDir, ...overrides };
+    const merged: Record<string, string> = { search, sex, city, role, sortBy, sortDir, ...overrides };
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
     return `?${p.toString()}`;
@@ -82,14 +89,25 @@ async function AdminUsersContent({
         <Input name="search" defaultValue={search} placeholder="Kullanıcı adında ara..." className="w-48" />
         <select name="sex" defaultValue={sex} className={NATIVE_SELECT_CLASS}>
           <option value="">Cinsiyet (hepsi)</option>
-          <option value="Erkek">Erkek</option>
-          <option value="Kadın">Kadın</option>
+          {sexValues.map((s) => (
+            <option key={s} value={s}>
+              {sexLabel(s)}
+            </option>
+          ))}
         </select>
         <select name="city" defaultValue={city} className={NATIVE_SELECT_CLASS}>
           <option value="">Şehir (hepsi)</option>
           {cities.map((c) => (
             <option key={c} value={c}>
               {c}
+            </option>
+          ))}
+        </select>
+        <select name="role" defaultValue={role} className={NATIVE_SELECT_CLASS}>
+          <option value="">Rol (hepsi)</option>
+          {filterableRoles.map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r as keyof typeof ROLE_LABELS]}
             </option>
           ))}
         </select>
@@ -124,4 +142,17 @@ async function AdminUsersContent({
       <PaginationNav page={page} lastPage={lastPage} hrefForPage={(p) => `/admin/kullanicilar${qs({ page: String(p) })}`} />
     </div>
   );
+}
+
+/** Real stored values are a messy mix of legacy v1 casing ("Erkek",
+ * "Diğer") and v2's own lowercase register-form values ("kadin",
+ * "belirtmek-istemiyorum" - see kayit-ol/page.tsx) - never normalized in
+ * the data itself (a separate, riskier migration), just displayed nicer
+ * here so the filter dropdown doesn't read like raw column values. */
+function sexLabel(value: string): string {
+  const known: Record<string, string> = {
+    kadin: "Kadın",
+    "belirtmek-istemiyorum": "Belirtmek istemiyorum",
+  };
+  return known[value] ?? value;
 }

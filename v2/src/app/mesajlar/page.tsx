@@ -83,8 +83,18 @@ async function MessagesContent({
   ]);
 
   return (
-    <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-border md:h-[40rem] md:grid-cols-[17rem_1fr]">
-      <div className="flex flex-col divide-y divide-border overflow-y-auto border-b border-border md:border-r md:border-b-0">
+    // Real bug found via customer report (2026-09-10): "aşağı kaydırınca
+    // sayfa kendini en yukarı atıyor" (scrolling within the thread keeps
+    // resetting the whole PAGE's scroll) - this grid only got a fixed
+    // height at `md:` and up, so on mobile the inner `overflow-y-auto`
+    // panes never actually established their own contained scroll region;
+    // the page itself was the only thing that could scroll, and the
+    // 5s-poll-driven scrollIntoView() in MessageThread (meant to move only
+    // its own pane) ended up moving the page instead. A bounded height on
+    // every viewport size, not just md:, makes each pane genuinely
+    // self-scrolling everywhere.
+    <div className="grid h-[calc(100vh-14rem)] grid-cols-1 overflow-hidden rounded-xl border border-border md:h-[40rem] md:grid-cols-[17rem_1fr]">
+      <div className="flex flex-col divide-y divide-border overflow-y-auto overscroll-contain border-b border-border md:border-r md:border-b-0">
         {conversations.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Henüz bir konuşman yok.</p>
         ) : (

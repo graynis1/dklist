@@ -226,7 +226,7 @@ export function MessageThread({
           const el = e.currentTarget;
           nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
         }}
-        className="flex-1 overflow-y-auto px-4 py-4"
+        className="flex-1 overflow-y-auto overscroll-contain px-4 py-4"
       >
         {messages.length === 0 ? (
           <p className="text-sm text-muted-foreground">Henüz mesaj yok - ilk mesajı sen gönder.</p>

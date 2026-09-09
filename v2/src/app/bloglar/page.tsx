@@ -9,7 +9,7 @@ import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { ImageWithFallback } from "@/components/dklist/image-with-fallback";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getBlogList } from "@/db/queries/blog";
+import { getBlogList, getFeaturedBlogPost } from "@/db/queries/blog";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 const BLOG_AUTHOR_ROLES = [USER_TYPES.Blogger, USER_TYPES.Mod, USER_TYPES.Admin];
@@ -105,14 +105,21 @@ async function BlogList({
   const page = Number(params.page ?? "1") || 1;
   const search = typeof params.search === "string" ? params.search : "";
 
-  const { items, total, lastPage } = await getBlogList(page, 10, search);
   // News-site "front page" shape only applies to the real front page - a
   // hero treatment on a search-results page or page 2 would be misleading
   // (there's nothing genuinely "featured" about whatever happens to sort
   // first there).
-  const showHero = page === 1 && !search && items.length > 0;
-  const [hero, ...rest] = showHero ? items : [null, ...items];
-  const decorations = await getUserDecorations(items.map((i) => i.ownerId).filter((id): id is number => id != null));
+  const wantsHero = page === 1 && !search;
+  // Real customer report (2026-09-10): the hero slot used to just be
+  // items[0] of the by-recency list - "featured" always meant "newest",
+  // never actually most-viewed. getFeaturedBlogPost() picks by
+  // view_count instead; excluded from the plain list below so it isn't
+  // shown twice.
+  const hero = wantsHero ? await getFeaturedBlogPost() : null;
+  const { items: rest, total, lastPage } = await getBlogList(page, 10, search, hero?.id);
+  const decorations = await getUserDecorations(
+    [...(hero ? [hero] : []), ...rest].map((i) => i.ownerId).filter((id): id is number => id != null),
+  );
 
   return (
     <div>
@@ -123,7 +130,7 @@ async function BlogList({
         </Button>
       </form>
 
-      {items.length === 0 ? (
+      {rest.length === 0 && !hero ? (
         <p className="text-muted-foreground">
           {search ? "Bu aramaya uyan blog yazısı yok." : "Henüz blog yazısı yok."}
         </p>

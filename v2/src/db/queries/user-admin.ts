@@ -36,6 +36,7 @@ export interface UserAdminListItem {
 export interface UserAdminFilters {
   sex?: string;
   livingCity?: string;
+  userType?: string;
 }
 
 export type UserAdminSortBy = "id" | "createdDate" | "birthDate" | "username";
@@ -122,6 +123,10 @@ function buildUserAdminWhere(search: string, filters: UserAdminFilters) {
   if (trimmedSearch) conditions.push(like(sql`LOWER(${user.username})`, sql`LOWER(${`%${trimmedSearch}%`})`));
   if (filters.sex) conditions.push(eq(user.sex, filters.sex));
   if (filters.livingCity) conditions.push(eq(user.livingCity, filters.livingCity));
+  // Real ask (2026-09-10): as role assignments (Blog_Yazari, Yazar, etc.)
+  // grow, finding "just the bloggers" in a plain paginated id-order list
+  // gets impractical - a direct role filter, same shape as sex/city.
+  if (filters.userType) conditions.push(eq(user.userType, filters.userType));
   return and(...conditions);
 }
 
@@ -135,6 +140,30 @@ export async function getDistinctUserCities(): Promise<string[]> {
     .groupBy(user.livingCity)
     .orderBy(asc(user.livingCity));
   return rows.map((r) => r.city).filter((c): c is string => c != null);
+}
+
+/**
+ * Same reasoning as getDistinctUserCities() - real customer report
+ * (2026-09-10): the sex filter's hardcoded options ("Erkek"/"Kadın") don't
+ * even match the real column's values, so "Kadın" silently matched zero
+ * rows, and "Erkek" + "Kadın" never summed to "hepsi" (all). Root cause
+ * found via a direct prod query: this column carries a genuinely messy
+ * mix of legacy v1 values ("Erkek", "Diğer" - capitalized, no dedicated
+ * "prefer not to say" option existed back then) and new v2 registration
+ * values ("kadin", "belirtmek-istemiyorum" - lowercase, undotted i,
+ * matching kayit-ol/page.tsx's own SelectItem values exactly). Rather
+ * than hardcode a guess at this mix (or normalize/rewrite historical
+ * data, a separate and much riskier undertaking), feed the dropdown from
+ * whatever values genuinely exist.
+ */
+export async function getDistinctUserSexValues(): Promise<string[]> {
+  const rows = await db
+    .select({ sex: user.sex })
+    .from(user)
+    .where(and(ne(user.userType, USER_TYPES.SuperAdmin), sql`${user.sex} is not null and ${user.sex} != ''`))
+    .groupBy(user.sex)
+    .orderBy(asc(user.sex));
+  return rows.map((r) => r.sex).filter((s): s is string => s != null);
 }
 
 const BULK_MAIL_MAX_RECIPIENTS = 2000;

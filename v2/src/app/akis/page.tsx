@@ -124,7 +124,16 @@ async function FeedContent({ searchParams }: { searchParams: PageProps<"/akis">[
       <Suspense fallback={null}>
         <AdSlot placement="akis" className="max-w-none px-0" />
       </Suspense>
+      {/* Real bug found via customer report (2026-09-10): "bir diğerini
+          seçince sayfayı güncellemiyor, sadece yenile dersem doğru verileri
+          getiriyor" (switching tabs doesn't update, only a hard refresh
+          does) - SiteFeedList seeds its list via useState(initialItems),
+          which React only reads on first mount. A tab switch is a soft
+          navigation to the same component instance with new props, so the
+          stale list stuck around silently. A key that changes with the
+          tab forces React to remount (and re-seed state) on every switch. */}
       <SiteFeedList
+        key={`${view}-${scope}`}
         initialItems={page.items}
         initialCursor={page.nextCursor}
         followingOnly={followingOnly}

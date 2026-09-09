@@ -215,6 +215,13 @@ async function StoreDetailContent({
       {!isOwner && (
         <div>
           <SectionLabel>Satıcı Değerlendirmesi</SectionLabel>
+          {/* Real ask (2026-09-10): the buyer-only gate already exists
+              server-side (hasTransactedWithSeller, see comments.ts) but
+              nothing told a non-buyer about it in advance - they'd only
+              find out after trying to submit and getting rejected. */}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Sadece bu satıcıdan gerçekten bir ilan satın almış üyeler puan/yorum bırakabilir.
+          </p>
           <div className="mt-4">
             <RateEntityControl
               signedIn={Boolean(userId)}
