@@ -41,7 +41,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return new Response("Invalid id", { status: 400 });
   }
 
-  const [bookRow] = await db.select({ id: book.id, name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
+  const [bookRow] = await db.select({ id: book.id, name: book.name, score: book.score }).from(book).where(eq(book.id, bookId)).limit(1);
   if (!bookRow) {
     return new Response("Not found", { status: 404 });
   }
@@ -63,6 +63,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // satori's simpler renderer, not a display bug anywhere else on-site).
   const normalizedTitle = bookRow.name.normalize("NFC");
   const displayTitle = normalizedTitle.length > 90 ? `${normalizedTitle.slice(0, 90)}...` : normalizedTitle;
+  // Same "⭐ N.N/10" convention already used by this book's plain-text OG
+  // description (see kitap/[slug]/page.tsx's own scoreLine) and every
+  // other score display on the site - only shown once the book actually
+  // has a real rating (score is 0, not null, for an unrated book).
+  const scoreText = bookRow.score > 0 ? `⭐ ${bookRow.score.toFixed(1)}/10` : null;
   const fontData = await getInterFont(700);
 
   return new ImageResponse(
@@ -84,6 +89,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.15 }}>{displayTitle}</div>
           <div style={{ fontSize: 34, fontWeight: 700, opacity: 0.85 }}>{authorText}</div>
+          {scoreText && (
+            <div
+              style={{
+                display: "flex",
+                fontSize: 32,
+                fontWeight: 700,
+                backgroundColor: "rgba(255,255,255,0.16)",
+                borderRadius: 12,
+                padding: "10px 20px",
+                width: "fit-content",
+              }}
+            >
+              {scoreText}
+            </div>
+          )}
         </div>
       </div>
     ),
