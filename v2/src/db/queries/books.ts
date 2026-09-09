@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { sql, eq, desc, asc, and, or, like, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/db";
-import { category as categoryTable, book, read, bookCategory } from "@/db/schema";
+import { category as categoryTable, book, read, bookCategory, categoryLangStats } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
 
 export interface CategoryBookListItem {
@@ -266,6 +266,16 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
   cacheLife("days");
   cacheTag(`category-tr-count:${categoryId}`);
 
+  // Real incident (2026-09-09): the "days" cacheLife above is Next's
+  // in-memory Cache Components store - wiped on every redeploy/restart, so
+  // every deploy forced every category back to a cold, up-to-25s (or
+  // timing-out) recompute the next time someone happened to visit it. A
+  // real persisted table survives restarts, so this only ever pays the
+  // live-query cost once, period - checked first, since a PK lookup on a
+  // tiny table is a rounding error next to the live query it replaces.
+  const [persisted] = await db.select({ trCount: categoryLangStats.trCount }).from(categoryLangStats).where(eq(categoryLangStats.categoryId, categoryId)).limit(1);
+  if (persisted) return persisted.trCount;
+
   // Real customer-reported bug (2026-09-09): "bazılarında Türkçe ilk sırada
   // gelme özelliği işlemiyor gibi" (works for some categories, not others) -
   // root cause was this function catching its own MAX_EXECUTION_TIME
@@ -285,7 +295,17 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
       SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
     )
   `))[0] as unknown as { n: number }[];
-  return Number(rows[0]?.n ?? 0);
+  const trCount = Number(rows[0]?.n ?? 0);
+
+  // Best-effort persist - a failure to write the cache table must never
+  // fail the actual request that just paid for computing this value.
+  await db
+    .insert(categoryLangStats)
+    .values({ categoryId, trCount, computedAt: new Date().toISOString().slice(0, 19).replace("T", " ") })
+    .onDuplicateKeyUpdate({ set: { trCount, computedAt: new Date().toISOString().slice(0, 19).replace("T", " ") } })
+    .catch((err) => console.error("[category-lang-stats] failed to persist", err));
+
+  return trCount;
 }
 
 export interface CategorySummary {

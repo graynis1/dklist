@@ -23,7 +23,17 @@ const g = globalThis as unknown as { __dklistDbPool?: mysql.Pool };
 if (!g.__dklistDbPool) {
   g.__dklistDbPool = mysql.createPool({
     uri: process.env.DATABASE_URL,
-    connectionLimit: 10,
+    // Real incident (2026-09-09): raised from 10 - a category page alone
+    // can need 3-5 DB round-trips (count, tr-count, tr-fetch, not-tr-fetch,
+    // writer-lookup), and under real concurrent traffic a request queued
+    // behind others waiting for a free pooled connection can wait far
+    // longer than any single query's own MAX_EXECUTION_TIME budget (that
+    // clock only starts once a connection is actually acquired) - this
+    // queueing, not slow queries in isolation, was the real remaining cause
+    // of category pages timing out even after every query-level fix.
+    // Confirmed safe to raise: production `max_connections` is 151, with
+    // only ~11 ever actually in use at once - massive unused headroom.
+    connectionLimit: 25,
     // book/writer/publisher rows can carry long text (content, biyo) - keep
     // dates as plain strings rather than JS Date objects to avoid timezone
     // surprises when round-tripping through mysql2.

@@ -1319,3 +1319,15 @@ export const errorLog = mysqlTable("error_log", {
 	index("idx_error_log_digest").on(table.digest),
 	primaryKey({ columns: [table.id], name: "error_log_id" }),
 ]);
+
+// Migration 0051 - persists getCategoryTurkishCount()'s result so it
+// survives a redeploy, unlike the in-memory Cache Components store it also
+// still uses. See books.ts's own doc comment on the incident this fixes.
+export const categoryLangStats = mysqlTable("category_lang_stats", {
+	categoryId: int("category_id").notNull().references(() => category.id, { onDelete: "cascade" }),
+	trCount: int("tr_count").notNull(),
+	computedAt: datetime("computed_at", { mode: "string" }).notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.categoryId], name: "category_lang_stats_category_id" }),
+]);
