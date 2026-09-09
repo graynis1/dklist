@@ -33,6 +33,22 @@ const TONES: { bg: string; fg: string }[] = [
   { bg: "#c99a2e", fg: "#2b2311" }, // mustard
 ];
 
+// Real bug found via testing (not assumed): satori's/next/og's built-in
+// default font has no Turkish glyph coverage - "ş" rendered as a stray
+// mark and ate the following space ("Ateş gecesi" -> "Ates,gecesi"),
+// silently broken for a large fraction of this catalog's titles. Fetched
+// once per server process (module-level cache, not per-request) - a real
+// static font file, not a per-request network dependency in the hot path
+// after the first request warms it.
+let cachedFontData: ArrayBuffer | null = null;
+async function getFont(): Promise<ArrayBuffer> {
+  if (!cachedFontData) {
+    const res = await fetch("https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.ttf");
+    cachedFontData = await res.arrayBuffer();
+  }
+  return cachedFontData;
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const bookId = Number(id);
@@ -48,6 +64,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const writerRows = await db.select({ name: writer.name }).from(writerBook).innerJoin(writer, eq(writerBook.writerId, writer.id)).where(eq(writerBook.bookId, bookId));
   const authorText = writerRows.map((w) => w.name).join(", ") || "Yazar bilinmiyor";
   const tone = TONES[bookRow.id % TONES.length];
+  const fontData = await getFont();
 
   return new ImageResponse(
     (
@@ -61,7 +78,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           padding: 64,
           backgroundColor: tone.bg,
           color: tone.fg,
-          fontFamily: "sans-serif",
+          fontFamily: "Inter",
         }}
       >
         <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 2, opacity: 0.7 }}>DKList</div>
@@ -69,10 +86,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
           <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.15, maxHeight: 280, overflow: "hidden" }}>
             {bookRow.name}
           </div>
-          <div style={{ fontSize: 34, opacity: 0.85 }}>{authorText}</div>
+          <div style={{ fontSize: 34, fontWeight: 700, opacity: 0.85 }}>{authorText}</div>
         </div>
       </div>
     ),
-    { width: 1200, height: 630 },
+    { width: 1200, height: 630, fonts: [{ name: "Inter", data: fontData, style: "normal", weight: 700 }] },
   );
 }
