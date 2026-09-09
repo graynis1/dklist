@@ -125,11 +125,24 @@ export function RichTextEditor({
    * silent, confusing disappearance into a visible, actionable message
    * instead of leaving the writer wondering if they did something wrong. */
   const handlePaste = useCallback(() => {
-    setTimeout(async () => {
-      const editor = editorRef.current;
-      if (!editor) return;
+    const editor = editorRef.current;
+    // Real, severe regression caught via customer report (2026-09-09):
+    // the very first version of this "unreachable image" check scanned
+    // EVERY `img` in the whole editor on EVERY paste, not just newly
+    // pasted ones - editing an existing post (real, already-uploaded
+    // images with relative `/api/blog-image/...` src, not `http(s)`/
+    // `data:`) meant ANY subsequent paste anywhere in the document wiped
+    // out that post's real, already-working images. Fixed by snapshotting
+    // which `<img>` elements already existed BEFORE this paste (captured
+    // synchronously here, before the browser's default paste runs) and
+    // only ever touching ones that are NOT in that snapshot afterward.
+    const preExistingImages = editor ? new Set(editor.querySelectorAll("img")) : new Set<Element>();
 
-      const dataImages = Array.from(editor.querySelectorAll<HTMLImageElement>('img[src^="data:"]'));
+    setTimeout(async () => {
+      if (!editor) return;
+      const newImages = Array.from(editor.querySelectorAll<HTMLImageElement>("img")).filter((img) => !preExistingImages.has(img));
+
+      const dataImages = newImages.filter((img) => img.getAttribute("src")?.startsWith("data:"));
       for (const img of dataImages) {
         try {
           const res = await fetch(img.src);
@@ -143,9 +156,16 @@ export function RichTextEditor({
         }
       }
 
-      const unreachableImages = Array.from(editor.querySelectorAll<HTMLImageElement>("img")).filter(
-        (img) => !/^(https?:|data:)/.test(img.getAttribute("src") ?? ""),
-      );
+      // Real customer report: some Word documents' images vanish on paste
+      // with no broken-image icon at all - root cause: certain Word
+      // versions/paste paths put a `file://...` local-path reference in
+      // the clipboard's HTML instead of an embedded `data:` image, which
+      // the browser can't (and for security, won't) read. No way to
+      // recover the actual bytes from a `file://` reference - this at
+      // least turns a silent disappearance into a visible, actionable
+      // message. Only ever applied to images THIS paste just introduced
+      // (see preExistingImages above) - never pre-existing content.
+      const unreachableImages = newImages.filter((img) => !/^(https?:|data:)/.test(img.getAttribute("src") ?? ""));
       if (unreachableImages.length > 0) {
         setError(
           `Word'den ${unreachableImages.length} resim yapıştırılamadı (Word bu resmi bilgisayarınızdaki bir dosya yolu olarak kopyaladı, tarayıcı bunu okuyamıyor). Lütfen resmi "Resim Ekle" butonuyla tekrar ekleyin.`,
