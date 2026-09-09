@@ -30,8 +30,15 @@ function RailCard({ title, children }: { title: string; children: React.ReactNod
  * slot, all real data (nothing invented) reusing widgets already built
  * for the homepage. Part of the maintainer's ask to make /akis read as a
  * fully-fleshed-out platform, not a single centered column.
+ *
+ * Shared across /akis, /bloglar, and /yazarhane - the ad slot inside it
+ * used to be hardcoded to "akis-sidebar" regardless of which page
+ * rendered it, a real copy/paste leftover (customer's report, 2026-09-09:
+ * "blog kısmına da reklam alanı eklenmesini istemiş" - /bloglar's sidebar
+ * ad was silently sharing inventory with /akis, un-targetable on its own).
+ * `placement` defaults to "akis-sidebar" so /akis itself needs no change.
  */
-export async function CommunityRightRail() {
+export async function CommunityRightRail({ placement = "akis-sidebar" }: { placement?: string } = {}) {
   const session = await auth();
   const viewerId = session?.user?.id ? Number(session.user.id) : null;
 
@@ -132,7 +139,7 @@ export async function CommunityRightRail() {
       )}
 
       <Suspense fallback={null}>
-        <AdSlot placement="akis-sidebar" className="max-w-none px-0" />
+        <AdSlot placement={placement} className="max-w-none px-0" />
       </Suspense>
     </div>
   );

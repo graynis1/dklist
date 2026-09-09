@@ -57,6 +57,15 @@ export const AD_PLACEMENTS = [
   // aimed at Akış's own sidebar would leak onto every blog post too, and
   // there was no way to run a blog-only campaign. Real, separate placement.
   { id: "blog-post", label: "Blog Yazısı" },
+  // Customer's follow-up (2026-09-09): "blog kısmına da reklam alanı
+  // eklenmesini istemiş" - the blog post detail page already had its own
+  // dedicated slot (see the entry above, fixed 2026-09-07), but /bloglar
+  // (the list page) shares `CommunityRightRail` with /akis and /yazarhane,
+  // which had the SAME "akis-sidebar" placement hardcoded into it - a
+  // real, un-targetable copy/paste leftover, not a missing feature. Now
+  // configurable per page (see community-right-rail.tsx).
+  { id: "bloglar-sidebar", label: "Bloglar Listesi - Yan Panel" },
+  { id: "yazarhane-sidebar", label: "Yazarhane - Yan Panel" },
 ] as const;
 
 export type AdPlacementId = (typeof AD_PLACEMENTS)[number]["id"];

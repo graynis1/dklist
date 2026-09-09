@@ -51,7 +51,7 @@ export default function YazarhanePage() {
 
           <aside className="hidden min-w-0 xl:sticky xl:top-20 xl:block xl:h-fit">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
-              <CommunityRightRail />
+              <CommunityRightRail placement="yazarhane-sidebar" />
             </Suspense>
           </aside>
         </div>

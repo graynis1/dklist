@@ -67,7 +67,7 @@ export default function BlogListPage({ searchParams }: PageProps<"/bloglar">) {
 
           <aside className="hidden min-w-0 xl:sticky xl:top-20 xl:block xl:h-fit">
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
-              <CommunityRightRail />
+              <CommunityRightRail placement="bloglar-sidebar" />
             </Suspense>
           </aside>
         </div>

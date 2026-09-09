@@ -384,6 +384,34 @@ const HOUSE_ADS: Record<AdPlacementId, HouseAdSpec> = {
     accent: "oklch(0.76 0.1 250)",
     onAccent: "oklch(0.18 0.04 260)",
   },
+  // Customer's follow-up (2026-09-09): "bloglar" list page's own sidebar
+  // was silently sharing "akis-sidebar" - see ad-placements.ts's doc
+  // comment. Reuses that exact theme (same rail shape, `tall: true`), per
+  // this file's own established "reuse an existing theme" convention.
+  "bloglar-sidebar": {
+    href: "/rozetler",
+    icon: AwardIcon,
+    kicker: "Rozetler",
+    title: "Rozetlerini Topla",
+    sub: "Okudukça, puanladıkça, paylaştıkça yeni rozetler kazan.",
+    cta: "Rozetleri Gör",
+    edge: "linear-gradient(160deg, oklch(0.82 0.12 20), transparent 35%, transparent 65%, oklch(0.82 0.12 20))",
+    accent: "oklch(0.8 0.12 20)",
+    onAccent: "oklch(0.2 0.06 340)",
+    tall: true,
+  },
+  "yazarhane-sidebar": {
+    href: "/kulup/yeni",
+    icon: MessagesSquareIcon,
+    kicker: "Kitap Kulübü Kur",
+    title: "Kendi Kulübünü Sen Kur",
+    sub: "Arkadaşlarını davet et, aynı kitabı okuyup birlikte tartışın.",
+    cta: "Kulüp Kur",
+    edge: "linear-gradient(135deg, oklch(0.8 0.11 160), transparent 35%, transparent 65%, oklch(0.8 0.11 160))",
+    accent: "oklch(0.78 0.11 160)",
+    onAccent: "oklch(0.17 0.04 190)",
+    tall: true,
+  },
 };
 
 /** Corner glow + shimmering sweep + top-row (wordmark/disclosure) markup is
