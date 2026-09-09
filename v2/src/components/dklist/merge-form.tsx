@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
 
-type EntityKind = "work" | "writer" | "translator" | "publisher";
+type EntityKind = "work" | "writer" | "translator" | "publisher" | "category";
 type SearchAction = (query: string) => Promise<{ id: number; label: string }[]>;
 
 const ENTITY_LABELS: Record<EntityKind, string> = {
@@ -13,6 +13,7 @@ const ENTITY_LABELS: Record<EntityKind, string> = {
   writer: "Yazar",
   translator: "Çevirmen",
   publisher: "Yayınevi",
+  category: "Kategori",
 };
 
 /**
@@ -49,17 +50,20 @@ export function MergeForm({
   searchWriters,
   searchTranslators,
   searchPublishers,
+  searchCategories,
 }: {
   action: (formData: FormData) => void;
   searchWriters: SearchAction;
   searchTranslators: SearchAction;
   searchPublishers: SearchAction;
+  searchCategories: SearchAction;
 }) {
   const [kind, setKind] = useState<EntityKind>("work");
   const searchActionByKind: Partial<Record<EntityKind, SearchAction>> = {
     writer: searchWriters,
     translator: searchTranslators,
     publisher: searchPublishers,
+    category: searchCategories,
   };
   const searchAction = searchActionByKind[kind];
 

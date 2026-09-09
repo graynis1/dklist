@@ -2,7 +2,7 @@ import "server-only";
 import { revalidateTag, updateTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { work, book, writer, translator, publisher, user, score } from "@/db/schema";
+import { work, book, writer, translator, publisher, category, user, score } from "@/db/schema";
 
 export type MergeResult =
   | { status: true; reassignedBooks: number }
@@ -168,6 +168,39 @@ export async function mergeTranslators(duplicateId: number, canonicalId: number)
     updateTag("admin-translator-list");
     revalidateTag(`translator:${canonicalId}`, "max");
     revalidateTag(`translator:${duplicateId}`, "max");
+
+    const affectedRows = (result as unknown as [{ affectedRows: number }])[0]?.affectedRows ?? 0;
+    return { status: true, reassignedBooks: affectedRows };
+  });
+}
+
+/**
+ * Customer ask (2026-09-10): "Kategori birleştirmede yapabilir miyiz?" -
+ * same shape as writer/translator (a many-to-many join table,
+ * `book_category`, composite PK(book_id, category_id) so a book already
+ * tagged with both the duplicate and canonical category needs UPDATE
+ * IGNORE + cleanup, not a plain UPDATE).
+ */
+export async function mergeCategories(duplicateId: number, canonicalId: number): Promise<MergeResult> {
+  if (duplicateId === canonicalId) {
+    return { status: false, error: "Bir kaydı kendisiyle birleştiremezsiniz." };
+  }
+
+  return db.transaction(async (tx) => {
+    const [canonical] = await tx.select({ id: category.id }).from(category).where(eq(category.id, canonicalId)).limit(1);
+    const [duplicate] = await tx.select({ id: category.id }).from(category).where(eq(category.id, duplicateId)).limit(1);
+    if (!canonical || !duplicate) {
+      return { status: false, error: "Belirtilen kategori kayıtlarından biri bulunamadı." };
+    }
+
+    const result = await tx.execute(sql`UPDATE IGNORE book_category SET category_id = ${canonicalId} WHERE category_id = ${duplicateId}`);
+    await tx.execute(sql`DELETE FROM book_category WHERE category_id = ${duplicateId}`);
+
+    await tx.delete(category).where(eq(category.id, duplicateId));
+
+    updateTag("top-categories");
+    revalidateTag(`category:${canonicalId}`, "max");
+    revalidateTag(`category:${duplicateId}`, "max");
 
     const affectedRows = (result as unknown as [{ affectedRows: number }])[0]?.affectedRows ?? 0;
     return { status: true, reassignedBooks: affectedRows };

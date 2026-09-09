@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { mergeWorks, mergeWriters, mergeTranslators, mergePublishers, type MergeResult } from "@/db/queries/merge";
+import { mergeWorks, mergeWriters, mergeTranslators, mergePublishers, mergeCategories, type MergeResult } from "@/db/queries/merge";
 import { requireRole, hasRole, USER_TYPES } from "@/lib/permission";
 import { logAdminAction } from "@/db/queries/admin-log";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminPageHeader } from "@/components/dklist/admin-page-header";
 import { MergeForm } from "@/components/dklist/merge-form";
-import { searchWritersAction, searchTranslatorsAction, searchPublishersAction } from "@/app/kitap/yeni/actions";
+import { searchWritersAction, searchTranslatorsAction, searchPublishersAction, searchCategoriesAction } from "@/app/kitap/yeni/actions";
 
 // First real Phase 4 permission check - previously gated on "is signed in"
 // only, not any actual role, and (worse) the Server Action itself had no
@@ -23,12 +23,13 @@ const MERGE_ALLOWED_ROLES = [USER_TYPES.Admin, USER_TYPES.Mod];
 // publisher records - extended here rather than building four separate
 // admin pages, since the shape (two IDs, reassign-then-delete, admin/mod
 // only) is identical.
-type EntityKind = "work" | "writer" | "translator" | "publisher";
+type EntityKind = "work" | "writer" | "translator" | "publisher" | "category";
 const ENTITY_LABELS: Record<EntityKind, string> = {
   work: "Kitap (Work)",
   writer: "Yazar",
   translator: "Çevirmen",
   publisher: "Yayınevi",
+  category: "Kategori",
 };
 
 function isEntityKind(value: string): value is EntityKind {
@@ -49,7 +50,7 @@ async function merge(formData: FormData) {
   const duplicateId = Number(formData.get("duplicateId"));
   const canonicalId = Number(formData.get("canonicalId"));
 
-  const mergeFn = { work: mergeWorks, writer: mergeWriters, translator: mergeTranslators, publisher: mergePublishers }[kind];
+  const mergeFn = { work: mergeWorks, writer: mergeWriters, translator: mergeTranslators, publisher: mergePublishers, category: mergeCategories }[kind];
   const result: MergeResult = await mergeFn(duplicateId, canonicalId);
 
   if (result.status) {
@@ -118,6 +119,7 @@ async function AdminMergeContent({
             searchWriters={searchWritersAction}
             searchTranslators={searchTranslatorsAction}
             searchPublishers={searchPublishersAction}
+            searchCategories={searchCategoriesAction}
           />
         </CardContent>
       </Card>
