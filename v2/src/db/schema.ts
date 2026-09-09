@@ -1331,3 +1331,20 @@ export const categoryLangStats = mysqlTable("category_lang_stats", {
 (table) => [
 	primaryKey({ columns: [table.categoryId], name: "category_lang_stats_category_id" }),
 ]);
+
+// Migration 0052 - the actual matching Turkish book ids for a category,
+// not just the count. See books.ts's own doc comment on why a sparse,
+// wrong-end-of-sort-order intersection needed this rather than a better
+// index. Populated once (alongside category_lang_stats) the first time
+// getCategoryTurkishCount() has to run the expensive scan for a category.
+export const categoryTrBook = mysqlTable("category_tr_book", {
+	categoryId: int("category_id").notNull().references(() => category.id, { onDelete: "cascade" }),
+	bookId: int("book_id").notNull().references(() => book.id, { onDelete: "cascade" }),
+	viewCount: int("view_count").notNull(),
+	score: double().notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.categoryId, table.bookId], name: "category_tr_book_category_id_book_id" }),
+	index("idx_category_tr_book_viewcount").on(table.categoryId, table.viewCount),
+	index("idx_category_tr_book_score").on(table.categoryId, table.score),
+]);

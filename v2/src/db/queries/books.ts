@@ -1,9 +1,9 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { sql, eq, desc, asc, and, or, like, isNull } from "drizzle-orm";
+import { sql, eq, desc, asc, and, or, like, isNull, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/db";
-import { category as categoryTable, book, read, bookCategory, categoryLangStats } from "@/db/schema";
+import { category as categoryTable, book, read, bookCategory, categoryLangStats, categoryTrBook } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
 
 export interface CategoryBookListItem {
@@ -157,6 +157,47 @@ async function fetchCategoryPage(
   // (`lang != 'tr'`) that can't use the same leading-column scan, so it
   // deliberately stays on the global index, matching book-detail.ts's
   // identical idx_book_lang_score/idx_book_score split for the same reason.
+  //
+  // Real follow-up incident (2026-09-09, same day): even WITH that index,
+  // this stayed slow (~21s live) for a category whose Turkish books are a
+  // sparse intersection clustered at the "wrong" end of the sort order
+  // (category 1781's 36 Turkish books all have view_count=0) - no index
+  // fixes that, it's a latency-bound "walk most of the ~126K Turkish
+  // population" problem. `category_tr_book` (populated once, as a side
+  // effect of getCategoryTurkishCount's own scan, or here on first miss)
+  // turns this into a trivial indexed lookup for every subsequent call.
+  if (lang === "tr") {
+    // Existence check separate from the paginated read below - a deep
+    // page/offset past the end of a SMALL already-persisted set would
+    // otherwise legitimately return zero rows and get misread as "never
+    // persisted", triggering a needless re-scan on every subsequent page.
+    const [anyRow] = await db.select({ bookId: categoryTrBook.bookId }).from(categoryTrBook).where(eq(categoryTrBook.categoryId, categoryId)).limit(1);
+
+    if (anyRow) {
+      const persistedRows = await db
+        .select({ id: categoryTrBook.bookId, viewCount: categoryTrBook.viewCount, score: categoryTrBook.score })
+        .from(categoryTrBook)
+        .where(eq(categoryTrBook.categoryId, categoryId))
+        .orderBy(sortBy === "score" ? desc(categoryTrBook.score) : desc(categoryTrBook.viewCount))
+        .limit(limit)
+        .offset(offset);
+
+      const bookIds = persistedRows.map((r) => r.id);
+      const bookRows = bookIds.length
+        ? await db.select({ id: book.id, name: book.name, slug: book.slug, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` }).from(book).where(inArray(book.id, bookIds))
+        : [];
+      const byId = new Map(bookRows.map((b) => [b.id, b]));
+      return persistedRows.map((r) => {
+        const b = byId.get(r.id);
+        return { id: r.id, name: b?.name ?? "", slug: b?.slug ?? "", score: r.score, viewCount: r.viewCount, hasImage: Boolean(b?.hasImage) };
+      });
+    }
+    // Fell through - category_tr_book has no rows for this category yet
+    // (a category genuinely computed >0 elsewhere but never had this table
+    // populated, e.g. a manual/older cache-warm) - same live scan as
+    // before, but persists the result this time so it doesn't happen again.
+  }
+
   const langScopedIndex = sortBy === "score" ? "idx_book_lang_score" : "idx_book_lang_viewcount";
   const indexToUse = lang === "tr" ? langScopedIndex : forceIndexName;
   const rows = (await db.execute(sql`
@@ -169,8 +210,16 @@ async function fetchCategoryPage(
     ) AND ${langCondition}
     ORDER BY ${orderColumn} DESC
     LIMIT ${limit} OFFSET ${offset}
-  `))[0];
-  return rows as unknown as Omit<CategoryBookListItem, "writers">[];
+  `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
+
+  if (lang === "tr" && rows.length > 0) {
+    await db
+      .insert(categoryTrBook)
+      .values(rows.map((r) => ({ categoryId, bookId: r.id, viewCount: r.viewCount, score: r.score })))
+      .catch((err) => console.error("[category-tr-book] failed to persist (fetchCategoryPage fallback)", err));
+  }
+
+  return rows;
 }
 
 export async function getBooksByCategory(
@@ -289,13 +338,38 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
   // so a transient failure is never cached, just retried on the next
   // request. The caller (getBooksByCategory) now catches this, but per
   // REQUEST, not per cache entry.
+  //
+  // Real follow-up incident (2026-09-09, same day): even with
+  // idx_book_lang_viewcount in place, this can still take 20+ seconds when
+  // a category's Turkish books are a sparse intersection clustered at the
+  // "wrong" end of the sort order (confirmed live: category 1781's 36
+  // Turkish books all have view_count=0, so the scan still has to walk
+  // most of the ~126K global Turkish population). No index fixes a
+  // latency-bound "many random lookups" problem - so this now fetches the
+  // actual matching rows (not just COUNT) in the SAME scan and persists
+  // them to `category_tr_book`, so `fetchCategoryPage`'s "tr" branch never
+  // has to re-run this scan for this category again.
   const rows = (await db.execute(sql`
-    SELECT /*+ MAX_EXECUTION_TIME(25000) */ COUNT(*) AS n FROM book b FORCE INDEX (idx_book_lang)
+    SELECT /*+ MAX_EXECUTION_TIME(25000) */ b.id, b.view_count AS viewCount, b.score FROM book b FORCE INDEX (idx_book_lang)
     WHERE b.lang = 'tr' AND EXISTS (
       SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
     )
-  `))[0] as unknown as { n: number }[];
-  const trCount = Number(rows[0]?.n ?? 0);
+  `))[0] as unknown as { id: number; viewCount: number; score: number }[];
+  const trCount = rows.length;
+
+  if (rows.length > 0) {
+    // Plain insert, not upsert - this code path only runs once per
+    // category (gated by the categoryLangStats check above), so a
+    // duplicate-key conflict here would only mean a rare concurrent race
+    // against another request computing the same never-before-seen
+    // category at the same time. Failing that insert is fine - trCount
+    // below is already computed from `rows` either way, this is a
+    // best-effort cache warm, not something the response depends on.
+    await db
+      .insert(categoryTrBook)
+      .values(rows.map((r) => ({ categoryId, bookId: r.id, viewCount: r.viewCount, score: r.score })))
+      .catch((err) => console.error("[category-tr-book] failed to persist", err));
+  }
 
   // Best-effort persist - a failure to write the cache table must never
   // fail the actual request that just paid for computing this value.
