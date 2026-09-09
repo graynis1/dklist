@@ -203,19 +203,28 @@ export async function getBooksByCategory(
   const safePage = Math.min(Math.max(1, page), lastPage);
   const offset = (safePage - 1) * safeSize;
 
-  const items: Omit<CategoryBookListItem, "writers">[] = [];
+  // Real incident (2026-09-09): these two ran SEQUENTIALLY (await, then
+  // await) even though neither depends on the other's actual rows - only
+  // on `trCount`, already known at this point. For a category where
+  // Turkish is a tiny minority of a huge total (confirmed live: category
+  // 1781, 36 Turkish out of 167,841 total), page 1 always needs BOTH
+  // buckets, and each can independently take up to its own 25s budget on
+  // this disk-bound instance - sequential worst case ~50s, on top of
+  // getCategoryTurkishCount's own up-to-25s, easily exceeding every
+  // caller's patience and tripping the "0 kitap" fallback despite the data
+  // being fine. Firing both in parallel (computed needed-counts instead of
+  // the actual previous bucket's row count - safe since `trCount` already
+  // reflects the exact same book_category rows the "tr" fetch will scan)
+  // cuts the worst case roughly in half.
+  const trNeeded = Math.max(0, Math.min(safeSize, trCount - offset));
+  const otherNeeded = safeSize - trNeeded;
+  const nonTrOffset = Math.max(0, offset - trCount);
 
-  if (offset < trCount) {
-    const trRows = await fetchCategoryPage(categoryId, "tr", total, safeSize, offset, sortBy);
-    items.push(...trRows);
-  }
-
-  if (items.length < safeSize) {
-    const remaining = safeSize - items.length;
-    const nonTrOffset = Math.max(0, offset - trCount);
-    const otherRows = await fetchCategoryPage(categoryId, "not-tr", total, remaining, nonTrOffset, sortBy);
-    items.push(...otherRows);
-  }
+  const [trRows, otherRows] = await Promise.all([
+    trNeeded > 0 ? fetchCategoryPage(categoryId, "tr", total, trNeeded, offset, sortBy) : Promise.resolve([]),
+    otherNeeded > 0 ? fetchCategoryPage(categoryId, "not-tr", total, otherNeeded, nonTrOffset, sortBy) : Promise.resolve([]),
+  ]);
+  const items: Omit<CategoryBookListItem, "writers">[] = [...trRows, ...otherRows];
 
   const withWriters = await attachWriterNames(items.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
   return { items: withWriters, total, trCount, lastPage };
