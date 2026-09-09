@@ -113,74 +113,96 @@ export function RichTextEditor({
    *
    * Real customer report (2026-09-09, still happening after the first
    * paste-handling pass): some Word documents' images vanish on paste
-   * with no broken-image icon at all, no error - not the same bug as the
-   * data:-URI case above, which was already confirmed working (real
-   * images uploaded correctly for an earlier post). Root cause: certain
-   * Word versions/paste paths put a `file://...` local-path reference in
-   * the clipboard's HTML instead of an embedded `data:` image - the
-   * browser can't (and for security, won't) read an arbitrary local file
-   * path from web content, so it silently renders nothing. There's no way
-   * to recover the actual image bytes from a `file://` reference (the
-   * browser never grants JS access to it) - this at least turns a
-   * silent, confusing disappearance into a visible, actionable message
-   * instead of leaving the writer wondering if they did something wrong. */
-  const handlePaste = useCallback(() => {
-    const editor = editorRef.current;
-    // Real, severe regression caught via customer report (2026-09-09):
-    // the very first version of this "unreachable image" check scanned
-    // EVERY `img` in the whole editor on EVERY paste, not just newly
-    // pasted ones - editing an existing post (real, already-uploaded
-    // images with relative `/api/blog-image/...` src, not `http(s)`/
-    // `data:`) meant ANY subsequent paste anywhere in the document wiped
-    // out that post's real, already-working images. Fixed by snapshotting
-    // which `<img>` elements already existed BEFORE this paste (captured
-    // synchronously here, before the browser's default paste runs) and
-    // only ever touching ones that are NOT in that snapshot afterward.
-    const preExistingImages = editor ? new Set(editor.querySelectorAll("img")) : new Set<Element>();
+   * with no broken-image icon at all, no error. Root cause: certain Word
+   * versions/paste paths put a `file://...` local-path reference in the
+   * clipboard's HTML instead of an embedded `data:` image - the browser
+   * can't (and for security, won't) read an arbitrary local file path
+   * from web content. The earlier fix only turned this into a visible
+   * error message; the actual ask afterward was to make the paste work,
+   * not just fail loudly.
+   *
+   * The real fix: the OS clipboard Word writes to almost always carries
+   * the actual image bytes too, as a plain raw-file clipboard item
+   * (`DataTransferItem.kind === "file"`, `type` like "image/png") sitting
+   * alongside the HTML fragment - independent of whatever broken
+   * `file://` reference is embedded in that HTML. `clipboardData` is only
+   * readable synchronously during the paste event, so these are grabbed
+   * up front, then matched (best-effort, by order) against whichever
+   * pasted `<img>` tags turn out unreachable once the browser's own paste
+   * has run, and uploaded/inserted in their place. */
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
+      const editor = editorRef.current;
+      // Real, severe regression caught via customer report (2026-09-09):
+      // the very first version of this "unreachable image" check scanned
+      // EVERY `img` in the whole editor on EVERY paste, not just newly
+      // pasted ones - editing an existing post (real, already-uploaded
+      // images with relative `/api/blog-image/...` src, not `http(s)`/
+      // `data:`) meant ANY subsequent paste anywhere in the document wiped
+      // out that post's real, already-working images. Fixed by snapshotting
+      // which `<img>` elements already existed BEFORE this paste (captured
+      // synchronously here, before the browser's default paste runs) and
+      // only ever touching ones that are NOT in that snapshot afterward.
+      const preExistingImages = editor ? new Set(editor.querySelectorAll("img")) : new Set<Element>();
 
-    setTimeout(async () => {
-      if (!editor) return;
-      const newImages = Array.from(editor.querySelectorAll<HTMLImageElement>("img")).filter((img) => !preExistingImages.has(img));
+      // Must read clipboardData synchronously - it's cleared once this
+      // handler returns, long before the setTimeout below runs.
+      const clipboardImageFiles = Array.from(e.clipboardData?.items ?? [])
+        .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+        .map((item) => item.getAsFile())
+        .filter((f): f is File => f !== null);
 
-      const dataImages = newImages.filter((img) => img.getAttribute("src")?.startsWith("data:"));
-      for (const img of dataImages) {
-        try {
-          const res = await fetch(img.src);
-          const blob = await res.blob();
-          const file = new File([blob], "pasted-image.png", { type: blob.type || "image/png" });
-          const url = await uploadFile(file);
-          if (url) img.src = url;
-          else img.remove(); // couldn't upload - drop rather than leave a giant data: URI in the stored content
-        } catch {
-          img.remove();
+      setTimeout(async () => {
+        if (!editor) return;
+        const newImages = Array.from(editor.querySelectorAll<HTMLImageElement>("img")).filter((img) => !preExistingImages.has(img));
+
+        const dataImages = newImages.filter((img) => img.getAttribute("src")?.startsWith("data:"));
+        for (const img of dataImages) {
+          try {
+            const res = await fetch(img.src);
+            const blob = await res.blob();
+            const file = new File([blob], "pasted-image.png", { type: blob.type || "image/png" });
+            const url = await uploadFile(file);
+            if (url) img.src = url;
+            else img.remove(); // couldn't upload - drop rather than leave a giant data: URI in the stored content
+          } catch {
+            img.remove();
+          }
         }
-      }
 
-      // Real customer report: some Word documents' images vanish on paste
-      // with no broken-image icon at all - root cause: certain Word
-      // versions/paste paths put a `file://...` local-path reference in
-      // the clipboard's HTML instead of an embedded `data:` image, which
-      // the browser can't (and for security, won't) read. No way to
-      // recover the actual bytes from a `file://` reference - this at
-      // least turns a silent disappearance into a visible, actionable
-      // message. Only ever applied to images THIS paste just introduced
-      // (see preExistingImages above) - never pre-existing content.
-      const unreachableImages = newImages.filter((img) => !/^(https?:|data:)/.test(img.getAttribute("src") ?? ""));
-      if (unreachableImages.length > 0) {
-        setError(
-          `Word'den ${unreachableImages.length} resim yapıştırılamadı (Word bu resmi bilgisayarınızdaki bir dosya yolu olarak kopyaladı, tarayıcı bunu okuyamıyor). Lütfen resmi "Resim Ekle" butonuyla tekrar ekleyin.`,
-        );
-        for (const img of unreachableImages) {
-          const note = document.createElement("span");
-          note.textContent = "[resim eklenemedi - lütfen \"Resim Ekle\" ile tekrar ekleyin]";
-          note.className = "text-destructive text-xs italic";
-          img.replaceWith(note);
+        // file:// (or otherwise unreachable) images - recover them from the
+        // raw clipboard file items grabbed above, in document order. Falls
+        // back to a visible note only for the rare case where the OS
+        // clipboard genuinely didn't carry the raw bytes either.
+        const unreachableImages = newImages.filter((img) => !/^(https?:|data:)/.test(img.getAttribute("src") ?? ""));
+        let recovered = 0;
+        for (let i = 0; i < unreachableImages.length; i++) {
+          const img = unreachableImages[i];
+          const file = clipboardImageFiles[i];
+          const url = file ? await uploadFile(file) : null;
+          if (url) {
+            img.src = url;
+            img.removeAttribute("width");
+            img.removeAttribute("height");
+            recovered++;
+          } else {
+            const note = document.createElement("span");
+            note.textContent = "[resim eklenemedi - lütfen \"Resim Ekle\" ile tekrar ekleyin]";
+            note.className = "text-destructive text-xs italic";
+            img.replaceWith(note);
+          }
         }
-      }
+        if (recovered < unreachableImages.length) {
+          setError(
+            `Word'den ${unreachableImages.length - recovered} resim kurtarılamadı. Lütfen resmi "Resim Ekle" butonuyla tekrar ekleyin.`,
+          );
+        }
 
-      syncHidden();
-    }, 0);
-  }, [syncHidden, uploadFile]);
+        syncHidden();
+      }, 0);
+    },
+    [syncHidden, uploadFile],
+  );
 
   function exec(command: string, value?: string) {
     editorRef.current?.focus();
