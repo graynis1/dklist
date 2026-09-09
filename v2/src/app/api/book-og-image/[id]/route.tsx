@@ -49,6 +49,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const writerRows = await db.select({ name: writer.name }).from(writerBook).innerJoin(writer, eq(writerBook.writerId, writer.id)).where(eq(writerBook.bookId, bookId));
   const authorText = writerRows.map((w) => w.name).join(", ") || "Yazar bilinmiyor";
   const tone = TONES[bookRow.id % TONES.length];
+  // Real satori rendering bug caught by actually viewing the output (not
+  // assumed): combining `maxHeight`+`overflow: hidden` with Turkish
+  // glyphs on this text node corrupted them ("Ateş gecesi" -> broken "ş",
+  // eaten space) even though the identical font/weight rendered the
+  // author line correctly a few pixels below. Truncating the string in
+  // JS instead of clipping via CSS avoids the bug entirely and still
+  // bounds a pathologically long title.
+  const displayTitle = bookRow.name.length > 90 ? `${bookRow.name.slice(0, 90)}...` : bookRow.name;
   const fontData = await getInterFont(700);
 
   return new ImageResponse(
@@ -68,9 +76,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       >
         <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 2, opacity: 0.7 }}>DKList</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.15, maxHeight: 280, overflow: "hidden" }}>
-            {bookRow.name}
-          </div>
+          <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.15 }}>{displayTitle}</div>
           <div style={{ fontSize: 34, fontWeight: 700, opacity: 0.85 }}>{authorText}</div>
         </div>
       </div>
