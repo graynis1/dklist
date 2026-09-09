@@ -12,8 +12,8 @@ import { getTrendingBooks } from "@/db/queries/activity";
 import { getTopReaders, getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
 import { getCurrentBookOfMonth } from "@/db/queries/book-of-month";
-import { getRecentBookActivity } from "@/db/queries/activity";
-import { HashtagText } from "@/components/dklist/hashtag-text";
+import { getSiteFeed } from "@/db/queries/feed";
+import { FeedItemRow } from "@/components/dklist/site-feed";
 import { currentISOWeek } from "@/lib/iso-week";
 import { connection } from "next/server";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
@@ -345,9 +345,22 @@ function ActivityFeedSkeleton() {
  * (design system deliberately has no photographic covers), so that's what
  * surfaces here rather than a `/kapak/[id]` photo.
  */
+/**
+ * Customer's explicit ask (2026-09-09, reference screenshot): "okudu/
+ * okumaya başladı/okuyor. Kitaplığına ekledi, okuyacaklara ekledi gibi
+ * düşmeli ana sayfaya" - a real mix of posts (reviews/quotes) AND passive
+ * activity (reading status, ratings, page progress...) together, not the
+ * old comment/quote-only widget this replaced (which is exactly the
+ * narrower "Son Etkinlikler" the customer already called "saçmalık" once
+ * before, still lingering here even after /akis was built as the real
+ * fix). Reuses `getSiteFeed`'s new "all" mode + the same `FeedItemRow`
+ * card `/akis` itself renders, rather than a third bespoke rendering path.
+ */
 async function ActivityFeedShelf() {
   await connection();
-  const items = await getRecentBookActivity(8);
+  const session = await auth();
+  const viewerId = session?.user?.id ? Number(session.user.id) : null;
+  const { items } = await getSiteFeed({ mode: "all", limit: 8, viewerId });
 
   if (items.length === 0) {
     return (
@@ -356,35 +369,9 @@ async function ActivityFeedShelf() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {items.map((item) => (
-        <Link
-          key={item.id}
-          href={`/kitap/${item.bookSlug}`}
-          className="flex gap-4 rounded-lg p-2 -m-2 transition-colors hover:bg-accent"
-        >
-          <BookCover
-            title={item.bookName}
-            author={item.writers.join(", ") || "Yazar bilinmiyor"}
-            tone={toneForId(item.bookId)}
-            bookId={item.bookId}
-            hasImage={item.hasImage}
-            size="sm"
-            className="w-16 shrink-0"
-          />
-          <div className="flex flex-1 flex-col gap-1 py-1">
-            <p className="text-sm">
-              <span className="font-medium">@{item.username}</span>{" "}
-              <span className="text-muted-foreground">
-                {item.kind === "quotation" ? "bir alıntı paylaştı" : "bir yorum yazdı"} ·{" "}
-              </span>
-              <span className="font-medium">{item.bookName}</span>
-            </p>
-            <p className="text-sm text-muted-foreground italic">
-              <HashtagText text={item.excerpt} />
-            </p>
-          </div>
-        </Link>
+        <FeedItemRow key={item.id} item={item} signedIn={Boolean(viewerId)} viewerId={viewerId} />
       ))}
     </div>
   );

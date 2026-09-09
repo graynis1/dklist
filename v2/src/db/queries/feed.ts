@@ -221,11 +221,16 @@ export async function getSiteFeed(opts: {
   viewerId?: number | null;
   /** "posts" (default) = comments/quotes/standalone posts only, the real
    * social-feed timeline. "activity" = everything else (reading status,
-   * ratings, follows, library adds...), shown on its own separate tab. */
-  mode?: "posts" | "activity";
+   * ratings, follows, library adds...), shown on its own separate tab.
+   * "all" = both together, unfiltered chronological order - the homepage's
+   * "Son Etkinlikler" widget (customer's explicit ask, reference
+   * screenshot: "okudu/okumaya başladı/okuyor/kitaplığına ekledi... gibi
+   * düşmeli ana sayfaya", a mix of real posts AND passive activity in one
+   * list) rather than a third, narrower query. */
+  mode?: "posts" | "activity" | "all";
 }): Promise<FeedPage> {
   const limit = opts.limit ?? 25;
-  const reasons = opts.mode === "activity" ? ACTIVITY_REASONS : POST_REASONS;
+  const reasons = opts.mode === "activity" ? ACTIVITY_REASONS : opts.mode === "all" ? FEED_REASONS : POST_REASONS;
   const conditions = [inArray(pointTransaction.reason, reasons as unknown as string[])];
   if (opts.cursor) conditions.push(lt(pointTransaction.id, opts.cursor));
 
