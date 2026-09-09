@@ -1,27 +1,16 @@
 -- Hand-written migration, applied manually (never drizzle-kit push/generate).
 --
--- STATUS (2026-09-06): applied to the local dev DB only. The production
--- build of this index was ABORTED mid-way (`KILL <id>` on the ALTER) - its
--- online build (ALGORITHM=INPLACE, LOCK=NONE, non-blocking for locks) was
--- still consuming enough real disk I/O on this HDD-backed instance,
--- combined with a pile of concurrent slow queries from the not-yet-deployed
--- old code, to make every page on the live site hang - a genuine site-down
--- incident, not a acceptable tradeoff. Aborting an in-progress ADD INDEX
--- is safe (InnoDB rolls it back cleanly, the table is untouched), and it
--- was the right call to restore service immediately over finishing the
--- index build.
---
--- The application code (books.ts's fetchCategoryPage) does NOT reference
--- this index right now - it deliberately falls back to the existing
--- idx_book_viewcount global-index plan instead, so this half of the
--- category-page perf fix (see migration 0043 and PLAN.md for the full
--- incident writeup) shipped without ever needing this index to exist on
--- production. Re-run this ALTER during a real low-traffic window, then
--- switch fetchCategoryPage's "tr" bucket back to FORCE INDEX
--- (idx_book_lang_viewcount) as a genuine follow-up improvement - not
--- required for correctness, only for the sparse-Turkish-in-a-huge-category
--- case to be as fast as the analogous idx_book_lang_score fix already is
--- for "Benzer Kitaplar".
+-- STATUS (2026-09-09): successfully applied to production. A first attempt
+-- (2026-09-06) was ABORTED mid-way (`KILL <id>` on the ALTER) - real
+-- disk I/O contention with live traffic, compounded by a concurrent
+-- watchdog script that was independently killing the app's own DB
+-- connections (a separate, self-inflicted mistake - see PLAN.md's
+-- "genuinely bad hour" writeup). Re-attempted 2026-09-09 during a
+-- deliberately monitored window (load average/iostat checked before and
+-- throughout, `curl` health checks against the live site during the
+-- build) and completed cleanly, confirmed via `SHOW INDEX FROM book`.
+-- `fetchCategoryPage`'s "tr" bucket now actually uses this index (see its
+-- own updated comment) - this migration is no longer inert.
 --
 -- Same disease as 0043's idx_book_lang_score, for `getBooksByCategory`'s
 -- Turkish/non-Turkish category-listing split (books.ts) instead of

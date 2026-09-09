@@ -146,23 +146,23 @@ async function fetchCategoryPage(
     return rows as unknown as Omit<CategoryBookListItem, "writers">[];
   }
 
-  // TEMPORARY (2026-09-06): the lang-scoped idx_book_lang_viewcount index
-  // (migration 0044) was deliberately NOT deployed with this fix - its
-  // online build was competing for disk I/O with the live site badly
-  // enough on this HDD-backed instance to make every page hang, and got
-  // aborted mid-build to restore service. Falls back to the same global
-  // idx_book_viewcount + EXISTS(category) plan both branches already used
-  // before this incident - not as fast for a sparse-language-in-a-huge-
-  // category case as the scoped index would be, but it's what was already
-  // safely running in production, and correctly gated on TOTAL category
-  // size now (the actual bug fixed this pass) rather than the wrong,
-  // filtered-count signal. Revisit once the index can be rebuilt during
-  // low-traffic hours - see PLAN.md for the incident writeup.
-  // Same "throw, don't cache a fallback" fix as the branch above.
+  // RESOLVED (2026-09-09): migration 0044's idx_book_lang_viewcount build
+  // was aborted once already (2026-09-06, competing disk I/O with live
+  // traffic) but has now been successfully rebuilt online (verified via
+  // `SHOW INDEX`, zero downtime this time - the earlier abort was
+  // compounded by a concurrent watchdog script killing the app's own DB
+  // connections, not purely the build itself, see PLAN.md). Only the "tr"
+  // bucket benefits - it's an equality condition (`lang = 'tr'`) a
+  // composite index can range-scan; "not-tr" is a negation
+  // (`lang != 'tr'`) that can't use the same leading-column scan, so it
+  // deliberately stays on the global index, matching book-detail.ts's
+  // identical idx_book_lang_score/idx_book_score split for the same reason.
+  const langScopedIndex = sortBy === "score" ? "idx_book_lang_score" : "idx_book_lang_viewcount";
+  const indexToUse = lang === "tr" ? langScopedIndex : forceIndexName;
   const rows = (await db.execute(sql`
     SELECT /*+ MAX_EXECUTION_TIME(25000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
       (b.image IS NOT NULL AND b.image != '') AS hasImage
-    FROM book b FORCE INDEX (${sql.raw(forceIndexName)})
+    FROM book b FORCE INDEX (${sql.raw(indexToUse)})
     WHERE EXISTS (
       SELECT 1 FROM book_category bc
       WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
