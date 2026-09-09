@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user, score } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
@@ -477,11 +477,18 @@ export async function getSimilarBooks(bookId: number, categoryId: number, limit 
   const topRows = rankedIds.slice(0, limit).map((id) => byId.get(id)!);
 
   const bookIds = topRows.map((r) => r.id);
-  const writerRows = await db
-    .select({ bookId: writerBook.bookId, name: writer.name })
-    .from(writerBook)
-    .innerJoin(writer, eq(writerBook.writerId, writer.id))
-    .where(inArray(writerBook.bookId, bookIds));
+  // Same real incident/fix as books.ts's attachWriterNames() - this exact
+  // query shape (no MAX_EXECUTION_TIME hint) was caught live running 300+
+  // seconds via SHOW FULL PROCESSLIST, tying up a pooled DB connection for
+  // minutes on every single book-page render. This is a second, separate
+  // copy of the same query (not a shared call site) so needed the same fix
+  // applied here directly.
+  const writerRows = (await db.execute(sql`
+    SELECT /*+ MAX_EXECUTION_TIME(8000) */ wb.book_id AS bookId, w.name AS name
+    FROM writer_book wb
+    INNER JOIN writer w ON w.id = wb.writer_id
+    WHERE wb.book_id IN (${sql.join(bookIds.map((id) => sql`${id}`), sql`, `)})
+  `))[0] as unknown as { bookId: number; name: string }[];
 
   const writersByBook = new Map<number, string[]>();
   for (const row of writerRows) {

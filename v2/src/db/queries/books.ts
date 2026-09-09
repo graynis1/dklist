@@ -1,9 +1,9 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { sql, eq, inArray, desc, asc, and, or, like, isNull } from "drizzle-orm";
+import { sql, eq, desc, asc, and, or, like, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/db";
-import { category as categoryTable, writer, writerBook, book, read, bookCategory } from "@/db/schema";
+import { category as categoryTable, book, read, bookCategory } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
 
 export interface CategoryBookListItem {
@@ -652,19 +652,40 @@ export async function getBookList(
   return { items, total, page: effectivePage, lastPage };
 }
 
-/** Batched (no N+1) writer-name lookup for a list of book ids - shared across
- * category/latest/publisher listing queries so each doesn't reimplement it. */
+/**
+ * Batched (no N+1) writer-name lookup for a list of book ids - shared across
+ * category/latest/publisher/search/profile listing queries so each doesn't
+ * reimplement it (see every call site in books.ts/profile.ts/search.ts/
+ * publishers.ts/activity.ts/book-embedding.ts).
+ *
+ * Real incident (2026-09-09): this query had NO `MAX_EXECUTION_TIME` hint at
+ * all, unlike every other hot-path query in this file - confirmed live via
+ * `SHOW FULL PROCESSLIST` catching this exact JOIN running 300+ seconds on
+ * a real category-page request. Since it's called from `"use cache"`
+ * functions with a hard-capped 10-connection pool (see PLAN.md's memory-
+ * creep writeup), one unlucky/slow execution doesn't just make its own
+ * request slow - it ties up 1/10th of the *entire site's* DB connections
+ * for minutes, starving other requests (including the category page's own
+ * already-bounded main query) into tripping *their* circuit breakers too.
+ * That's the real root cause behind "birçok farklı kategori aynı anda 0
+ * kitap gösteriyor" rather than one category having a genuine data problem.
+ * Same fix as every other query here: bound it, let it throw on timeout
+ * (never swallow inside a "use cache" function - see fetchCategoryPage's
+ * own doc comment for why), and let the caller's existing per-request catch
+ * degrade gracefully instead of hanging a connection for minutes.
+ */
 export async function attachWriterNames<T extends { id: number }>(
   books: T[],
 ): Promise<(T & { writers: string[] })[]> {
   if (books.length === 0) return [];
 
   const bookIds = books.map((b) => b.id);
-  const writerRows = await db
-    .select({ bookId: writerBook.bookId, name: writer.name })
-    .from(writerBook)
-    .innerJoin(writer, eq(writerBook.writerId, writer.id))
-    .where(inArray(writerBook.bookId, bookIds));
+  const writerRows = (await db.execute(sql`
+    SELECT /*+ MAX_EXECUTION_TIME(8000) */ wb.book_id AS bookId, w.name AS name
+    FROM writer_book wb
+    INNER JOIN writer w ON w.id = wb.writer_id
+    WHERE wb.book_id IN (${sql.join(bookIds.map((id) => sql`${id}`), sql`, `)})
+  `))[0] as unknown as { bookId: number; name: string }[];
 
   const writersByBook = new Map<number, string[]>();
   for (const row of writerRows) {
