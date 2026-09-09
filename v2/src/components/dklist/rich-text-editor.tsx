@@ -35,8 +35,35 @@ export function RichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Real customer report (2026-09-09): manually inserting an image via the
+  // toolbar button was "çok zor" (very hard) - the native file-picker
+  // dialog steals focus for as long as the user takes to pick a file, and
+  // by the time control returns, the browser has cleared the contentEditable
+  // selection entirely (unlike a synchronous toolbar click with no dialog
+  // in between, which browsers tolerate fine). Without this, insertImage
+  // landed wherever the browser defaulted to (observed: always the very
+  // end), never where the cursor actually was - forcing manual cut/paste
+  // to fix placement every time. Saved on mousedown (fires before the
+  // button steals focus) and restored right before the actual insert.
+  const savedRangeRef = useRef<Range | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function saveSelection() {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  }
+
+  function restoreSelection() {
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (sel && savedRangeRef.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRangeRef.current);
+    }
+  }
 
   const syncHidden = useCallback(() => {
     if (hiddenInputRef.current && editorRef.current) {
@@ -115,12 +142,21 @@ export function RichTextEditor({
     e.target.value = "";
     if (!file) return;
     const url = await uploadFile(file);
-    if (url) exec("insertImage", url);
+    if (url) {
+      restoreSelection();
+      exec("insertImage", url);
+    }
   }
 
   function insertLink() {
+    // Same selection-loss risk as the image picker - window.prompt() also
+    // steals focus, and createLink needs the ORIGINAL text selection
+    // (not just a cursor) to wrap it in a link.
     const url = window.prompt("Bağlantı adresi (https://...)");
-    if (url) exec("createLink", url);
+    if (url) {
+      restoreSelection();
+      exec("createLink", url);
+    }
   }
 
   return (
@@ -147,10 +183,10 @@ export function RichTextEditor({
         <ToolbarButton onClick={() => exec("formatBlock", "<blockquote>")} title="Alıntı">
           <QuoteIcon className="size-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={insertLink} title="Bağlantı Ekle">
+        <ToolbarButton onMouseDown={saveSelection} onClick={insertLink} title="Bağlantı Ekle">
           <LinkIcon className="size-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Resim Ekle" disabled={uploading}>
+        <ToolbarButton onMouseDown={saveSelection} onClick={() => fileInputRef.current?.click()} title="Resim Ekle" disabled={uploading}>
           <ImageIcon className="size-4" />
         </ToolbarButton>
         <ToolbarButton onClick={() => exec("removeFormat")} title="Biçimlendirmeyi Temizle">
@@ -176,17 +212,19 @@ export function RichTextEditor({
 
 function ToolbarButton({
   onClick,
+  onMouseDown,
   title,
   disabled,
   children,
 }: {
   onClick: () => void;
+  onMouseDown?: () => void;
   title: string;
   disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Button type="button" variant="ghost" size="icon-sm" title={title} disabled={disabled} onClick={onClick}>
+    <Button type="button" variant="ghost" size="icon-sm" title={title} disabled={disabled} onMouseDown={onMouseDown} onClick={onClick}>
       {children}
     </Button>
   );
