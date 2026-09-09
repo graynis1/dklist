@@ -47,16 +47,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const writerRows = await db.select({ name: writer.name }).from(writerBook).innerJoin(writer, eq(writerBook.writerId, writer.id)).where(eq(writerBook.bookId, bookId));
-  const authorText = writerRows.map((w) => w.name).join(", ") || "Yazar bilinmiyor";
+  const authorText = (writerRows.map((w) => w.name).join(", ") || "Yazar bilinmiyor").normalize("NFC");
   const tone = TONES[bookRow.id % TONES.length];
-  // Real satori rendering bug caught by actually viewing the output (not
-  // assumed): combining `maxHeight`+`overflow: hidden` with Turkish
-  // glyphs on this text node corrupted them ("Ateş gecesi" -> broken "ş",
-  // eaten space) even though the identical font/weight rendered the
-  // author line correctly a few pixels below. Truncating the string in
-  // JS instead of clipping via CSS avoids the bug entirely and still
-  // bounds a pathologically long title.
-  const displayTitle = bookRow.name.length > 90 ? `${bookRow.name.slice(0, 90)}...` : bookRow.name;
+  // Real root cause, found by comparing the raw bytes (not the maxHeight/
+  // overflow CSS this originally looked like): this specific title stores
+  // "ş" as a DECOMPOSED sequence (plain "s" + U+0327 COMBINING CEDILLA,
+  // confirmed via `HEX(name)`) instead of the precomposed U+015F "ş" the
+  // writer name uses - a real, pre-existing data-quality inconsistency in
+  // this bulk-imported catalog (some rows NFC-normalized, some not).
+  // Satori doesn't compose the combining mark onto the base letter, so it
+  // draws a stray floating cedilla and appears to eat the following
+  // space. `.normalize("NFC")` folds either form to the same canonical
+  // precomposed character - the correct fix (browsers already render the
+  // decomposed form fine via mature text-shaping, so this is specific to
+  // satori's simpler renderer, not a display bug anywhere else on-site).
+  const normalizedTitle = bookRow.name.normalize("NFC");
+  const displayTitle = normalizedTitle.length > 90 ? `${normalizedTitle.slice(0, 90)}...` : normalizedTitle;
   const fontData = await getInterFont(700);
 
   return new ImageResponse(

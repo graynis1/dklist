@@ -58,7 +58,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ use
       >
         <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 2, opacity: 0.7 }}>DKList</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ fontSize: 56, fontWeight: 700 }}>{`@${row.username}`}</div>
+          <div style={{ fontSize: 56, fontWeight: 700 }}>{`@${row.username.normalize("NFC")}`}</div>
           <div style={{ fontSize: 34, fontWeight: 700, opacity: 0.85 }}>{`${points} puan kazandı`}</div>
         </div>
       </div>
