@@ -109,11 +109,26 @@ export function RichTextEditor({
    * pasted HTML - functional to render as-is, but bloats the stored
    * content and every future reader's page weight. Lets the browser's own
    * paste happen first, then swaps each data-URI image for a real
-   * uploaded file, matching how every other image on this site is stored. */
+   * uploaded file, matching how every other image on this site is stored.
+   *
+   * Real customer report (2026-09-09, still happening after the first
+   * paste-handling pass): some Word documents' images vanish on paste
+   * with no broken-image icon at all, no error - not the same bug as the
+   * data:-URI case above, which was already confirmed working (real
+   * images uploaded correctly for an earlier post). Root cause: certain
+   * Word versions/paste paths put a `file://...` local-path reference in
+   * the clipboard's HTML instead of an embedded `data:` image - the
+   * browser can't (and for security, won't) read an arbitrary local file
+   * path from web content, so it silently renders nothing. There's no way
+   * to recover the actual image bytes from a `file://` reference (the
+   * browser never grants JS access to it) - this at least turns a
+   * silent, confusing disappearance into a visible, actionable message
+   * instead of leaving the writer wondering if they did something wrong. */
   const handlePaste = useCallback(() => {
     setTimeout(async () => {
       const editor = editorRef.current;
       if (!editor) return;
+
       const dataImages = Array.from(editor.querySelectorAll<HTMLImageElement>('img[src^="data:"]'));
       for (const img of dataImages) {
         try {
@@ -127,6 +142,22 @@ export function RichTextEditor({
           img.remove();
         }
       }
+
+      const unreachableImages = Array.from(editor.querySelectorAll<HTMLImageElement>("img")).filter(
+        (img) => !/^(https?:|data:)/.test(img.getAttribute("src") ?? ""),
+      );
+      if (unreachableImages.length > 0) {
+        setError(
+          `Word'den ${unreachableImages.length} resim yapıştırılamadı (Word bu resmi bilgisayarınızdaki bir dosya yolu olarak kopyaladı, tarayıcı bunu okuyamıyor). Lütfen resmi "Resim Ekle" butonuyla tekrar ekleyin.`,
+        );
+        for (const img of unreachableImages) {
+          const note = document.createElement("span");
+          note.textContent = "[resim eklenemedi - lütfen \"Resim Ekle\" ile tekrar ekleyin]";
+          note.className = "text-destructive text-xs italic";
+          img.replaceWith(note);
+        }
+      }
+
       syncHidden();
     }, 0);
   }, [syncHidden, uploadFile]);
