@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { book, writer, writerBook } from "@/db/schema";
+import { getInterFont } from "@/lib/og-font";
 
 /**
  * Real customer report (2026-09-09): sharing a book with no real cover
@@ -33,22 +34,6 @@ const TONES: { bg: string; fg: string }[] = [
   { bg: "#c99a2e", fg: "#2b2311" }, // mustard
 ];
 
-// Real bug found via testing (not assumed): satori's/next/og's built-in
-// default font has no Turkish glyph coverage - "ş" rendered as a stray
-// mark and ate the following space ("Ateş gecesi" -> "Ates,gecesi"),
-// silently broken for a large fraction of this catalog's titles. Fetched
-// once per server process (module-level cache, not per-request) - a real
-// static font file, not a per-request network dependency in the hot path
-// after the first request warms it.
-let cachedFontData: ArrayBuffer | null = null;
-async function getFont(): Promise<ArrayBuffer> {
-  if (!cachedFontData) {
-    const res = await fetch("https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.ttf");
-    cachedFontData = await res.arrayBuffer();
-  }
-  return cachedFontData;
-}
-
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const bookId = Number(id);
@@ -64,7 +49,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const writerRows = await db.select({ name: writer.name }).from(writerBook).innerJoin(writer, eq(writerBook.writerId, writer.id)).where(eq(writerBook.bookId, bookId));
   const authorText = writerRows.map((w) => w.name).join(", ") || "Yazar bilinmiyor";
   const tone = TONES[bookRow.id % TONES.length];
-  const fontData = await getFont();
+  const fontData = await getInterFont(700);
 
   return new ImageResponse(
     (

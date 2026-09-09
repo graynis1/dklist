@@ -127,6 +127,11 @@ export async function generateMetadata({ params }: PageProps<"/profil/[username]
     // kitaplığı zaten sadece takipçilere açık, ama profil sayfasının
     // kendisi de aranabilir kalmamalı.
     noIndex: profile.privacy,
+    // Real customer report (2026-09-09): sharing a "puan kartı"/reading-
+    // goal Canvas card (they all link back to the profile page) showed
+    // the bare generic site icon - a real, username+points-specific
+    // generated image instead, same fix as the book-cover-less case.
+    image: `/api/profile-og-image/${encodeURIComponent(profile.username)}`,
   });
 }
 
