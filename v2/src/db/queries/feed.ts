@@ -68,6 +68,17 @@ const FEED_REASONS = [
   // milestones ("%42 tamamlandı") - see reading-status.ts's
   // updateReadingProgress().
   "reading_progress",
+  // Customer's explicit ask (2026-09-09): "bütün etkileşimler akışa
+  // düşsün" (every interaction should hit the feed) - re-auditing every
+  // awardPoints() call site turned up this one real gap: sharing a book/
+  // blog/listing externally (ShareButton) already earned points but never
+  // posted anything. Still deliberately excludes daily_visit (zero
+  // content, would spam the feed once per active user per day),
+  // message_received, and point_store_redeem - those three are private
+  // (a DM's existence, what someone spent points on) and would be a real
+  // privacy leak in a PUBLIC feed, not just noise - explicitly flagged to
+  // the maintainer rather than silently included.
+  "social_share",
 ] as const;
 
 export type FeedReason = (typeof FEED_REASONS)[number];
@@ -196,6 +207,14 @@ function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedIt
       return { entityKind: null, entityId: Number(parts[2]) || null }; // parts[2] is the badge id, resolved via badgeIds below
     case "reading_progress":
       return { entityKind: "book", entityId: Number(parts[1]) || null };
+    case "social_share": {
+      // reasonKey is `social_share:${userId}:${entityKey}:${today}`, and
+      // entityKey itself is `${kind}:${id}` (see awardSharePoints's own
+      // doc comment) - splitting on ":" gives 5 parts total.
+      const kind = parts[2];
+      if (kind !== "book" && kind !== "blog" && kind !== "store") return { entityKind: null, entityId: null };
+      return { entityKind: kind, entityId: Number(parts[3]) || null };
+    }
     default:
       return { entityKind: null, entityId: null };
   }
@@ -536,7 +555,7 @@ export async function getSiteFeed(opts: {
       return { ...base, entityKind: "user", isQuote, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${encodeURIComponent(u.username)}` : null, excerpt, quotedText, quotedAuthorUsername };
     }
 
-    if ((r.reason === "book_read" || r.reason === "library_add" || r.reason === "reading_status" || r.reason === "reading_progress" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
+    if ((r.reason === "book_read" || r.reason === "library_add" || r.reason === "reading_status" || r.reason === "reading_progress" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book") || (r.reason === "social_share" && r.entityKind === "book")) && r.entityId) {
       const b = bookMap.get(r.entityId);
       return {
         ...base,
@@ -577,12 +596,12 @@ export async function getSiteFeed(opts: {
       return { ...base, entityKind: "user", isQuote: false, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${encodeURIComponent(u.username)}` : null, excerpt: null };
     }
 
-    if (r.reason === "blog_published" && r.entityId) {
+    if ((r.reason === "blog_published" || (r.reason === "social_share" && r.entityKind === "blog")) && r.entityId) {
       const bl = blogMap.get(r.entityId);
       return { ...base, entityKind: "blog", isQuote: false, targetLabel: bl?.title ?? null, targetHref: bl ? `/blog/${bl.slug}` : null, excerpt: null };
     }
 
-    if (r.reason === "store_listing" && r.entityId) {
+    if ((r.reason === "store_listing" || (r.reason === "social_share" && r.entityKind === "store")) && r.entityId) {
       const s = storeMap.get(r.entityId);
       return { ...base, entityKind: "store", isQuote: false, targetLabel: s?.title ?? null, targetHref: s ? `/askida-kitap/${s.slug}` : null, excerpt: null };
     }
