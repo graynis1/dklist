@@ -7,6 +7,7 @@ import {
   setReadStatusAction,
   clearReadStatusAction,
   addReadingMinutesAction,
+  updateReadingProgressAction,
 } from "@/app/kitap/[slug]/actions";
 import {
   READ_STATUSES,
@@ -41,7 +42,21 @@ export function ReadStatusControl({
   const [dropPercentage, setDropPercentage] = useState(35);
   const [minutesInput, setMinutesInput] = useState("30");
   const [minutesLogged, setMinutesLogged] = useState<number | null>(null);
+  const [pageInput, setPageInput] = useState("");
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [pageSaved, setPageSaved] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function saveProgress() {
+    const page = Number(pageInput);
+    if (!Number.isInteger(page) || page < 1) return;
+    setPageError(null);
+    startTransition(async () => {
+      const result = await updateReadingProgressAction(bookId, page);
+      if (result.status) setPageSaved(page);
+      else setPageError(result.message ?? "Kaydedilemedi.");
+    });
+  }
 
   function logMinutes() {
     const minutes = Number(minutesInput);
@@ -140,6 +155,26 @@ export function ReadStatusControl({
           <span className="text-xs text-muted-foreground">{minutesLogged} dk eklendi ✓</span>
         )}
       </div>
+
+      {current?.status === "currentRead" && (
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Kaldığın sayfa:</span>
+          <Input
+            type="number"
+            min={1}
+            value={pageInput}
+            onChange={(e) => setPageInput(e.target.value)}
+            className="w-20"
+          />
+          <Button size="sm" variant="outline" disabled={isPending} onClick={saveProgress}>
+            Kaydet
+          </Button>
+          {pageSaved !== null && !pageError && (
+            <span className="text-xs text-muted-foreground">Sayfa {pageSaved} kaydedildi ✓</span>
+          )}
+          {pageError && <span className="text-xs text-destructive">{pageError}</span>}
+        </div>
+      )}
 
       {current?.status === "dropRead" && !showDropForm && (
         <p className="text-xs text-muted-foreground">

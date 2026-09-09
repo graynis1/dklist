@@ -370,6 +370,14 @@ export const read = mysqlTable("read", {
 	// exists or is planned).
 	minutesRead: int("minutes_read").notNull().default(0),
 	year: varchar({ length: 4 }).notNull(),
+	// Migration 0053 - richer feed events ("N günde bitirdi", "%X
+	// tamamlandı"). startedAt is set once (COALESCE'd, never overwritten by
+	// a later re-save of "currentRead") when a book first becomes
+	// currentRead; finishedAt is set on finishRead; currentPage backs the
+	// page-progress feed milestones. See reading-status.ts.
+	startedAt: datetime("started_at", { mode: "string" }),
+	finishedAt: datetime("finished_at", { mode: "string" }),
+	currentPage: int("current_page"),
 },
 (table) => [
 	index("IDX_9857416716A2B381").on(table.bookId),

@@ -22,6 +22,7 @@ import {
   TargetIcon,
   TrophyIcon,
   AwardIcon,
+  TrendingUpIcon,
 } from "lucide-react";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
@@ -52,6 +53,7 @@ const ICON_BY_REASON = {
   reading_goal_set: TargetIcon,
   reading_goal_achieved: TrophyIcon,
   badge_earned: AwardIcon,
+  reading_progress: TrendingUpIcon,
 } as const;
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -75,7 +77,12 @@ function describe(item: FeedItem): { verb: string; target: string | null } {
   const target = item.targetLabel ? `"${item.targetLabel}"` : null;
   switch (item.reason) {
     case "book_read":
-      return { verb: "kitabı okudu", target };
+      return {
+        verb: item.readingDurationDays != null ? `kitabı ${item.readingDurationDays} günde okudu` : "kitabı okudu",
+        target,
+      };
+    case "reading_progress":
+      return { verb: item.progressPercentage ? `kitabının %${item.progressPercentage}'ini tamamladı` : "kitabında ilerledi", target };
     case "library_add":
       return { verb: "kitaplığına ekledi", target };
     case "rating":

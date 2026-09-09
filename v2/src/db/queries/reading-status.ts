@@ -2,7 +2,7 @@ import "server-only";
 import { updateTag, cacheLife, cacheTag } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { read, readPurpose } from "@/db/schema";
+import { read, readPurpose, book } from "@/db/schema";
 import type { ReadStatus, DropReason, CurrentReadStatus } from "@/lib/reading-status";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
 
@@ -39,6 +39,7 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   }
 
   const year = String(new Date().getFullYear());
+  const nowSql = new Date().toISOString().slice(0, 19).replace("T", " ");
   const values = {
     userId,
     bookId,
@@ -46,12 +47,26 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
     year,
     dropReason: status === "dropRead" ? (dropReason ?? null) : null,
     dropPercentage: status === "dropRead" ? (dropPercentage ?? null) : null,
+    // Customer's ask: "4 günde bitirdi" needs a real start date. Set once
+    // on first becoming currentRead - COALESCE on the update path means a
+    // later re-save (switching status back and forth) never overwrites an
+    // already-recorded start.
+    startedAt: status === "currentRead" || status === "finishRead" ? nowSql : null,
+    finishedAt: status === "finishRead" ? nowSql : null,
   };
 
   await db
     .insert(read)
     .values(values)
-    .onDuplicateKeyUpdate({ set: values });
+    .onDuplicateKeyUpdate({
+      set: {
+        status: values.status,
+        dropReason: values.dropReason,
+        dropPercentage: values.dropPercentage,
+        startedAt: values.startedAt ? sql`COALESCE(${read.startedAt}, ${values.startedAt})` : sql`${read.startedAt}`,
+        finishedAt: values.finishedAt ? sql`${values.finishedAt}` : sql`${read.finishedAt}`,
+      },
+    });
 
   // updateTag, not revalidateTag: this is a read-your-own-write path (called
   // from a Server Action) and revalidateTag's "max" stale-while-revalidate
@@ -128,6 +143,49 @@ export async function getTotalReadingMinutes(userId: number, year?: string): Pro
     .from(read)
     .where(year ? and(eq(read.userId, userId), eq(read.year, year)) : eq(read.userId, userId));
   return Number(row?.total ?? 0);
+}
+
+/** Milestones deliberately stop at 75 - 100% is functionally "bitirdi",
+ * already covered by the real "book_read" feed event on finishRead, a
+ * second "100% tamamladı" post right next to it would be redundant. */
+const PROGRESS_MILESTONES = [25, 50, 75] as const;
+
+/**
+ * Customer's ask (2026-09-09, reference screenshot): "137. sayfaya geldi
+ * -> %42 tamamlandı" as a feed event. No page-progress tracking existed at
+ * all before `current_page` (migration 0053) - this is genuinely new, not
+ * a port. Requires an existing "currentRead" row (can't log progress on a
+ * book you haven't started) and the book's own page count to compute a
+ * percentage from. Fires a feed-worthy milestone at most once per (user,
+ * book, milestone) - re-saving the same or a lower page never re-fires.
+ */
+export async function updateReadingProgress(userId: number, bookId: number, currentPage: number): Promise<void> {
+  if (!Number.isInteger(currentPage) || currentPage < 1) {
+    throw new Error("Sayfa numarası geçerli bir sayı olmalıdır.");
+  }
+
+  const [existing] = await db.select({ status: read.status }).from(read).where(and(eq(read.userId, userId), eq(read.bookId, bookId))).limit(1);
+  if (!existing || existing.status !== "currentRead") {
+    throw new Error("Sayfa ilerlemesi kaydetmek için önce kitabı 'Şu An Okuyorum' olarak işaretlemelisiniz.");
+  }
+
+  const [bookRow] = await db.select({ pageNumber: book.pageNumber }).from(book).where(eq(book.id, bookId)).limit(1);
+  const totalPages = bookRow?.pageNumber ? Number(bookRow.pageNumber) : null;
+  if (totalPages && currentPage > totalPages) {
+    throw new Error(`Bu kitap ${totalPages} sayfa - girdiğiniz sayfa numarası bundan büyük olamaz.`);
+  }
+
+  await db.update(read).set({ currentPage }).where(and(eq(read.userId, userId), eq(read.bookId, bookId)));
+  updateTag(`profile-books:${userId}`);
+
+  if (!totalPages) return; // no page count on this book - percentage isn't computable, progress is still saved above
+  const percentage = Math.floor((currentPage / totalPages) * 100);
+  const crossed = PROGRESS_MILESTONES.filter((m) => percentage >= m);
+  if (crossed.length === 0) return;
+
+  const settings = await getPointSettings();
+  const milestone = crossed[crossed.length - 1];
+  await awardPoints(userId, settings.readingStatusUpdate, "reading_progress", `reading_progress:${bookId}:${milestone}`);
 }
 
 export async function clearReadStatus(userId: number, bookId: number): Promise<void> {

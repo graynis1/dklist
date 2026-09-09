@@ -16,6 +16,7 @@ import {
   readPurpose,
   publisher,
   badges,
+  read,
 } from "@/db/schema";
 import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
 import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
@@ -63,6 +64,10 @@ const FEED_REASONS = [
   // noise, so this fires only on a genuinely new lifetime-point milestone
   // badge (see points.ts's checkMilestoneBadges) - a real, feed-worthy event.
   "badge_earned",
+  // Customer's ask (2026-09-09, reference screenshot): page-progress
+  // milestones ("%42 tamamlandı") - see reading-status.ts's
+  // updateReadingProgress().
+  "reading_progress",
 ] as const;
 
 export type FeedReason = (typeof FEED_REASONS)[number];
@@ -143,6 +148,14 @@ export interface FeedItem {
    * name, so the card can read "'Kitap Kurdu' rozetini kazandı" rather than
    * a bare, nameless announcement. */
   badgeName: string | null;
+  /** Only set for reason "reading_progress" - the milestone crossed
+   * (25/50/75), from reading-status.ts's updateReadingProgress(). */
+  progressPercentage: number | null;
+  /** Only set for reason "book_read", and only when both `read.started_at`
+   * and `read.finished_at` are present (real data, not every "okudum" has
+   * a recorded start - see reading-status.ts's migration 0053) - customer's
+   * reference ask: "4 günde bitirdi" alongside the existing "kitabı okudu". */
+  readingDurationDays: number | null;
 }
 
 function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedItem["entityKind"]; entityId: number | null } {
@@ -181,6 +194,8 @@ function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedIt
       return { entityKind: null, entityId: null }; // resolved via the actor's own current-year goal, see goalUserIds below
     case "badge_earned":
       return { entityKind: null, entityId: Number(parts[2]) || null }; // parts[2] is the badge id, resolved via badgeIds below
+    case "reading_progress":
+      return { entityKind: "book", entityId: Number(parts[1]) || null };
     default:
       return { entityKind: null, entityId: null };
   }
@@ -261,8 +276,14 @@ export async function getSiteFeed(opts: {
   const commentIds = new Set<number>();
   const feedPostIds = new Set<number>();
   const goalUserIds = new Set<number>();
+  const bookReadActorIds = new Set<number>();
+  const bookReadBookIds = new Set<number>();
 
   for (const r of parsed) {
+    if (r.reason === "book_read" && r.entityId) {
+      bookReadActorIds.add(r.actorId);
+      bookReadBookIds.add(r.entityId);
+    }
     if (r.reason === "comment" && r.entityId) commentIds.add(r.entityId);
     else if (r.reason === "feed_post" && r.entityId) feedPostIds.add(r.entityId);
     else if (r.reason === "reading_goal_set" || r.reason === "reading_goal_achieved") goalUserIds.add(r.actorId);
@@ -350,6 +371,7 @@ export async function getSiteFeed(opts: {
     repliesByPost,
     actorDecorations,
     goalRows,
+    readDurationRows,
   ] = await Promise.all([
     bookIds.size
       ? db
@@ -376,9 +398,24 @@ export async function getSiteFeed(opts: {
           .from(readPurpose)
           .where(and(inArray(readPurpose.ownerId, [...goalUserIds]), eq(readPurpose.year, currentGoalYear)))
       : Promise.resolve([]),
+    // Customer's ask: "4 günde bitirdi" - an over-fetch by (bookId, userId)
+    // sets rather than exact pairs (drizzle has no simple tuple-IN helper),
+    // filtered to the real pairs client-side below. Bounded and cheap -
+    // both sets are only as large as this one page's book_read entries.
+    bookReadBookIds.size
+      ? db
+          .select({ userId: read.userId, bookId: read.bookId, startedAt: read.startedAt, finishedAt: read.finishedAt })
+          .from(read)
+          .where(and(inArray(read.bookId, [...bookReadBookIds]), inArray(read.userId, [...bookReadActorIds])))
+      : Promise.resolve([]),
   ]);
 
   const goalCountByUser = new Map(goalRows.map((g) => [g.ownerId, g.purposeCount]));
+  const readDurationByPair = new Map(
+    readDurationRows
+      .filter((r) => r.startedAt && r.finishedAt)
+      .map((r) => [`${r.userId}:${r.bookId}`, Math.max(0, Math.round((new Date(r.finishedAt!).getTime() - new Date(r.startedAt!).getTime()) / 86400000))]),
+  );
   const bookMap = new Map(bookRows.map((b) => [b.id, b]));
   const writerMap = new Map(writerRows.map((w) => [w.id, w]));
   const translatorMap = new Map(translatorRows.map((t) => [t.id, t]));
@@ -412,6 +449,8 @@ export async function getSiteFeed(opts: {
       quotedText: null as FeedItem["quotedText"],
       quotedAuthorUsername: null as FeedItem["quotedAuthorUsername"],
       badgeName: null as FeedItem["badgeName"],
+      progressPercentage: null as FeedItem["progressPercentage"],
+      readingDurationDays: null as FeedItem["readingDurationDays"],
     };
 
     if (r.reason === "badge_earned" && r.entityId) {
@@ -492,7 +531,7 @@ export async function getSiteFeed(opts: {
       return { ...base, entityKind: "user", isQuote, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${encodeURIComponent(u.username)}` : null, excerpt, quotedText, quotedAuthorUsername };
     }
 
-    if ((r.reason === "book_read" || r.reason === "library_add" || r.reason === "reading_status" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
+    if ((r.reason === "book_read" || r.reason === "library_add" || r.reason === "reading_status" || r.reason === "reading_progress" || (r.reason === "rating" && r.entityKind === "book") || (r.reason === "like" && r.entityKind === "book")) && r.entityId) {
       const b = bookMap.get(r.entityId);
       return {
         ...base,
@@ -503,6 +542,8 @@ export async function getSiteFeed(opts: {
         excerpt: null,
         bookCover: b ? { id: b.id, hasImage: Boolean(b.hasImage), score: b.score } : null,
         readStatus: r.reason === "reading_status" ? (r.reasonKey.split(":")[1] as FeedItem["readStatus"]) : null,
+        progressPercentage: r.reason === "reading_progress" ? Number(r.reasonKey.split(":")[2]) || null : null,
+        readingDurationDays: r.reason === "book_read" ? readDurationByPair.get(`${r.actorId}:${r.entityId}`) ?? null : null,
       };
     }
 

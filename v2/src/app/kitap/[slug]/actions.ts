@@ -5,6 +5,7 @@ import {
   setReadStatus,
   clearReadStatus,
   addReadingMinutes,
+  updateReadingProgress,
   type ReadStatus,
   type DropReason,
 } from "@/db/queries/reading-status";
@@ -69,6 +70,22 @@ export async function addReadingMinutesAction(
 
   try {
     await addReadingMinutes(Number(session.user.id), bookId, minutes);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+/** Customer's ask (2026-09-09, reference screenshot): "137. sayfaya geldi
+ * -> %42 tamamlandı" as a real feed event - see reading-status.ts's
+ * updateReadingProgress(). */
+export async function updateReadingProgressAction(bookId: number, currentPage: number): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    await updateReadingProgress(Number(session.user.id), bookId, currentPage);
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };
