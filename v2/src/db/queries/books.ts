@@ -431,21 +431,46 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
  * chunks rather than one unbounded query/insert. Idempotent by design
  * (called only when categoryNonTrBook has zero rows for this category)
  * - a failure partway through just means the next request tries again.
+ *
+ * Real regression found live right after deploying this (2026-09-10):
+ * unlike the "tr" bucket (globally bounded, so its equivalent scan in
+ * getCategoryTurkishCount() is safe to let throw uncaught), a "not-tr"
+ * category's book ids are NOT necessarily large in count to be slow -
+ * category 87 (15,598 rows total) still took 16.8s for what EXPLAIN
+ * confirms is the correct plan (category_id index scan, then a PK
+ * lookup per row) - this is a genuinely disk-bound "many random cold
+ * buffer-pool reads" cost (same 11GB-RAM-vs-92GB-dataset constraint
+ * documented elsewhere in this file), not a bad query plan, and no SQL
+ * change fixes it. The original version let this throw uncaught,
+ * crashing the ENTIRE page request (caught only by the page's own
+ * catch, showing a hard error) for any category unlucky enough to be
+ * cold - strictly WORSE than before this fix existed. Caught here
+ * instead, so a warm failure just means "no persisted rows yet, fall
+ * through to the old bounded live query" - the same safety margin the
+ * "tr" bucket gets implicitly from its small global population.
  */
 async function warmCategoryNonTrBook(categoryId: number): Promise<void> {
-  const rows = (await db.execute(sql`
-    SELECT /*+ MAX_EXECUTION_TIME(25000) */ b.id, b.view_count AS viewCount, b.score
-    FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
-    WHERE bc.category_id = ${categoryId} AND b.lang != 'tr'
-  `))[0] as unknown as { id: number; viewCount: number; score: number }[];
+  try {
+    // Shorter budget than the fallback query below gets - a warm attempt
+    // that's going to fail on a cold category should fail fast, leaving
+    // the fallback its own full budget, rather than burning most of the
+    // request's patience on a doomed opportunistic optimization.
+    const rows = (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(10000) */ b.id, b.view_count AS viewCount, b.score
+      FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
+      WHERE bc.category_id = ${categoryId} AND b.lang != 'tr'
+    `))[0] as unknown as { id: number; viewCount: number; score: number }[];
 
-  const CHUNK_SIZE = 5000;
-  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-    const chunk = rows.slice(i, i + CHUNK_SIZE);
-    await db
-      .insert(categoryNonTrBook)
-      .values(chunk.map((r) => ({ categoryId, bookId: r.id, viewCount: r.viewCount, score: r.score })))
-      .catch((err) => console.error("[category-non-tr-book] failed to persist chunk", err));
+    const CHUNK_SIZE = 5000;
+    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+      const chunk = rows.slice(i, i + CHUNK_SIZE);
+      await db
+        .insert(categoryNonTrBook)
+        .values(chunk.map((r) => ({ categoryId, bookId: r.id, viewCount: r.viewCount, score: r.score })))
+        .catch((err) => console.error("[category-non-tr-book] failed to persist chunk", err));
+    }
+  } catch (err) {
+    console.error("[category-non-tr-book] warm scan failed, falling back to live query this time", err);
   }
 }
 
