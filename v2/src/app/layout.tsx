@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PublicChrome } from "@/components/dklist/public-chrome";
+import { NavigationProgress } from "@/components/dklist/navigation-progress";
 import { SiteFooter } from "@/components/dklist/site-footer";
 import { MobileBottomNav } from "@/components/dklist/mobile-bottom-nav";
 import { FloatingChatWidget } from "@/components/dklist/floating-chat-widget";
@@ -81,6 +82,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col pb-14 md:pb-0">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
           {children}
           <Suspense fallback={null}>
             <PublicChrome>

@@ -9,10 +9,10 @@ export const metadata: Metadata = pageMetadata({
 });
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AuthVisualPanel, AuthMobileTeaser } from "@/components/dklist/auth-visual-panel";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { registerAction } from "./actions";
 
 const BOOKS: [
@@ -78,9 +78,9 @@ export default function RegisterPage({ searchParams }: PageProps<"/kayit-ol">) {
               <Suspense fallback={null}>
                 <RegisterError searchParams={searchParams} />
               </Suspense>
-              <Button type="submit" className="w-full">
+              <SubmitButton className="w-full" pendingText="Hesabın oluşturuluyor...">
                 Üye Ol
-              </Button>
+              </SubmitButton>
             </form>
             <p className="text-sm text-muted-foreground">
               Zaten üye misin?{" "}

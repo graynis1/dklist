@@ -5,7 +5,7 @@ import { NOINDEX_METADATA } from "@/lib/seo";
 export const metadata: Metadata = NOINDEX_METADATA;
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -78,9 +78,9 @@ async function NewBookClubContent({
             </Select>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-fit">
+          <SubmitButton className="w-fit" pendingText="Kuruluyor...">
             Kulübü Kur
-          </Button>
+          </SubmitButton>
         </form>
       </CardContent>
     </Card>

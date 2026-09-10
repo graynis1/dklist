@@ -6,7 +6,7 @@ export const metadata: Metadata = NOINDEX_METADATA;
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -165,9 +165,9 @@ async function EditProfileContent({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" className="w-fit">
+          <SubmitButton className="w-fit" pendingText="Kaydediliyor...">
             Kaydet
-          </Button>
+          </SubmitButton>
         </form>
       </CardContent>
     </Card>

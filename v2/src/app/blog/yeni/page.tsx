@@ -9,7 +9,7 @@ import { hasRole, USER_TYPES } from "@/lib/permission";
 import { createBlogAction, uploadBlogInlineImageAction } from "@/actions/blog";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel } from "@/components/dklist/star-rating";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RichTextEditor } from "@/components/dklist/rich-text-editor";
@@ -76,7 +76,7 @@ async function NewBlogContent({
               Kapak Resmi
               <input name="image" type="file" accept="image/*" required className="text-sm" />
             </label>
-            <Button type="submit">Yayınla</Button>
+            <SubmitButton pendingText="Yayınlanıyor...">Yayınla</SubmitButton>
           </form>
         </CardContent>
       </Card>

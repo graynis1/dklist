@@ -6,7 +6,7 @@ export const metadata: Metadata = NOINDEX_METADATA;
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
@@ -140,9 +140,9 @@ async function NewBookContent({
           />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-fit">
+          <SubmitButton className="w-fit" pendingText="Gönderiliyor...">
             Kitabı Gönder
-          </Button>
+          </SubmitButton>
         </form>
       </CardContent>
     </Card>

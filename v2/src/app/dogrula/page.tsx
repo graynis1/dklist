@@ -6,7 +6,7 @@ import { NOINDEX_METADATA } from "@/lib/seo";
 // değeri yok, hesap doğrulama linkleri arama sonuçlarında görünmemeli.
 export const metadata: Metadata = NOINDEX_METADATA;
 import { SiteHeader } from "@/components/dklist/site-header";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { verifyMailAction } from "./actions";
@@ -57,9 +57,9 @@ async function VerifyForm({
         )}
         <Input name="code" placeholder="Doğrulama kodu" required maxLength={5} className="uppercase" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full">
+        <SubmitButton className="w-full" pendingText="Doğrulanıyor...">
           Doğrula
-        </Button>
+        </SubmitButton>
       </form>
       {Number.isFinite(numericUserId) && <ResendVerificationButton userId={numericUserId} />}
     </div>

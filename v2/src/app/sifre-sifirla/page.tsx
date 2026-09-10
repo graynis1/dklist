@@ -6,6 +6,7 @@ export const metadata: Metadata = NOINDEX_METADATA;
 import Link from "next/link";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { confirmPasswordResetAction } from "./actions";
@@ -83,9 +84,9 @@ async function ResetForm({
       )}
       <Input name="code" placeholder="Sıfırlama kodu" required maxLength={5} className="uppercase" autoCapitalize="characters" autoCorrect="off" spellCheck={false} />
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full">
+      <SubmitButton className="w-full" pendingText="Sıfırlanıyor...">
         Şifreyi Sıfırla
-      </Button>
+      </SubmitButton>
       {Number.isFinite(Number(userId)) && !devCode && <ResendResetCodeButton userId={Number(userId)} />}
     </form>
   );

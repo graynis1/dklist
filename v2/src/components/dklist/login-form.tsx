@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { loginAction } from "@/app/giris/actions";
 
 /**
@@ -53,9 +53,9 @@ export function LoginForm() {
           autoFocus
         />
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" disabled={isPending} className="w-full">
+        <SubmitButton pending={isPending} className="w-full" pendingText="Doğrulanıyor...">
           Doğrula
-        </Button>
+        </SubmitButton>
       </form>
     );
   }
@@ -78,9 +78,9 @@ export function LoginForm() {
         required
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" disabled={isPending} className="w-full">
+      <SubmitButton pending={isPending} className="w-full" pendingText="Giriş yapılıyor...">
         Giriş Yap
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

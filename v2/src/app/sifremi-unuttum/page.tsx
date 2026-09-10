@@ -8,7 +8,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/sifremi-unuttum",
 });
 import { SiteHeader } from "@/components/dklist/site-header";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/dklist/submit-button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requestPasswordResetAction } from "./actions";
@@ -28,9 +28,9 @@ export default function ForgotPasswordPage({ searchParams }: PageProps<"/sifremi
               <Suspense fallback={null}>
                 <ForgotPasswordError searchParams={searchParams} />
               </Suspense>
-              <Button type="submit" className="w-full">
+              <SubmitButton className="w-full" pendingText="Gönderiliyor...">
                 Sıfırlama Kodu Gönder
-              </Button>
+              </SubmitButton>
             </form>
           </CardContent>
         </Card>
