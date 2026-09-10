@@ -3,7 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { sql, eq, desc, asc, and, or, like, isNull, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { db } from "@/db";
-import { category as categoryTable, book, read, bookCategory, categoryLangStats, categoryTrBook } from "@/db/schema";
+import { category as categoryTable, book, read, bookCategory, categoryLangStats, categoryTrBook, categoryNonTrBook } from "@/db/schema";
 import { translateCategoryName } from "@/lib/category-names";
 
 export interface CategoryBookListItem {
@@ -198,6 +198,41 @@ async function fetchCategoryPage(
     // before, but persists the result this time so it doesn't happen again.
   }
 
+  // Same disease, same fix, for "not-tr" - see warmCategoryNonTrBook's own
+  // doc comment for why this is a bulk category-scoped warm rather than a
+  // per-page persist like the fallback below.
+  if (lang === "not-tr") {
+    let [anyRow] = await db.select({ bookId: categoryNonTrBook.bookId }).from(categoryNonTrBook).where(eq(categoryNonTrBook.categoryId, categoryId)).limit(1);
+    if (!anyRow) {
+      await warmCategoryNonTrBook(categoryId);
+      [anyRow] = await db.select({ bookId: categoryNonTrBook.bookId }).from(categoryNonTrBook).where(eq(categoryNonTrBook.categoryId, categoryId)).limit(1);
+    }
+
+    // A genuine miss (this category truly has zero non-Turkish books) falls
+    // through to the live query below, same as the "tr" branch's own
+    // fallback - everything else (including a legitimately-empty page past
+    // the end) is served from the now-warm table.
+    if (anyRow) {
+      const persistedRows = await db
+        .select({ id: categoryNonTrBook.bookId, viewCount: categoryNonTrBook.viewCount, score: categoryNonTrBook.score })
+        .from(categoryNonTrBook)
+        .where(eq(categoryNonTrBook.categoryId, categoryId))
+        .orderBy(sortBy === "score" ? desc(categoryNonTrBook.score) : desc(categoryNonTrBook.viewCount))
+        .limit(limit)
+        .offset(offset);
+
+      const bookIds = persistedRows.map((r) => r.id);
+      const bookRows = bookIds.length
+        ? await db.select({ id: book.id, name: book.name, slug: book.slug, hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')` }).from(book).where(inArray(book.id, bookIds))
+        : [];
+      const byId = new Map(bookRows.map((b) => [b.id, b]));
+      return persistedRows.map((r) => {
+        const b = byId.get(r.id);
+        return { id: r.id, name: b?.name ?? "", slug: b?.slug ?? "", score: r.score, viewCount: r.viewCount, hasImage: Boolean(b?.hasImage) };
+      });
+    }
+  }
+
   const langScopedIndex = sortBy === "score" ? "idx_book_lang_score" : "idx_book_lang_viewcount";
   const indexToUse = lang === "tr" ? langScopedIndex : forceIndexName;
   const rows = (await db.execute(sql`
@@ -380,6 +415,38 @@ export async function getCategoryTurkishCount(categoryId: number): Promise<numbe
     .catch((err) => console.error("[category-lang-stats] failed to persist", err));
 
   return trCount;
+}
+
+/**
+ * Real bug found live (2026-09-10): category 947 (lang != 'tr', sorted by
+ * score) took 38+ seconds - the "not-tr" bucket has the exact same
+ * "sparse intersection at the wrong end of a huge sort order" disease as
+ * the "tr" bucket did, but only "tr" ever got the persisted-rows fix
+ * (migration 0052). Unlike "tr" (globally bounded to ~126K books site-
+ * wide, safe to bulk-fetch in one query), "not-tr" is the overwhelming
+ * majority of the whole ~98.5M-book catalog - a single huge category
+ * could have millions of matching rows, so this deliberately starts
+ * from `book_category` (bounded by THIS category's own size via its
+ * indexed category_id, not by language population) and inserts in
+ * chunks rather than one unbounded query/insert. Idempotent by design
+ * (called only when categoryNonTrBook has zero rows for this category)
+ * - a failure partway through just means the next request tries again.
+ */
+async function warmCategoryNonTrBook(categoryId: number): Promise<void> {
+  const rows = (await db.execute(sql`
+    SELECT /*+ MAX_EXECUTION_TIME(25000) */ b.id, b.view_count AS viewCount, b.score
+    FROM book_category bc STRAIGHT_JOIN book b ON b.id = bc.book_id
+    WHERE bc.category_id = ${categoryId} AND b.lang != 'tr'
+  `))[0] as unknown as { id: number; viewCount: number; score: number }[];
+
+  const CHUNK_SIZE = 5000;
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + CHUNK_SIZE);
+    await db
+      .insert(categoryNonTrBook)
+      .values(chunk.map((r) => ({ categoryId, bookId: r.id, viewCount: r.viewCount, score: r.score })))
+      .catch((err) => console.error("[category-non-tr-book] failed to persist chunk", err));
+  }
 }
 
 export interface CategorySummary {

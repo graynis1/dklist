@@ -1356,3 +1356,19 @@ export const categoryTrBook = mysqlTable("category_tr_book", {
 	index("idx_category_tr_book_viewcount").on(table.categoryId, table.viewCount),
 	index("idx_category_tr_book_score").on(table.categoryId, table.score),
 ]);
+
+// Same disease as category_tr_book, same fix, for the "not-tr" bucket
+// (every non-Turkish language) - see migration 0054's own comment. Never
+// bounded by the small global Turkish population, so warming this table
+// fetches+inserts in chunks rather than one unbounded query/insert.
+export const categoryNonTrBook = mysqlTable("category_non_tr_book", {
+	categoryId: int("category_id").notNull().references(() => category.id, { onDelete: "cascade" }),
+	bookId: int("book_id").notNull().references(() => book.id, { onDelete: "cascade" }),
+	viewCount: int("view_count").notNull(),
+	score: double().notNull(),
+},
+(table) => [
+	primaryKey({ columns: [table.categoryId, table.bookId], name: "category_non_tr_book_category_id_book_id" }),
+	index("idx_category_non_tr_book_viewcount").on(table.categoryId, table.viewCount),
+	index("idx_category_non_tr_book_score").on(table.categoryId, table.score),
+]);
