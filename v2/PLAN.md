@@ -1128,3 +1128,12 @@ Shipped in commit `b5d0072` (single deploy, not a storm):
 - The `@blockedbots` Caddy block (still pending from the slowdown pass).
 
 **Deliberately not chased**: `bf-cache` (main doc `Cache-Control: no-store` — Lighthouse itself marks the reason "Not actionable" for an auth-aware app), `/kapak/*` 404s in console (intentional — `<img onError>` is what swaps to the typeset jacket fallback, documented in the route), converting already-cached cover JPEGs to webp on the proxy (per-request `sharp` transform on the hottest path on a CPU-constrained box — bad trade right after the slowdown incident).
+
+### Round 2 (commit `2652836`) — after a clean prod Lighthouse of round 1
+
+Round-1 confirmed **A11y 96 → 100** (color-contrast fixed) but **Perf stayed ~70**: the popup `<img>` was *still* the LCP element (~6.7s). A fixed 2.5s delay isn't enough — LCP keeps updating until the page is fully loaded, and this homepage's main-thread work is ~6s. Also spotted in the network trace: individual homepage avatars at **273 KiB and 107 KiB** for ~48px circles.
+
+- **SitePopupModal**: now waits for the `load` event **+ 3s** (not a fixed timer from mount), and the image is a shorter `aspect-[20/9]` so its painted area is well below the hero heading's — it should no longer register as LCP at all.
+- **`/api/avatar/[filename]`**: `sharp`-resizes to 192px webp (largest on-site render is the `size-24` profile header @2x), cached immutable. The `avatarUrl()` helpers also inject `w_192,h_192,c_fill,f_auto,q_auto` into legacy Cloudinary passthrough URLs so those shrink too.
+- **`/api/site-popup-image/[filename]`**: `sharp`-resizes to 800px webp.
+- **browserslist reverted** — Next's zero-config default is already `chrome 111 / safari 16.4`, *more* modern than what round 1 set; the residual ~24 KiB `legacy-javascript` is a dependency shipping its own pre-transpiled core-js, not something our build target controls.
