@@ -396,53 +396,55 @@ async function getCategoryCandidatePool(
   const categorySize = await getCategoryBookCount(categoryId);
   const langCondition = lang ? sql`AND b.lang = ${lang}` : sql``;
 
-  // EMERGENCY CIRCUIT BREAKER (2026-09-06): same reasoning as books.ts's
-  // fetchCategoryPage - MAX_EXECUTION_TIME aborts a runaway plan with a
-  // catchable error instead of letting it hang (and drag every other
-  // query on this instance down with it) for however long it takes.
-  //
-  // Real fix (2026-09-09): this used to catch the timeout and fall back to
-  // an empty pool - except this whole function is `"use cache"`, so that
-  // empty "Benzer Kitaplar" result got cached as truth for hours (the
-  // exact bug just found and fixed in books.ts's getBooksByCategory/
-  // getCategoryTurkishCount - missed here on that pass). No longer caught
-  // here - the throw propagates out of this cached function so Next never
-  // commits a cache entry for a transient failure; getSimilarBooks below
-  // (uncached) catches it per-request instead.
-  const rows: unknown =
-    categorySize < LARGE_CATEGORY_POOL_THRESHOLD
-      ? (await db.execute(sql`
-            SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
-              (b.image IS NOT NULL AND b.image != '') AS hasImage
-            FROM book_category bc
-            INNER JOIN book b ON b.id = bc.book_id
-            WHERE bc.category_id = ${categoryId} ${langCondition}
-            ORDER BY b.score DESC
-            LIMIT ${poolSize}
-          `))[0]
-        : lang
-          ? (await db.execute(sql`
-            SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
-              (b.image IS NOT NULL AND b.image != '') AS hasImage
-            FROM book b FORCE INDEX (idx_book_lang_score)
-            WHERE b.lang = ${lang} AND EXISTS (
-              SELECT 1 FROM book_category bc
-              WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-            )
-            ORDER BY b.score DESC
-            LIMIT ${poolSize}
-          `))[0]
-          : (await db.execute(sql`
-            SELECT /*+ MAX_EXECUTION_TIME(8000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
-              (b.image IS NOT NULL AND b.image != '') AS hasImage
-            FROM book b FORCE INDEX (idx_book_score)
-            WHERE EXISTS (
-              SELECT 1 FROM book_category bc
-              WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
-            )
-            ORDER BY b.score DESC
-            LIMIT ${poolSize}
-          `))[0];
+  // Circuit breaker: 3s (was 8s). Real incident (2026-09-11): the
+  // persisted tables above only cover the few thousand categories that
+  // have had a category-PAGE view - book pages reference far more
+  // categories than that, so this live scan (cold `book` PK lookups per
+  // category row, disk-bound on the 11GB-RAM/92GB-dataset box) was still
+  // firing 7+ concurrent for 2-8s each and pinning MySQL. A "Benzer
+  // Kitaplar" sidebar is not worth a multi-second stall on the whole
+  // instance - fail fast at 3s, and (unlike the earlier version) DO
+  // catch and cache the empty result. Caching an empty *category page*
+  // was the 2026-09-09 bug; caching an empty *similar-books sidebar* is
+  // fine - worst case the section is hidden for this book for a day.
+  const runPoolQuery = async (): Promise<unknown> => {
+    if (categorySize < LARGE_CATEGORY_POOL_THRESHOLD) {
+      return (await db.execute(sql`
+        SELECT /*+ MAX_EXECUTION_TIME(3000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+          (b.image IS NOT NULL AND b.image != '') AS hasImage
+        FROM book_category bc INNER JOIN book b ON b.id = bc.book_id
+        WHERE bc.category_id = ${categoryId} ${langCondition}
+        ORDER BY b.score DESC LIMIT ${poolSize}
+      `))[0];
+    }
+    if (lang) {
+      return (await db.execute(sql`
+        SELECT /*+ MAX_EXECUTION_TIME(3000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+          (b.image IS NOT NULL AND b.image != '') AS hasImage
+        FROM book b FORCE INDEX (idx_book_lang_score)
+        WHERE b.lang = ${lang} AND EXISTS (
+          SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+        )
+        ORDER BY b.score DESC LIMIT ${poolSize}
+      `))[0];
+    }
+    return (await db.execute(sql`
+      SELECT /*+ MAX_EXECUTION_TIME(3000) */ STRAIGHT_JOIN b.id, b.name, b.slug, b.score,
+        (b.image IS NOT NULL AND b.image != '') AS hasImage
+      FROM book b FORCE INDEX (idx_book_score)
+      WHERE EXISTS (
+        SELECT 1 FROM book_category bc WHERE bc.book_id = b.id AND bc.category_id = ${categoryId}
+      )
+      ORDER BY b.score DESC LIMIT ${poolSize}
+    `))[0];
+  };
+
+  let rows: unknown;
+  try {
+    rows = await runPoolQuery();
+  } catch {
+    rows = [];
+  }
 
   return (rows as Omit<SimilarBook, "writers">[]).map((row) => ({ ...row, hasImage: Boolean(row.hasImage) }));
 }
