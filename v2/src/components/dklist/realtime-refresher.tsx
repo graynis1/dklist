@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -16,13 +16,25 @@ import { useRouter } from "next/navigation";
  */
 export function RealtimeRefresher() {
   const router = useRouter();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const source = new EventSource("/api/events");
     source.onmessage = () => {
-      router.refresh();
+      // Every server-side event type (notification, message, follow,
+      // badge, club activity...) lands here and each triggers a full
+      // router.refresh() (re-fetches every server component on the page).
+      // A burst of activity used to mean a burst of full refreshes -
+      // genuinely janky on a slower device (part of the "site donuyor"
+      // report, 2026-09-10). Coalesce them: one refresh ~1s after the
+      // last event in a burst.
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => router.refresh(), 1000);
     };
-    return () => source.close();
+    return () => {
+      source.close();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
