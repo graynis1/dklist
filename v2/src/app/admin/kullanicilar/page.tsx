@@ -134,7 +134,13 @@ async function AdminUsersContent({
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((u) => (
-            <UserAdminRow key={u.id} user={u} canMutate={canMutate} canDelete={canDelete} />
+            <UserAdminRow
+              key={u.id}
+              user={u}
+              isSuspended={Boolean(u.suspendedUntil && new Date(u.suspendedUntil) > new Date())}
+              canMutate={canMutate}
+              canDelete={canDelete}
+            />
           ))}
         </ul>
       )}

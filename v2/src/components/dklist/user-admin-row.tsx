@@ -28,10 +28,15 @@ const ASSIGNABLE_ROLES = Object.values(USER_TYPES).filter((t) => t !== USER_TYPE
 
 export function UserAdminRow({
   user,
+  isSuspended,
   canMutate = true,
   canDelete = false,
 }: {
   user: UserAdminListItem;
+  /** Computed on the server (page.tsx) and passed in - `new Date() > new
+   * Date()` at render time in a client component is a hydration-mismatch
+   * source (React #418), see relative-time.tsx for the full story. */
+  isSuspended: boolean;
   canMutate?: boolean;
   /** Same Admin-tier gate as canMutate now (fixed 2026-09-08 - was
    * SuperAdmin-only, unreachable by anyone in practice, see actions.ts).
@@ -83,7 +88,6 @@ export function UserAdminRow({
     });
   }
 
-  const isSuspended = Boolean(user.suspendedUntil && new Date(user.suspendedUntil) > new Date());
   const [showSuspendPanel, setShowSuspendPanel] = useState(false);
   const [suspendDays, setSuspendDays] = useState("7");
   const [suspendReason, setSuspendReason] = useState("");
