@@ -14,10 +14,14 @@
 #  - keyset-chunked INSERT (50k book ids per statement) so no single statement
 #    runs unbounded (MAX_EXECUTION_TIME does NOT bound INSERT...SELECT in MySQL).
 #  - resumable: skips any category that already has rows in the target table.
-#  - abort any time with Ctrl-C / kill; leftover rows are correct data, not partial
-#    garbage (each chunk is its own committed statement, INSERT IGNORE).
-#  - MEGA_SKIP: categories whose non-tr membership exceeds this many rows are
-#    left to the app's capped+cached live query (avoids table bloat + long run).
+#  - abort any time with Ctrl-C / kill between categories; a category that was
+#    only partially covered when killed mid-loop is cleaned up on the next run's
+#    resume check (it re-detects <expected coverage and re-does it). Fully
+#    covered categories are skipped.
+#  - MAX_CHUNKS: a category that would need more than MAX_CHUNKS*CHUNK rows is
+#    rolled back and left to the app's own capped+cached live query - the app
+#    reads ONLY from this table once any row exists, so partial coverage would
+#    truncate its category listing.
 #
 # Usage:  ./prewarm-categories.sh [sleep_seconds]
 
@@ -26,12 +30,15 @@ DB="dklist"
 MYSQL="mysql -u dklist_app -pDklistApp2026Pass! -N -B $DB"
 SLEEP="${1:-20}"
 CHUNK=50000
-MEGA_SKIP=800000
+MAX_CHUNKS=16          # 16 * 50k = 800k row ceiling per category
 LOG=/root/prewarm-categories.log
 
 log() { echo "$(date '+%F %T') $*" | tee -a "$LOG"; }
 
-log "=== prewarm start (sleep=${SLEEP}s chunk=${CHUNK} mega_skip=${MEGA_SKIP}) ==="
+STOP=0
+trap 'STOP=1; log "signal received - will exit after the current category finishes"' INT TERM
+
+log "=== prewarm start (sleep=${SLEEP}s chunk=${CHUNK} max_chunks=${MAX_CHUNKS}) ==="
 
 # Target list: every category with real traffic, biggest-first.
 mapfile -t CATS < <($MYSQL -e "SELECT category_id FROM category_lang_stats ORDER BY tr_count DESC;")
@@ -62,26 +69,14 @@ warm_nontr() {
   have=$($MYSQL -e "SELECT 1 FROM category_non_tr_book WHERE category_id=$cid LIMIT 1;")
   if [ -n "$have" ]; then return 0; fi
 
-  # size probe (bounded SELECT — this one CAN be time-capped, and warms the
-  # buffer pool pages the chunked inserts below will reuse)
-  local total
-  total=$($MYSQL -e "
-    SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(*)
-    FROM book_category bc STRAIGHT_JOIN book b ON b.id=bc.book_id
-    WHERE bc.category_id=$cid AND b.lang!='tr';" 2>>"$LOG")
-  if [ -z "$total" ]; then
-    log "  nontr cat=$cid SKIP (size probe timed out >30s)"
-    return 0
-  fi
-  if [ "$total" -gt "$MEGA_SKIP" ]; then
-    log "  nontr cat=$cid SKIP (mega: $total rows > $MEGA_SKIP)"
-    return 0
-  fi
-
-  # keyset-chunked copy; high-water mark comes from the target table's own PK
-  # (fast indexed MAX), not a re-scan of the source join.
-  local last=0 prev=-1
-  while : ; do
+  # No COUNT probe: an uncovered category's cold count scan itself routinely
+  # runs 45s+ (that IS the problem being fixed). Instead run keyset chunks
+  # directly - each statement is bounded to CHUNK source rows regardless of
+  # how cold the category is - and cap the number of chunks so a genuinely
+  # huge category can't bloat the table or run for hours (those few keep
+  # using the app's own capped+cached live query).
+  local last=0 prev=-1 chunks=0
+  while [ "$chunks" -lt "$MAX_CHUNKS" ]; do
     $MYSQL -e "
       INSERT IGNORE INTO category_non_tr_book (category_id, book_id, view_count, score)
       SELECT $cid, b.id, b.view_count, b.score
@@ -90,12 +85,22 @@ warm_nontr() {
       ORDER BY b.id LIMIT $CHUNK;" 2>>"$LOG"
     prev=$last
     last=$($MYSQL -e "SELECT COALESCE(MAX(book_id),0) FROM category_non_tr_book WHERE category_id=$cid;")
+    chunks=$((chunks+1))
     if [ "$last" = "$prev" ]; then break; fi
     sleep 3
   done
   local n
   n=$($MYSQL -e "SELECT COUNT(*) FROM category_non_tr_book WHERE category_id=$cid;")
-  log "  nontr cat=$cid rows=$n (probe said $total)"
+  if [ "$chunks" -ge "$MAX_CHUNKS" ] && [ "$last" != "$prev" ]; then
+    log "  nontr cat=$cid rows=$n (CAPPED at $MAX_CHUNKS chunks - left to live query)"
+    # A capped category is worse than an uncovered one: the app reads ONLY
+    # from this table when any row exists, so a partial set would truncate
+    # its listing. Roll it back so the app keeps using its own live query.
+    $MYSQL -e "DELETE FROM category_non_tr_book WHERE category_id=$cid;" 2>>"$LOG"
+    log "  nontr cat=$cid rolled back (partial coverage removed)"
+  else
+    log "  nontr cat=$cid rows=$n"
+  fi
 }
 
 i=0
@@ -104,6 +109,7 @@ for cid in "${CATS[@]}"; do
   log "[$i/${#CATS[@]}] category $cid"
   warm_tr "$cid"
   warm_nontr "$cid"
+  if [ "$STOP" = "1" ]; then log "=== stopped after category $cid ($i/${#CATS[@]}) ==="; exit 0; fi
   sleep "$SLEEP"
 done
 
