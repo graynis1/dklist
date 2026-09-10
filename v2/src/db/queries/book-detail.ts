@@ -4,7 +4,7 @@ import { and, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, read, user, score } from "@/db/schema";
 import { rankByContentSimilarity } from "@/db/queries/book-embedding";
-import { getCategoryBookCount } from "@/db/queries/books";
+import { getCategoryBookCount, getCategoryTopBooksByScore } from "@/db/queries/books";
 
 export interface BookDetail {
   id: number;
@@ -175,7 +175,7 @@ export interface WorkEditionGroups {
  */
 export async function getWorkEditions(workId: number, excludeBookId: number, currentLang: string): Promise<WorkEditionGroups> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(`work-editions:${workId}`);
 
   const rows = await db
@@ -271,7 +271,7 @@ export async function getBookCategoryRank(
   score: number,
 ): Promise<BookCategoryRank> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(`book-rank:${bookId}`);
 
   const [[higher], [total]] = await Promise.all([
@@ -375,8 +375,23 @@ async function getCategoryCandidatePool(
   lang?: string,
 ): Promise<Omit<SimilarBook, "writers">[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(`similar-books:${categoryId}`);
+
+  // Real incident (2026-09-11): even with `cacheLife("days")` this whole
+  // function is Next's in-memory cache, wiped on every redeploy - so a
+  // deploy re-cold-started this expensive category-scan for every book
+  // whose category hadn't been re-warmed yet, pinning MySQL. `category_tr_
+  // book` / `category_non_tr_book` are real DB tables holding exactly
+  // "(category_id, book_id, score) top-by-score", indexed on
+  // (category_id, score), populated by getBooksByCategory and surviving
+  // redeploys. Read from there first - a plain indexed lookup - and only
+  // fall through to the live scan (+ its cache) for a category those
+  // tables genuinely don't cover yet.
+  const persisted = await getCategoryTopBooksByScore(categoryId, poolSize, lang);
+  if (persisted.length >= Math.min(poolSize, 8)) {
+    return persisted;
+  }
 
   const categorySize = await getCategoryBookCount(categoryId);
   const langCondition = lang ? sql`AND b.lang = ${lang}` : sql``;
@@ -453,6 +468,17 @@ async function getCategoryCandidatePool(
  * fill the list) - always showing *something* over an empty section.
  */
 export async function getSimilarBooks(bookId: number, categoryId: number, limit = 6, lang?: string): Promise<SimilarBook[]> {
+  "use cache";
+  // Real incident (2026-09-11, "sistemde çok büyük yavaşlık"): this was
+  // uncached and ran on every book-page render (bots crawl the whole
+  // catalog), each call firing the expensive category candidate-pool scan
+  // + a writer lookup. "Similar books" for a given book is effectively
+  // static - the catalog doesn't churn - so a long cache life is safe,
+  // and the page now streams this section in its own Suspense boundary so
+  // a cold miss no longer blocks the whole page.
+  cacheLife("days");
+  cacheTag(`book-similar:${bookId}`);
+
   // Pull a wider candidate pool than needed so the content re-rank below
   // has real room to reorder, not just the same top-6-by-score every time,
   // plus a small margin since the current book (excluded below, not in SQL

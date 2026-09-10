@@ -326,6 +326,72 @@ export async function getCategoryBookCount(categoryId: number): Promise<number> 
   return Number(row?.n ?? 0);
 }
 
+export interface CategoryTopBook {
+  id: number;
+  name: string;
+  slug: string;
+  score: number;
+  hasImage: boolean;
+}
+
+/**
+ * DB-backed "top books in this category by score" - reads the persisted
+ * category_tr_book / category_non_tr_book tables (populated by
+ * getBooksByCategory, indexed on (category_id, score), unaffected by
+ * redeploys). Used by book-detail's "Benzer Kitaplar" candidate pool so
+ * that stops re-running an expensive live category scan on every book
+ * page after every deploy (2026-09-11 slowdown incident). Returns [] when
+ * neither table covers this category yet - the caller falls back to its
+ * own live query for that case.
+ */
+export async function getCategoryTopBooksByScore(
+  categoryId: number,
+  limit: number,
+  lang?: string,
+): Promise<CategoryTopBook[]> {
+  const tables =
+    lang === "tr"
+      ? [categoryTrBook]
+      : lang
+        ? [categoryNonTrBook]
+        : [categoryTrBook, categoryNonTrBook];
+
+  const scored: { bookId: number; score: number }[] = [];
+  for (const t of tables) {
+    const rows = await db
+      .select({ bookId: t.bookId, score: t.score })
+      .from(t)
+      .where(eq(t.categoryId, categoryId))
+      .orderBy(desc(t.score))
+      .limit(limit);
+    scored.push(...rows);
+  }
+  if (scored.length === 0) return [];
+
+  scored.sort((a, b) => b.score - a.score);
+  const topIds = scored.slice(0, limit).map((r) => r.bookId);
+  const scoreById = new Map(scored.map((r) => [r.bookId, r.score]));
+
+  const bookRows = await db
+    .select({
+      id: book.id,
+      name: book.name,
+      slug: book.slug,
+      hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
+    })
+    .from(book)
+    .where(inArray(book.id, topIds));
+  const byId = new Map(bookRows.map((b) => [b.id, b]));
+
+  return topIds
+    .map((id) => {
+      const b = byId.get(id);
+      if (!b) return null;
+      return { id, name: b.name, slug: b.slug, score: scoreById.get(id) ?? 0, hasImage: Boolean(b.hasImage) };
+    })
+    .filter((b): b is CategoryTopBook => b !== null);
+}
+
 /**
  * Real trap found via direct testing: counting Turkish books in a category
  * needs a join to `book` (book_category alone doesn't carry `lang`), and
