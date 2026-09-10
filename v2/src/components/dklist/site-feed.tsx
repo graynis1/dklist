@@ -91,10 +91,12 @@ function describe(item: FeedItem): { verb: string; target: string | null } {
       return { verb: "bir kitabı paylaştı:", target };
     case "library_add":
       return { verb: "kitaplığına ekledi", target };
-    case "rating":
-      if (item.entityKind === "book") return { verb: "kitabını puanladı", target };
-      if (item.entityKind === "writer") return { verb: "yazarını puanladı", target };
-      return { verb: "çevirmenini puanladı", target };
+    case "rating": {
+      const scoreSuffix = item.ratingValue != null ? ` (${item.ratingValue}/10)` : "";
+      if (item.entityKind === "book") return { verb: `kitabını puanladı${scoreSuffix}`, target };
+      if (item.entityKind === "writer") return { verb: `yazarını puanladı${scoreSuffix}`, target };
+      return { verb: `çevirmenini puanladı${scoreSuffix}`, target };
+    }
     case "like":
       if (item.entityKind === "book") return { verb: "kitabını beğendi", target };
       if (item.entityKind === "writer") return { verb: "yazarını beğendi", target };

@@ -17,6 +17,7 @@ import {
   publisher,
   badges,
   read,
+  score,
 } from "@/db/schema";
 import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
 import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
@@ -167,6 +168,12 @@ export interface FeedItem {
    * a recorded start - see reading-status.ts's migration 0053) - customer's
    * reference ask: "4 günde bitirdi" alongside the existing "kitabı okudu". */
   readingDurationDays: number | null;
+  /** Only set for reason "rating" - the actual score given, so the card
+   * can read "kitabını 8/10 puanladı" instead of a bare, numberless verb.
+   * Real customer ask (2026-09-10): "Gökhan 8 puan verdi gibi bir şey
+   * yapılması... güzel olurdu" - only the target's own aggregate score
+   * was visible before, never what THIS actor actually gave it. */
+  ratingValue: number | null;
 }
 
 function parseReasonKey(reason: string, reasonKey: string): { entityKind: FeedItem["entityKind"]; entityId: number | null } {
@@ -302,12 +309,14 @@ export async function getSiteFeed(opts: {
   const goalUserIds = new Set<number>();
   const bookReadActorIds = new Set<number>();
   const bookReadBookIds = new Set<number>();
+  const ratingActorIds = new Set<number>();
 
   for (const r of parsed) {
     if (r.reason === "book_read" && r.entityId) {
       bookReadActorIds.add(r.actorId);
       bookReadBookIds.add(r.entityId);
     }
+    if (r.reason === "rating") ratingActorIds.add(r.actorId);
     if (r.reason === "comment" && r.entityId) commentIds.add(r.entityId);
     else if (r.reason === "feed_post" && r.entityId) feedPostIds.add(r.entityId);
     else if (r.reason === "reading_goal_set" || r.reason === "reading_goal_achieved") goalUserIds.add(r.actorId);
@@ -396,6 +405,7 @@ export async function getSiteFeed(opts: {
     actorDecorations,
     goalRows,
     readDurationRows,
+    ratingRows,
   ] = await Promise.all([
     bookIds.size
       ? db
@@ -432,9 +442,25 @@ export async function getSiteFeed(opts: {
           .from(read)
           .where(and(inArray(read.bookId, [...bookReadBookIds]), inArray(read.userId, [...bookReadActorIds])))
       : Promise.resolve([]),
+    // Customer's ask: "Gökhan 8 puan verdi gibi" - over-fetch by actor +
+    // target-id sets (same pattern as readDurationRows above), matched to
+    // exact (ownerId, targetType, targetId) triples client-side below.
+    ratingActorIds.size && (bookIds.size || writerIds.size || translatorIds.size)
+      ? db
+          .select({ ownerId: score.ownerId, targetId: score.targetId, targetType: score.targetType, score: score.score })
+          .from(score)
+          .where(
+            and(
+              inArray(score.ownerId, [...ratingActorIds]),
+              inArray(score.targetType, ["book", "writer", "translator"]),
+              inArray(score.targetId, [...bookIds, ...writerIds, ...translatorIds]),
+            ),
+          )
+      : Promise.resolve([]),
   ]);
 
   const goalCountByUser = new Map(goalRows.map((g) => [g.ownerId, g.purposeCount]));
+  const ratingValueByKey = new Map(ratingRows.map((r) => [`${r.ownerId}:${r.targetType}:${r.targetId}`, r.score]));
   const readDurationByPair = new Map(
     readDurationRows
       .filter((r) => r.startedAt && r.finishedAt)
@@ -475,6 +501,10 @@ export async function getSiteFeed(opts: {
       badgeName: null as FeedItem["badgeName"],
       progressPercentage: null as FeedItem["progressPercentage"],
       readingDurationDays: null as FeedItem["readingDurationDays"],
+      ratingValue:
+        r.reason === "rating" && r.entityKind && r.entityId
+          ? ratingValueByKey.get(`${r.actorId}:${r.entityKind}:${r.entityId}`) ?? null
+          : (null as FeedItem["ratingValue"]),
     };
 
     if (r.reason === "badge_earned" && r.entityId) {
