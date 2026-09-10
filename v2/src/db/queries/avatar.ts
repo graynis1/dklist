@@ -44,7 +44,13 @@ export async function uploadAvatar(userId: number, file: File): Promise<string> 
 export function avatarUrl(image: string | null): string | null {
   if (!image) return null;
   // Legacy Cloudinary-URL values coexist with bare filenames in user.image -
-  // see the client-safe twin in lib/image-urls.ts.
-  if (/^https?:\/\//i.test(image)) return image;
+  // see the client-safe twin in lib/image-urls.ts, kept in sync by being
+  // this simple.
+  if (/^https?:\/\//i.test(image)) {
+    if (image.includes("res.cloudinary.com") && /\/upload\/v\d/.test(image)) {
+      return image.replace("/upload/", "/upload/w_192,h_192,c_fill,f_auto,q_auto/");
+    }
+    return image;
+  }
   return `/api/avatar/${image}`;
 }

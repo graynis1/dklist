@@ -34,7 +34,16 @@ export function avatarUrl(image: string | null | undefined): string | null {
   // proxy produces `/api/avatar/https://res.cloudinary.com/...` which 404s
   // and logs a console error. Same two-formats-in-one-column shape as
   // sitePopupImageUrl / blogImageUrl.
-  if (/^https?:\/\//i.test(image)) return image;
+  if (/^https?:\/\//i.test(image)) {
+    // Cloudinary serves these at native size (~100+ KiB for a ~48px avatar);
+    // inject a resize+format transform right after `/upload/` so it matches
+    // what the local /api/avatar proxy now does for uploaded avatars. Only
+    // touched when no transform is already present (…/upload/v123/…).
+    if (image.includes("res.cloudinary.com") && /\/upload\/v\d/.test(image)) {
+      return image.replace("/upload/", "/upload/w_192,h_192,c_fill,f_auto,q_auto/");
+    }
+    return image;
+  }
   return `/api/avatar/${image}`;
 }
 

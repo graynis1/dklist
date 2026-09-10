@@ -30,21 +30,34 @@ export function SitePopupModal() {
     if (typeof window === "undefined") return;
     if (window.sessionStorage.getItem(SESSION_KEY)) return;
 
-    // Deferred ~2.5s after mount: a once-per-session announcement has no
-    // reason to compete for the first paint, and it used to lose that race
-    // badly - its hero <img> (rendered only after hydration + a server-
-    // action round-trip) became the page's LCP element with a ~6s load
-    // delay in Lighthouse mobile. Letting real page content settle first
-    // keeps the popup off the LCP critical path entirely.
-    const timer = window.setTimeout(() => {
-      getSitePopupAction().then((result) => {
-        if (!result.active) return;
-        setPopup(result);
-        setOpen(true);
-        window.sessionStorage.setItem(SESSION_KEY, "1");
-      });
-    }, 2500);
-    return () => window.clearTimeout(timer);
+    // A once-per-session announcement must not compete for the landing
+    // page's LCP. It used to lose that race badly: its hero <img> (rendered
+    // only after hydration + a server-action round-trip) became the LCP
+    // element at ~6.7s. LCP keeps updating until the page is fully loaded,
+    // so a small fixed delay isn't enough on a heavy page - wait for the
+    // `load` event AND an extra 3s, well past when LCP finalizes. Combined
+    // with the shorter image aspect + server-side resize below, the popup
+    // is off the LCP critical path entirely.
+    let popupTimer: number;
+    const schedule = () => {
+      popupTimer = window.setTimeout(() => {
+        getSitePopupAction().then((result) => {
+          if (!result.active) return;
+          setPopup(result);
+          setOpen(true);
+          window.sessionStorage.setItem(SESSION_KEY, "1");
+        });
+      }, 3000);
+    };
+    if (document.readyState === "complete") {
+      schedule();
+    } else {
+      window.addEventListener("load", schedule, { once: true });
+    }
+    return () => {
+      window.clearTimeout(popupTimer);
+      window.removeEventListener("load", schedule);
+    };
   }, []);
 
   if (!popup) return null;
@@ -63,13 +76,17 @@ export function SitePopupModal() {
               <img
                 src={sitePopupImageUrl(popup.image)}
                 alt=""
-                className="aspect-[16/10] w-full object-cover"
+                width={640}
+                height={288}
+                loading="lazy"
+                decoding="async"
+                className="aspect-[20/9] w-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
               />
             ) : (
-              <div className="flex aspect-[16/10] w-full items-center justify-center bg-gradient-to-br from-primary/25 via-secondary to-primary/10">
+              <div className="flex aspect-[20/9] w-full items-center justify-center bg-gradient-to-br from-primary/25 via-secondary to-primary/10">
                 <MegaphoneIcon className="size-10 text-primary/70" />
               </div>
             )}
