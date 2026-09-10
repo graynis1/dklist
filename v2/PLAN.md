@@ -1060,3 +1060,26 @@ Ran the deeper audit flagged above. The customer's "clicks do nothing until I re
 - Swept every other `"use client"` component for `Date.now()`/`new Date()`/`Math.random()`/`typeof window`/`toLocale*`-without-locale at render time: the 5 canvas share-cards' `typeof navigator` checks are all gated behind a post-interaction `generated` state (absent from both server and initial-client render, so no mismatch), and everything else is inside event handlers or effects. Node in the prod container has full ICU (`process.versions.icu` 78.2), so `toLocaleString("tr-TR")` produces byte-identical output server- and client-side - ruled out as a mismatch source.
 
 Verified live after deploy: homepage throws **no** React errors and link clicks navigate correctly.
+
+## Systemic slowdown diagnosis + fix ("sistemde çok büyük yavaşlık, çöz kalıcı olarak", 2026-09-11)
+
+Live diagnosis on the VPS:
+- **MySQL (native, not containerized) pinned at 90-92% CPU** sustained (`ps aux`: 2270 minutes of CPU time since Sep 9), 4.6GB RSS against a 4GB buffer pool.
+- **Node/next-server at 100-125% CPU**, ~2GB RSS.
+- **Load average 5-6.5 on a 6-core box**, and **1.4GB in swap** (the box is memory-pressured, `vm.swappiness=60`).
+- `SHOW FULL PROCESSLIST`: **7+ concurrent copies of the same query** - the book-detail "Benzer Kitaplar" category candidate-pool scan (`book_category bc STRAIGHT_JOIN book b WHERE bc.category_id = ? ORDER BY b.score DESC LIMIT ~28`), each 2-6s.
+- Caddy access logs (last hour): ~1000 requests, **~40% from crawlers** - Applebot (226), Amzn-SearchBot (107), Claude-SearchBot (59), SemrushBot, PetalBot - all walking the catalog book-page by book-page, i.e. straight into the expensive uncached render. Caddy also logging `aborting with incomplete response` for book pages that ran 14+ seconds before the client gave up.
+
+Root cause: `getSimilarBooks` (on every book page) was **completely uncached**, and even the pieces that were cached (`getCategoryCandidatePool`, rank, editions) used Next's in-memory `"use cache"` which is wiped on every redeploy - so each deploy re-cold-started the expensive scan for every book whose category hadn't been re-warmed, and crawler traffic kept them all cold. `book_embedding` re-rank is cheap (pre-computed vectors, JS cosine) - not a factor.
+
+Fixes shipped (all application-side - see commit `0269871`):
+- `getSimilarBooks`: `"use cache"` + `cacheLife("days")` + `cacheTag`.
+- `getCategoryCandidatePool`: now reads the persisted `category_tr_book` / `category_non_tr_book` DB tables first (a plain `(category_id, score)` indexed lookup that survives redeploys - new `getCategoryTopBooksByScore()` helper), falling back to the live scan only for a category those tables don't yet cover.
+- `getBookCategoryRank` / `getWorkEditions` / the candidate pool: `cacheLife("hours")` → `"days"` (all tag-invalidated on edits anyway).
+- `robots.ts`: disallow ~15 zero-referral-traffic crawler families outright (Ahrefs, Semrush, DataForSEO, Amazon, Apple, GPTBot, ClaudeBot, PerplexityBot, Bytespider, ...), and keep even the allowed crawlers (Google/Bing/DDG/Yandex) off deep `?page=` pagination and `/ara` (expensive, uncacheable, no standalone SEO value).
+
+**Two fixes the site owner has to apply manually** (both blocked from this session as production-infra changes - not attempted):
+1. `sysctl -w vm.swappiness=10` (and persist in `/etc/sysctl.d/`) - the box is swapping application memory with swappiness at the default 60; 10 keeps MySQL/Node resident.
+2. A Caddy `User-Agent` matcher returning `403` for the crawlers that ignore `robots.txt` (Amzn-SearchBot and the SEO scrapers mostly do; Applebot/GPTBot/Semrush respect it). A ready-to-paste `@blockedbots` block was drafted - allow-list Googlebot/bingbot/DuckDuckGo/Yandex + the social preview fetchers, 403 everything else matching `bot|crawl|spider|...`.
+
+Also worth considering later: raising `innodb_buffer_pool_size` from 4GB toward ~5.5GB (with swappiness fixed and Node capped at `--max-old-space-size=2048`) to fit more of the working set, and a background job to pre-warm `category_tr_book`/`category_non_tr_book` for the top few thousand categories by book count so the candidate-pool lookup is DB-backed for them from the start rather than warmed lazily.
