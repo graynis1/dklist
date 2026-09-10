@@ -200,7 +200,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
           <span className="text-muted-foreground">{verb}</span>
           {target && !isPost && <span className="font-medium">{target}</span>}
         </div>
-        <span className="flex items-center gap-1 text-xs text-muted-foreground/70">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Icon className="size-3" />
           <RelativeTime iso={item.createdAt} />
         </span>
@@ -273,7 +273,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
               - reinforces the points/rating system visually every time a
               book shows up in the feed, not just on its own detail page. */}
           {item.bookCover && item.bookCover.score > 0 && (
-            <span className="flex items-center gap-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+            <span className="flex items-center gap-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
               <StarIcon className="size-3 fill-current" />
               {item.bookCover.score.toFixed(1)}
             </span>

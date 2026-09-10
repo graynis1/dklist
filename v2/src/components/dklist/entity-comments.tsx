@@ -560,7 +560,7 @@ export function EntityComments({
                       Goodreads-style, next to the name rather than only
                       visible after opening their profile. */}
                   {c.authorScore != null && (
-                    <span className="flex items-center gap-0.5 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                    <span className="flex items-center gap-0.5 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
                       <StarIcon className="size-3 fill-current" />
                       {c.authorScore}/10
                     </span>

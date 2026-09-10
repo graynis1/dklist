@@ -714,7 +714,7 @@ export default function Home() {
             &ldquo;Bir kitabı bitirmek, bir sonrakine başlamanın en güzel
             sebebidir.&rdquo;
           </p>
-          <p className="mt-4 text-sm tracking-wide opacity-80 uppercase">
+          <p className="mt-4 text-sm tracking-wide uppercase">
             DKList Reading Score — yıl sonu okuma raporun
           </p>
         </div>

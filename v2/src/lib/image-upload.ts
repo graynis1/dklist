@@ -52,7 +52,13 @@ export async function saveUploadedImage(subdir: string, file: File): Promise<str
   try {
     webp = await sharp(bytes, { failOn: "none" })
       .rotate() // apply EXIF orientation before stripping metadata
-      .webp({ quality: 85 })
+      // Nothing on the site displays an uploaded image wider than a full-bleed
+      // hero (~1600 CSS px on the largest layouts, and far less on mobile); a
+      // 4000px phone photo shipped at native size is pure wasted bytes on
+      // every view (Lighthouse "improve image delivery"). `fit: inside` +
+      // `withoutEnlargement` only ever shrinks, never upscales or crops.
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 82 })
       .toBuffer();
   } catch {
     throw new Error("Dosya geçerli bir resim değil.");

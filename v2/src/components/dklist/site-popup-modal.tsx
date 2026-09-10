@@ -30,12 +30,21 @@ export function SitePopupModal() {
     if (typeof window === "undefined") return;
     if (window.sessionStorage.getItem(SESSION_KEY)) return;
 
-    getSitePopupAction().then((result) => {
-      if (!result.active) return;
-      setPopup(result);
-      setOpen(true);
-      window.sessionStorage.setItem(SESSION_KEY, "1");
-    });
+    // Deferred ~2.5s after mount: a once-per-session announcement has no
+    // reason to compete for the first paint, and it used to lose that race
+    // badly - its hero <img> (rendered only after hydration + a server-
+    // action round-trip) became the page's LCP element with a ~6s load
+    // delay in Lighthouse mobile. Letting real page content settle first
+    // keeps the popup off the LCP critical path entirely.
+    const timer = window.setTimeout(() => {
+      getSitePopupAction().then((result) => {
+        if (!result.active) return;
+        setPopup(result);
+        setOpen(true);
+        window.sessionStorage.setItem(SESSION_KEY, "1");
+      });
+    }, 2500);
+    return () => window.clearTimeout(timer);
   }, []);
 
   if (!popup) return null;

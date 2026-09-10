@@ -28,7 +28,14 @@ export function advertisementImageUrl(filename: string): string {
  * being this simple.
  */
 export function avatarUrl(image: string | null | undefined): string | null {
-  return image ? `/api/avatar/${image}` : null;
+  if (!image) return null;
+  // Some legacy `user.image` values are full Cloudinary URLs (imported, never
+  // written by saveUploadedImage) - passing those through the /api/avatar/
+  // proxy produces `/api/avatar/https://res.cloudinary.com/...` which 404s
+  // and logs a console error. Same two-formats-in-one-column shape as
+  // sitePopupImageUrl / blogImageUrl.
+  if (/^https?:\/\//i.test(image)) return image;
+  return `/api/avatar/${image}`;
 }
 
 export function feedPostImageUrl(filename: string): string {

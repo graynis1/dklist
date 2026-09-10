@@ -80,6 +80,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Cloudflare's RUM beacon (injected on every page) opens a second
+            origin connection mid-load; preconnecting shaves ~85ms off LCP
+            per Lighthouse. */}
+        <link rel="preconnect" href="https://static.cloudflareinsights.com" />
+      </head>
       <body className="min-h-full flex flex-col pb-14 md:pb-0">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Suspense fallback={null}>

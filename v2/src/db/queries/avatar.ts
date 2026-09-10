@@ -42,5 +42,9 @@ export async function uploadAvatar(userId: number, file: File): Promise<string> 
 }
 
 export function avatarUrl(image: string | null): string | null {
-  return image ? `/api/avatar/${image}` : null;
+  if (!image) return null;
+  // Legacy Cloudinary-URL values coexist with bare filenames in user.image -
+  // see the client-safe twin in lib/image-urls.ts.
+  if (/^https?:\/\//i.test(image)) return image;
+  return `/api/avatar/${image}`;
 }
