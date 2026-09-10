@@ -10,7 +10,7 @@ import {
   searchBooksForAttachAction,
   searchStoreForAttachAction,
 } from "@/app/mesajlar/actions";
-import { formatRelativeTime } from "@/lib/utils";
+import { RelativeTime } from "@/components/dklist/relative-time";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import type { MessageItem } from "@/db/queries/messages";
 
@@ -315,9 +315,7 @@ export function MessageThread({
                     </div>
                   </div>
                   {m.createdAt && (
-                    <span className="px-1 text-[0.65rem] text-muted-foreground/70">
-                      {formatRelativeTime(m.createdAt)}
-                    </span>
+                    <RelativeTime iso={m.createdAt} className="px-1 text-[0.65rem] text-muted-foreground/70" />
                   )}
                 </li>
               );

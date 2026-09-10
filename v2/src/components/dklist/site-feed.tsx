@@ -32,7 +32,7 @@ import { FeedPostLikeButton } from "@/components/dklist/feed-post-like-button";
 import { FeedReplyThread } from "@/components/dklist/feed-reply-thread";
 import { ShareButton } from "@/components/dklist/share-button";
 import { Button } from "@/components/ui/button";
-import { formatRelativeTime } from "@/lib/utils";
+import { RelativeTime } from "@/components/dklist/relative-time";
 import { feedPostImageUrl } from "@/lib/image-urls";
 import { loadMoreFeedAction, deleteFeedPostAction, updateFeedPostAction } from "@/app/akis/actions";
 import type { FeedItem } from "@/db/queries/feed";
@@ -202,7 +202,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
         </div>
         <span className="flex items-center gap-1 text-xs text-muted-foreground/70">
           <Icon className="size-3" />
-          {formatRelativeTime(item.createdAt)}
+          <RelativeTime iso={item.createdAt} />
         </span>
       </div>
       {isOwnPost && !editing && (
