@@ -1137,3 +1137,17 @@ Round-1 confirmed **A11y 96 → 100** (color-contrast fixed) but **Perf stayed ~
 - **`/api/avatar/[filename]`**: `sharp`-resizes to 192px webp (largest on-site render is the `size-24` profile header @2x), cached immutable. The `avatarUrl()` helpers also inject `w_192,h_192,c_fill,f_auto,q_auto` into legacy Cloudinary passthrough URLs so those shrink too.
 - **`/api/site-popup-image/[filename]`**: `sharp`-resizes to 800px webp.
 - **browserslist reverted** — Next's zero-config default is already `chrome 111 / safari 16.4`, *more* modern than what round 1 set; the residual ~24 KiB `legacy-javascript` is a dependency shipping its own pre-transpiled core-js, not something our build target controls.
+
+**Round-2 result (clean prod Lighthouse):** desktop **Perf 95 → 99** (LCP 917ms, TBT 0, CLS 0); mobile **73 → 76** with **LCP 6.8s → 5.3s** and the popup image **no longer the LCP element** (`lcpLoadDelay` gone — LCP is now the hero heading). A11y **100** on both.
+
+### Round 3 (commit `0103698`) — `/kapak` 404 → transparent pixel
+
+The last thing keeping `errors-in-console` (and `best-practices` at 96) down: `/kapak/<id>` returned a real **404** for every book whose stored source URL is dead at the origin (~40-60% of the catalog — the coverage ceiling). Now returns a **1×1 transparent PNG at 200, `no-store`**; `PhotoBookCover` swaps to the typeset jacket when its `<img>` loads with `naturalWidth <= 2`. Same visual outcome, no console error.
+
+### Still on the maintainer (Cloudflare dashboard — no API token on this machine)
+
+1. **Caching → Purge Everything** (once). Round 1 set `Cache-Control: immutable` on the image proxies, so Cloudflare's edge is still serving the *old, full-size* avatar/popup bytes (e.g. the 273 KiB avatar) and won't revalidate them until its own edge TTL lapses. A one-time purge makes every round-1/2/3 change take effect immediately; without it they land gradually over ~a day.
+2. **Scrape Shield → Email Address Obfuscation: OFF** — removes the render-blocking `/cdn-cgi/scripts/.../email-decode.min.js` (~600-930ms in `render-blocking-insight`, the single biggest remaining mobile FCP/LCP cost). No exposed emails on the site need it.
+3. The `@blockedbots` Caddyfile block (still pending from the slowdown pass).
+
+**Remaining after those, not worth chasing now:** mobile `mainthread-work` ~5.5s (the homepage is a ~12,500px single document with many sections — a real "defer below-fold sections" refactor, not a config tweak), `unused-javascript` 22 KiB (one chunk 30% unused — code-split), `legacy-javascript` 24 KiB (a dependency's own bundle), `bf-cache` (`no-store` on an auth-aware document — Lighthouse marks it "Not actionable").
