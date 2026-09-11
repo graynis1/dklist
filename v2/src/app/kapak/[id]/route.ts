@@ -102,15 +102,20 @@ async function fetchIfPublicHost(url: string): Promise<Buffer | null> {
   }
 }
 
-// Must be a non-2xx response, not a "successful" flat placeholder image -
-// PhotoBookCover's <img onError> is what swaps to BookCover's real fallback
-// (the per-book toneForId-colored typeset jacket). A 200 here, even with a
-// generic "no cover" SVG body, is indistinguishable from a real photo to the
-// <img> tag, so onError never fires and every uncovered book (roughly 50%
-// of the real catalog, per PLAN.md's data-quality notes) rendered the exact
-// same flat placeholder instead of its own colored jacket - a real bug, not
-// a style choice, found from a live screenshot showing five identical
-// covers that should have been five different colors.
+// A 1x1 transparent PNG at 200, NOT a 404. PhotoBookCover swaps to the
+// typeset jacket when its <img> loads with `naturalWidth <= 2` (this pixel)
+// - equivalent to the old `onError` path but without a real 404, which
+// Lighthouse's "errors-in-console" audit flags for the ~40-60% of the
+// catalog whose stored source URL is dead (the coverage ceiling documented
+// in PLAN.md). The pixel is `no-store` so a book that later gets a real
+// cover isn't stuck showing the jacket.
+const TRANSPARENT_PIXEL = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
 function placeholder(): Response {
-  return new Response(null, { status: 404 });
+  return new Response(new Uint8Array(TRANSPARENT_PIXEL), {
+    status: 200,
+    headers: { "Content-Type": "image/png", "Cache-Control": "no-store" },
+  });
 }

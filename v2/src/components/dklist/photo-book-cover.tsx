@@ -35,6 +35,11 @@ export function PhotoBookCover({
         className="absolute inset-0 h-full w-full object-cover"
         loading="lazy"
         onError={() => setFailed(true)}
+        onLoad={(e) => {
+          // The /kapak proxy answers "no cover" with a 1x1 transparent pixel
+          // at 200 (not a 404 - that logs a console error). Treat it as a miss.
+          if (e.currentTarget.naturalWidth <= 2) setFailed(true);
+        }}
       />
     </div>
   );
