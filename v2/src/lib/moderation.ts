@@ -1,5 +1,6 @@
 import "server-only";
-import { getEmbedding, cosineSimilarity } from "@/lib/embeddings";
+import { getEmbedding } from "@/lib/embeddings";
+import { classifyByEmbeddingMargin } from "@/lib/moderation-classifier";
 
 /**
  * Local/self-hosted AI content moderation - maintainer's explicit ask:
@@ -80,9 +81,7 @@ export async function isLikelyAbusive(text: string): Promise<boolean> {
     const [vector, refs] = await Promise.all([getEmbedding(trimmed), getReferenceVectors()]);
     if (vector.length === 0) return false;
 
-    const abusiveScore = Math.max(...refs.abusive.map((v) => cosineSimilarity(vector, v)));
-    const neutralScore = Math.max(...refs.neutral.map((v) => cosineSimilarity(vector, v)));
-    return abusiveScore - neutralScore > BLOCK_MARGIN;
+    return classifyByEmbeddingMargin(vector, refs.abusive, refs.neutral, BLOCK_MARGIN).matched;
   } catch (err) {
     // Model load hiccup shouldn't take down comment posting - fail open,
     // the existing keyword-based findFlaggedWords() check still applies.
@@ -162,9 +161,7 @@ export async function isOffTopicFromBooks(text: string): Promise<boolean> {
     const [vector, refs] = await Promise.all([getEmbedding(trimmed), getBookTopicVectors()]);
     if (vector.length === 0) return false;
 
-    const onTopicScore = Math.max(...refs.onTopic.map((v) => cosineSimilarity(vector, v)));
-    const offTopicScore = Math.max(...refs.offTopic.map((v) => cosineSimilarity(vector, v)));
-    return offTopicScore - onTopicScore > OFF_TOPIC_MARGIN;
+    return classifyByEmbeddingMargin(vector, refs.offTopic, refs.onTopic, OFF_TOPIC_MARGIN).matched;
   } catch (err) {
     console.error("[moderation] Book-topic AI check failed, allowing through:", err);
     return false;
