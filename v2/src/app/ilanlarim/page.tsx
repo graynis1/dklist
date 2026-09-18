@@ -11,6 +11,7 @@ import { auth } from "@/auth";
 import { getMyStores, storeImageUrl, type MyStoreItem } from "@/db/queries/store";
 
 const STATUS_GROUPS: { status: string; label: string }[] = [
+  { status: "pending", label: "Onay Bekliyor" },
   { status: "active", label: "Yayında" },
   { status: "completed", label: "Verildi" },
   { status: "cancelled", label: "İptal Edildi" },

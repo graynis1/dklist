@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { ProfileLink } from "@/components/dklist/profile-link";
 
 const STATUS_LABELS: Record<string, string> = {
+  pending: "Onay Bekliyor",
   active: "Mevcut",
   completed: "Verildi",
   cancelled: "İptal Edildi",
