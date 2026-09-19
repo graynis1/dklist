@@ -37,5 +37,5 @@ export function languageName(code: string | null | undefined): string | null {
   if (!code) return null;
   const normalized = code.trim().toLowerCase();
   if (!normalized) return null;
-  return LANGUAGE_NAMES[normalized] ?? code.toUpperCase();
+  return LANGUAGE_NAMES[normalized] ?? normalized.toUpperCase();
 }
