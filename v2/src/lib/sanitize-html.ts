@@ -1,5 +1,5 @@
 import "server-only";
-import sanitizeHtml from "sanitize-html";
+import { sanitizeBlogHtmlCore } from "./sanitize-blog-html-core";
 
 /**
  * Blog authoring previously stored plain text only (a `<textarea>`), so
@@ -12,22 +12,11 @@ import sanitizeHtml from "sanitize-html";
  * account from storing a stored-XSS payload that runs for every reader.
  * Allow-list matches exactly the tags the renderer already has real CSS
  * for - nothing else survives.
+ *
+ * The actual sanitization logic lives in sanitize-blog-html-core.ts (no
+ * `server-only` import) so it can be unit-tested directly - see that
+ * file's own comment.
  */
 export function sanitizeBlogHtml(html: string): string {
-  return sanitizeHtml(html, {
-    allowedTags: ["p", "div", "h1", "h2", "h3", "strong", "em", "b", "i", "u", "ul", "ol", "li", "a", "img", "br", "span", "blockquote"],
-    allowedAttributes: {
-      a: ["href", "target", "rel"],
-      img: ["src", "alt"],
-    },
-    allowedSchemes: ["http", "https", "mailto"],
-    allowedSchemesByTag: { img: ["http", "https"] },
-    transformTags: {
-      a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer nofollow", target: "_blank" }),
-    },
-    // No `style` in allowedAttributes above - Word/Google Docs paste comes
-    // with a lot of inline style clutter, dropped rather than allow-listed
-    // (inline CSS is its own injection surface, e.g. background-image
-    // exfiltration) - a cosmetic loss, not a functional one.
-  });
+  return sanitizeBlogHtmlCore(html);
 }
