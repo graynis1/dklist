@@ -81,8 +81,13 @@ export async function createCheckout(
     throw new Error("Teslimat bilgilerini eksiksiz doldurmanız gerekiyor.");
   }
 
-  const amountKurus = Math.round(storeRow.price * 100);
-  const commissionKurus = Math.round(amountKurus * (marketplace.commissionRate / 100));
+  // Commission applies to the item price only, never to shipping - shipping
+  // is a pass-through cost, the seller keeps 100% of it (see migration
+  // 0056's doc comment).
+  const itemKurus = Math.round(storeRow.price * 100);
+  const shippingFeeKurus = Math.round((storeRow.shippingFee ?? 0) * 100);
+  const amountKurus = itemKurus + shippingFeeKurus;
+  const commissionKurus = Math.round(itemKurus * (marketplace.commissionRate / 100));
   const sellerPayoutKurus = amountKurus - commissionKurus;
 
   let stockReserved = false;
@@ -101,6 +106,7 @@ export async function createCheckout(
     buyerId,
     sellerId: storeRow.ownerId,
     amountKurus,
+    shippingFeeKurus,
     commissionKurus,
     sellerPayoutKurus,
     currency: "TRY",
@@ -214,12 +220,31 @@ export async function createMultiItemCheckout(
   const conversationId = `order-conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const now = nowSql();
 
-  // Computed once per row - both the storeOrder insert below and the
-  // iyzico basketItems payload must agree on the exact same split.
-  const amounts = storeRows.map((row) => {
-    const amountKurus = Math.round(row.price! * 100);
-    const commissionKurus = Math.round(amountKurus * (marketplace.commissionRate / 100));
-    return { amountKurus, commissionKurus, sellerPayoutKurus: amountKurus - commissionKurus };
+  // Items shipping together in one box are charged once, not once per item
+  // - the group pays whichever single listing's shipping fee is highest
+  // (a reasonable, honestly-computed stand-in for "the box that covers
+  // everything", not a weight/distance formula this app has no data for).
+  // Charged entirely on the one row that carries that max fee (found by
+  // scanning once and tracking the index directly, not a max-then-re-find
+  // by float equality, which floating-point TL->kurus rounding could in
+  // principle miss) so there's still exactly one iyzico basket item per
+  // storeOrder row - commission is never charged on shipping, only on each
+  // item's own price.
+  let shippingRowIndex = -1;
+  let groupShippingFeeKurus = 0;
+  storeRows.forEach((row, i) => {
+    const feeKurus = Math.round((row.shippingFee ?? 0) * 100);
+    if (feeKurus > groupShippingFeeKurus) {
+      groupShippingFeeKurus = feeKurus;
+      shippingRowIndex = i;
+    }
+  });
+  const amounts = storeRows.map((row, i) => {
+    const itemKurus = Math.round(row.price! * 100);
+    const rowShippingKurus = i === shippingRowIndex ? groupShippingFeeKurus : 0;
+    const amountKurus = itemKurus + rowShippingKurus;
+    const commissionKurus = Math.round(itemKurus * (marketplace.commissionRate / 100));
+    return { amountKurus, shippingFeeKurus: rowShippingKurus, commissionKurus, sellerPayoutKurus: amountKurus - commissionKurus };
   });
 
   // Stock reservation + order-row creation happen outside the try below
@@ -246,6 +271,7 @@ export async function createMultiItemCheckout(
       buyerId,
       sellerId,
       amountKurus: amounts[i].amountKurus,
+      shippingFeeKurus: amounts[i].shippingFeeKurus,
       commissionKurus: amounts[i].commissionKurus,
       sellerPayoutKurus: amounts[i].sellerPayoutKurus,
       currency: "TRY",
@@ -391,6 +417,7 @@ export interface StoreOrderView {
   id: number;
   status: StoreOrderStatus;
   amount: number;
+  shippingFee: number;
   commission: number;
   sellerPayout: number;
   currency: string;
@@ -411,6 +438,7 @@ async function serializeOrder(row: typeof storeOrder.$inferSelect): Promise<Stor
     id: row.id,
     status: row.status as StoreOrderStatus,
     amount: row.amountKurus / 100,
+    shippingFee: row.shippingFeeKurus / 100,
     commission: row.commissionKurus / 100,
     sellerPayout: row.sellerPayoutKurus / 100,
     currency: row.currency,

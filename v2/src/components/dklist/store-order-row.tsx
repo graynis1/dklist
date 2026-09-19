@@ -44,7 +44,7 @@ export function StoreOrderRow({ order, role }: { order: StoreOrderView; role: "b
         </span>
       </div>
       <p className="text-sm text-muted-foreground">
-        {order.amount} TL · {role === "buyer" ? `Satıcı: @${order.seller.username}` : `Alıcı: @${order.buyer.username}`}
+        {order.amount} TL{order.shippingFee > 0 ? ` (${order.shippingFee} TL kargo dahil)` : ""} · {role === "buyer" ? `Satıcı: @${order.seller.username}` : `Alıcı: @${order.buyer.username}`}
         {role === "seller" && ` · Payınız: ${order.sellerPayout} TL`}
       </p>
       {order.trackingNumber && <p className="text-xs text-muted-foreground">Takip No: {order.trackingNumber}</p>}

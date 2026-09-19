@@ -151,6 +151,11 @@ async function StoreDetailContent({
 
         <p className="text-lg font-medium">
           {item.listingType === "paid" && item.price ? `${item.price} TL` : "Ücretsiz"}
+          {item.listingType === "paid" && item.price && (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              {item.shippingFee ? `+ ${item.shippingFee} TL kargo` : "kargo dahil"}
+            </span>
+          )}
         </p>
 
         {item.book && (

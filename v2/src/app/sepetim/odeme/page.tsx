@@ -52,7 +52,7 @@ async function CartCheckoutContent({
       <CardHeader>
         <CardTitle className="font-heading text-2xl">Teslimat Bilgileri</CardTitle>
         <p className="text-sm text-muted-foreground">
-          @{group.sellerUsername} · {group.items.length} ürün · {group.subtotal.toFixed(2)} TL
+          @{group.sellerUsername} · {group.items.length} ürün · {group.total.toFixed(2)} TL
         </p>
         <ul className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
           {group.items.map((item) => (
@@ -60,6 +60,7 @@ async function CartCheckoutContent({
               {item.title} · {item.price} TL
             </li>
           ))}
+          {group.shippingTotal > 0 && <li>Kargo · {group.shippingTotal.toFixed(2)} TL</li>}
         </ul>
       </CardHeader>
       <CardContent>

@@ -58,7 +58,7 @@ async function CartContent() {
         <div key={group.sellerId} className="flex flex-col gap-3 rounded-lg border border-border p-5">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">@{group.sellerUsername}</span>
-            <span className="text-sm text-muted-foreground">{group.subtotal.toFixed(2)} TL</span>
+            <span className="text-sm text-muted-foreground">{group.itemsSubtotal.toFixed(2)} TL</span>
           </div>
           <ul className="flex flex-col gap-2">
             {group.items.map((item) => (
@@ -72,13 +72,19 @@ async function CartContent() {
                 <Link href={`/askida-kitap/${item.slug}`} className="flex-1 truncate text-sm underline hover:text-primary">
                   {item.title}
                 </Link>
-                <span className="text-sm text-muted-foreground">{item.price} TL</span>
+                <span className="text-sm text-muted-foreground">
+                  {item.price} TL{item.shippingFee ? ` + ${item.shippingFee} TL kargo` : ""}
+                </span>
                 <CartRemoveButton storeId={item.id} />
               </li>
             ))}
           </ul>
+          <p className="text-xs text-muted-foreground">
+            Aynı satıcıdan birden fazla ürün birlikte kargolanır, kargo ücreti tek sefer alınır
+            {group.shippingTotal > 0 && ` (${group.shippingTotal.toFixed(2)} TL)`}.
+          </p>
           <Button render={<Link href={`/sepetim/odeme?sellerId=${group.sellerId}`} />} nativeButton={false} className="w-fit">
-            Bu Satıcıdan Öde ({group.subtotal.toFixed(2)} TL)
+            Bu Satıcıdan Öde ({group.total.toFixed(2)} TL)
           </Button>
         </div>
       ))}

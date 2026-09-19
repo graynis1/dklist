@@ -46,6 +46,7 @@ export async function createStoreAction(formData: FormData): Promise<{ status: b
       listingType,
       price: listingType === "paid" ? Number(formData.get("price") ?? 0) : undefined,
       stock: listingType === "paid" ? Number(formData.get("stock") ?? 0) : undefined,
+      shippingFee: listingType === "paid" && formData.get("shippingFee") ? Number(formData.get("shippingFee")) : undefined,
     });
     return { status: true, slug };
   } catch (err) {

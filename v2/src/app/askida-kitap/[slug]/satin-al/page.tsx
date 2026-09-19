@@ -56,7 +56,7 @@ async function CheckoutContent({
       <CardHeader>
         <CardTitle className="font-heading text-2xl">Teslimat Bilgileri</CardTitle>
         <p className="text-sm text-muted-foreground">
-          {item.title} · {item.price} TL
+          {item.title} · {item.price} TL{item.shippingFee ? ` + ${item.shippingFee} TL kargo` : " (kargo dahil)"}
         </p>
       </CardHeader>
       <CardContent>

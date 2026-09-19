@@ -191,6 +191,7 @@ export interface StoreDetail {
   content: string;
   slug: string;
   price: number | null;
+  shippingFee: number | null;
   listingType: string;
   status: string;
   location: string | null;
@@ -216,6 +217,7 @@ export async function getStoreBySlug(slug: string): Promise<StoreDetail | null> 
       content: store.content,
       slug: store.slug,
       price: store.price,
+      shippingFee: store.shippingFee,
       listingType: store.listingType,
       status: store.status,
       location: store.location,
@@ -250,6 +252,7 @@ export async function getStoreBySlug(slug: string): Promise<StoreDetail | null> 
     content: row.content,
     slug: row.slug,
     price: row.price,
+    shippingFee: row.shippingFee,
     listingType: row.listingType,
     status: row.status,
     location: row.location,
@@ -334,6 +337,7 @@ export interface CartItem {
   title: string;
   slug: string;
   price: number;
+  shippingFee: number | null;
   stock: number | null;
   image: string | null;
 }
@@ -342,7 +346,12 @@ export interface CartSellerGroup {
   sellerId: number;
   sellerUsername: string;
   items: CartItem[];
-  subtotal: number;
+  itemsSubtotal: number;
+  /** Items from the same seller ship together in one box - charged once,
+   * not once per item. See createMultiItemCheckout()'s own doc comment for
+   * why this is the highest single item's fee rather than a sum. */
+  shippingTotal: number;
+  total: number;
 }
 
 /**
@@ -362,6 +371,7 @@ export async function getCartGroupedBySeller(userId: number): Promise<CartSeller
       title: store.title,
       slug: store.slug,
       price: store.price,
+      shippingFee: store.shippingFee,
       stock: store.stock,
       sellerId: store.ownerId,
       sellerUsername: user.username,
@@ -388,7 +398,7 @@ export async function getCartGroupedBySeller(userId: number): Promise<CartSeller
   for (const row of rows) {
     let group = groups.get(row.sellerId);
     if (!group) {
-      group = { sellerId: row.sellerId, sellerUsername: row.sellerUsername, items: [], subtotal: 0 };
+      group = { sellerId: row.sellerId, sellerUsername: row.sellerUsername, items: [], itemsSubtotal: 0, shippingTotal: 0, total: 0 };
       groups.set(row.sellerId, group);
     }
     group.items.push({
@@ -396,10 +406,16 @@ export async function getCartGroupedBySeller(userId: number): Promise<CartSeller
       title: row.title,
       slug: row.slug,
       price: row.price ?? 0,
+      shippingFee: row.shippingFee,
       stock: row.stock,
       image: firstImageByStore.get(row.storeId) ?? null,
     });
-    group.subtotal += row.price ?? 0;
+    group.itemsSubtotal += row.price ?? 0;
+  }
+
+  for (const group of groups.values()) {
+    group.shippingTotal = Math.max(0, ...group.items.map((i) => i.shippingFee ?? 0));
+    group.total = group.itemsSubtotal + group.shippingTotal;
   }
 
   return [...groups.values()];
@@ -420,6 +436,9 @@ export interface CreateStoreInput {
   listingType?: "free" | "paid";
   price?: number;
   stock?: number;
+  /** Optional flat fee (TL), paid listings only - null/undefined means
+   * "kargo dahil" (shipping included/free), not "unset". */
+  shippingFee?: number;
 }
 
 export async function createStore(ownerId: number, input: CreateStoreInput): Promise<string> {
@@ -470,6 +489,7 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
     bookId: input.bookId ?? null,
     stock: listingType === "paid" ? input.stock! : 1,
     price: listingType === "paid" ? input.price! : null,
+    shippingFee: listingType === "paid" && input.shippingFee && input.shippingFee > 0 ? input.shippingFee : null,
     listingType,
     status: "pending",
     isActive: 0,

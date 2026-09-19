@@ -540,6 +540,9 @@ export const store = mysqlTable("store", {
 	slug: varchar({ length: 255 }).notNull(),
 	shipment: varchar({ length: 30 }),
 	price: int(),
+	// Migration 0056 - seller-set flat shipping fee (TL, same convention as
+	// `price` - not kurus). Null/0 = "kargo dahil" (shipping included/free).
+	shippingFee: int("shipping_fee"),
 	location: varchar({ length: 255 }),
 	createdDate: datetime("created_date", { mode: 'string'}).notNull(),
 	lastNotificationDate: datetime("last_notification_date", { mode: 'string'}),
@@ -595,6 +598,13 @@ export const storeOrder = mysqlTable("store_order", {
 	buyerId: int("buyer_id").notNull().references(() => user.id),
 	sellerId: int("seller_id").notNull().references(() => user.id),
 	amountKurus: int("amount_kurus").notNull(),
+	// Migration 0056 - how much of amountKurus was shipping, snapshotted at
+	// checkout time (not a live lookup to store.shippingFee, which the
+	// seller could change afterward). 0 on every row but one when several
+	// items from the same seller ship together in one checkout - see
+	// createMultiItemCheckout()'s own doc comment for why only one row
+	// carries it.
+	shippingFeeKurus: int("shipping_fee_kurus").notNull(),
 	commissionKurus: int("commission_kurus").notNull(),
 	sellerPayoutKurus: int("seller_payout_kurus").notNull(),
 	currency: varchar({ length: 3 }).notNull(),

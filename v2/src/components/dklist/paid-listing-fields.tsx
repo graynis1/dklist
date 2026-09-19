@@ -43,6 +43,10 @@ export function PaidListingFields() {
             Stok Adedi
             <Input type="number" name="stock" min="1" step="1" defaultValue={1} required />
           </label>
+          <label className="col-span-2 flex flex-col gap-1 text-xs text-muted-foreground">
+            Kargo Ücreti (TL) - boş bırakırsanız &quot;kargo dahil&quot; gösterilir
+            <Input type="number" name="shippingFee" min="0" step="0.01" placeholder="Kargo dahil" />
+          </label>
           <p className="col-span-2 text-xs text-muted-foreground">
             Ücretli satış yapabilmek için önce{" "}
             <a href="/hesap/satici-odeme-bilgileri" className="underline">
