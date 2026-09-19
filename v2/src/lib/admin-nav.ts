@@ -26,6 +26,7 @@ export const ADMIN_CATEGORIES: AdminCategory[] = [
     label: "Bekleyen İşler",
     tools: [
       { href: "/admin/kitap-onaylari", label: "Kitap Onayları", description: "Yazar/Yayınevi üyelerinin gönderdiği kitapları onayla", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "pendingBookSubmissions" },
+      { href: "/admin/ilan-onaylari", label: "İlan Onayları", description: "Askıda Kitap'a eklenen ilanları onayla/reddet", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "pendingStoreListings" },
       { href: "/admin/bloglar", label: "Bloglar", description: "Blog yazısı onay/moderasyon ve revizyon kuyruğu", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "pendingBlogItems" },
       { href: "/admin/sikayetler", label: "Şikayetler", description: "Yorum ve profil şikayetlerini incele/çöz", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "unresolvedNotices" },
       { href: "/admin/reklam-talepleri", label: "Reklam Talepleri", description: "/reklam-ver üzerinden gelen işbirliği talepleri", roles: [USER_TYPES.Mod, USER_TYPES.Admin], countKey: "openAdInquiries" },

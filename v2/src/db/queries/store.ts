@@ -342,6 +342,15 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
 
   const now = new Date().toISOString().slice(0, 19).replace("T", " ");
 
+  // Customer report: a listing "fell into approval" and they had no idea
+  // where to approve it from - turned out this never actually existed
+  // (v1 didn't have it either, listings always went live as "active"
+  // immediately). The customer's own follow-up ("onaylanan yayınlansa
+  // diyecektim") makes clear they actually want the gate, not just to find
+  // a missing button - so it's built here for real: new listings start
+  // "pending"/isActive=0 (excluded from every public listing query, which
+  // already filters on isActive=1) until a Mod/Admin approves them at
+  // /admin/ilan-onaylari.
   const [result] = await db.insert(store).values({
     ownerId,
     title,
@@ -353,8 +362,8 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
     stock: listingType === "paid" ? input.stock! : 1,
     price: listingType === "paid" ? input.price! : null,
     listingType,
-    status: "active",
-    isActive: 1,
+    status: "pending",
+    isActive: 0,
     createdDate: now,
     viewCount: 0,
     slug: "pending",
@@ -371,7 +380,21 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
 
   await awardPoints(ownerId, (await getPointSettings()).storeListing, "store_listing", `store_listing:${storeId}`);
 
-  if (input.bookId) await notifyWishlistersOfNewListing(input.bookId, ownerId);
+  // Wishlisters are notified only once the listing is actually approved and
+  // live (see approveStoreListing) - notifying them about a still-pending,
+  // not-yet-public listing would send them to a slug that isn't browsable
+  // yet.
+
+  const senderId = await resolveSystemSenderId();
+  if (senderId) {
+    await addNotification(
+      ownerId,
+      senderId,
+      `"${title}" ilanın incelemeye alındı, onaylandığında yayınlanacak.`,
+      `Your listing "${title}" is under review and will go live once approved.`,
+      "marketplace",
+    );
+  }
 
   return slug;
 }
@@ -453,6 +476,100 @@ export async function deleteStore(userId: number, storeId: number): Promise<void
   // whenever the listing had a picture row. Delete pictures first.
   await db.delete(storePicture).where(eq(storePicture.advertId, storeId));
   await db.delete(store).where(eq(store.id, storeId));
+}
+
+export interface PendingStoreListing {
+  id: number;
+  title: string;
+  slug: string;
+  listingType: string;
+  price: number | null;
+  createdDate: string;
+  ownerUsername: string;
+  image: string | null;
+}
+
+/** Admin queue for the moderation gate `createStore()` now applies - mirrors
+ * `getPendingBookSubmissions()`'s shape (small, moderation-scale table, plain
+ * query is fine). */
+export async function getPendingStoreListings(): Promise<PendingStoreListing[]> {
+  const rows = await db
+    .select({
+      id: store.id,
+      title: store.title,
+      slug: store.slug,
+      listingType: store.listingType,
+      price: store.price,
+      createdDate: store.createdDate,
+      ownerUsername: user.username,
+    })
+    .from(store)
+    .innerJoin(user, eq(store.ownerId, user.id))
+    .where(eq(store.status, "pending"))
+    .orderBy(desc(store.id));
+
+  if (rows.length === 0) return [];
+
+  const storeIds = rows.map((r) => r.id);
+  const pictures = await db
+    .select({ advertId: storePicture.advertId, imageName: storePicture.imageName })
+    .from(storePicture)
+    .where(inArray(storePicture.advertId, storeIds));
+  const firstImageByStore = new Map<number, string>();
+  for (const p of pictures) {
+    if (!firstImageByStore.has(p.advertId)) firstImageByStore.set(p.advertId, p.imageName);
+  }
+
+  return rows.map((r) => ({ ...r, image: firstImageByStore.get(r.id) ?? null }));
+}
+
+/** Approve = go live (status "active", isActive 1 - the same shape every
+ * public listing/browse query already filters on). Wishlisters are notified
+ * here, not at creation time, since this is the first moment the listing is
+ * actually reachable. */
+export async function approveStoreListing(storeId: number): Promise<void> {
+  const [row] = await db.select({ ownerId: store.ownerId, title: store.title, bookId: store.bookId }).from(store).where(eq(store.id, storeId)).limit(1);
+  if (!row) throw new Error("Böyle bir ilan yok.");
+
+  await db.update(store).set({ status: "active", isActive: 1 }).where(eq(store.id, storeId));
+
+  const senderId = await resolveSystemSenderId();
+  if (senderId) {
+    await addNotification(
+      row.ownerId,
+      senderId,
+      `"${row.title}" ilanın onaylandı ve yayında.`,
+      `Your listing "${row.title}" was approved and is now live.`,
+      "marketplace",
+    );
+  }
+
+  if (row.bookId) await notifyWishlistersOfNewListing(row.bookId, row.ownerId);
+}
+
+/** Reject = delete outright, same call as rejectBookSubmission() makes for
+ * the identical reason - a pending listing was never public (isActive=0),
+ * so there's no live version to fall back to. Unlike the book-submission
+ * reject, this DOES notify the seller (a marketplace listing is something an
+ * ordinary member is actively waiting on, not a Yazar/Yayınevi partner's
+ * catalog contribution) - otherwise they'd never learn it isn't coming. */
+export async function rejectStoreListing(storeId: number): Promise<void> {
+  const [row] = await db.select({ ownerId: store.ownerId, title: store.title }).from(store).where(eq(store.id, storeId)).limit(1);
+  if (!row) throw new Error("Böyle bir ilan yok.");
+
+  await db.delete(storePicture).where(eq(storePicture.advertId, storeId));
+  await db.delete(store).where(eq(store.id, storeId));
+
+  const senderId = await resolveSystemSenderId();
+  if (senderId) {
+    await addNotification(
+      row.ownerId,
+      senderId,
+      `"${row.title}" ilanın onaylanmadı ve kaldırıldı.`,
+      `Your listing "${row.title}" was not approved and has been removed.`,
+      "marketplace",
+    );
+  }
 }
 
 const VALID_STATUSES = ["active", "completed", "cancelled"] as const;

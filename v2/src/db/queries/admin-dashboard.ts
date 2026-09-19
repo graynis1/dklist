@@ -1,7 +1,7 @@
 import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { book, blog, notice, adInquiry, supportTicket, identityVerification, writerApplication } from "@/db/schema";
+import { book, blog, notice, adInquiry, supportTicket, identityVerification, writerApplication, store } from "@/db/schema";
 
 export interface AdminDashboardCounts {
   pendingBookSubmissions: number;
@@ -11,6 +11,7 @@ export interface AdminDashboardCounts {
   openSupportTickets: number;
   pendingVerificationRequests: number;
   pendingWriterApplications: number;
+  pendingStoreListings: number;
 }
 
 /**
@@ -30,6 +31,7 @@ export async function getAdminDashboardCounts(): Promise<AdminDashboardCounts> {
     [tickets],
     [verifications],
     [writerApps],
+    [storeListings],
   ] = await Promise.all([
     db.select({ n: sql<number>`count(*)` }).from(book).where(eq(book.approve, 0)),
     db.select({ n: sql<number>`count(*)` }).from(blog).where(sql`${blog.approved} = 0 OR ${blog.hasPendingRevision} = 1`),
@@ -38,6 +40,7 @@ export async function getAdminDashboardCounts(): Promise<AdminDashboardCounts> {
     db.select({ n: sql<number>`count(*)` }).from(supportTicket).where(eq(supportTicket.status, "open")),
     db.select({ n: sql<number>`count(*)` }).from(identityVerification).where(eq(identityVerification.status, "pending")),
     db.select({ n: sql<number>`count(*)` }).from(writerApplication).where(eq(writerApplication.status, "pending")),
+    db.select({ n: sql<number>`count(*)` }).from(store).where(eq(store.status, "pending")),
   ]);
 
   return {
@@ -48,5 +51,6 @@ export async function getAdminDashboardCounts(): Promise<AdminDashboardCounts> {
     openSupportTickets: Number(tickets?.n ?? 0),
     pendingVerificationRequests: Number(verifications?.n ?? 0),
     pendingWriterApplications: Number(writerApps?.n ?? 0),
+    pendingStoreListings: Number(storeListings?.n ?? 0),
   };
 }
