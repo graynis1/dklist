@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { store, storeFavorite, storePicture, user, book, read } from "@/db/schema";
+import { store, storeFavorite, storeCartItem, storePicture, user, book, read } from "@/db/schema";
 import { saveUploadedImage } from "@/lib/image-upload";
 import { awardPoints, getPointSettings, resolveSystemSenderId } from "@/db/queries/points";
 import { addNotification } from "@/db/queries/notifications";
@@ -294,6 +294,115 @@ export async function toggleStoreFavorite(userId: number, storeId: number): Prom
     });
   }
   return { isFavorited: !already };
+}
+
+export async function isInCart(userId: number, storeId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ id: storeCartItem.id })
+    .from(storeCartItem)
+    .where(and(eq(storeCartItem.userId, userId), eq(storeCartItem.storeId, storeId)))
+    .limit(1);
+  return Boolean(row);
+}
+
+export async function getCartCount(userId: number): Promise<number> {
+  const rows = await db.select({ id: storeCartItem.id }).from(storeCartItem).where(eq(storeCartItem.userId, userId));
+  return rows.length;
+}
+
+/** Customer's ask: "sepete ekle... seçilenleri sepete ekleyip en son
+ * onaylamak gibi" - same toggle shape as toggleStoreFavorite(), but only
+ * ever offered on paid listings (a free listing has nothing to check out
+ * to) - that gate lives in the UI/action layer, not here, matching how
+ * toggleStoreFavorite() itself has no listing-type restriction either. */
+export async function toggleCartItem(userId: number, storeId: number): Promise<{ inCart: boolean }> {
+  const already = await isInCart(userId, storeId);
+  if (already) {
+    await db.delete(storeCartItem).where(and(eq(storeCartItem.userId, userId), eq(storeCartItem.storeId, storeId)));
+  } else {
+    await db.insert(storeCartItem).values({
+      userId,
+      storeId,
+      createdDate: new Date().toISOString().slice(0, 19).replace("T", " "),
+    });
+  }
+  return { inCart: !already };
+}
+
+export interface CartItem {
+  id: number;
+  title: string;
+  slug: string;
+  price: number;
+  stock: number | null;
+  image: string | null;
+}
+
+export interface CartSellerGroup {
+  sellerId: number;
+  sellerUsername: string;
+  items: CartItem[];
+  subtotal: number;
+}
+
+/**
+ * Grouped by seller for the /sepetim page - a single Iyzico checkout form
+ * can only pay one seller's subMerchantKey at a time (see
+ * createMultiItemCheckout()'s doc comment), so the cart UI checks out one
+ * seller group at a time rather than pretending a single "sepeti öde"
+ * button could ever span sellers. Inner-joins `store` (not a left join),
+ * so a cart row pointing at a since-deleted/no-longer-paid listing simply
+ * disappears here with no extra cleanup code needed.
+ */
+export async function getCartGroupedBySeller(userId: number): Promise<CartSellerGroup[]> {
+  const rows = await db
+    .select({
+      cartItemId: storeCartItem.id,
+      storeId: store.id,
+      title: store.title,
+      slug: store.slug,
+      price: store.price,
+      stock: store.stock,
+      sellerId: store.ownerId,
+      sellerUsername: user.username,
+    })
+    .from(storeCartItem)
+    .innerJoin(store, eq(storeCartItem.storeId, store.id))
+    .innerJoin(user, eq(store.ownerId, user.id))
+    .where(and(eq(storeCartItem.userId, userId), eq(store.listingType, "paid"), eq(store.status, "active"), eq(store.isActive, 1)))
+    .orderBy(desc(storeCartItem.id));
+
+  if (rows.length === 0) return [];
+
+  const storeIds = rows.map((r) => r.storeId);
+  const pictures = await db
+    .select({ advertId: storePicture.advertId, imageName: storePicture.imageName })
+    .from(storePicture)
+    .where(inArray(storePicture.advertId, storeIds));
+  const firstImageByStore = new Map<number, string>();
+  for (const p of pictures) {
+    if (!firstImageByStore.has(p.advertId)) firstImageByStore.set(p.advertId, p.imageName);
+  }
+
+  const groups = new Map<number, CartSellerGroup>();
+  for (const row of rows) {
+    let group = groups.get(row.sellerId);
+    if (!group) {
+      group = { sellerId: row.sellerId, sellerUsername: row.sellerUsername, items: [], subtotal: 0 };
+      groups.set(row.sellerId, group);
+    }
+    group.items.push({
+      id: row.storeId,
+      title: row.title,
+      slug: row.slug,
+      price: row.price ?? 0,
+      stock: row.stock,
+      image: firstImageByStore.get(row.storeId) ?? null,
+    });
+    group.subtotal += row.price ?? 0;
+  }
+
+  return [...groups.values()];
 }
 
 export interface CreateStoreInput {

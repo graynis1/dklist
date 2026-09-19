@@ -576,6 +576,19 @@ export const storeFavorite = mysqlTable("store_favorite", {
 	unique("uniq_store_favorite_user_store").on(table.userId, table.storeId),
 ]);
 
+export const storeCartItem = mysqlTable("store_cart_item", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id),
+	storeId: int("store_id").notNull().references(() => store.id, { onDelete: "cascade" } ),
+	createdDate: datetime("created_date", { mode: 'string'}).notNull(),
+},
+(table) => [
+	index("idx_store_cart_item_user").on(table.userId),
+	index("idx_store_cart_item_store").on(table.storeId),
+	primaryKey({ columns: [table.id], name: "store_cart_item_id"}),
+	unique("uniq_store_cart_item_user_store").on(table.userId, table.storeId),
+]);
+
 export const storeOrder = mysqlTable("store_order", {
 	id: int().autoincrement().notNull(),
 	storeId: int("store_id").notNull().references(() => store.id),

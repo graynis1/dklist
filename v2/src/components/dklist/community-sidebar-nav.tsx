@@ -12,12 +12,14 @@ import {
   GiftIcon,
   HeartIcon,
   ListIcon,
+  ShoppingCartIcon,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
 import { getUnreadNotificationCount } from "@/db/queries/notifications";
 import { getUnreadMessageCount } from "@/db/queries/messages";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
+import { getCartCount } from "@/db/queries/store";
 
 /**
  * Facebook's left-rail shortcut list, adapted to this site's own real
@@ -32,9 +34,9 @@ export async function CommunitySidebarNav() {
   const userId = session?.user?.id ? Number(session.user.id) : null;
   const username = session?.user?.name ?? null;
 
-  const [notifCount, msgCount] = userId
-    ? await Promise.all([getUnreadNotificationCount(userId), getUnreadMessageCount(userId)])
-    : [0, 0];
+  const [notifCount, msgCount, cartCount] = userId
+    ? await Promise.all([getUnreadNotificationCount(userId), getUnreadMessageCount(userId), getCartCount(userId)])
+    : [0, 0, 0];
   const decoration = userId ? decorationFor(await getUserDecorations([userId]), userId) : undefined;
 
   const links = [
@@ -46,6 +48,7 @@ export async function CommunitySidebarNav() {
           { href: "/mesajlar", label: "Mesajlar", icon: MessageCircleIcon, badge: msgCount },
           { href: "/favorilerim", label: "Favorilerim", icon: HeartIcon },
           { href: "/listelerim", label: "Listelerim", icon: ListIcon },
+          { href: "/sepetim", label: "Sepetim", icon: ShoppingCartIcon, badge: cartCount },
         ]
       : []),
     { href: "/kulupler", label: "Kulüpler", icon: UsersIcon },

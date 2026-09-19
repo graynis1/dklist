@@ -5,7 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { book, writer, writerBook } from "@/db/schema";
-import { createStore, toggleStoreFavorite, deleteStore, updateStoreStatus, markStoreCompletedWithBuyer } from "@/db/queries/store";
+import { createStore, toggleStoreFavorite, toggleCartItem, deleteStore, updateStoreStatus, markStoreCompletedWithBuyer } from "@/db/queries/store";
 import { getBookList } from "@/db/queries/books";
 import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
 
@@ -107,6 +107,17 @@ export async function toggleStoreFavoriteAction(
   }
   const result = await toggleStoreFavorite(Number(session.user.id), storeId);
   return { status: true, isFavorited: result.isFavorited };
+}
+
+export async function toggleCartItemAction(
+  storeId: number,
+): Promise<{ status: boolean; inCart?: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  const result = await toggleCartItem(Number(session.user.id), storeId);
+  return { status: true, inCart: result.inCart };
 }
 
 export async function deleteStoreAction(storeId: number): Promise<{ status: boolean; message?: string }> {

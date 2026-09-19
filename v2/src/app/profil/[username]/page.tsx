@@ -433,6 +433,8 @@ async function ProfileContent({
           {isOwnProfile && (
             <div className="flex flex-col divide-y divide-border border-t border-border text-sm">
               <SidebarLinkRow href="/ilanlarim" label="İlanlarım" />
+              <SidebarLinkRow href="/sepetim" label="Sepetim" />
+              <SidebarLinkRow href="/siparislerim" label="Siparişlerim" />
               <SidebarLinkRow href="/favorilerim" label="Favorilerim" />
               <SidebarLinkRow href="/ice-aktar" label="Goodreads'ten İçe Aktar" />
             </div>

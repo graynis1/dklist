@@ -6,6 +6,7 @@ import { pageMetadata, truncateDescription } from "@/lib/seo";
 import { SiteHeader } from "@/components/dklist/site-header";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { StoreFavoriteButton } from "@/components/dklist/store-favorite-button";
+import { StoreCartButton } from "@/components/dklist/store-cart-button";
 import { StoreOwnerActions } from "@/components/dklist/store-owner-actions";
 import { ShareAttachmentButton } from "@/components/dklist/share-attachment-button";
 import { ShareButton } from "@/components/dklist/share-button";
@@ -17,6 +18,7 @@ import {
   getStoreBySlug,
   isStoreFavorited,
   getStoreFavoriteCount,
+  isInCart,
   getStoreList,
   storeImageUrl,
 } from "@/db/queries/store";
@@ -84,13 +86,14 @@ async function StoreDetailContent({
   const userId = session?.user?.id ? Number(session.user.id) : null;
   const isOwner = userId === item.ownerId;
 
-  const [favorited, favoriteCount, otherListings, marketplace, myRatingOfSeller, pinned] = await Promise.all([
+  const [favorited, favoriteCount, otherListings, marketplace, myRatingOfSeller, pinned, inCart] = await Promise.all([
     userId ? isStoreFavorited(userId, item.id) : Promise.resolve(false),
     getStoreFavoriteCount(item.id),
     getStoreList({ ownerId: item.ownerId, excludeId: item.id, pageSize: 8 }),
     getMarketplaceStatus(),
     userId ? getUserSellerRating(userId, item.ownerId) : Promise.resolve(null),
     isStorePinned(item.id),
+    userId ? isInCart(userId, item.id) : Promise.resolve(false),
   ]);
 
   const sellerReviews = await getEntityComments(item.ownerId, "user");
@@ -166,9 +169,12 @@ async function StoreDetailContent({
         )}
 
         {canBuy && (
-          <Button render={<Link href={`/askida-kitap/${item.slug}/satin-al`} />} nativeButton={false} className="w-fit">
-            Satın Al
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button render={<Link href={`/askida-kitap/${item.slug}/satin-al`} />} nativeButton={false} className="w-fit">
+              Satın Al
+            </Button>
+            <StoreCartButton storeId={item.id} signedIn={Boolean(userId)} initialInCart={inCart} />
+          </div>
         )}
 
         {!isOwner && (

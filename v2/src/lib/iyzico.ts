@@ -107,13 +107,25 @@ export async function createSubMerchant(config: IyzicoConfig, input: SellerPayou
   return subMerchantKey;
 }
 
-export interface CreateCheckoutFormInput {
-  conversationId: string;
+export interface CheckoutBasketItem {
+  id: string;
+  storeTitle: string;
   priceTl: number;
   sellerPayoutTl: number;
-  basketId: string;
-  storeTitle: string;
   subMerchantKey: string;
+}
+
+export interface CreateCheckoutFormInput {
+  conversationId: string;
+  /** Total price across every item in `items` - iyzico requires this to
+   * equal the sum of the basket items' own prices exactly. */
+  priceTl: number;
+  basketId: string;
+  /** One item per listing being paid for in this single checkout. Every
+   * item must share the same subMerchantKey (one seller per Iyzico checkout
+   * form - see createMultiItemCheckout()'s own doc comment for why a
+   * cross-seller cart can't collapse into one payment). */
+  items: CheckoutBasketItem[];
   callbackUrl: string;
   buyerIp: string;
   buyerId: number;
@@ -133,16 +145,19 @@ export interface CheckoutFormInitializeResult {
 }
 
 /**
- * Ports v1's real IyzicoClient::createCheckoutForm() - one basket item per
- * order (this marketplace has no cart, every listing is bought on its own),
- * subMerchantPrice carries the seller's payout share, the remainder
- * (platform commission) is retained automatically by Iyzico on the main
- * merchant account.
+ * Ports v1's real IyzicoClient::createCheckoutForm() - originally one
+ * basket item per order. Generalized (2026-09-19, the cart feature) to
+ * accept several `items` in one checkout form/one payment - still only
+ * ever from a single seller (subMerchantKey), since iyzico's checkout form
+ * has exactly one subMerchantKey/subMerchantPrice split per basket item and
+ * this marketplace has no mechanism to split one payment across multiple
+ * sellers' bank accounts beyond that. `subMerchantPrice` carries each
+ * seller's payout share per item; the remainder (platform commission) is
+ * retained automatically by Iyzico on the main merchant account.
  */
 export async function createCheckoutForm(config: IyzicoConfig, input: CreateCheckoutFormInput): Promise<CheckoutFormInitializeResult> {
   const iyzipay = client(config);
   const priceStr = input.priceTl.toFixed(2);
-  const sellerPayoutStr = input.sellerPayoutTl.toFixed(2);
 
   const result = await call((cb) =>
     iyzipay.checkoutFormInitialize.create(
@@ -182,17 +197,15 @@ export async function createCheckoutForm(config: IyzicoConfig, input: CreateChec
           address: input.shippingAddress,
           zipCode: input.shippingZip || "00000",
         },
-        basketItems: [
-          {
-            id: input.basketId,
-            name: input.storeTitle.slice(0, 100),
-            category1: "Kitap",
-            itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
-            price: priceStr,
-            subMerchantKey: input.subMerchantKey,
-            subMerchantPrice: sellerPayoutStr,
-          },
-        ],
+        basketItems: input.items.map((item) => ({
+          id: item.id,
+          name: item.storeTitle.slice(0, 100),
+          category1: "Kitap",
+          itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
+          price: item.priceTl.toFixed(2),
+          subMerchantKey: item.subMerchantKey,
+          subMerchantPrice: item.sellerPayoutTl.toFixed(2),
+        })),
       },
       cb,
     ),

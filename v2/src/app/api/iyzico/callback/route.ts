@@ -24,7 +24,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return NextResponse.redirect(`${SITE_URL}/odeme-sonuc?status=error`);
   }
 
-  return NextResponse.redirect(`${SITE_URL}/odeme-sonuc?orderId=${result.orderId}&status=${result.status}`);
+  return NextResponse.redirect(`${SITE_URL}/odeme-sonuc?orderId=${result.orderIds[0]}&status=${result.status}`);
 }
 
 export async function GET(request: NextRequest): Promise<Response> {
