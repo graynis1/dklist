@@ -5,7 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { book, writer, writerBook } from "@/db/schema";
-import { createStore, toggleStoreFavorite, toggleCartItem, deleteStore, updateStoreStatus, markStoreCompletedWithBuyer } from "@/db/queries/store";
+import { createStore, toggleStoreFavorite, toggleCartItem, deleteStore, updateStoreStatus, updateStorePaidFields, markStoreCompletedWithBuyer } from "@/db/queries/store";
 import { getBookList } from "@/db/queries/books";
 import { getMarketplaceStatus } from "@/db/queries/marketplace-settings";
 
@@ -119,6 +119,22 @@ export async function toggleCartItemAction(
   }
   const result = await toggleCartItem(Number(session.user.id), storeId);
   return { status: true, inCart: result.inCart };
+}
+
+export async function updateStorePaidFieldsAction(
+  storeId: number,
+  fields: { price: number; stock: number; shippingFee: number | null },
+): Promise<{ status: boolean; message?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, message: "Giriş yapmalısınız." };
+  }
+  try {
+    await updateStorePaidFields(Number(session.user.id), storeId, fields);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
 }
 
 export async function deleteStoreAction(storeId: number): Promise<{ status: boolean; message?: string }> {

@@ -197,7 +197,16 @@ async function StoreDetailContent({
             ★ İlanı Öne Çıkar
           </Button>
         )}
-        {isOwner && <StoreOwnerActions storeId={item.id} status={item.status} />}
+        {isOwner && (
+          <StoreOwnerActions
+            storeId={item.id}
+            status={item.status}
+            listingType={item.listingType}
+            price={item.price}
+            stock={item.stock}
+            shippingFee={item.shippingFee}
+          />
+        )}
       </div>
     </div>
 

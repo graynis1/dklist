@@ -607,6 +607,41 @@ export async function deleteStore(userId: number, storeId: number): Promise<void
   await db.delete(store).where(eq(store.id, storeId));
 }
 
+/**
+ * There was previously no way to edit a *paid* listing's price/stock/
+ * shipping fee at all after posting - a seller who forgot to set a
+ * shipping fee (or made a pricing mistake) had to delete and re-post from
+ * scratch, losing the listing's history/favorites/views. Deliberately
+ * scoped to just these three commerce fields, not full content editing
+ * (title/description/images) - those go through checkModerationOrThrow()
+ * at creation and re-editing free text raises its own re-moderation
+ * question this pass doesn't need to answer. Existing `storeOrder` rows
+ * are untouched - each one already snapshotted its own amountKurus/
+ * shippingFeeKurus at checkout time (see store-order.ts), so changing the
+ * listing afterward never retroactively affects an order already placed.
+ */
+export async function updateStorePaidFields(
+  userId: number,
+  storeId: number,
+  fields: { price: number; stock: number; shippingFee: number | null },
+): Promise<void> {
+  const [row] = await db.select({ ownerId: store.ownerId, listingType: store.listingType }).from(store).where(eq(store.id, storeId)).limit(1);
+  if (!row) throw new Error("Böyle bir ilan yok.");
+  if (row.ownerId !== userId) throw new Error("Yetkisiz istek.");
+  if (row.listingType !== "paid") throw new Error("Bu düzenleme sadece ücretli ilanlar için geçerli.");
+  if (!fields.price || fields.price <= 0) throw new Error("Geçerli bir fiyat girmelisiniz.");
+  if (!fields.stock || fields.stock <= 0) throw new Error("Geçerli bir stok adedi girmelisiniz.");
+
+  await db
+    .update(store)
+    .set({
+      price: fields.price,
+      stock: fields.stock,
+      shippingFee: fields.shippingFee && fields.shippingFee > 0 ? fields.shippingFee : null,
+    })
+    .where(eq(store.id, storeId));
+}
+
 export interface PendingStoreListing {
   id: number;
   title: string;

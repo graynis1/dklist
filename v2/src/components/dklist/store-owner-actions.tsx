@@ -4,18 +4,41 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { deleteStoreAction, markStoreStatusAction, markStoreCompletedWithBuyerAction } from "@/app/askida-kitap/actions";
+import { deleteStoreAction, markStoreStatusAction, markStoreCompletedWithBuyerAction, updateStorePaidFieldsAction } from "@/app/askida-kitap/actions";
 
-export function StoreOwnerActions({ storeId, status }: { storeId: number; status: string }) {
+export function StoreOwnerActions({
+  storeId,
+  status,
+  listingType,
+  price,
+  stock,
+  shippingFee,
+}: {
+  storeId: number;
+  status: string;
+  listingType?: string;
+  price?: number | null;
+  stock?: number | null;
+  shippingFee?: number | null;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [markingSold, setMarkingSold] = useState(false);
   const [buyerUsername, setBuyerUsername] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editPrice, setEditPrice] = useState(price ? String(price) : "");
+  const [editStock, setEditStock] = useState(stock ? String(stock) : "");
+  const [editShippingFee, setEditShippingFee] = useState(shippingFee ? String(shippingFee) : "");
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
+        {listingType === "paid" && status === "active" && !editing && (
+          <Button variant="outline" size="sm" disabled={isPending} onClick={() => setEditing(true)}>
+            Fiyat/Stok/Kargo Düzenle
+          </Button>
+        )}
         {status === "active" && !markingSold && (
           <Button variant="outline" size="sm" disabled={isPending} onClick={() => setMarkingSold(true)}>
             Verildi Olarak İşaretle
@@ -62,6 +85,50 @@ export function StoreOwnerActions({ storeId, status }: { storeId: number; status
           İlanı Sil
         </Button>
       </div>
+
+      {editing && (
+        <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Fiyat (TL)
+            <Input type="number" min="1" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Stok Adedi
+            <Input type="number" min="1" step="1" value={editStock} onChange={(e) => setEditStock(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            Kargo Ücreti (TL) - boş bırakırsanız &quot;kargo dahil&quot;
+            <Input type="number" min="0" step="0.01" value={editShippingFee} onChange={(e) => setEditShippingFee(e.target.value)} placeholder="Kargo dahil" />
+          </label>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={isPending}
+              onClick={() =>
+                startTransition(async () => {
+                  setError(null);
+                  const result = await updateStorePaidFieldsAction(storeId, {
+                    price: Number(editPrice),
+                    stock: Number(editStock),
+                    shippingFee: editShippingFee ? Number(editShippingFee) : null,
+                  });
+                  if (result.status) {
+                    setEditing(false);
+                    router.refresh();
+                  } else {
+                    setError(result.message ?? "Güncellenemedi.");
+                  }
+                })
+              }
+            >
+              Kaydet
+            </Button>
+            <Button size="sm" variant="ghost" disabled={isPending} onClick={() => setEditing(false)}>
+              Vazgeç
+            </Button>
+          </div>
+        </div>
+      )}
 
       {markingSold && (
         <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
