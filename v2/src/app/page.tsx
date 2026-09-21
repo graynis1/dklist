@@ -8,6 +8,7 @@ import { HeroShelf } from "@/components/dklist/hero-shelf";
 import { BookCover, toneForId } from "@/components/dklist/book-cover";
 import { SectionLabel, StarRating } from "@/components/dklist/star-rating";
 import { getLatestBooks, getTopCategories, getTopBooks, getRecommendedBooks } from "@/db/queries/books";
+import { getWorkPooledScore } from "@/db/queries/book-detail";
 import { getTrendingBooks } from "@/db/queries/activity";
 import { getTopReaders, getFollowSuggestions } from "@/db/queries/profile";
 import { getWeeklyLeaderboard } from "@/db/queries/points";
@@ -100,7 +101,20 @@ async function FeaturedSection() {
     );
   }
 
+  // Real customer report (2026-09-21): the homepage showed each book's own
+  // edition-specific score, not the pooled "ortak kitap puanı" across every
+  // edition of the same work that the book detail page already shows
+  // (getWorkPooledScore()). Resolve the same pooled score here, falling back
+  // to the book's own score when it has no siblings/votes to pool.
+  const pooledScores = await Promise.all(
+    topBooks.map((b) => (b.workId ? getWorkPooledScore(b.workId) : Promise.resolve(null))),
+  );
+  const displayScoreById = new Map(
+    topBooks.map((b, i) => [b.id, pooledScores[i]?.avgScore ?? b.score] as const),
+  );
+
   const [featured, ...picks] = topBooks;
+  const featuredScore = displayScoreById.get(featured.id)!;
   const writerNames = featured.writers.join(", ") || "Yazar bilinmiyor";
 
   return (
@@ -128,8 +142,8 @@ async function FeaturedSection() {
           </Link>
           <p className="text-lg text-muted-foreground">{writerNames}</p>
           <div className="flex items-center gap-2 text-sm">
-            <StarRating value={featured.score} />
-            <span className="font-medium">{featured.score.toFixed(1)}/10</span>
+            <StarRating value={featuredScore} />
+            <span className="font-medium">{featuredScore.toFixed(1)}/10</span>
             <span className="text-muted-foreground">
               · {featured.viewCount.toLocaleString("tr-TR")} görüntülenme
             </span>
@@ -149,29 +163,32 @@ async function FeaturedSection() {
 
       {picks.length > 0 && (
         <div className="mt-14 grid grid-cols-2 gap-6 sm:grid-cols-4">
-          {picks.map((book) => (
-            <Link key={book.id} href={`/kitap/${book.slug}`} className="flex flex-col gap-3">
-              <BookCover
-                title={book.name}
-                author={book.writers.join(", ") || "Yazar bilinmiyor"}
-                tone={toneForId(book.id)}
-                bookId={book.id}
-                hasImage={book.hasImage}
-                size="md"
-                className="w-full"
-              />
-              <div className="flex flex-col gap-0.5">
-                <p className="truncate text-sm font-medium">{book.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {book.writers.join(", ") || "Yazar bilinmiyor"}
-                </p>
-                <div className="flex items-center gap-1 text-xs">
-                  <StarRating value={book.score} />
-                  <span className="text-muted-foreground">{book.score.toFixed(1)}/10</span>
+          {picks.map((book) => {
+            const displayScore = displayScoreById.get(book.id)!;
+            return (
+              <Link key={book.id} href={`/kitap/${book.slug}`} className="flex flex-col gap-3">
+                <BookCover
+                  title={book.name}
+                  author={book.writers.join(", ") || "Yazar bilinmiyor"}
+                  tone={toneForId(book.id)}
+                  bookId={book.id}
+                  hasImage={book.hasImage}
+                  size="md"
+                  className="w-full"
+                />
+                <div className="flex flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium">{book.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {book.writers.join(", ") || "Yazar bilinmiyor"}
+                  </p>
+                  <div className="flex items-center gap-1 text-xs">
+                    <StarRating value={displayScore} />
+                    <span className="text-muted-foreground">{displayScore.toFixed(1)}/10</span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </>

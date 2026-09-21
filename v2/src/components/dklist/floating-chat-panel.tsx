@@ -68,7 +68,20 @@ export function FloatingChatPanel({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          {/* Real customer report (2026-09-21): reading a thread here kept
+              getting yanked around. Root cause: this wrapper was a plain
+              block box with `overflow-y-auto` but no `flex`/`min-h-0` of its
+              own, so MessageThread's internal `flex min-h-0 flex-1` never
+              had a flex container to size against - MessageThread grew to
+              its full content height instead of being bounded, its own
+              message-list pane never became the actual scroll container,
+              and MessageThread's scroll-position tracking (which listens for
+              scroll on that pane) never fired. The 5s poll's
+              scrollIntoView() then kept "winning" against the user's own
+              scroll on whatever WAS scrolling (this outer div), snapping
+              back on every refresh. Matches the working /mesajlar page's
+              pane, which is a real `flex min-h-0 flex-col` container. */}
+          <div className="flex min-h-0 flex-1 flex-col">
             {active ? (
               isPending && activeMessages.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -85,7 +98,7 @@ export function FloatingChatPanel({
             ) : allItems.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">Henüz bir konuşman yok.</p>
             ) : (
-              <ul className="flex flex-col divide-y divide-border">
+              <ul className="flex flex-1 flex-col divide-y divide-border overflow-y-auto">
                 {allItems.map((c) => (
                   <li key={c.otherUserId}>
                     <button

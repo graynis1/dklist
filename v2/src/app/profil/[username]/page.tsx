@@ -232,6 +232,16 @@ async function ProfileContent({
   ]);
 
   const initials = profile.username.slice(0, 2).toUpperCase();
+  // Real customer report (2026-09-21): "@gokhan şeklinde çıkıyor... isim
+  // soyisim yazılsa daha güzel olurdu" - the profile card's own heading is
+  // the one place this is unambiguously the right fix (it's literally what
+  // was pointed at); comments/feed/messages elsewhere still show the bare
+  // @username and were deliberately left alone this pass rather than
+  // chasing every occurrence site-wide, matching the explicit allowance
+  // given for this ("bir çok şeyi karıştırırsa kalabilir"). Falls back to
+  // the bare @username when neither name nor surname is set (real accounts,
+  // especially older/imported ones, often have neither).
+  const fullName = [profile.name, profile.surname].filter((p) => p && p.trim()).join(" ").trim() || null;
   // Gizlilik ayarı (real behavior on the pre-existing user.privacy column) -
   // owner and existing followers always see everything; a private profile
   // hides activity/reading-status/library/badges from anyone else, same
@@ -309,17 +319,22 @@ async function ProfileContent({
                 avatar
               );
             })()}
-            <h1 className="flex items-center gap-1 font-heading text-2xl font-medium tracking-tight">
-              @{profile.username}
-              {profile.verified && (
-                <span
-                  title="Doğrulanmış resmi profil"
-                  className="inline-flex size-4 items-center justify-center rounded-full bg-blue-500 text-[0.6rem] text-white"
-                >
-                  ✓
-                </span>
+            <div className="flex flex-col items-center gap-0.5">
+              <h1 className="flex items-center gap-1 font-heading text-2xl font-medium tracking-tight">
+                {fullName ?? `@${profile.username}`}
+                {profile.verified && (
+                  <span
+                    title="Doğrulanmış resmi profil"
+                    className="inline-flex size-4 items-center justify-center rounded-full bg-blue-500 text-[0.6rem] text-white"
+                  >
+                    ✓
+                  </span>
+                )}
+              </h1>
+              {fullName && (
+                <p className="text-sm text-muted-foreground">@{profile.username}</p>
               )}
-            </h1>
+            </div>
 
             {(userBadges.length > 0 || veteranTier || isPremium) && (
               <div className="flex flex-wrap justify-center gap-1.5">

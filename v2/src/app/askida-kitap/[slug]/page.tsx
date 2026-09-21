@@ -45,13 +45,23 @@ export async function generateMetadata({ params }: PageProps<"/askida-kitap/[slu
 
   return pageMetadata({
     title: listing.title,
-    description: truncateDescription(listing.content || listing.title),
+    description: truncateDescription(
+      listing.listingType === "paid" && listing.price
+        ? `${listing.price} TL${listing.shippingFee ? ` (+${listing.shippingFee} TL kargo)` : " · kargo dahil"} — ${listing.content || listing.title}`
+        : listing.content || listing.title,
+    ),
     path: `/askida-kitap/${listing.slug}`,
     // Real customer report (2026-09-10): sharing a listing showed the
-    // generic site logo, not the listing itself. A real uploaded photo
-    // (common - unlike books, most listings have one) is used directly;
-    // /api/store-og-image only covers the no-photo case.
-    image: listing.pictures[0] ? storeImageUrl(listing.pictures[0])! : `/api/store-og-image/${listing.id}`,
+    // generic site logo, not the listing itself - fixed at the time by
+    // using the listing's raw uploaded photo directly as og:image.
+    // Follow-up real customer report (2026-09-21): that raw photo is
+    // whatever aspect ratio the seller's phone shot it in, so it showed up
+    // cropped/oversized in the Facebook/WhatsApp preview, AND (being just a
+    // bare photo) never carried the price at all. /api/store-og-image now
+    // always builds a correctly-sized 1200x630 card with the real photo
+    // embedded as a properly cropped panel plus the actual price text, so
+    // this route is used unconditionally, not just for the no-photo case.
+    image: `/api/store-og-image/${listing.id}`,
     // Tamamlanmış/iptal edilmiş ilanlar arama sonuçlarında kalmasın.
     noIndex: listing.status !== "active",
   });

@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthStatus } from "@/components/dklist/auth-status";
 import { NotificationBell } from "@/components/dklist/notification-bell";
 import { MessageBell } from "@/components/dklist/message-bell";
+import { CartBell } from "@/components/dklist/cart-bell";
 import { AdminNavLink } from "@/components/dklist/admin-nav-link";
 import { CommunityMenu } from "@/components/dklist/community-menu";
 import { MobileNavDrawer } from "@/components/dklist/mobile-nav-drawer";
@@ -80,6 +81,7 @@ export function SiteHeader() {
               same debounced, cover-thumbnail live search as the desktop
               dropdown, not just a link to the static form. */}
           <MobileSearchTrigger />
+          <CartBell />
           <MessageBell />
           <NotificationBell />
           <ThemeToggle />

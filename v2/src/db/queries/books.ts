@@ -749,12 +749,20 @@ export async function getRecommendedBooks(viewerId: number, limit = 8): Promise<
 
 export interface TopBookItem extends CategoryBookListItem {
   content: string | null;
+  workId: number | null;
 }
 
 /**
  * v1's GeneralController::getTopItems()/getTopBooks() (top-3 by view count,
  * feeds the homepage). The v2 homepage's "featured"/"picks" sections were
  * still rendering placeholder demoBooks data - this is the real equivalent.
+ *
+ * `workId` added (2026-09-21) per a real customer report: the homepage was
+ * showing each book's own edition-specific score/star rating, while the book
+ * detail page already shows the pooled "ortak kitap puanı" across all
+ * editions of the same work whenever one exists (getWorkPooledScore() in
+ * book-detail.ts). The homepage needs `workId` to resolve the same pooled
+ * score per book - see FeaturedSection in src/app/page.tsx.
  */
 export async function getTopBooks(limit = 5): Promise<TopBookItem[]> {
   "use cache";
@@ -769,6 +777,7 @@ export async function getTopBooks(limit = 5): Promise<TopBookItem[]> {
       score: book.score,
       viewCount: book.viewCount,
       content: book.content,
+      workId: book.workId,
       hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(book)
