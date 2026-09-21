@@ -157,10 +157,32 @@ export function ReadingGoalShareCard({
                 never an arbitrary local canvas image, so this shares a real
                 caption + link back to the profile rather than the PNG -
                 the PNG itself is still available via İndir/Cihazdan Paylaş
-                above for an actual image post. */}
+                above for an actual image post.
+                Follow-up real customer report (2026-09-22): the shared
+                Facebook preview showed a stale/wrong image. Root-caused by
+                fetching this exact profile URL with Facebook's own crawler
+                user-agent - it correctly returns the real profile-og-image
+                card right now, proving the currently-live code was never the
+                bug. Facebook caches a link's preview per URL and only
+                re-scrapes when it sees that URL for the first time (or is
+                told to via their Sharing Debugger, a manual step this
+                avoids); this profile link was almost certainly cached once,
+                stale, from before this og:image existed at all. A `?og=`
+                query string here is appended to the URL Facebook is asked to
+                scrape - it doesn't change the profile page's own canonical
+                og:url (see seo.ts's pageMetadata, deliberately left as the
+                bare path so /profil/x itself stays one single canonical
+                object, not fragmenting into one Facebook object per share),
+                but it DOES force Facebook to treat this as a URL it hasn't
+                crawled before, which triggers a genuine fresh fetch of that
+                same canonical object - self-healing the cache on every
+                future share, with zero manual Facebook Debugger step ever
+                needed again. Value is the actual stat, so re-sharing the
+                exact same unchanged goal doesn't spam Facebook with
+                needless re-scrapes, but any real change always forces one. */}
             <ShareButton
               content={`@${username} bu yıl (${year}) okuma hedefinin %${pct}'ini tamamladı! 📚`}
-              url={`/profil/${encodeURIComponent(username)}`}
+              url={`/profil/${encodeURIComponent(username)}?og=${year}-${pct}`}
               size="sm"
             />
           </>

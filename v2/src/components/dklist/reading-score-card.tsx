@@ -134,8 +134,13 @@ export function ReadingScoreCard({ username, stats }: { username: string; stats:
               </Button>
             )}
             {/* Same missing-social-share gap as the other canvas cards,
-                same fix. */}
-            <ShareButton content={`@${username} ${stats.year} yılında ${stats.booksRead} kitap okudu! 📚`} url={`/profil/${encodeURIComponent(username)}`} size="sm" />
+                same fix. `?og=` cache-buster explained in
+                reading-goal-share-card.tsx. */}
+            <ShareButton
+              content={`@${username} ${stats.year} yılında ${stats.booksRead} kitap okudu! 📚`}
+              url={`/profil/${encodeURIComponent(username)}?og=${stats.year}-${stats.booksRead}`}
+              size="sm"
+            />
           </>
         )}
       </div>

@@ -146,8 +146,13 @@ export function PointsShareCard({ username, stats }: { username: string; stats: 
                 Same reasoning as there: WhatsApp/Facebook/X can only ever
                 attach a URL (they scrape its OG tags), never this local
                 canvas PNG, so this shares a real caption + profile link -
-                the actual image stays available via İndir/Cihazdan Paylaş. */}
-            <ShareButton content={`@${username} DKList'te ${stats.totalPoints.toLocaleString("tr-TR")} puana ulaştı! 🏆`} url={`/profil/${encodeURIComponent(username)}`} size="sm" />
+                the actual image stays available via İndir/Cihazdan Paylaş.
+                `?og=` cache-buster explained in reading-goal-share-card.tsx. */}
+            <ShareButton
+              content={`@${username} DKList'te ${stats.totalPoints.toLocaleString("tr-TR")} puana ulaştı! 🏆`}
+              url={`/profil/${encodeURIComponent(username)}?og=${stats.totalPoints}`}
+              size="sm"
+            />
           </>
         )}
       </div>
