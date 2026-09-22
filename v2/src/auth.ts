@@ -1,10 +1,6 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import { and, eq, isNull, sql } from "drizzle-orm";
-import { db } from "@/db";
-import { user as userTable, twoFactorRecoveryCode } from "@/db/schema";
-import { isMailConfigured, sendTwoFactorCodeEmail } from "@/lib/mailer";
+import { verifyCredentials } from "@/lib/verify-credentials";
 
 /**
  * Thrown by authorize() when a password check succeeds but the account
@@ -41,10 +37,6 @@ export class AccountSuspendedError extends CredentialsSignin {
   }
 }
 
-function generateSixDigitCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Auth.js only auto-trusts the request Host header on Vercel (env-detected).
   // This app self-hosts on the VPS as a long-lived Node process (see the v2
@@ -70,104 +62,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const code = (credentials?.code as string | undefined)?.trim() || undefined;
         if (!username || !password) return null;
 
-        const [row] = await db
-          .select()
-          .from(userTable)
-          .where(eq(userTable.username, username))
-          .limit(1);
+        const result = await verifyCredentials(username, password, code);
 
-        // Same generic "kullanıcı adı veya şifre hatalı" outcome for both "no such
-        // user" and "wrong password" as v1's UserController::login - returning
-        // null either way here does that automatically (Auth.js surfaces a single
-        // generic CredentialsSignin error regardless of which branch failed).
-        if (!row) return null;
+        if (result.status === "invalid") return null;
+        if (result.status === "suspended") throw new AccountSuspendedError(result.until);
+        if (result.status === "two_factor_required") throw new TwoFactorRequiredError();
 
-        let passwordOk = await bcrypt.compare(password, row.password);
-
-        // v1 migrated off plaintext passwords in place: any account that hasn't
-        // logged in since that migration may still carry a plaintext password.
-        // Replicate the exact same fallback-and-upgrade so those real accounts
-        // keep working here too, instead of being silently locked out of v2.
-        // Verified against the real v1 login logic (UserController::login) and
-        // exercised end-to-end here on 2026-08-20 with a seeded legacy-password
-        // test account.
-        if (!passwordOk && password === row.password) {
-          passwordOk = true;
-          await db
-            .update(userTable)
-            .set({ password: await bcrypt.hash(password, 10) })
-            .where(eq(userTable.id, row.id));
-        }
-
-        if (!passwordOk) return null;
-        if (row.disable) return null;
-
-        // Compared in SQL-sourced string form directly - `suspendedUntil`
-        // is a plain "YYYY-MM-DD HH:MM:SS" MySQL DATETIME string (no
-        // timezone), and `new Date()` on that parses as local time in
-        // Node, same as `new Date()` "now" does - both sides consistent,
-        // avoiding the exact UTC-vs-local mismatch already documented
-        // above for the 2FA code-expiry comparison.
-        if (row.suspendedUntil && new Date(row.suspendedUntil) > new Date()) {
-          throw new AccountSuspendedError(row.suspendedUntil);
-        }
-
-        // 2FA gate - only reached once username+password already checked
-        // out. Fails open (skips the challenge) if mail isn't configured
-        // (e.g. a fresh clone with no .env.local) rather than locking the
-        // user out of an account they can't complete a mailed-code
-        // challenge for.
-        if (row.twoFactorEnabled && isMailConfigured()) {
-          if (!code) {
-            const otp = generateSixDigitCode();
-            // Computed and compared entirely in SQL (NOW() + INTERVAL /
-            // NOW() on the read side below) rather than round-tripped
-            // through JS Date parsing - a real bug caught via testing:
-            // MySQL DATETIME has no timezone, but new Date() on a space-
-            // separated "YYYY-MM-DD HH:MM:SS" string (no "T"/"Z") parses
-            // as LOCAL time while toISOString() produces UTC, silently
-            // shifting the comparison by the server's UTC offset and
-            // making a freshly-generated code appear already expired.
-            await db.update(userTable).set({ twoFactorCode: otp, twoFactorCodeExpires: sql`NOW() + INTERVAL 10 MINUTE` }).where(eq(userTable.id, row.id));
-            await sendTwoFactorCodeEmail(row.mail, row.username, otp);
-            throw new TwoFactorRequiredError();
-          }
-
-          const [validRow] = await db
-            .select({ id: userTable.id })
-            .from(userTable)
-            .where(sql`${userTable.id} = ${row.id} AND ${userTable.twoFactorCode} = ${code} AND ${userTable.twoFactorCodeExpires} > NOW()`);
-
-          if (validRow) {
-            // Consume the code so it can never be replayed.
-            await db.update(userTable).set({ twoFactorCode: null, twoFactorCodeExpires: null }).where(eq(userTable.id, row.id));
-          } else {
-            // Not a valid mailed OTP - fall back to a recovery/backup code
-            // (see migration 0023): covers the case where email delivery
-            // is down or slow at the exact moment of login. Each unused
-            // code is bcrypt-hashed, so this has to check them one at a
-            // time rather than a single SQL equality match.
-            const unusedCodes = await db
-              .select({ id: twoFactorRecoveryCode.id, codeHash: twoFactorRecoveryCode.codeHash })
-              .from(twoFactorRecoveryCode)
-              .where(and(eq(twoFactorRecoveryCode.userId, row.id), isNull(twoFactorRecoveryCode.usedAt)));
-
-            let matchedId: number | null = null;
-            for (const rc of unusedCodes) {
-              if (await bcrypt.compare(code, rc.codeHash)) {
-                matchedId = rc.id;
-                break;
-              }
-            }
-            if (!matchedId) return null;
-
-            await db
-              .update(twoFactorRecoveryCode)
-              .set({ usedAt: sql`NOW()` })
-              .where(eq(twoFactorRecoveryCode.id, matchedId));
-          }
-        }
-
+        const { user: row } = result;
         return {
           id: String(row.id),
           name: row.username,
@@ -176,7 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Custom fields threaded through the jwt/session callbacks below -
           // not part of Auth.js's default User shape.
           userType: row.userType,
-          mailAuth: Boolean(row.mailAuth),
+          mailAuth: row.mailAuth,
         };
       },
     }),
