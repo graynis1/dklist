@@ -16,6 +16,7 @@ const COMMUNITY_LINKS = [
   { href: "/listeler", label: "Listeler" },
   { href: "/ayin-kitabi", label: "Ayın Kitabı" },
   { href: "/bloglar", label: "Bloglar" },
+  { href: "/videolar", label: "Videolar" },
   { href: "/yazarhane", label: "Yazarhane" },
   { href: "/rozetler", label: "Rozetler" },
   { href: "/puan-tablosu", label: "Puan Tablosu" },

@@ -13,6 +13,7 @@ import {
   HeartIcon,
   ListIcon,
   ShoppingCartIcon,
+  PlayCircleIcon,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { EntityAvatar } from "@/components/dklist/entity-avatar";
@@ -54,6 +55,7 @@ export async function CommunitySidebarNav() {
     { href: "/kulupler", label: "Kulüpler", icon: UsersIcon },
     { href: "/yazarhane", label: "Yazarhane", icon: PenLineIcon },
     { href: "/bloglar", label: "Bloglar", icon: NewspaperIcon },
+    { href: "/videolar", label: "Videolar", icon: PlayCircleIcon },
     { href: "/puan-tablosu", label: "Puan Tablosu", icon: TrophyIcon },
     { href: "/ayin-kitabi", label: "Ayın Kitabı", icon: CalendarIcon },
     { href: "/askida-kitap", label: "Askıda Kitap", icon: GiftIcon },

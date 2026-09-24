@@ -1059,14 +1059,24 @@ export const adminActionLog = mysqlTable("admin_action_log", {
 	index("idx_admin_action_log_created").on(table.createdAt),
 ]);
 
+// Extended by migration 0057 for the new "Videolar" section - see that
+// migration file's own comment for why (`slug`/`youtubeVideoId`/
+// `createdDate`/`viewCount` added, `embededCode` loosened to nullable;
+// `embededCode`/`view` themselves are v1's original, kept as-is for the 6
+// pre-existing rows/back-compat, not written by the new admin flow).
 export const youtube = mysqlTable("youtube", {
 	id: int().autoincrement().notNull(),
 	title: varchar({ length: 255 }).notNull(),
-	embededCode: longtext("embeded_code").notNull(),
+	slug: varchar({ length: 255 }).notNull(),
+	embededCode: longtext("embeded_code"),
+	youtubeVideoId: varchar("youtube_video_id", { length: 20 }),
+	createdDate: date("created_date", { mode: "string" }).notNull(),
+	viewCount: bigint("view_count", { mode: "number" }).notNull(),
 	view: smallint(),
 },
 (table) => [
 	primaryKey({ columns: [table.id], name: "youtube_id"}),
+	unique("idx_youtube_slug").on(table.slug),
 ]);
 
 // Phase 8 (Monetization) - customer-requested, not a v1 port. See

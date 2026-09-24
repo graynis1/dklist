@@ -25,6 +25,7 @@ const SECTIONS: { title: string; links: { href: string; label: string }[] }[] = 
       { href: "/listeler", label: "Listeler" },
       { href: "/ayin-kitabi", label: "Ayın Kitabı" },
       { href: "/bloglar", label: "Bloglar" },
+      { href: "/videolar", label: "Videolar" },
       { href: "/yazarhane", label: "Yazarhane" },
     ],
   },
