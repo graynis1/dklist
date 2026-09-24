@@ -1,5 +1,6 @@
 import "server-only";
-import { updateTag, cacheLife, cacheTag } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { read, readPurpose, book } from "@/db/schema";
@@ -74,9 +75,9 @@ export async function setReadStatus(input: SetReadStatusInput): Promise<void> {
   // very next request in testing - confirmed as a real bug, not a hypothetical
   // ("1 kişi bıraktı" didn't appear until well after the write). updateTag
   // expires it immediately.
-  updateTag(`book-drop-stats:${bookId}`);
-  updateTag(`profile-books:${userId}`);
-  updateTag(`book-readers:${bookId}`);
+  invalidateTag(`book-drop-stats:${bookId}`);
+  invalidateTag(`profile-books:${userId}`);
+  invalidateTag(`book-readers:${bookId}`);
 
   const settings = await getPointSettings();
 
@@ -131,8 +132,8 @@ export async function addReadingMinutes(userId: number, bookId: number, minutes:
     .values({ userId, bookId, status: "currentRead", year, minutesRead: minutes })
     .onDuplicateKeyUpdate({ set: { minutesRead: sql`${read.minutesRead} + ${minutes}` } });
 
-  updateTag(`profile-books:${userId}`);
-  updateTag(`reading-minutes:${userId}`);
+  invalidateTag(`profile-books:${userId}`);
+  invalidateTag(`reading-minutes:${userId}`);
 }
 
 /** Lifetime (or single-year) total, for the profile page and the DKList
@@ -176,7 +177,7 @@ export async function updateReadingProgress(userId: number, bookId: number, curr
   }
 
   await db.update(read).set({ currentPage }).where(and(eq(read.userId, userId), eq(read.bookId, bookId)));
-  updateTag(`profile-books:${userId}`);
+  invalidateTag(`profile-books:${userId}`);
 
   if (!totalPages) return; // no page count on this book - percentage isn't computable, progress is still saved above
   const percentage = Math.floor((currentPage / totalPages) * 100);
@@ -190,9 +191,9 @@ export async function updateReadingProgress(userId: number, bookId: number, curr
 
 export async function clearReadStatus(userId: number, bookId: number): Promise<void> {
   await db.delete(read).where(and(eq(read.userId, userId), eq(read.bookId, bookId)));
-  updateTag(`book-drop-stats:${bookId}`);
-  updateTag(`profile-books:${userId}`);
-  updateTag(`book-readers:${bookId}`);
+  invalidateTag(`book-drop-stats:${bookId}`);
+  invalidateTag(`profile-books:${userId}`);
+  invalidateTag(`book-readers:${bookId}`);
 }
 
 /**

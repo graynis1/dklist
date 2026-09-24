@@ -1,5 +1,5 @@
 import "server-only";
-import { updateTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { dknotifiaction, notificationPreference, user } from "@/db/schema";
@@ -80,8 +80,8 @@ export async function addNotification(
     type,
   });
 
-  updateTag(`notifications:${ownerUserId}`);
-  updateTag(`unread-notifications:${ownerUserId}`);
+  invalidateTag(`notifications:${ownerUserId}`);
+  invalidateTag(`unread-notifications:${ownerUserId}`);
   publishUserEvent(ownerUserId, "notification");
 }
 
@@ -125,14 +125,14 @@ export async function markAllNotificationsRead(userId: number): Promise<void> {
     .update(dknotifiaction)
     .set({ view: 1 })
     .where(and(eq(dknotifiaction.ownerUserId, userId), eq(dknotifiaction.view, 0)));
-  updateTag(`unread-notifications:${userId}`);
+  invalidateTag(`unread-notifications:${userId}`);
 }
 
 export async function deleteNotification(userId: number, notificationId: number): Promise<void> {
   await db
     .delete(dknotifiaction)
     .where(and(eq(dknotifiaction.id, notificationId), eq(dknotifiaction.ownerUserId, userId)));
-  updateTag(`unread-notifications:${userId}`);
+  invalidateTag(`unread-notifications:${userId}`);
 }
 
 /** v1 parity gap found via customer report: v1's notification/message
@@ -140,5 +140,5 @@ export async function deleteNotification(userId: number, notificationId: number)
  * per-item delete. */
 export async function deleteAllNotifications(userId: number): Promise<void> {
   await db.delete(dknotifiaction).where(eq(dknotifiaction.ownerUserId, userId));
-  updateTag(`unread-notifications:${userId}`);
+  invalidateTag(`unread-notifications:${userId}`);
 }

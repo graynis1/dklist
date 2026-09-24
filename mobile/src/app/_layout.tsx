@@ -86,6 +86,31 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={Boolean(profile)}>
         <Stack.Screen name="(tabs)" />
+        {/* Detail screens reachable from more than one tab (Keşfet/
+            Kitaplığım both link to a book; the Mesajlar tab's conversation
+            list pushes a thread) - real Stack screens, not nested inside
+            the tab navigator itself, so they get a normal push/back
+            transition instead of swapping the whole tab bar away. */}
+        <Stack.Screen
+          name="kitap/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="mesajlar/[username]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
     </Stack>
   );

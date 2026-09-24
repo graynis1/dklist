@@ -1,5 +1,6 @@
 import "server-only";
-import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { comment, subComment, user, commentLike, book, score } from "@/db/schema";
@@ -271,8 +272,8 @@ export async function shareEntityComment(
     date: new Date().toISOString().slice(0, 10),
   });
 
-  updateTag(`${targetType}-comments:${original.targetId}:${original.commentType}`);
-  if (targetType === "book") updateTag("recent-book-activity");
+  invalidateTag(`${targetType}-comments:${original.targetId}:${original.commentType}`);
+  if (targetType === "book") invalidateTag("recent-book-activity");
   {
     const settings = await getPointSettings();
     await awardPointsWithDailyCap(userId, settings.comment, "comment", `comment:${result.insertId}`, settings.dailyCommentCap);
@@ -326,8 +327,8 @@ export async function addEntityComment(
     date: new Date().toISOString().slice(0, 10),
   });
 
-  updateTag(`${targetType}-comments:${targetId}:${commentType}`);
-  if (targetType === "book") updateTag("recent-book-activity");
+  invalidateTag(`${targetType}-comments:${targetId}:${commentType}`);
+  if (targetType === "book") invalidateTag("recent-book-activity");
   {
     const settings = await getPointSettings();
     await awardPointsWithDailyCap(userId, settings.comment, "comment", `comment:${result.insertId}`, settings.dailyCommentCap);
@@ -501,8 +502,8 @@ export async function updateComment(userId: number, commentId: number, newText: 
   await checkModerationOrThrow(trimmed);
 
   await db.update(comment).set({ comment: trimmed }).where(eq(comment.id, commentId));
-  updateTag(`${row.type}-comments:${row.targetId}:${row.commentType}`);
-  if (row.type === "book") updateTag("recent-book-activity");
+  invalidateTag(`${row.type}-comments:${row.targetId}:${row.commentType}`);
+  if (row.type === "book") invalidateTag("recent-book-activity");
 }
 
 /**
@@ -534,8 +535,8 @@ export async function deleteComment(userId: number, commentId: number): Promise<
   await db.delete(subComment).where(and(eq(subComment.parentType, "comment"), eq(subComment.parentId, commentId)));
   await db.delete(comment).where(eq(comment.id, commentId));
 
-  updateTag(`${row.type}-comments:${row.targetId}:${row.commentType}`);
-  if (row.type === "book") updateTag("recent-book-activity");
+  invalidateTag(`${row.type}-comments:${row.targetId}:${row.commentType}`);
+  if (row.type === "book") invalidateTag("recent-book-activity");
 }
 
 export async function updateSubComment(userId: number, subCommentId: number, newText: string): Promise<void> {

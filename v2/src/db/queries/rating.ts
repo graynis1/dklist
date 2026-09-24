@@ -1,9 +1,9 @@
 import "server-only";
-import { updateTag } from "next/cache";
 import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { score, book, writer, translator, user, store, storeOrder } from "@/db/schema";
 import { awardPointsWithDailyCap, getPointSettings } from "@/db/queries/points";
+import { invalidateTag } from "@/lib/cache-tag";
 
 const BOOK_TARGET_TYPE = "book";
 const WRITER_TARGET_TYPE = "writer";
@@ -71,8 +71,8 @@ export async function rateBook(
     .from(score)
     .where(and(eq(score.targetId, bookId), eq(score.targetType, BOOK_TARGET_TYPE)));
 
-  updateTag(`book:${bookSlug}`);
-  updateTag(`book-rating:${bookId}`);
+  invalidateTag(`book:${bookSlug}`);
+  invalidateTag(`book-rating:${bookId}`);
   // Real customer report: voting on one edition was correctly recorded
   // ("bu baskı oyu" - this edition's vote) but never showed up in the
   // pooled/shared work score other editions display - getWorkPooledScore()
@@ -81,7 +81,7 @@ export async function rateBook(
   // the bookSlug tag-shape one above, just for a different tag.
   const [bookRow] = await db.select({ workId: book.workId }).from(book).where(eq(book.id, bookId)).limit(1);
   if (bookRow?.workId != null) {
-    updateTag(`work-score:${bookRow.workId}`);
+    invalidateTag(`work-score:${bookRow.workId}`);
   }
   {
     const settings = await getPointSettings();
@@ -140,7 +140,7 @@ export async function rateWriter(
     .from(score)
     .where(and(eq(score.targetId, writerId), eq(score.targetType, WRITER_TARGET_TYPE)));
 
-  updateTag(`writer:${writerSlug}`);
+  invalidateTag(`writer:${writerSlug}`);
   {
     const settings = await getPointSettings();
     await awardPointsWithDailyCap(userId, settings.rating, "rating", `rating:writer:${writerId}`, settings.dailyRatingCap);
@@ -195,7 +195,7 @@ export async function rateTranslator(
     .from(score)
     .where(and(eq(score.targetId, translatorId), eq(score.targetType, TRANSLATOR_TARGET_TYPE)));
 
-  updateTag(`translator:${translatorSlug}`);
+  invalidateTag(`translator:${translatorSlug}`);
   {
     const settings = await getPointSettings();
     await awardPointsWithDailyCap(userId, settings.rating, "rating", `rating:translator:${translatorId}`, settings.dailyRatingCap);
@@ -312,7 +312,7 @@ export async function rateUser(raterId: number, sellerId: number, value: number)
     .from(score)
     .where(and(eq(score.targetId, sellerId), eq(score.targetType, USER_TARGET_TYPE)));
 
-  updateTag(`user-seller-rating:${sellerId}`);
+  invalidateTag(`user-seller-rating:${sellerId}`);
   {
     const settings = await getPointSettings();
     await awardPointsWithDailyCap(raterId, settings.rating, "rating", `rating:user:${sellerId}`, settings.dailyRatingCap);
