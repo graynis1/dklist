@@ -2,21 +2,29 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
-import sharp from "sharp";
 
-// NOTE (2026-08-31): sharp's Windows native binary fails to dlopen when
-// loaded through Turbopack's runtime on this local machine - reproduced in
-// both `next dev` and a real `next start`, and a createRequire()-based
-// workaround made no difference (Turbopack intercepts that too). This is a
-// LOCAL Windows-only failure: the production VPS builds a genuinely fresh
-// Linux node_modules inside its own Docker image (see next.config.ts's
-// `output: "standalone"` comment for why - same reasoning applies here),
-// where sharp's Linux binary has no equivalent sibling-DLL search-path
-// issue. Verified working end-to-end against the real deployed Linux
-// container before shipping this - see PLAN.md. If local Windows dev on
-// this route ever needs to work again, that's a real but separate
-// Turbopack/Windows/native-addon problem to solve later, not a sign this
-// code is wrong.
+// NOTE (2026-08-31, follow-up 2026-09-24): sharp's Windows native binary
+// fails to dlopen when loaded through Turbopack's runtime on this local
+// machine - reproduced in both `next dev` and a real `next start`, and a
+// createRequire()-based workaround made no difference (Turbopack
+// intercepts that too). This is a LOCAL Windows-only failure: the
+// production VPS builds a genuinely fresh Linux node_modules inside its
+// own Docker image, where sharp's Linux binary has no equivalent sibling-
+// DLL search-path issue - verified working end-to-end against the real
+// deployed Linux container before shipping this, see PLAN.md.
+//
+// Follow-up real bug found while testing the mobile app locally: this was a
+// STATIC top-level `import sharp from "sharp"`, so the broken dlopen fired
+// the instant ANYTHING imported this module - not just when an upload
+// actually happened. `feed-posts.ts` imports this file (for feed-post image
+// attachments), and `feed.ts` imports `feed-posts.ts` - so the real, live
+// `/akis` social feed (and the mobile app's equivalent `/api/mobile/v1/feed`)
+// crashed the entire local dev server on every request, with zero uploads
+// involved. Made lazy (`await import("sharp")` inside the function that
+// actually needs it) so merely importing this file no longer eagerly loads
+// sharp - upload itself is still the same real, documented Windows-only
+// limitation above, but every OTHER route sharing this module graph no
+// longer pays for a feature it never uses.
 
 /**
  * Shared local-disk image save helper - v1's ImageManager::saveImage() is
@@ -50,6 +58,7 @@ export async function saveUploadedImage(subdir: string, file: File): Promise<str
 
   let webp: Buffer;
   try {
+    const { default: sharp } = await import("sharp");
     webp = await sharp(bytes, { failOn: "none" })
       .rotate() // apply EXIF orientation before stripping metadata
       // Nothing on the site displays an uploaded image wider than a full-bleed

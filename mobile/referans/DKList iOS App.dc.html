@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/classical-daaccc06-b85e-41f8-8cab-5e98a2b3b54b/styles.css">
+<script src="_ds/classical-daaccc06-b85e-41f8-8cab-5e98a2b3b54b/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<meta name="design_doc_mode" content="canvas">
+<style>
+body{margin:0}
+a{color:var(--color-accent-700)}
+a:hover{color:var(--color-accent-900)}
+::selection{background:color-mix(in srgb, var(--color-accent) 30%, transparent)}
+</style>
+</helmet>
+<div style="background:var(--color-neutral-100);min-height:100vh;padding:64px 72px 140px;font-family:var(--font-body);color:var(--color-text)">
+
+  <div style="max-width:920px;margin-bottom:64px">
+    <div style="font-family:var(--font-heading);font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--color-accent-700);margin-bottom:12px">DKList — iOS Native Uygulama Tasarımı · Revize 2</div>
+    <h1 style="font-family:var(--font-heading);font-weight:400;font-size:48px;line-height:1.08;margin:0 0 20px;color:var(--color-text)">Web'in mobil versiyonu değil, sıfırdan bir iOS uygulaması</h1>
+    <p style="font-size:16.5px;line-height:1.75;margin:0 0 14px;max-width:760px">DKList, kağıt ve mürekkep dokusunu Apple'ın 2026 iOS cilasıyla harmanlayan, kitap topluluğu için tasarlanmış native bir deneyim. Tüm ekranlar bu turda uçtan uca yeniden çizildi: gerçek Dynamic Island, baş harfli avatarlar, katmanlı kitap kapakları, büyük başlıklı navigasyon ve tutarlı gölge/derinlik sistemi.</p>
+    <p style="font-size:14px;line-height:1.7;margin:0;color:var(--color-neutral-700)">Görsel dil: Classical tasarım sistemi (Cormorant Garamond + Lora, tek altın-bronz vurgu, çizgisel kartlar). Kitap kapakları artık degrade + sırt gölgesi + folyo çizgisiyle katmanlı; kimlikler baş harfli rozet-avatarlarla temsil ediliyor.</p>
+  </div>
+
+  <!-- ============ DESIGN SYSTEM SHEET ============ -->
+  <div data-screen-label="Tasarım Sistemi" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Tasarım Sistemi — DKList Mobil</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:22px">
+
+      <div style="width:360px;background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm)">
+        <h4 style="margin:0 0 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--color-neutral-700)">Renk — Light</h4>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <div style="flex:1;height:44px;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:5px"></div>
+          <div style="flex:1;height:44px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px"></div>
+          <div style="flex:1;height:44px;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));border-radius:5px"></div>
+          <div style="flex:1;height:44px;background:var(--color-accent-900);border-radius:5px"></div>
+        </div>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0;line-height:1.6">bg #f3f2f2 · surface #eae9e9 · tek bronz vurgu #b68235, degrade olarak katmanlanır</p>
+      </div>
+
+      <div style="width:360px;background:#171410;border:1px solid #3a352c;border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm)">
+        <h4 style="margin:0 0 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.1em;color:#c9c2b4">Renk — Dark</h4>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <div style="flex:1;height:44px;background:#141210;border:1px solid #3a352c;border-radius:5px"></div>
+          <div style="flex:1;height:44px;background:#211d16;border:1px solid #3a352c;border-radius:5px"></div>
+          <div style="flex:1;height:44px;background:linear-gradient(155deg,#e1ad66,#a06f24);border-radius:5px"></div>
+          <div style="flex:1;height:44px;background:#efd9ae;border-radius:5px"></div>
+        </div>
+        <p style="font-size:12px;color:#9a9184;margin:0;line-height:1.6">bg #141210 · surface #211d16 · aynı ton, dark üstünde açılır #e1ad66</p>
+      </div>
+
+      <div style="width:360px;background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm)">
+        <h4 style="margin:0 0 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--color-neutral-700)">Tipografi</h4>
+        <div style="font-family:var(--font-heading);font-weight:400;font-size:30px;line-height:1.1;margin-bottom:6px">Cormorant Garamond</div>
+        <div style="font-family:var(--font-body);font-size:15.5px;color:var(--color-neutral-800);line-height:1.6">Lora — gövde metni. Büyük başlıklar 400 ağırlıkta, arayüz başlıkları en fazla 600.</div>
+      </div>
+
+      <div style="width:360px;background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm)">
+        <h4 style="margin:0 0 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--color-neutral-700)">Kitap Kapağı Sistemi</h4>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.6">Degrade zemin + sırt gölgesi + folyo çizgisi — kapak fotoğrafı gelene kadar katmanlı bir yer tutucu.</p>
+        <div style="display:flex;gap:10px">
+          <div style="width:52px;height:76px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-300),var(--color-accent-700));box-shadow:var(--shadow-sm);position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:8px 7px;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.18)"></div><div style="position:absolute;top:8px;right:7px;width:14px;height:1px;background:rgba(255,255,255,.55)"></div><div style="font-family:var(--font-heading);font-weight:600;font-size:10.5px;line-height:1.15;color:#fff;position:relative">Kürk Mantolu Madonna</div><div style="font-size:7.5px;letter-spacing:.05em;color:rgba(255,255,255,.8);text-transform:uppercase;position:relative">S. Ali</div></div>
+          <div style="width:52px;height:76px;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-800));box-shadow:var(--shadow-sm);position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:8px 7px;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.2)"></div><div style="position:absolute;top:8px;right:7px;width:14px;height:1px;background:rgba(255,255,255,.5)"></div><div style="font-family:var(--font-heading);font-weight:600;font-size:10.5px;line-height:1.15;color:#fff;position:relative">Tutunamayanlar</div><div style="font-size:7.5px;letter-spacing:.05em;color:rgba(255,255,255,.75);text-transform:uppercase;position:relative">O. Atay</div></div>
+        </div>
+      </div>
+
+      <div style="width:360px;background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm)">
+        <h4 style="margin:0 0 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--color-neutral-700)">Kimlik — Baş Harfli Avatarlar</h4>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.6">Fotoğraf yoksa baş harf + degrade zemin, her kullanıcı için tutarlı bir kimlik.</p>
+        <div style="display:flex;gap:10px">
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:15px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)">ED</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:15px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)">CT</div>
+          <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-300),var(--color-accent-600));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:15px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)">MD</div>
+        </div>
+      </div>
+
+      <div style="width:360px;background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm)">
+        <h4 style="margin:0 0 16px;font-size:12.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--color-neutral-700)">Tab Bar İkon Dili</h4>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.6">Yalın, kalın çizgili geometrik biçimler.</p>
+        <div style="display:flex;gap:18px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:22px;height:22px;border:2px solid var(--color-accent-700);border-radius:6px"></div><span style="font-size:9px;color:var(--color-accent-700);font-weight:600">Akış</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:17px;height:17px;border:2px solid var(--color-neutral-600);border-radius:50%;position:relative"><div style="position:absolute;width:7px;height:2px;background:var(--color-neutral-600);bottom:-3px;right:-5px;transform:rotate(45deg);border-radius:1px"></div></div><span style="font-size:9px;color:var(--color-neutral-600)">Keşfet</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="display:flex;gap:2px"><div style="width:3.5px;height:18px;background:var(--color-neutral-600);border-radius:1px"></div><div style="width:3.5px;height:18px;background:var(--color-neutral-600);border-radius:1px"></div><div style="width:3.5px;height:18px;background:var(--color-neutral-600);border-radius:1px"></div></div><span style="font-size:9px;color:var(--color-neutral-600)">Kitaplığım</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:18px;height:18px;border:2px solid var(--color-neutral-600);border-radius:50% 50% 50% 5px"></div><span style="font-size:9px;color:var(--color-neutral-600)">Mesajlar</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700))"></div><span style="font-size:9px;color:var(--color-neutral-600)">Profil</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ ONBOARDING & GİRİŞ ============ -->
+  <div data-screen-label="Onboarding ve Giriş" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Onboarding & Giriş</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">01 · Splash</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:radial-gradient(circle at 50% 32%,var(--color-accent-800),var(--color-accent-900) 70%);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="width:104px;margin-bottom:18px"><img src="assets/dklist-mark.png" alt="DKList" style="width:100%;display:block;filter:invert(1) brightness(1.6) sepia(1) saturate(2) hue-rotate(10deg)"></div>
+            <div style="width:200px"><img src="assets/dklist-wordmark.png" alt="DKList — Daha Fazla Kitap" style="width:100%;display:block;filter:invert(1) brightness(1.6) sepia(1) saturate(2) hue-rotate(10deg)"></div>
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px"></div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:#fdf8ee;opacity:.35"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">02 · Onboarding 1/3</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:flex-end;padding:16px 26px"><span style="font-size:13.5px;color:var(--color-neutral-600)">Atla</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;text-align:center">
+              <div style="width:168px;height:210px;border-radius:16px;background:linear-gradient(160deg,var(--color-accent-100),var(--color-accent-200));border:1px solid var(--color-accent-300);display:flex;align-items:center;justify-content:center;margin-bottom:36px;box-shadow:var(--shadow-sm)"><div style="width:90px;height:90px;opacity:.85"><img src="assets/dklist-mark.png" alt="" style="width:100%;height:100%;object-fit:contain"></div></div>
+              <h3 style="font-weight:400;font-family:var(--font-heading);font-size:26px;margin:0 0 12px">Okuduklarını raflara diz</h3>
+              <p style="font-size:15px;color:var(--color-neutral-700);margin:0;line-height:1.65">Okuyorum, okudum, okumak istiyorum — kitaplığını dijital rafında düzenle.</p>
+            </div>
+            <div style="display:flex;justify-content:center;gap:7px;padding-bottom:16px"><div style="width:20px;height:6px;border-radius:3px;background:var(--color-accent-700)"></div><div style="width:6px;height:6px;border-radius:3px;background:var(--color-neutral-400)"></div><div style="width:6px;height:6px;border-radius:3px;background:var(--color-neutral-400)"></div></div>
+            <div style="padding:0 26px 32px"><div style="height:52px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent);letter-spacing:.01em">İleri</div></div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">03 · Onboarding 2/3</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:flex-end;padding:16px 26px"><span style="font-size:13.5px;color:var(--color-neutral-600)">Atla</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;text-align:center">
+              <div style="width:168px;height:210px;border-radius:16px;background:var(--color-surface);border:1px solid var(--color-divider);display:flex;align-items:center;justify-content:center;margin-bottom:36px;flex-direction:column;gap:12px;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;gap:-6px"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));border:2px solid var(--color-surface);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;font-family:var(--font-heading)">ED</div><div style="width:34px;height:34px;margin-left:-10px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));border:2px solid var(--color-surface);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;font-family:var(--font-heading)">CT</div><div style="width:34px;height:34px;margin-left:-10px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-300),var(--color-accent-600));border:2px solid var(--color-surface);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;font-family:var(--font-heading)">SA</div></div>
+                <div style="font-size:11px;color:var(--color-neutral-600)">1.240 üye bu ay okuyor</div>
+              </div>
+              <h3 style="font-weight:400;font-family:var(--font-heading);font-size:26px;margin:0 0 12px">Topluluğu keşfet</h3>
+              <p style="font-size:15px;color:var(--color-neutral-700);margin:0;line-height:1.65">Arkadaşlarını takip et, yorumlarını oku, haftanın lideriyle tanış.</p>
+            </div>
+            <div style="display:flex;justify-content:center;gap:7px;padding-bottom:16px"><div style="width:6px;height:6px;border-radius:3px;background:var(--color-neutral-400)"></div><div style="width:20px;height:6px;border-radius:3px;background:var(--color-accent-700)"></div><div style="width:6px;height:6px;border-radius:3px;background:var(--color-neutral-400)"></div></div>
+            <div style="padding:0 26px 32px"><div style="height:52px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent)">İleri</div></div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">04 · Bildirim İzni</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 34px;text-align:center;position:relative">
+              <div style="position:absolute;top:64px;left:0;right:0;padding:0 24px"><div style="background:#fff;border:1px solid var(--color-divider);border-radius:16px;padding:18px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-md)"><div style="width:40px;height:40px;border-radius:11px;background:linear-gradient(155deg,var(--color-accent-500),var(--color-accent-800));flex:none"></div><div style="text-align:left"><div style="font-weight:600;font-size:14px">DKList bir bildirim göndermek istiyor</div><div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:2px">İzin ver / İzin verme</div></div></div></div>
+              <div style="width:64px;height:64px;border:2px solid var(--color-accent-600);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:28px"><div style="width:2.5px;height:30px;background:var(--color-accent-600);border-radius:1px"></div></div>
+              <h3 style="font-weight:400;font-family:var(--font-heading);font-size:23px;margin:0 0 12px">Seni haberdar edelim mi?</h3>
+              <p style="font-size:14.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.65">Yeni takipçi, yorum yanıtı, mesaj ve sipariş durumu güncellemelerini kaçırma. İstediğin zaman Ayarlar'dan kapatabilirsin.</p>
+              <p style="font-size:11.5px;color:var(--color-neutral-500);margin:0">İlk açılışta değil — birinci kitabını eklediğinde sorulur.</p>
+            </div>
+            <div style="padding:0 26px 14px"><div style="height:52px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent);margin-bottom:10px">İzin Ver</div><div style="height:46px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--color-neutral-600)">Şimdi Değil</div></div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">05 · Giriş Yap</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:38px 28px 20px"><div style="font-family:var(--font-heading);font-weight:400;font-size:32px;line-height:1.15">DKList'e<br>Hoş Geldin</div></div>
+            <div style="padding:0 28px;display:flex;flex-direction:column;gap:15px">
+              <div><div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:6px">E-posta</div><div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;padding:0 14px;font-size:15px;color:var(--color-neutral-500);background:#fff">ornek@eposta.com</div></div>
+              <div><div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:6px">Şifre</div><div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:15px;background:#fff"><span style="color:var(--color-neutral-500)">••••••••</span><span style="font-size:12px;color:var(--color-accent-700);font-weight:600">Göster</span></div></div>
+              <div style="text-align:right;font-size:12.5px;color:var(--color-accent-700)">Şifremi Unuttum</div>
+              <div style="height:52px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent);margin-top:6px">Giriş Yap</div>
+              <div style="display:flex;align-items:center;gap:12px;margin:10px 0"><div style="flex:1;height:1px;background:var(--color-divider)"></div><span style="font-size:11.5px;color:var(--color-neutral-500)">veya</span><div style="flex:1;height:1px;background:var(--color-divider)"></div></div>
+              <div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:9px;font-size:14.5px;font-weight:600;background:#fff"><div style="width:16px;height:16px;border-radius:50%;background:#000"></div>Apple ile Giriş Yap</div>
+              <div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:9px;font-size:14.5px;font-weight:600;background:#fff"><div style="width:16px;height:16px;border-radius:50%;background:conic-gradient(from 0deg,#4285F4 0 90deg,#34A853 90deg 180deg,#FBBC05 180deg 270deg,#EA4335 270deg 360deg)"></div>Google ile Giriş Yap</div>
+            </div>
+            <div style="margin-top:auto;text-align:center;padding:16px 0 32px;font-size:13px;color:var(--color-neutral-600)">Hesabın yok mu? <span style="color:var(--color-accent-700);font-weight:600">Kayıt Ol</span></div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">06 · Face ID Hızlı Giriş</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="width:168px;height:216px;border-radius:14px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-800));margin-bottom:30px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:rgba(0,0,0,.18)"></div><div style="font-family:var(--font-heading);font-weight:600;color:#fff;font-size:15px;text-align:center;line-height:1.3">Simyacı<br><span style="font-size:10px;opacity:.8;letter-spacing:.04em">P. COELHO</span></div></div>
+            <div style="width:68px;height:68px;border:2.5px solid var(--color-accent-600);border-radius:22px;display:flex;align-items:center;justify-content:center;margin-bottom:18px"><div style="width:32px;height:32px;border:2.5px solid var(--color-accent-600);border-radius:50%"></div></div>
+            <div style="font-family:var(--font-heading);font-weight:600;font-size:16px">Face ID ile Giriş</div>
+            <div style="font-size:13px;color:var(--color-neutral-600);margin-top:5px">Devam etmek için yüzünü göster</div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <p style="max-width:840px;font-size:13.5px;color:var(--color-neutral-700);margin-top:18px;line-height:1.65"><strong>Not:</strong> Bildirim izni ilk açılışta değil, kullanıcı ilk kitabını kitaplığına eklediğinde — değeri hissettiği an — sorulur. Apple ile Giriş Yap, e-posta/şifre seçeneği olduğu için App Store zorunluluğu gereği eklendi.</p>
+  </div>
+
+  <!-- ============ ANA SAYFA / AKIŞ ============ -->
+  <div data-screen-label="Ana Sayfa Akış" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Ana Sayfa / Akış</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">07 · Akış (Light)</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Akış</div><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:12.5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)">ED</div></div>
+            <div style="flex:1;overflow-y:auto;padding:0 22px 16px;margin-bottom:84px;display:flex;flex-direction:column;gap:14px">
+              <div style="background:linear-gradient(125deg,var(--color-accent-800),var(--color-accent-600) 65%,var(--color-accent-500));border-radius:16px;padding:18px 20px;color:#fff;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-md);position:relative;overflow:hidden;flex-shrink:0">
+                <div><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.85">Bu Ay Okunan Kitap</div><div style="font-family:var(--font-heading);font-weight:400;font-size:20px;margin-top:5px">Beyaz Kale</div><div style="font-size:12px;opacity:.85;margin-top:2px">Orhan Pamuk · 214 okuyucu</div></div>
+                <div style="width:42px;height:60px;border-radius:4px;background:rgba(255,255,255,.22);flex:none"></div>
+              </div>
+              <div style="border:1px solid var(--color-divider);border-radius:14px;padding:15px 16px;background:#fff;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;gap:11px;align-items:center;margin-bottom:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:11.5px;flex:none">AK</div><div style="font-size:13.5px"><strong>Ayşe K.</strong> <span style="color:var(--color-neutral-600)">bir kitabı bitirdi</span></div></div>
+                <div style="display:flex;gap:12px"><div style="width:44px;height:64px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-300),var(--color-accent-700));flex:none;box-shadow:var(--shadow-sm);position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.15)"></div></div><div><div style="font-weight:600;font-size:14.5px">Beyaz Kale</div><div style="font-size:12px;color:var(--color-neutral-600);margin-bottom:6px">Orhan Pamuk</div><div style="font-size:12px;color:var(--color-accent-700);font-weight:600">Puanı: 8/10</div></div></div>
+                <div style="display:flex;gap:18px;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:12px;color:var(--color-neutral-600)"><span>♡ 24</span><span>Yorum 4</span><span>Paylaş</span></div>
+              </div>
+              <div style="border:1px solid var(--color-divider);border-radius:14px;padding:15px 16px;background:#fff;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;gap:11px;align-items:center;margin-bottom:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:11.5px;flex:none">MY</div><div style="font-size:13.5px"><strong>Mehmet Y.</strong> <span style="color:var(--color-neutral-600)">bir alıntı paylaştı</span></div></div>
+                <div style="border-left:3px solid var(--color-accent-500);padding-left:12px;font-family:var(--font-heading);font-style:italic;font-size:14.5px;color:var(--color-neutral-800);margin-bottom:8px;line-height:1.5">"Bazı kitaplar bizi değiştirmez; yalnızca içimizde zaten var olanı adlandırır."</div>
+                <div style="font-size:12px;color:var(--color-neutral-600)">Kürk Mantolu Madonna — Sabahattin Ali</div>
+                <div style="display:flex;gap:18px;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:12px;color:var(--color-neutral-600)"><span>♡ 41</span><span>Yorum 6</span><span>Paylaş</span></div>
+              </div>
+              <div style="background:var(--color-surface);border-radius:14px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;gap:10px;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-300),var(--color-accent-600));flex:none"></div><div style="font-size:13px"><strong>Zeynep T.</strong> <span style="color:var(--color-neutral-600)">"Kitap Kurdu" rozetini kazandı</span></div></div>
+              </div>
+              <div style="border:1px solid var(--color-divider);border-radius:14px;padding:15px 16px;background:#fff;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:12.5px;color:var(--color-neutral-600)">Bu haftanın lideri</div><div style="font-size:12px;color:var(--color-accent-700);font-weight:600">Tümü →</div></div>
+                <div style="display:flex;gap:11px;align-items:center"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:12px">ED</div><div><div style="font-weight:600;font-size:14px">Elif D.</div><div style="font-size:12px;color:var(--color-neutral-600)">340 puan · 12 kitap</div></div></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:color-mix(in srgb, var(--color-bg) 88%, transparent);backdrop-filter:blur(10px);border-top:1px solid var(--color-divider);display:flex;padding-top:10px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:21px;height:21px;border:2px solid var(--color-accent-700);border-radius:6px"></div><span style="font-size:9.5px;color:var(--color-accent-700);font-weight:600">Akış</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:17px;height:17px;border:2px solid var(--color-neutral-500);border-radius:50%"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Keşfet</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;gap:2px"><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Kitaplığım</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative"><div style="width:18px;height:18px;border:2px solid var(--color-neutral-500);border-radius:50% 50% 50% 5px"></div><div style="position:absolute;top:-1px;right:15px;width:8px;height:8px;border-radius:50%;background:var(--color-accent-600);border:1.5px solid var(--color-bg)"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Mesajlar</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border-radius:50%;background:var(--color-neutral-400)"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Profil</span></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">08 · Akış (Dark)</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:#141210;border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#efe9de">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Akış</div><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(155deg,#e1ad66,#a06f24);display:flex;align-items:center;justify-content:center;color:#181510;font-family:var(--font-heading);font-weight:600;font-size:12.5px">ED</div></div>
+            <div style="flex:1;overflow-y:auto;padding:0 22px 16px;margin-bottom:84px;display:flex;flex-direction:column;gap:14px">
+              <div style="background:linear-gradient(125deg,#3a270d,#7d5411 65%,#a06f24);border-radius:16px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 20px rgba(0,0,0,.35);flex-shrink:0">
+                <div><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;opacity:.8">Bu Ay Okunan Kitap</div><div style="font-family:var(--font-heading);font-weight:400;font-size:20px;margin-top:5px">Beyaz Kale</div><div style="font-size:12px;opacity:.8;margin-top:2px">Orhan Pamuk · 214 okuyucu</div></div>
+                <div style="width:42px;height:60px;border-radius:4px;background:rgba(255,255,255,.18);flex:none"></div>
+              </div>
+              <div style="border:1px solid #3a352c;border-radius:14px;padding:15px 16px;background:#211d16">
+                <div style="display:flex;gap:11px;align-items:center;margin-bottom:10px"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(155deg,#e1ad66,#a06f24);display:flex;align-items:center;justify-content:center;color:#181510;font-family:var(--font-heading);font-weight:600;font-size:11.5px;flex:none">AK</div><div style="font-size:13.5px"><strong>Ayşe K.</strong> <span style="color:#9a9184">bir kitabı bitirdi</span></div></div>
+                <div style="display:flex;gap:12px"><div style="width:44px;height:64px;border-radius:5px;background:linear-gradient(160deg,#e1ad66,#7d5411);flex:none;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.25)"></div></div><div><div style="font-weight:600;font-size:14.5px">Beyaz Kale</div><div style="font-size:12px;color:#9a9184;margin-bottom:6px">Orhan Pamuk</div><div style="font-size:12px;color:#e1ad66;font-weight:600">Puanı: 8/10</div></div></div>
+                <div style="display:flex;gap:18px;margin-top:12px;padding-top:12px;border-top:1px solid #3a352c;font-size:12px;color:#9a9184"><span>♡ 24</span><span>Yorum 4</span><span>Paylaş</span></div>
+              </div>
+              <div style="background:#211d16;border-radius:14px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center">
+                <div style="display:flex;gap:10px;align-items:center"><div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(155deg,#facb8d,#c28d41);flex:none"></div><div style="font-size:13px"><strong>Zeynep T.</strong> <span style="color:#9a9184">"Kitap Kurdu" rozetini kazandı</span></div></div>
+              </div>
+              <div style="border:1px solid #3a352c;border-radius:14px;padding:15px 16px;background:#211d16">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-size:12.5px;color:#9a9184">Bu haftanın lideri</div><div style="font-size:12px;color:#e1ad66;font-weight:600">Tümü →</div></div>
+                <div style="display:flex;gap:11px;align-items:center"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(155deg,#e1ad66,#a06f24);display:flex;align-items:center;justify-content:center;color:#181510;font-family:var(--font-heading);font-weight:600;font-size:12px">ED</div><div><div style="font-weight:600;font-size:14px">Elif D.</div><div style="font-size:12px;color:#9a9184">340 puan · 12 kitap</div></div></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:rgba(20,18,16,.88);backdrop-filter:blur(10px);border-top:1px solid #3a352c;display:flex;padding-top:10px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:21px;height:21px;border:2px solid #e1ad66;border-radius:6px"></div><span style="font-size:9.5px;color:#e1ad66;font-weight:600">Akış</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:17px;height:17px;border:2px solid #7d7979;border-radius:50%"></div><span style="font-size:9.5px;color:#7d7979">Keşfet</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;gap:2px"><div style="width:3px;height:17px;background:#7d7979;border-radius:1px"></div><div style="width:3px;height:17px;background:#7d7979;border-radius:1px"></div><div style="width:3px;height:17px;background:#7d7979;border-radius:1px"></div></div><span style="font-size:9.5px;color:#7d7979">Kitaplığım</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border:2px solid #7d7979;border-radius:50% 50% 50% 5px"></div><span style="font-size:9.5px;color:#7d7979">Mesajlar</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border-radius:50%;background:#605d5d"></div><span style="font-size:9.5px;color:#7d7979">Profil</span></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:#efe9de;opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ KEŞFET & ARAMA ============ -->
+  <div data-screen-label="Keşfet ve Arama" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Keşfet & Arama</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">09 · Keşfet</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Keşfet</div></div>
+            <div style="padding:0 24px 12px"><div style="height:44px;border:1px solid var(--color-divider);border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;box-shadow:var(--shadow-sm)"><div style="width:14px;height:14px;border:1.8px solid var(--color-neutral-500);border-radius:50%;position:relative"><div style="position:absolute;width:6px;height:1.8px;background:var(--color-neutral-500);bottom:-3px;right:-4px;transform:rotate(45deg);border-radius:1px"></div></div><span style="font-size:14.5px;color:var(--color-neutral-500)">Kitap, yazar, kullanıcı ara…</span></div></div>
+            <div style="display:flex;gap:9px;padding:0 24px 14px;overflow:hidden"><div style="padding:8px 15px;border-radius:20px;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-size:12.5px;font-weight:600;white-space:nowrap">Roman</div><div style="padding:8px 15px;border-radius:20px;border:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-700);white-space:nowrap;background:#fff">Klasikler</div><div style="padding:8px 15px;border-radius:20px;border:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-700);white-space:nowrap;background:#fff">Şiir</div><div style="padding:8px 15px;border-radius:20px;border:1px solid var(--color-divider);font-size:12.5px;color:var(--color-neutral-700);white-space:nowrap;background:#fff">Bilim Kurgu</div></div>
+            <div style="flex:1;overflow-y:auto;padding:0 24px 16px;margin-bottom:84px;display:flex;flex-direction:column;gap:18px">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-weight:600;font-size:15px">Askıda Kitap Pazaryeri</div><div style="font-size:12px;color:var(--color-accent-700);font-weight:600">Tümü →</div></div>
+                <div style="display:flex;gap:11px;overflow:hidden">
+                  <div style="width:104px;flex:none;border:1px solid var(--color-divider);border-radius:12px;padding:10px;background:#fff;box-shadow:var(--shadow-sm)"><div style="width:100%;height:66px;border-radius:6px;background:linear-gradient(160deg,var(--color-neutral-300),var(--color-neutral-500));margin-bottom:8px"></div><div style="font-size:11.5px;font-weight:600;line-height:1.25">Simyacı</div><div style="font-size:11px;color:var(--color-accent-700);margin-top:3px;font-weight:600">₺85</div></div>
+                  <div style="width:104px;flex:none;border:1px solid var(--color-divider);border-radius:12px;padding:10px;background:#fff;box-shadow:var(--shadow-sm)"><div style="width:100%;height:66px;border-radius:6px;background:linear-gradient(160deg,var(--color-neutral-300),var(--color-neutral-500));margin-bottom:8px"></div><div style="font-size:11.5px;font-weight:600;line-height:1.25">Suç ve Ceza</div><div style="font-size:11px;color:var(--color-accent-700);margin-top:3px;font-weight:600">Ücretsiz</div></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:10px">Kategoriler</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <div style="padding:9px 14px;border:1px solid var(--color-divider);border-radius:10px;font-size:13px;background:#fff">Türk Klasikleri</div>
+                  <div style="padding:9px 14px;border:1px solid var(--color-divider);border-radius:10px;font-size:13px;background:#fff">Rus Edebiyatı</div>
+                  <div style="padding:9px 14px;border:1px solid var(--color-divider);border-radius:10px;font-size:13px;background:#fff">Fantastik</div>
+                  <div style="padding:9px 14px;border:1px solid var(--color-divider);border-radius:10px;font-size:13px;background:#fff">Deneme</div>
+                  <div style="padding:9px 14px;border:1px solid var(--color-divider);border-radius:10px;font-size:13px;background:#fff">Şiir</div>
+                  <div style="padding:9px 14px;border:1px solid var(--color-accent-400);border-radius:10px;font-size:13px;color:var(--color-accent-700);font-weight:600;background:var(--color-accent-100)">+45 daha</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:15px;margin-bottom:10px">Kulüpler</div>
+                <div style="border:1px solid var(--color-divider);border-radius:14px;padding:13px 15px;background:#fff;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm)"><div><div style="font-size:14px;font-weight:600">Eylül Ayı: Rus Klasikleri</div><div style="font-size:12px;color:var(--color-neutral-600);margin-top:2px">1.240 üye</div></div><div style="font-size:12px;color:var(--color-accent-700);font-weight:600">Katıl</div></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:color-mix(in srgb, var(--color-bg) 88%, transparent);backdrop-filter:blur(10px);border-top:1px solid var(--color-divider);display:flex;padding-top:10px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:21px;height:21px;border:2px solid var(--color-neutral-500);border-radius:6px"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Akış</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:17px;height:17px;border:2px solid var(--color-accent-700);border-radius:50%"></div><span style="font-size:9.5px;color:var(--color-accent-700);font-weight:600">Keşfet</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;gap:2px"><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Kitaplığım</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border:2px solid var(--color-neutral-500);border-radius:50% 50% 50% 5px"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Mesajlar</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border-radius:50%;background:var(--color-neutral-400)"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Profil</span></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">10 · Arama Sonuçları</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 24px 10px"><div style="height:44px;border:1.5px solid var(--color-accent);border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff"><div style="width:14px;height:14px;border:1.8px solid var(--color-accent-700);border-radius:50%"></div><span style="font-size:14.5px">dostoyevski</span></div></div>
+            <div style="display:flex;gap:20px;padding:8px 24px;border-bottom:1px solid var(--color-divider)"><div style="font-size:14px;font-weight:600;color:var(--color-accent-700);border-bottom:2px solid var(--color-accent-700);padding-bottom:9px">Kitaplar</div><div style="font-size:14px;color:var(--color-neutral-600);padding-bottom:9px">Yazarlar</div><div style="font-size:14px;color:var(--color-neutral-600);padding-bottom:9px">Kullanıcılar</div></div>
+            <div style="flex:1;overflow:hidden;padding:14px 24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;gap:14px;align-items:center"><div style="width:46px;height:66px;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-600),var(--color-neutral-900));flex:none;box-shadow:var(--shadow-sm);position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.2)"></div></div><div><div style="font-weight:600;font-size:14.5px">Suç ve Ceza</div><div style="font-size:12.5px;color:var(--color-neutral-600)">Fyodor Dostoyevski</div><div style="font-size:11.5px;color:var(--color-accent-700);margin-top:3px;font-weight:600">★ 9.1 · Çev. Sabri Gürses</div></div></div>
+              <div style="display:flex;gap:14px;align-items:center"><div style="width:46px;height:66px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-800));flex:none;box-shadow:var(--shadow-sm);position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.15)"></div></div><div><div style="font-weight:600;font-size:14.5px">Karamazov Kardeşler</div><div style="font-size:12.5px;color:var(--color-neutral-600)">Fyodor Dostoyevski</div><div style="font-size:11.5px;color:var(--color-accent-700);margin-top:3px;font-weight:600">★ 9.3 · Çev. Nihal Yalaza Taluy</div></div></div>
+              <div style="display:flex;gap:14px;align-items:center"><div style="width:46px;height:66px;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-400),var(--color-neutral-700));flex:none;box-shadow:var(--shadow-sm);position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.15)"></div></div><div><div style="font-weight:600;font-size:14.5px">Budala</div><div style="font-size:12.5px;color:var(--color-neutral-600)">Fyodor Dostoyevski</div><div style="font-size:11.5px;color:var(--color-accent-700);margin-top:3px;font-weight:600">★ 8.9 · Çev. Ergin Altay</div></div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">11 · ISBN Barkod Tarama <span style="color:var(--color-accent-700)">✦ mobil-özel</span></div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:#0c0b09;border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10;box-shadow:0 0 0 1px rgba(255,255,255,.06)"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;color:#fff;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 26px"><span style="color:#fff;font-size:14px">✕</span><div style="color:#fff;font-family:var(--font-heading);font-weight:600;font-size:16px">Barkod Tara</div><span style="color:#e1ad66;font-size:13px;font-weight:600">Elle Ekle</span></div>
+            <div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center">
+              <div style="width:270px;height:158px;border:2.5px solid #e1ad66;border-radius:16px;position:relative;box-shadow:0 0 0 2000px rgba(0,0,0,.45)">
+                <div style="position:absolute;top:-2.5px;left:-2.5px;width:28px;height:28px;border-top:3.5px solid #efd9ae;border-left:3.5px solid #efd9ae;border-radius:16px 0 0 0"></div>
+                <div style="position:absolute;top:-2.5px;right:-2.5px;width:28px;height:28px;border-top:3.5px solid #efd9ae;border-right:3.5px solid #efd9ae;border-radius:0 16px 0 0"></div>
+                <div style="position:absolute;bottom:-2.5px;left:-2.5px;width:28px;height:28px;border-bottom:3.5px solid #efd9ae;border-left:3.5px solid #efd9ae;border-radius:0 0 0 16px"></div>
+                <div style="position:absolute;bottom:-2.5px;right:-2.5px;width:28px;height:28px;border-bottom:3.5px solid #efd9ae;border-right:3.5px solid #efd9ae;border-radius:0 0 16px 0"></div>
+                <div style="position:absolute;top:50%;left:8%;right:8%;height:2px;background:#e1665a;box-shadow:0 0 8px #e1665a"></div>
+              </div>
+              <div style="position:absolute;bottom:64px;left:0;right:0;text-align:center;color:#c9c2b4;font-size:13px">Kitabın arka kapağındaki barkodu çerçeve içine getir</div>
+            </div>
+            <div style="padding:0 24px 32px"><div style="background:#211d16;border:1px solid #3a352c;border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.4)"><div style="width:38px;height:56px;border-radius:5px;background:linear-gradient(160deg,#e1ad66,#a06f24);flex:none"></div><div style="flex:1"><div style="color:#efe9de;font-weight:600;font-size:14px">Simyacı</div><div style="color:#9a9184;font-size:11.5px;margin-top:2px">Paulo Coelho · ISBN 9789750738907</div></div><div style="color:#efd9ae;font-size:12px;font-weight:600">Ekle</div></div></div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:#fff;opacity:.3"></div>
+          </div>
+        </div>
+        <p style="max-width:390px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Tarama sonucu anında altta doğrulama kartı olarak çıkar; kullanıcı tek dokunuşla kitaplığına ekler veya Askıda Kitap ilanı formuna otomatik doldurur.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ KİTAP DETAY ============ -->
+  <div data-screen-label="Kitap Detay" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Kitap Detay</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">12 · Kitap Detay (Light)</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:space-between;padding:14px 24px"><span style="font-size:18px">←</span><span style="font-size:17px">⋯</span></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;gap:18px">
+                <image-slot id="cover-beyazkale-detay" shape="rounded" radius="8" style="width:96px;height:140px;flex:none;box-shadow:var(--shadow-md)" placeholder="Beyaz Kale kapağı"></image-slot>
+                <div style="flex:1;padding-top:4px">
+                  <h3 style="margin:0 0 5px;font-size:21px;font-weight:600">Beyaz Kale</h3>
+                  <div style="font-size:14px;color:var(--color-accent-700);font-weight:600;margin-bottom:7px">Orhan Pamuk</div>
+                  <div style="font-size:12.5px;color:var(--color-neutral-600);margin-bottom:10px">Can Yayınları · Roman</div>
+                  <div style="display:flex;align-items:baseline;gap:6px"><span style="font-family:var(--font-heading);font-weight:400;font-size:28px;color:var(--color-accent-700)">8.4</span><span style="font-size:11.5px;color:var(--color-neutral-600)">/10 · 3.204 oy</span></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:9px">
+                <div style="flex:1;height:48px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--color-accent)">Okuyorum</div>
+                <div style="width:48px;height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;background:#fff">♡</div>
+                <div style="width:48px;height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;background:#fff">↗</div>
+              </div>
+              <div style="display:flex;gap:20px;border-bottom:1px solid var(--color-divider);padding-bottom:9px"><div style="font-size:14px;font-weight:600;color:var(--color-accent-700);border-bottom:2px solid var(--color-accent-700);padding-bottom:7px">Yorumlar 412</div><div style="font-size:14px;color:var(--color-neutral-600)">Alıntılar 88</div><div style="font-size:14px;color:var(--color-neutral-600)">İstatistik</div></div>
+              <div style="display:flex;gap:11px;align-items:flex-start"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:10.5px;flex:none">DA</div><div><div style="font-size:13.5px;font-weight:600;margin-bottom:3px">Deniz A. <span style="color:var(--color-accent-700);font-weight:600">· 9/10</span></div><div style="font-size:13px;color:var(--color-neutral-700);line-height:1.55">İstanbul'un tarihiyle kimlik meselesini iç içe örmüş, ince bir alegori.</div></div></div>
+              <div style="border:1px solid var(--color-accent-300);border-radius:12px;padding:12px 14px;background:var(--color-accent-100);display:flex;justify-content:space-between;align-items:center"><div style="font-size:12.5px;color:var(--color-accent-800)">Askıda Kitap</div><div style="font-weight:600;font-size:13.5px;color:var(--color-accent-800)">₺70'ten 2 ilan →</div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">13 · Kitap Detay (Dark) + Context Menu</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:#141210;border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#efe9de">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:space-between;padding:14px 24px"><span style="font-size:18px">←</span><span style="font-size:17px">⋯</span></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:16px;filter:brightness(.5)">
+              <div style="display:flex;gap:18px">
+                <div style="width:96px;height:140px;border-radius:8px;background:linear-gradient(160deg,#e1ad66,#7d5411);flex:none;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:11px 9px"><div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:rgba(0,0,0,.25)"></div><div style="font-family:var(--font-heading);font-weight:600;font-size:14px;color:#181510;line-height:1.15;position:relative">Beyaz<br>Kale</div><div style="font-size:8.5px;color:rgba(24,21,16,.75);letter-spacing:.05em;position:relative">O. PAMUK</div></div>
+                <div style="flex:1;padding-top:4px">
+                  <h3 style="margin:0 0 5px;font-size:21px;font-weight:600;color:#efe9de">Beyaz Kale</h3>
+                  <div style="font-size:14px;color:#e1ad66;font-weight:600;margin-bottom:7px">Orhan Pamuk</div>
+                  <div style="font-size:12.5px;color:#9a9184">Can Yayınları · Roman</div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;left:50%;top:300px;transform:translateX(-50%);width:230px;background:#2a251c;border:1px solid #443d2f;border-radius:14px;overflow:hidden;box-shadow:0 16px 40px rgba(0,0,0,.55)">
+              <div style="padding:13px 18px;font-size:14.5px;border-bottom:1px solid #443d2f;display:flex;justify-content:space-between">Kitaplığa Ekle <span style="opacity:.6">▤</span></div>
+              <div style="padding:13px 18px;font-size:14.5px;border-bottom:1px solid #443d2f;display:flex;justify-content:space-between">Paylaş <span style="opacity:.6">↗</span></div>
+              <div style="padding:13px 18px;font-size:14.5px;color:#e1665a;display:flex;justify-content:space-between">Rapor Et <span style="opacity:.6">!</span></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:#efe9de;opacity:.3"></div>
+          </div>
+        </div>
+        <p style="max-width:390px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Kapak üstünde uzun basma → context menu (Kitaplığa Ekle / Paylaş / Rapor Et). Aynı jest, akıştaki kitap kartlarında da çalışır.</p>
+      </div>
+
+      <div style="width:390px;flex:none" data-continuation="14">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">14 · Yazar Detay</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:14px 24px"><span style="font-size:18px">←</span></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:8px 0 10px">
+                <div style="width:82px;height:82px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-800));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:26px;box-shadow:var(--shadow-md)">SA</div>
+                <h3 style="margin:8px 0 0;font-size:21px;font-weight:400;font-family:var(--font-heading)">Sabahattin Ali</h3>
+                <div style="font-size:13px;color:var(--color-neutral-600)">1907–1948 · Türk Edebiyatı</div>
+                <div style="font-family:var(--font-heading);font-weight:400;font-size:24px;color:var(--color-accent-700);margin-top:5px">8.9 <span style="font-size:12px;color:var(--color-neutral-600);font-weight:400">ortalama puan</span></div>
+              </div>
+              <div style="font-weight:600;font-size:15px">Kitapları · 6</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px">
+                <div style="height:104px;border-radius:8px;background:linear-gradient(160deg,var(--color-accent-500),var(--color-accent-800));display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;box-shadow:var(--shadow-sm)"><span style="font-family:var(--font-heading);font-weight:600;font-size:12px;color:#fff">Kürk Mantolu Madonna</span></div>
+                <div style="height:104px;border-radius:8px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-800));display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;box-shadow:var(--shadow-sm)"><span style="font-family:var(--font-heading);font-weight:600;font-size:12px;color:#fff">İçimizdeki Şeytan</span></div>
+                <div style="height:104px;border-radius:8px;background:linear-gradient(160deg,var(--color-accent-700),var(--color-accent-900));display:flex;align-items:center;justify-content:center;padding:8px;text-align:center;box-shadow:var(--shadow-sm)"><span style="font-family:var(--font-heading);font-weight:600;font-size:12px;color:#fff">Kuyucaklı Yusuf</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ KİTAPLIĞIM ============ -->
+  <div data-screen-label="Kitaplığım" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Kitaplığım</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">15 · Kitaplığım — Okuyorum</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Kitaplığım</div></div>
+            <div style="display:flex;padding:0 24px 14px;gap:3px;border:1px solid var(--color-divider);border-radius:10px;margin:0 24px;width:fit-content;background:#fff">
+              <div style="padding:7px 13px;border:1px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);border-radius:7px;font-size:12px;font-weight:600">Okuyorum</div>
+              <div style="padding:7px 13px;font-size:12px;color:var(--color-neutral-700)">Okudum</div>
+              <div style="padding:7px 13px;font-size:12px;color:var(--color-neutral-700)">İstiyorum</div>
+              <div style="padding:7px 13px;font-size:12px;color:var(--color-neutral-700)">Yarıda</div>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:14px 24px 16px;margin-bottom:84px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;gap:14px;align-items:center"><div style="width:48px;height:70px;border-radius:6px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-800));flex:none;box-shadow:var(--shadow-sm);position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.18)"></div></div><div style="flex:1"><div style="font-weight:600;font-size:14.5px">Beyaz Kale</div><div style="font-size:12px;color:var(--color-neutral-600);margin-bottom:7px">Orhan Pamuk</div><div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden"><div style="width:64%;height:100%;background:linear-gradient(90deg,var(--color-accent-500),var(--color-accent-700))"></div></div><div style="font-size:11px;color:var(--color-neutral-600);margin-top:4px">%64 · s. 138/216</div></div></div>
+              <div style="display:flex;gap:14px;align-items:center"><div style="width:48px;height:70px;border-radius:6px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-900));flex:none;box-shadow:var(--shadow-sm);position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,.2)"></div></div><div style="flex:1"><div style="font-weight:600;font-size:14.5px">Tutunamayanlar</div><div style="font-size:12px;color:var(--color-neutral-600);margin-bottom:7px">Oğuz Atay</div><div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden"><div style="width:22%;height:100%;background:linear-gradient(90deg,var(--color-accent-500),var(--color-accent-700))"></div></div><div style="font-size:11px;color:var(--color-neutral-600);margin-top:4px">%22 · s. 148/724</div></div></div>
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:16px;background:#fff;margin-top:6px;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:13.5px;font-weight:600">2026 Okuma Hedefi</span><span style="font-size:12px;color:var(--color-accent-700);font-weight:600">24 / 40 kitap</span></div>
+                <div style="height:8px;background:var(--color-neutral-200);border-radius:4px;overflow:hidden"><div style="width:60%;height:100%;background:linear-gradient(90deg,var(--color-accent-500),var(--color-accent-700))"></div></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:color-mix(in srgb, var(--color-bg) 88%, transparent);backdrop-filter:blur(10px);border-top:1px solid var(--color-divider);display:flex;padding-top:10px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:21px;height:21px;border:2px solid var(--color-neutral-500);border-radius:6px"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Akış</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:17px;height:17px;border:2px solid var(--color-neutral-500);border-radius:50%"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Keşfet</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;gap:2px"><div style="width:3px;height:17px;background:var(--color-accent-700);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-accent-700);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-accent-700);border-radius:1px"></div></div><span style="font-size:9.5px;color:var(--color-accent-700);font-weight:600">Kitaplığım</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border:2px solid var(--color-neutral-500);border-radius:50% 50% 50% 5px"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Mesajlar</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border-radius:50%;background:var(--color-neutral-400)"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Profil</span></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">16 · Yarıda Bıraktım</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Kitaplığım</div></div>
+            <div style="display:flex;padding:0 24px 14px;gap:3px;border:1px solid var(--color-divider);border-radius:10px;margin:0 24px;width:fit-content;background:#fff">
+              <div style="padding:7px 13px;font-size:12px;color:var(--color-neutral-700)">Okuyorum</div>
+              <div style="padding:7px 13px;font-size:12px;color:var(--color-neutral-700)">Okudum</div>
+              <div style="padding:7px 13px;font-size:12px;color:var(--color-neutral-700)">İstiyorum</div>
+              <div style="padding:7px 13px;border:1px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);border-radius:7px;font-size:12px;font-weight:600">Yarıda</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:14px 24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;gap:14px;align-items:flex-start"><div style="width:48px;height:70px;border-radius:6px;background:linear-gradient(160deg,var(--color-neutral-400),var(--color-neutral-700));flex:none;box-shadow:var(--shadow-sm)"></div><div style="flex:1"><div style="font-weight:600;font-size:14.5px">Ulysses</div><div style="font-size:12px;color:var(--color-neutral-600);margin-bottom:6px">James Joyce</div><div style="display:inline-block;padding:4px 9px;border-radius:6px;background:var(--color-surface);font-size:11px;color:var(--color-neutral-700)">%18'de bıraktım · Sebep: Anlatım çok dağınık geldi</div></div></div>
+              <div style="display:flex;gap:14px;align-items:flex-start"><div style="width:48px;height:70px;border-radius:6px;background:linear-gradient(160deg,var(--color-accent-300),var(--color-accent-600));flex:none;box-shadow:var(--shadow-sm)"></div><div style="flex:1"><div style="font-weight:600;font-size:14.5px">Sefiller</div><div style="font-size:12px;color:var(--color-neutral-600);margin-bottom:6px">Victor Hugo</div><div style="display:inline-block;padding:4px 9px;border-radius:6px;background:var(--color-surface);font-size:11px;color:var(--color-neutral-700)">%40'ta bıraktım · Sebep: Başka kitaba geçtim</div></div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">17 · Listelerim</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Listelerim</div><span style="font-size:22px;color:var(--color-accent-700)">+</span></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:15px;background:#fff;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm)"><div><div style="font-weight:600;font-size:15px;margin-bottom:3px">2026'da Okunacaklar</div><div style="font-size:12.5px;color:var(--color-neutral-600)">14 kitap · Herkese Açık</div></div><span style="font-size:15px;color:var(--color-neutral-400)">›</span></div>
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:15px;background:#fff;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm)"><div><div style="font-weight:600;font-size:15px;margin-bottom:3px">Türk Edebiyatı Klasikleri</div><div style="font-size:12.5px;color:var(--color-neutral-600)">31 kitap · Herkese Açık</div></div><span style="font-size:15px;color:var(--color-neutral-400)">›</span></div>
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:15px;background:#fff;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm)"><div><div style="font-weight:600;font-size:15px;margin-bottom:3px">Favorilerim</div><div style="font-size:12.5px;color:var(--color-neutral-600)">9 kitap · Sadece Ben</div></div><span style="font-size:15px;color:var(--color-neutral-400)">›</span></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">18 · DKList Okuma Skoru <span style="color:var(--color-accent-700)">✦ paylaşım kartı</span></div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:#141210;border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="width:260px;height:462px;background:linear-gradient(165deg,#3a270d,#181510 70%);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 24px 50px rgba(0,0,0,.55)">
+              <div><div style="font-size:10.5px;letter-spacing:.16em;color:#e1ad66;text-transform:uppercase">DKList Okuma Skoru</div><div style="font-family:var(--font-heading);font-weight:400;font-size:24px;color:#fdf8ee;margin-top:8px">2026 Wrapped</div></div>
+              <div style="text-align:center"><div style="font-family:var(--font-heading);font-weight:400;font-size:72px;color:#efd9ae;line-height:1">32</div><div style="font-size:11.5px;letter-spacing:.12em;color:#e1ad66;text-transform:uppercase">Kitap Okundu</div></div>
+              <div style="display:flex;justify-content:space-between;color:#c9c2b4;font-size:11px"><div><div style="font-weight:600;color:#fdf8ee;font-size:15px">9.412</div>Sayfa</div><div><div style="font-weight:600;color:#fdf8ee;font-size:15px">%18</div>Türk Yazar</div><div><div style="font-weight:600;color:#fdf8ee;font-size:15px">61</div>Gün Seri</div></div>
+              <div style="border-top:1px solid rgba(255,255,255,.15);padding-top:12px;font-size:10px;color:#9a9184;text-align:center">dklist.com/elifd · @elifd_okur</div>
+            </div>
+            <div style="margin-top:18px;display:flex;gap:10px"><div style="padding:10px 18px;background:linear-gradient(155deg,#e1ad66,#a06f24);color:#181510;border-radius:20px;font-size:13px;font-weight:600">Hikayeye Paylaş</div><div style="padding:10px 18px;border:1px solid #443d2f;color:#efe9de;border-radius:20px;font-size:13px">İndir</div></div>
+          </div>
+        </div>
+        <p style="max-width:390px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">1080×1920 (Instagram Story) formatında; native paylaşım sayfası doğrudan Instagram/WhatsApp seçeneğiyle açılır.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ ASKIDA KİTAP PAZARYERİ ============ -->
+  <div data-screen-label="Askıda Kitap" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Askıda Kitap — Pazaryeri</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">19 · İlan Detay</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10;box-shadow:0 0 0 1px rgba(255,255,255,.06)"></div>
+            <div style="height:224px;background:linear-gradient(150deg,var(--color-neutral-200),var(--color-neutral-400));position:relative">
+              <div style="position:absolute;top:18px;left:20px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px">←</div>
+              <div style="position:absolute;bottom:12px;right:16px;display:flex;gap:5px"><div style="width:6px;height:6px;border-radius:50%;background:#fff"></div><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)"></div><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.5)"></div></div>
+              <div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:monospace;font-size:11.5px;color:var(--color-neutral-600)">ürün fotoğrafı (1/3)</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:18px 24px;display:flex;flex-direction:column;gap:14px">
+              <div><h3 style="margin:0 0 5px;font-size:19px;font-weight:600">Simyacı — 2. El, Az Kullanılmış</h3><div style="font-family:var(--font-heading);font-weight:400;font-size:26px;color:var(--color-accent-700)">₺85 <span style="font-size:13px;color:var(--color-neutral-600);font-weight:400">+ ₺29 kargo</span></div></div>
+              <div style="display:flex;gap:12px;align-items:center;border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);padding:12px 0"><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:12.5px;flex:none">BS</div><div style="flex:1"><div style="font-size:13.5px;font-weight:600">Burak S.</div><div style="font-size:11.5px;color:var(--color-neutral-600)">★ 4.8 satıcı puanı · 62 satış</div></div><div style="font-size:12px;color:var(--color-accent-700);font-weight:600">Profili Gör</div></div>
+              <div style="font-size:14px;line-height:1.65;color:var(--color-neutral-700)">Bir kez okundu, sayfa kenarlarında hafif kırışıklık var. Sararma yok, tüm sayfalar mevcut.</div>
+              <div style="display:flex;gap:16px;font-size:12.5px;color:var(--color-neutral-600)"><span>Baskı: 2019</span><span>Sayfa: 176</span><span>Şehir: İzmir</span></div>
+            </div>
+            <div style="padding:14px 24px 26px;display:flex;gap:10px;border-top:1px solid var(--color-divider);background:#fff"><div style="flex:1;height:50px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600">Sepete Ekle</div><div style="flex:1;height:50px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;color:var(--color-accent)">Satın Al</div></div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">20 · Sepet — Satıcıya Göre Gruplu</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 26px 8px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Sepetim</div></div>
+            <div style="padding:0 24px 10px"><div style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--color-accent-800);line-height:1.5">Her satıcı ayrı ödeme gerektirir — sepetin satıcıya göre 2 gruba ayrıldı.</div></div>
+            <div style="flex:1;overflow:hidden;padding:6px 24px;display:flex;flex-direction:column;gap:16px">
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:14px;background:#fff;box-shadow:var(--shadow-sm)">
+                <div style="font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:10px">Satıcı: Burak S. · 1 ürün</div>
+                <div style="display:flex;gap:11px;align-items:center;margin-bottom:10px"><div style="width:38px;height:54px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-800));flex:none;box-shadow:var(--shadow-sm)"></div><div style="flex:1"><div style="font-size:14px;font-weight:600">Simyacı</div><div style="font-size:12px;color:var(--color-neutral-600)">₺85</div></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--color-neutral-700);border-top:1px solid var(--color-divider);padding-top:9px"><span>Ara Toplam + Kargo</span><strong>₺114</strong></div>
+                <div style="margin-top:11px;height:44px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--color-accent)">Bu Satıcıya Öde</div>
+              </div>
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:14px;background:#fff;box-shadow:var(--shadow-sm)">
+                <div style="font-size:12px;font-weight:600;color:var(--color-neutral-700);margin-bottom:10px">Satıcı: Merve D. · 2 ürün</div>
+                <div style="display:flex;gap:11px;align-items:center;margin-bottom:8px"><div style="width:38px;height:54px;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-800));flex:none;box-shadow:var(--shadow-sm)"></div><div style="flex:1"><div style="font-size:14px;font-weight:600">Suç ve Ceza</div><div style="font-size:12px;color:var(--color-neutral-600)">Ücretsiz</div></div></div>
+                <div style="display:flex;gap:11px;align-items:center;margin-bottom:10px"><div style="width:38px;height:54px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-300),var(--color-accent-600));flex:none;box-shadow:var(--shadow-sm)"></div><div style="flex:1"><div style="font-size:14px;font-weight:600">Küçük Prens</div><div style="font-size:12px;color:var(--color-neutral-600)">₺40</div></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--color-neutral-700);border-top:1px solid var(--color-divider);padding-top:9px"><span>Ara Toplam + Kargo</span><strong>₺69</strong></div>
+                <div style="margin-top:11px;height:44px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--color-accent)">Bu Satıcıya Öde</div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">21 · Ödeme — Adım 1: Adres</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 24px 6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px">←</span><div style="font-weight:600;font-size:16px">Ödeme</div><span style="width:17px"></span></div>
+            <div style="display:flex;align-items:center;gap:7px;padding:12px 24px 18px">
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:600">1</div><div style="flex:1;height:2px;background:var(--color-accent-700)"></div>
+              <div style="width:24px;height:24px;border-radius:50%;border:1.5px solid var(--color-neutral-400);color:var(--color-neutral-500);font-size:12px;display:flex;align-items:center;justify-content:center">2</div><div style="flex:1;height:2px;background:var(--color-neutral-300)"></div>
+              <div style="width:24px;height:24px;border-radius:50%;border:1.5px solid var(--color-neutral-400);color:var(--color-neutral-500);font-size:12px;display:flex;align-items:center;justify-content:center">3</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:13px">
+              <div style="font-weight:600;font-size:16px;margin-bottom:2px">Teslimat Adresi</div>
+              <div style="border:1.5px solid var(--color-accent);border-radius:14px;padding:15px;background:var(--color-accent-100)"><div style="font-size:14px;font-weight:600;margin-bottom:4px">Ev · Elif Demir</div><div style="font-size:13px;color:var(--color-neutral-700);line-height:1.55">Cihangir Mah. Sıraselviler Cad. No:42/6<br>Beyoğlu / İstanbul</div></div>
+              <div style="border:1px solid var(--color-divider);border-radius:14px;padding:15px;color:var(--color-neutral-600);font-size:14px;display:flex;align-items:center;gap:9px;background:#fff">+ Yeni Adres Ekle</div>
+            </div>
+            <div style="padding:16px 24px 30px"><div style="height:52px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent)">Devam Et</div></div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">22 · Ödeme — Adım 3: Onay (İyzico)</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 24px 6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px">←</span><div style="font-weight:600;font-size:16px">Ödeme</div><span style="width:17px"></span></div>
+            <div style="display:flex;align-items:center;gap:7px;padding:12px 24px 18px">
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:600">✓</div><div style="flex:1;height:2px;background:var(--color-accent-700)"></div>
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:600">✓</div><div style="flex:1;height:2px;background:var(--color-accent-700)"></div>
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:600">3</div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:13px">
+              <div style="font-weight:600;font-size:16px">Siparişi Onayla</div>
+              <div style="border:1px solid var(--color-divider);border-radius:12px;padding:14px;background:#fff;display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--color-neutral-600)">Ürünler (1)</span><span>₺85</span></div>
+              <div style="border:1px solid var(--color-divider);border-radius:12px;padding:14px;background:#fff;display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--color-neutral-600)">Kargo</span><span>₺29</span></div>
+              <div style="border:1.5px solid var(--color-accent);border-radius:12px;padding:14px;background:var(--color-accent-100);display:flex;justify-content:space-between;font-size:15px;font-weight:600"><span>Toplam</span><span style="color:var(--color-accent-800)">₺114</span></div>
+              <div style="border:1px solid var(--color-divider);border-radius:12px;padding:14px;background:#fff;display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px"><strong>•••• 4242</strong> ile öde</div><div style="font-size:10px;letter-spacing:.06em;color:var(--color-neutral-600)">İYZİCO GÜVENCESİYLE</div></div>
+              <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--color-neutral-600)"><div style="width:15px;height:15px;border:1.6px solid var(--color-neutral-500);border-radius:4px"></div>3B Güvenli ödeme ile onaylıyorum</div>
+            </div>
+            <div style="padding:16px 24px 30px"><div style="height:52px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent)">₺114 Öde</div></div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">23 · Siparişlerim + Dynamic Island <span style="color:var(--color-accent-700)">✦ Live Activity</span></div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="width:130px;height:36px;background:#000;border-radius:20px;position:absolute;top:13px;left:50%;transform:translateX(-50%);z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 10px"><div style="width:12px;height:12px;border-radius:50%;background:linear-gradient(155deg,#e1ad66,#a06f24)"></div><div style="width:18px;height:18px;border:1.5px solid #efd9ae;border-radius:4px"></div></div>
+            <div style="padding:56px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Siparişlerim</div></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="border:1.5px solid var(--color-accent);border-radius:16px;padding:15px;background:var(--color-accent-100)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:13px;font-weight:600;color:var(--color-accent-800)">#DK-88213</span><span style="font-size:12px;color:var(--color-accent-800);font-weight:600">Kargoya Verildi</span></div>
+                <div style="display:flex;gap:11px;align-items:center;margin-bottom:12px"><div style="width:36px;height:52px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-800));flex:none;box-shadow:var(--shadow-sm)"></div><div style="font-size:13.5px;font-weight:600">Simyacı — Burak S.</div></div>
+                <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:50%;background:var(--color-accent-700)"></div><div style="flex:1;height:2px;background:var(--color-accent-700)"></div><div style="width:10px;height:10px;border-radius:50%;background:var(--color-accent-700)"></div><div style="flex:1;height:2px;background:var(--color-neutral-300)"></div><div style="width:10px;height:10px;border-radius:50%;background:var(--color-neutral-300)"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--color-neutral-600);margin-top:4px"><span>Onaylandı</span><span>Kargoda</span><span>Teslim</span></div>
+              </div>
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:15px;background:#fff;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm)"><div><div style="font-size:13.5px;font-weight:600">#DK-88104 · Teslim Edildi</div><div style="font-size:12px;color:var(--color-neutral-600);margin-top:2px">Suç ve Ceza, Küçük Prens</div></div><span style="font-size:15px;color:var(--color-neutral-400)">›</span></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+        <p style="max-width:390px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Dynamic Island, kargo durumu güncellendiğinde canlı ilerleme gösterir; kilit ekranında da aynı Live Activity kartı çıkar.</p>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">24 · Satıcı Paneli — İlanlarım</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 26px 12px;display:flex;justify-content:space-between;align-items:center"><div style="font-family:var(--font-heading);font-weight:400;font-size:28px">İlanlarım</div><span style="font-size:22px;color:var(--color-accent-700)">+</span></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:14px;background:#fff;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:11.5px;padding:4px 9px;border-radius:6px;background:var(--color-accent-100);color:var(--color-accent-800);font-weight:600">Onay Bekliyor</span><span style="font-size:11.5px;color:var(--color-neutral-600)">2 sa. önce</span></div>
+                <div style="display:flex;gap:11px;align-items:center"><div style="width:36px;height:52px;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-800));flex:none;box-shadow:var(--shadow-sm)"></div><div style="flex:1"><div style="font-size:14px;font-weight:600">1984</div><div style="font-size:12px;color:var(--color-neutral-600)">₺60 · Stok: 1</div></div><span style="font-size:12px;color:var(--color-accent-700);font-weight:600">Düzenle</span></div>
+              </div>
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:14px;background:#fff;box-shadow:var(--shadow-sm)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:11.5px;padding:4px 9px;border-radius:6px;background:color-mix(in srgb, #6a8f6f 18%, transparent);color:#3d5c40;font-weight:600">Yayında</span><span style="font-size:11.5px;color:var(--color-neutral-600)">3 gün önce</span></div>
+                <div style="display:flex;gap:11px;align-items:center"><div style="width:36px;height:52px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-800));flex:none;box-shadow:var(--shadow-sm)"></div><div style="flex:1"><div style="font-size:14px;font-weight:600">Simyacı</div><div style="font-size:12px;color:var(--color-neutral-600)">₺85 · Stok: 1 · 14 görüntülenme</div></div><span style="font-size:12px;color:var(--color-accent-700);font-weight:600">Düzenle</span></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">25 · İlan Oluştur — Fotoğraf & Barkod</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 24px 4px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px">✕</span><div style="font-weight:600;font-size:16px">Yeni İlan</div><span style="font-size:14px;color:var(--color-accent-700);font-weight:600">İleri</span></div>
+            <div style="flex:1;overflow:hidden;padding:14px 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;gap:9px">
+                <div style="width:68px;height:68px;border:1.5px dashed var(--color-accent);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--color-accent-700);font-size:11px;gap:3px"><span style="font-size:18px">+</span>Fotoğraf</div>
+                <div style="width:68px;height:68px;border-radius:10px;background:linear-gradient(160deg,var(--color-neutral-300),var(--color-neutral-500))"></div>
+                <div style="width:68px;height:68px;border-radius:10px;background:linear-gradient(160deg,var(--color-neutral-300),var(--color-neutral-500))"></div>
+              </div>
+              <div style="height:46px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;gap:9px;font-size:14px;font-weight:600;color:var(--color-accent)"><div style="width:15px;height:11px;border:1.6px solid var(--color-accent);border-radius:2px"></div>Barkod Okutup Otomatik Doldur</div>
+              <div><div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:6px">Kitap</div><div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;padding:0 14px;font-size:14.5px;background:#fff">Simyacı — Paulo Coelho ✓</div></div>
+              <div style="display:flex;gap:10px"><div style="flex:1"><div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:6px">Fiyat</div><div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;padding:0 14px;font-size:14.5px;background:#fff">₺85</div></div><div style="flex:1"><div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:6px">Durum</div><div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;padding:0 14px;font-size:14.5px;background:#fff">Az Kullanılmış</div></div></div>
+              <div><div style="font-size:12px;color:var(--color-neutral-700);margin-bottom:6px">Kargo Seçeneği</div><div style="height:48px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;padding:0 14px;font-size:14.5px;background:#fff">Alıcı Öder · ₺29</div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+        <p style="max-width:390px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Barkod okutma, kitap bilgisini form üzerine otomatik dolduruyor — satıcı sadece fiyat ve durumu girer.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ KULÜPLER, MESAJLAR, BİLDİRİMLER ============ -->
+  <div data-screen-label="Kulüpler, Mesajlar, Bildirimler" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Kulüpler · Mesajlar · Bildirimler</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">26 · Kulüp Detay</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10;box-shadow:0 0 0 1px rgba(255,255,255,.06)"></div>
+            <div style="height:130px;background:linear-gradient(130deg,var(--color-accent-800),var(--color-accent-500));position:relative;display:flex;align-items:flex-end;padding:16px 24px 18px"><div style="position:absolute;top:18px;left:20px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.3);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">←</div><div style="color:#fff"><div style="font-family:var(--font-heading);font-weight:400;font-size:22px">Eylül Ayı: Rus Klasikleri</div><div style="font-size:12px;opacity:.85;margin-top:2px">1.240 üye · Herkese Açık</div></div></div>
+            <div style="padding:16px 24px 12px"><div style="height:46px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;color:var(--color-accent)">Kulübe Katıl</div></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;gap:13px;align-items:center;border:1px solid var(--color-divider);border-radius:14px;padding:13px;background:#fff;box-shadow:var(--shadow-sm)"><div style="width:42px;height:60px;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-900));flex:none;box-shadow:var(--shadow-sm)"></div><div><div style="font-size:11.5px;color:var(--color-neutral-600);margin-bottom:3px">Bu Ayın Seçilen Kitabı</div><div style="font-weight:600;font-size:15px">Karamazov Kardeşler</div><div style="font-size:12.5px;color:var(--color-neutral-600)">Fyodor Dostoyevski</div></div></div>
+              <div style="font-weight:600;font-size:15px">Tartışma</div>
+              <div style="display:flex;gap:11px;align-items:flex-start"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:10.5px;flex:none">CT</div><div><div style="font-size:13.5px;font-weight:600;margin-bottom:3px">Cem T.</div><div style="font-size:13px;color:var(--color-neutral-700);line-height:1.55">İvan'ın hikayesi bölümüne geldim, felsefi tartışmalar gerçekten yoğunlaşıyor.</div></div></div>
+              <div style="display:flex;gap:11px;align-items:flex-start"><div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-300),var(--color-accent-600));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:10.5px;flex:none">SA</div><div><div style="font-size:13.5px;font-weight:600;margin-bottom:3px">Selin A.</div><div style="font-size:13px;color:var(--color-neutral-700);line-height:1.55">Çeviri karşılaştırması yapan var mı, hangi baskıyı öneriyorsunuz?</div></div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">27 · Mesajlar — Konuşma Listesi</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Mesajlar</div></div>
+            <div style="padding:0 24px 12px"><div style="border:1px solid var(--color-divider);border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;background:#fff;box-shadow:var(--shadow-sm)"><span style="font-size:14px;color:var(--color-neutral-700)">Diğer Mesajlar</span><div style="display:flex;align-items:center;gap:7px"><span style="font-size:11.5px;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;border-radius:10px;padding:2px 8px;font-weight:600">3</span><span style="color:var(--color-neutral-400)">›</span></div></div></div>
+            <div style="flex:1;overflow-y:auto;padding:0 24px 16px;margin-bottom:84px;display:flex;flex-direction:column">
+              <div style="display:flex;gap:13px;align-items:center;padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:14px;flex:none">MD</div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Merve D.</div><div style="font-size:13px;color:var(--color-neutral-600)">Kitabı yarın kargoya veriyorum</div></div><div style="font-size:11px;color:var(--color-neutral-500)">14:22</div></div>
+              <div style="display:flex;gap:13px;align-items:center;padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:14px;flex:none">CT</div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Cem T.</div><div style="font-size:13px;color:var(--color-neutral-600)">Karamazov'da hangi bölümdesin?</div></div><div style="font-size:11px;color:var(--color-neutral-500)">Dün</div></div>
+              <div style="display:flex;gap:13px;align-items:center;padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-500),var(--color-accent-800));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:14px;flex:none">ED</div><div style="flex:1"><div style="font-size:14.5px;font-weight:600">Elif D.</div><div style="font-size:13px;color:var(--color-neutral-600)">Bu ay yine sen liderdesin</div></div><div style="font-size:11px;color:var(--color-neutral-500)">Pzt</div></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:color-mix(in srgb, var(--color-bg) 88%, transparent);backdrop-filter:blur(10px);border-top:1px solid var(--color-divider);display:flex;padding-top:10px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:21px;height:21px;border:2px solid var(--color-neutral-500);border-radius:6px"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Akış</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:17px;height:17px;border:2px solid var(--color-neutral-500);border-radius:50%"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Keşfet</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;gap:2px"><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Kitaplığım</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border:2px solid var(--color-accent-700);border-radius:50% 50% 50% 5px"></div><span style="font-size:9.5px;color:var(--color-accent-700);font-weight:600">Mesajlar</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border-radius:50%;background:var(--color-neutral-400)"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Profil</span></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">28 · Sohbet Ekranı</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--color-divider)"><span style="font-size:18px">←</span><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:12.5px">MD</div><div style="font-weight:600;font-size:15px">Merve D.</div></div>
+            <div style="flex:1;overflow:hidden;padding:16px 22px;display:flex;flex-direction:column;gap:10px">
+              <div style="align-self:flex-start;max-width:75%;background:var(--color-surface);border-radius:16px 16px 16px 4px;padding:11px 15px;font-size:14px">Merhaba, Simyacı hâlâ satılık mı?</div>
+              <div style="align-self:flex-end;max-width:75%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;border-radius:16px 16px 4px 16px;padding:11px 15px;font-size:14px">Evet, hâlâ mevcut 🙂</div>
+              <div style="align-self:flex-start;max-width:75%;background:var(--color-surface);border-radius:16px 16px 16px 4px;padding:11px 15px;font-size:14px">Süper, sepete ekliyorum o zaman</div>
+              <div style="align-self:flex-end;max-width:75%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;border-radius:16px 16px 4px 16px;padding:11px 15px;font-size:14px">Kitabı yarın kargoya veriyorum</div>
+            </div>
+            <div style="padding:12px 22px 30px;display:flex;gap:9px;align-items:center"><div style="flex:1;height:42px;border:1px solid var(--color-divider);border-radius:22px;display:flex;align-items:center;padding:0 16px;font-size:14px;color:var(--color-neutral-500);background:#fff">Mesaj yaz…</div><div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px">↑</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">29 · Bildirimler</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 26px 12px"><div style="font-family:var(--font-heading);font-weight:400;font-size:30px">Bildirimler</div><span style="font-size:12px;color:var(--color-accent-700);font-weight:600">Tümünü Oku</span></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column">
+              <div style="display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="width:34px;height:34px;border-radius:50%;background:var(--color-accent-100);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-accent-800)">♡</div><div style="flex:1"><div style="font-size:13.5px"><strong>Cem T.</strong> gönderini beğendi</div><div style="font-size:11.5px;color:var(--color-neutral-500);margin-top:3px">12 dk önce</div></div></div>
+              <div style="display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff">+</div><div style="flex:1"><div style="font-size:13.5px"><strong>Selin A.</strong> seni takip etmeye başladı</div><div style="font-size:11.5px;color:var(--color-neutral-500);margin-top:3px">1 sa. önce</div></div></div>
+              <div style="display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="width:34px;height:34px;border-radius:50%;background:color-mix(in srgb, #6a8f6f 20%, transparent);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#3d5c40">₺</div><div style="flex:1"><div style="font-size:13.5px">Siparişin <strong>#DK-88213</strong> kargoya verildi</div><div style="font-size:11.5px;color:var(--color-neutral-500);margin-top:3px">3 sa. önce</div></div></div>
+              <div style="display:flex;gap:13px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--color-divider)"><div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-500),var(--color-accent-800));flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff">★</div><div style="flex:1"><div style="font-size:13.5px">"Kitap Kurdu" rozetini kazandın!</div><div style="font-size:11.5px;color:var(--color-neutral-500);margin-top:3px">Dün</div></div></div>
+              <div style="display:flex;gap:13px;align-items:flex-start;padding:12px 0;opacity:.55"><div style="width:34px;height:34px;border-radius:50%;background:var(--color-neutral-300);flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--color-neutral-700)">💬</div><div style="flex:1"><div style="font-size:13.5px"><strong>Merve D.</strong> yorumuna yanıt verdi</div><div style="font-size:11.5px;color:var(--color-neutral-500);margin-top:3px">2 gün önce</div></div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+        <p style="max-width:390px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Bildirim türüne göre renk kodlaması: bronz ton sosyal etkileşim, yeşil ton sipariş/ticaret, koyu bronz rozet/oyunlaştırma.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ PROFİL & AYARLAR ============ -->
+  <div data-screen-label="Profil ve Ayarlar" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Profil & Ayarlar</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">30 · Kendi Profilim</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:flex-end;padding:14px 24px"><span style="font-size:17px">⚙</span></div>
+            <div style="flex:1;overflow-y:auto;padding:0 24px 16px;margin-bottom:84px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px">
+                <div style="width:86px;height:86px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:28px;box-shadow:var(--shadow-md)">ED</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:7px"><h3 style="margin:0;font-size:20px;font-weight:400;font-family:var(--font-heading)">Elif Demir</h3><span style="width:15px;height:15px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center">✓</span></div>
+                <div style="font-size:13px;color:var(--color-neutral-600)">@elifd_okur · Seviye 7 — Kitap Avcısı</div>
+                <div style="display:flex;gap:24px;margin-top:8px"><div style="text-align:center"><div style="font-weight:600;font-size:15.5px">340</div><div style="font-size:11px;color:var(--color-neutral-600)">Puan</div></div><div style="text-align:center"><div style="font-weight:600;font-size:15.5px">612</div><div style="font-size:11px;color:var(--color-neutral-600)">Takipçi</div></div><div style="text-align:center"><div style="font-weight:600;font-size:15.5px">288</div><div style="font-size:11px;color:var(--color-neutral-600)">Takip</div></div></div>
+              </div>
+              <div style="display:flex;gap:9px"><div style="flex:1;height:42px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;color:var(--color-accent)">Profili Düzenle</div><div style="flex:1;height:42px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;background:#fff">Paylaş</div></div>
+              <div style="border:1px solid var(--color-divider);border-radius:16px;padding:14px 16px;background:#fff;display:flex;gap:12px;overflow:hidden;box-shadow:var(--shadow-sm)">
+                <div style="text-align:center;flex:none"><div style="width:40px;height:40px;border-radius:11px;background:linear-gradient(155deg,var(--color-accent-500),var(--color-accent-800));margin-bottom:5px;box-shadow:var(--shadow-sm)"></div><div style="font-size:9.5px;color:var(--color-neutral-600)">Kitap Kurdu</div></div>
+                <div style="text-align:center;flex:none"><div style="width:40px;height:40px;border-radius:11px;background:linear-gradient(155deg,var(--color-accent-300),var(--color-accent-600));margin-bottom:5px;box-shadow:var(--shadow-sm)"></div><div style="font-size:9.5px;color:var(--color-neutral-600)">61 Gün Seri</div></div>
+                <div style="text-align:center;flex:none"><div style="width:40px;height:40px;border-radius:11px;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));margin-bottom:5px;box-shadow:var(--shadow-sm)"></div><div style="font-size:9.5px;color:var(--color-neutral-600)">Eleştirmen</div></div>
+                <div style="text-align:center;flex:none"><div style="width:40px;height:40px;border-radius:11px;background:var(--color-neutral-200);margin-bottom:5px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--color-neutral-600);font-weight:600">+12</div></div>
+              </div>
+              <div style="font-weight:600;font-size:15px">Paylaşılan Kitaplar · 32</div>
+              <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px">
+                <div style="aspect-ratio:2/3;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-700))"></div><div style="aspect-ratio:2/3;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-800))"></div><div style="aspect-ratio:2/3;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-600),var(--color-accent-900))"></div><div style="aspect-ratio:2/3;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-300),var(--color-neutral-600))"></div><div style="aspect-ratio:2/3;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-200),var(--color-accent-500))"></div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:color-mix(in srgb, var(--color-bg) 88%, transparent);backdrop-filter:blur(10px);border-top:1px solid var(--color-divider);display:flex;padding-top:10px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:21px;height:21px;border:2px solid var(--color-neutral-500);border-radius:6px"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Akış</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:17px;height:17px;border:2px solid var(--color-neutral-500);border-radius:50%"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Keşfet</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="display:flex;gap:2px"><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div><div style="width:3px;height:17px;background:var(--color-neutral-500);border-radius:1px"></div></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Kitaplığım</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border:2px solid var(--color-neutral-500);border-radius:50% 50% 50% 5px"></div><span style="font-size:9.5px;color:var(--color-neutral-500)">Mesajlar</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-500),var(--color-accent-800))"></div><span style="font-size:9.5px;color:var(--color-accent-700);font-weight:600">Profil</span></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">31 · Başka Bir Kullanıcının Profili</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:14px 24px"><span style="font-size:18px">←</span></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px">
+                <div style="width:86px;height:86px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-800));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:28px;box-shadow:var(--shadow-md)">CT</div>
+                <h3 style="margin:7px 0 0;font-size:20px;font-weight:400;font-family:var(--font-heading)">Cem Türk</h3>
+                <div style="font-size:13px;color:var(--color-neutral-600)">@cemturk · Seviye 4</div>
+                <div style="display:flex;gap:9px;margin-top:12px"><div style="height:40px;padding:0 22px;border:1.5px solid var(--color-accent);border-radius:var(--radius-md);display:flex;align-items:center;font-size:13.5px;font-weight:600;color:var(--color-accent)">Takip Et</div><div style="height:40px;width:40px;border:1px solid var(--color-divider);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:14px;background:#fff">✉</div></div>
+              </div>
+              <div style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--color-accent-800);text-align:center">Sen ve Cem 7 kitabı ortak okudunuz</div>
+              <div style="font-weight:600;font-size:15px">Son Okudukları</div>
+              <div style="display:flex;gap:11px;align-items:center"><div style="width:40px;height:60px;border-radius:5px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-900));flex:none;box-shadow:var(--shadow-sm)"></div><div><div style="font-weight:600;font-size:14.5px">Karamazov Kardeşler</div><div style="font-size:12px;color:var(--color-neutral-600)">9/10 verdi</div></div></div>
+              <div style="display:flex;gap:11px;align-items:center"><div style="width:40px;height:60px;border-radius:5px;background:linear-gradient(160deg,var(--color-accent-400),var(--color-accent-800));flex:none;box-shadow:var(--shadow-sm)"></div><div><div style="font-weight:600;font-size:14.5px">Beyaz Kale</div><div style="font-size:12px;color:var(--color-neutral-600)">8/10 verdi</div></div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">32 · Ayarlar</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:14px 24px 6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px">←</span><div style="font-weight:600;font-size:16px">Ayarlar</div><span style="width:17px"></span></div>
+            <div style="flex:1;overflow:hidden;padding:14px 24px;display:flex;flex-direction:column;gap:18px">
+              <div>
+                <div style="font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);margin-bottom:8px">Hesap</div>
+                <div style="border:1px solid var(--color-divider);border-radius:14px;background:#fff;overflow:hidden;box-shadow:var(--shadow-sm)">
+                  <div style="padding:14px 16px;font-size:14.5px;border-bottom:1px solid var(--color-divider);display:flex;justify-content:space-between">Hesap Bilgileri <span style="color:var(--color-neutral-400)">›</span></div>
+                  <div style="padding:14px 16px;font-size:14.5px;border-bottom:1px solid var(--color-divider);display:flex;justify-content:space-between">Bildirim Tercihleri <span style="color:var(--color-neutral-400)">›</span></div>
+                  <div style="padding:14px 16px;font-size:14.5px;border-bottom:1px solid var(--color-divider);display:flex;justify-content:space-between">İki Adımlı Doğrulama <span style="color:var(--color-accent-700);font-size:12.5px;font-weight:600">Açık ›</span></div>
+                  <div style="padding:14px 16px;font-size:14.5px;display:flex;justify-content:space-between">Engellenen Kullanıcılar <span style="color:var(--color-neutral-400)">›</span></div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);margin-bottom:8px">Görünüm</div>
+                <div style="border:1px solid var(--color-divider);border-radius:14px;background:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow-sm)"><span style="font-size:14.5px">Karanlık Mod</span><div style="width:46px;height:27px;border-radius:14px;background:linear-gradient(155deg,var(--color-accent-600),var(--color-accent-800));position:relative"><div style="width:23px;height:23px;border-radius:50%;background:#fff;position:absolute;top:2px;right:2px;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div></div>
+              </div>
+              <div>
+                <div style="border:1px solid var(--color-divider);border-radius:14px;background:#fff;overflow:hidden;box-shadow:var(--shadow-sm)">
+                  <div style="padding:14px 16px;font-size:14.5px;border-bottom:1px solid var(--color-divider);display:flex;justify-content:space-between;color:var(--color-accent-700);font-weight:600">DKList Premium'a Geç <span>›</span></div>
+                  <div style="padding:14px 16px;font-size:14.5px;display:flex;justify-content:space-between;color:#c0392b">Çıkış Yap</div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">33 · DKList Premium</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:#141210;border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#efe9de">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="display:flex;justify-content:flex-end;padding:12px 24px"><span style="font-size:17px">✕</span></div>
+            <div style="flex:1;overflow:hidden;padding:6px 26px;display:flex;flex-direction:column;gap:18px;text-align:center;align-items:center">
+              <div style="width:56px;height:56px;border:2px solid #e1ad66;border-radius:16px;display:flex;align-items:center;justify-content:center;transform:rotate(45deg)"><div style="transform:rotate(-45deg);width:7px;height:24px;background:#e1ad66;border-radius:2px"></div></div>
+              <div style="font-family:var(--font-heading);font-weight:400;font-size:26px">DKList Premium</div>
+              <div style="font-size:13.5px;color:#c9c2b4;line-height:1.65">Reklamsız deneyim, sınırsız liste oluşturma, gelişmiş istatistikler ve profilinde altın rozet.</div>
+              <div style="width:100%;text-align:left;display:flex;flex-direction:column;gap:11px;margin-top:6px">
+                <div style="display:flex;gap:11px;align-items:center"><span style="color:#e1ad66;font-weight:600">✓</span><span style="font-size:14px">Reklamsız akış ve arama</span></div>
+                <div style="display:flex;gap:11px;align-items:center"><span style="color:#e1ad66;font-weight:600">✓</span><span style="font-size:14px">Sınırsız özel liste</span></div>
+                <div style="display:flex;gap:11px;align-items:center"><span style="color:#e1ad66;font-weight:600">✓</span><span style="font-size:14px">Detaylı okuma istatistikleri</span></div>
+                <div style="display:flex;gap:11px;align-items:center"><span style="color:#e1ad66;font-weight:600">✓</span><span style="font-size:14px">Premium profil rozeti</span></div>
+              </div>
+              <div style="width:100%;border:1.5px solid #e1ad66;border-radius:12px;padding:14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:600;font-size:15px">Yıllık</div><div style="font-size:11px;color:#9a9184">%30 tasarruf</div></div><div style="font-weight:600;font-size:16px">₺449,90/yıl</div></div>
+            </div>
+            <div style="padding:6px 26px 30px"><div style="height:52px;border:1.5px solid #e1ad66;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:600;font-size:16px;color:#e1ad66">Premium'a Başla</div></div>
+            <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:#efe9de;opacity:.3;margin-bottom:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">34 · Puan Tablosu (Liderlik)</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:14px 24px 10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px">←</span><div style="font-weight:600;font-size:17px">Puan Tablosu</div><span style="width:17px"></span></div>
+            <div style="display:flex;gap:7px;padding:0 24px 14px"><div style="padding:7px 14px;border-radius:18px;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-size:12px;font-weight:600">Bu Hafta</div><div style="padding:7px 14px;border-radius:18px;border:1px solid var(--color-divider);font-size:12px;color:var(--color-neutral-700);background:#fff">Bu Ay</div><div style="padding:7px 14px;border-radius:18px;border:1px solid var(--color-divider);font-size:12px;color:var(--color-neutral-700);background:#fff">Tüm Zamanlar</div></div>
+            <div style="flex:1;overflow:hidden;padding:0 24px;display:flex;flex-direction:column;gap:9px">
+              <div style="display:flex;align-items:center;gap:13px;padding:10px 0"><div style="font-family:var(--font-heading);font-weight:600;font-size:17px;color:var(--color-accent-700);width:22px">1</div><div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-400),var(--color-accent-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:13px">ED</div><div style="flex:1;font-size:14.5px;font-weight:600">Elif Demir</div><div style="font-size:13.5px;color:var(--color-neutral-600)">340 p.</div></div>
+              <div style="display:flex;align-items:center;gap:13px;padding:10px 0"><div style="font-family:var(--font-heading);font-weight:600;font-size:17px;color:var(--color-neutral-600);width:22px">2</div><div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-400),var(--color-neutral-700));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:13px">BŞ</div><div style="flex:1;font-size:14.5px">Burak Şahin</div><div style="font-size:13.5px;color:var(--color-neutral-600)">312 p.</div></div>
+              <div style="display:flex;align-items:center;gap:13px;padding:10px 8px;background:var(--color-accent-100);border-radius:10px;margin:0 -8px"><div style="font-family:var(--font-heading);font-weight:600;font-size:17px;width:22px">7</div><div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(155deg,var(--color-accent-300),var(--color-accent-600));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:13px">SEN</div><div style="flex:1;font-size:14.5px;font-weight:600">Sen</div><div style="font-size:13.5px">158 p.</div></div>
+              <div style="display:flex;align-items:center;gap:13px;padding:10px 0"><div style="font-family:var(--font-heading);font-weight:600;font-size:17px;color:var(--color-neutral-600);width:22px">8</div><div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(155deg,var(--color-neutral-500),var(--color-neutral-800));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-heading);font-weight:600;font-size:13px">SA</div><div style="flex:1;font-size:14.5px">Selin Aydın</div><div style="font-size:13.5px;color:var(--color-neutral-600)">149 p.</div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">35 · Rozetler Galerisi</div>
+        <div style="width:390px;background:#141210;border-radius:58px;padding:12px;box-shadow:var(--shadow-lg)">
+          <div style="width:366px;height:790px;background:var(--color-bg);border-radius:46px;overflow:hidden;position:relative;display:flex;flex-direction:column">
+            <div style="position:absolute;top:13px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#000;border-radius:18px;z-index:10"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 30px 0;font-size:15px;font-weight:600;position:relative;z-index:2"><span style="font-variant-numeric:tabular-nums">9:41</span><div style="display:flex;align-items:center;gap:5px"><div style="display:flex;align-items:flex-end;gap:1.5px;height:9px"><div style="width:2.5px;height:4px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:6px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:7.5px;background:currentColor;border-radius:.5px"></div><div style="width:2.5px;height:9px;background:currentColor;border-radius:.5px"></div></div><div style="width:24px;height:12px;border:1.4px solid currentColor;border-radius:3px;padding:1.5px;box-sizing:border-box"><div style="width:75%;height:100%;background:currentColor;border-radius:1px"></div></div></div></div>
+            <div style="padding:14px 24px 10px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:17px">←</span><div style="font-weight:600;font-size:16px">Rozetlerim · 14/40</div><span style="width:17px"></span></div>
+            <div style="flex:1;overflow:hidden;padding:6px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-content:start">
+              <div style="text-align:center"><div style="width:100%;aspect-ratio:1;border-radius:16px;background:linear-gradient(160deg,var(--color-accent-500),var(--color-accent-800));margin-bottom:7px;box-shadow:var(--shadow-sm)"></div><div style="font-size:11px;font-weight:600">Kitap Kurdu</div><div style="font-size:9.5px;color:var(--color-neutral-600)">100 kitap okundu</div></div>
+              <div style="text-align:center"><div style="width:100%;aspect-ratio:1;border-radius:16px;background:linear-gradient(160deg,var(--color-accent-300),var(--color-accent-600));margin-bottom:7px;box-shadow:var(--shadow-sm)"></div><div style="font-size:11px;font-weight:600">61 Gün Seri</div><div style="font-size:9.5px;color:var(--color-neutral-600)">Ardışık okuma</div></div>
+              <div style="text-align:center"><div style="width:100%;aspect-ratio:1;border-radius:16px;background:linear-gradient(160deg,var(--color-neutral-500),var(--color-neutral-800));margin-bottom:7px;box-shadow:var(--shadow-sm)"></div><div style="font-size:11px;font-weight:600">Eleştirmen</div><div style="font-size:9.5px;color:var(--color-neutral-600)">50 yorum yazıldı</div></div>
+              <div style="text-align:center"><div style="width:100%;aspect-ratio:1;border-radius:16px;background:linear-gradient(160deg,var(--color-accent-200),var(--color-accent-500));margin-bottom:7px;box-shadow:var(--shadow-sm)"></div><div style="font-size:11px;font-weight:600">Klasik Avcısı</div><div style="font-size:9.5px;color:var(--color-neutral-600)">10 klasik tamamlandı</div></div>
+              <div style="text-align:center;opacity:.4"><div style="width:100%;aspect-ratio:1;border-radius:16px;background:var(--color-neutral-200);margin-bottom:7px"></div><div style="font-size:11px;font-weight:600">Cömert Satıcı</div><div style="font-size:9.5px;color:var(--color-neutral-600)">25 satış · kilitli</div></div>
+              <div style="text-align:center;opacity:.4"><div style="width:100%;aspect-ratio:1;border-radius:16px;background:var(--color-neutral-200);margin-bottom:7px"></div><div style="font-size:11px;font-weight:600">Kulüp Lideri</div><div style="font-size:9.5px;color:var(--color-neutral-600)">bir kulüp yönet · kilitli</div></div>
+            </div>
+            <div style="position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:var(--color-text);opacity:.3;margin-top:16px"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ NATIVE ÖZELLİKLER ============ -->
+  <div data-screen-label="Native Özellikler" style="margin-bottom:72px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 22px">Native-Özel Özellikler</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="width:340px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">36 · Ana Ekran Widget'ları</div>
+        <div style="background:#0d0c0a;border-radius:28px;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:14px;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)">
+          <div style="background:linear-gradient(160deg,#211d16,#171410);border-radius:18px;padding:15px;color:#efe9de;aspect-ratio:1;display:flex;flex-direction:column;justify-content:space-between;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)">
+            <div style="font-size:10px;color:#9a9184;letter-spacing:.06em">GÜNLÜK HEDEF</div>
+            <div style="display:flex;justify-content:center"><div style="width:54px;height:54px;border-radius:50%;border:5px solid #443d2f;position:relative"><div style="position:absolute;inset:-5px;border-radius:50%;border:5px solid #e1ad66;clip-path:polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 50% 100%)"></div></div></div>
+            <div style="font-size:12px;text-align:center;color:#efe9de;font-weight:600">22 / 30 dk</div>
+          </div>
+          <div style="background:linear-gradient(160deg,#211d16,#171410);border-radius:18px;padding:15px;color:#efe9de;aspect-ratio:1;display:flex;flex-direction:column;justify-content:space-between;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)">
+            <div style="font-size:10px;color:#9a9184;letter-spacing:.06em">BUGÜNÜN ÖNERİSİ</div>
+            <div style="display:flex;gap:9px;align-items:center"><div style="width:28px;height:40px;border-radius:4px;background:linear-gradient(160deg,#e1ad66,#a06f24);flex:none;box-shadow:var(--shadow-sm)"></div><div style="font-size:12px;line-height:1.35">Simyacı<br><span style="color:#9a9184;font-size:10px">P. Coelho</span></div></div>
+          </div>
+        </div>
+        <p style="max-width:340px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Ana ekran widget'ları: günlük okuma hedefi ilerlemesi ve o günün kişiselleştirilmiş kitap önerisi.</p>
+      </div>
+
+      <div style="width:340px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">37 · Kilit Ekranı Widget'ı</div>
+        <div style="background:radial-gradient(circle at 50% 20%,#241f18,#0d0c0a);border-radius:50px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:18px;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)">
+          <div style="color:#efe9de;font-family:var(--font-heading);font-weight:300;font-size:58px;margin-top:10px">9:41</div>
+          <div style="display:flex;gap:18px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:38px;height:38px;border-radius:50%;border:3px solid #443d2f;position:relative;display:flex;align-items:center;justify-content:center"><div style="position:absolute;inset:-3px;border-radius:50%;border:3px solid #e1ad66;clip-path:polygon(50% 50%,50% 0,100% 0,100% 60%)"></div><span style="color:#efe9de;font-size:10px;font-weight:600">61</span></div><span style="color:#c9c2b4;font-size:9px">Gün Serisi</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px"><div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(155deg,#e1ad66,#a06f24);display:flex;align-items:center;justify-content:center;color:#181510;font-size:12.5px;font-weight:600">62%</div><span style="color:#c9c2b4;font-size:9px">Okuma Hedefi</span></div>
+          </div>
+          <div style="height:90px"></div>
+        </div>
+        <p style="max-width:340px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Kilit ekranı widget'ları: okuma serisi ve yıllık hedef ilerlemesi, telefonu açmadan görülür.</p>
+      </div>
+
+      <div style="width:340px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">38 · Quick Actions (Uzun Basma)</div>
+        <div style="background:#0d0c0a;border-radius:50px;padding:44px 22px;position:relative;display:flex;flex-direction:column;align-items:center;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)">
+          <div style="width:68px;height:68px;border-radius:18px;background:var(--color-bg);display:flex;align-items:center;justify-content:center;margin-bottom:7px;box-shadow:var(--shadow-md);padding:13px;box-sizing:border-box"><img src="assets/dklist-mark.png" alt="" style="width:100%;height:100%;object-fit:contain"></div>
+          <div style="color:#c9c2b4;font-size:10.5px;margin-bottom:22px">DKList</div>
+          <div style="width:210px;background:#241f18;border-radius:16px;overflow:hidden;box-shadow:0 16px 36px rgba(0,0,0,.5)">
+            <div style="padding:12px 15px;font-size:13px;color:#efe9de;border-bottom:1px solid #443d2f;display:flex;justify-content:space-between">Kitap Ara <span style="opacity:.55">⌕</span></div>
+            <div style="padding:12px 15px;font-size:13px;color:#efe9de;border-bottom:1px solid #443d2f;display:flex;justify-content:space-between">İlan Ver <span style="opacity:.55">＋</span></div>
+            <div style="padding:12px 15px;font-size:13px;color:#efe9de;display:flex;justify-content:space-between">Barkod Tara <span style="opacity:.55">▤</span></div>
+          </div>
+        </div>
+        <p style="max-width:340px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">Ana ekran ikonuna uzun basınca en sık kullanılan 3 eyleme anında erişim.</p>
+      </div>
+
+      <div style="width:340px;flex:none">
+        <div style="font-family:var(--font-heading);font-size:12.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:12px;text-align:center">39 · Siri Shortcuts / App Intents</div>
+        <div style="background:#0d0c0a;border-radius:50px;padding:26px 20px;display:flex;flex-direction:column;justify-content:flex-end;height:360px;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)">
+          <div style="background:#211d16;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:11px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)">
+            <div style="display:flex;gap:11px;align-items:center"><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e1ad66,#7d5411)"></div><div style="color:#efe9de;font-size:14px;font-style:italic">"Bugün 20 sayfa okudum"</div></div>
+            <div style="border-top:1px solid #443d2f;padding-top:11px;color:#c9c2b4;font-size:12.5px;line-height:1.5">Beyaz Kale için 20 sayfa ilerleme kaydedildi. Toplam: s. 158/216 (%73)</div>
+          </div>
+        </div>
+        <p style="max-width:340px;font-size:12.5px;color:var(--color-neutral-600);margin-top:12px;line-height:1.6">App Intents ile sesli sayfa kaydı ve "DKList'te ne okuyorum" sorgusu Siri üzerinden çalışır.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="max-width:920px;margin-bottom:20px">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:24px;margin:0 0 18px">Gerekçelendirme</h2>
+    <div style="display:flex;flex-direction:column;gap:15px;font-size:14.5px;line-height:1.75;color:var(--color-neutral-800)">
+      <p><strong>Bilgi mimarisi:</strong> Önerilen 5 sekme (Akış, Keşfet, Kitaplığım, Mesajlar, Profil) Apple HIG'in "en çok kullanılan 5 eylem" kuralına uyar. Bildirimler ayrı sekme yerine Profil'den erişilen bir liste + kırmızı rozet olarak tasarlandı — bildirim sıklığı mesajlaşmadan daha düşük olduğu ve 6. sekme tab bar'ı sıkıştırıp dokunma hedeflerini küçülteceği için. Mesajlar tek başına sekme aldı çünkü DKList'te alım-satım öncesi/sonrası yazışma ticari bir işlev taşıyor.</p>
+      <p><strong>Görsel yön — bu revizyonda değişen:</strong> Kimlikler artık düz gri daireler değil, baş harfli degrade avatarlar; kitap kapakları düz renk değil, sırt gölgesi + folyo çizgisiyle katmanlı; her ekranda gerçek Dynamic Island ve sinyal/wifi/pil ikon kümesi var; başlıklar iOS'un büyük-başlık kuralına göre daha büyük ve daha hafif ağırlıkta; kartlar tutarlı shadow-sm/md gölge kademesiyle yükseltildi.</p>
+      <p><strong>Native özellik seçimleri:</strong> Barkod tarama ve Dynamic Island sipariş takibi öncelikliydi çünkü ikisi de web'in yapamayacağı, mobile özgü gerçek değer katıyor. Bildirim izni ilk açılışta değil, kullanıcı kitaplığına ilk kitabı eklediğinde sorulacak şekilde tasarlandı. Widget'lar ve Siri Shortcuts, oyunlaştırmayı ana akışın dışına taşıyıp günlük bir alışkanlık haline getiriyor — bildirimle zorlamadan.</p>
+      <p><strong>Kapsam notu:</strong> 39 ekran; PRD'deki tüm akışlar ve 6 kritik ekranda karanlık mod karşılığı dahil. iPad genişletilmiş layout, kullanıcı tercihiyle sonraki tura bırakıldı.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
