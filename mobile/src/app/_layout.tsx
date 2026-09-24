@@ -111,6 +111,96 @@ function RootNavigator() {
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen
+          name="profil/[username]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="yazar/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="cevirmen/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="yayinevi/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="bildirimler"
+          options={{
+            headerShown: true,
+            title: "Bildirimler",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="hesap-duzenle"
+          options={{
+            headerShown: true,
+            title: "Hesabım",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="favoriler"
+          options={{
+            headerShown: true,
+            title: "Favorilerim",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="listelerim"
+          options={{
+            headerShown: true,
+            title: "Listelerim",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="liste/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
     </Stack>
   );

@@ -1,6 +1,8 @@
 import { getBookBySlug, getWorkPooledScore } from "@/db/queries/book-detail";
 import { getUserBookRating, getBookRatingCount } from "@/db/queries/rating";
 import { getReadStatus } from "@/db/queries/reading-status";
+import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
+import { getEntityComments } from "@/db/queries/comments";
 import { getMobileSession } from "@/lib/mobile-auth";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
@@ -16,11 +18,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   const session = await getMobileSession(request);
 
-  const [pooledScore, ratingCount, myRating, myStatus] = await Promise.all([
+  const [pooledScore, ratingCount, myRating, myStatus, likeCount, liked, comments] = await Promise.all([
     book.workId ? getWorkPooledScore(book.workId) : Promise.resolve(null),
     getBookRatingCount(book.id),
     session ? getUserBookRating(session.userId, book.id) : Promise.resolve(null),
     session ? getReadStatus(session.userId, book.id) : Promise.resolve(null),
+    getBookLikeCount(book.id),
+    session ? isBookLiked(session.userId, book.id) : Promise.resolve(false),
+    getEntityComments(book.id, "book"),
   ]);
 
   return mobileJson({
@@ -31,6 +36,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     ratingCount: pooledScore?.voteCount ?? ratingCount,
     myRating,
     myStatus,
+    likeCount,
+    liked,
+    comments,
   });
 }
 

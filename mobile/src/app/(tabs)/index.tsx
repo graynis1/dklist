@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, FlatList, RefreshControl } from "react-native";
+import { View, FlatList, RefreshControl, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router, useFocusEffect } from "expo-router";
+import { BellIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { FeedCard } from "@/components/FeedCard";
 import { getFeed, type FeedItem } from "@/api/feed";
+import { getNotifications } from "@/api/notifications";
 
 export default function AkisScreen() {
   const { colors, spacing } = useTheme();
@@ -16,6 +19,7 @@ export default function AkisScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const loadFirstPage = useCallback(async (ignore?: { current: boolean }) => {
     try {
@@ -28,6 +32,17 @@ export default function AkisScreen() {
       if (!ignore?.current) setError("Akış yüklenemedi. İnternet bağlantını kontrol et.");
     }
   }, []);
+
+  // Refetches the unread badge every time Akış regains focus (e.g. coming
+  // back from Bildirimler, which marks everything read) - deliberately not
+  // the same mount-only effect as the feed itself.
+  useFocusEffect(
+    useCallback(() => {
+      getNotifications()
+        .then((r) => setUnreadCount(r.unreadCount))
+        .catch(() => {});
+    }, []),
+  );
 
   // Same mount-time-fetch cleanup-guard shape as AuthContext's own effect.
   useEffect(() => {
@@ -61,7 +76,32 @@ export default function AkisScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
         <ThemedText variant="display">Akış</ThemedText>
-        {profile && <Avatar id={profile.id} name={profile.name ?? profile.username} imageUrl={profile.image} size={36} />}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+          <Pressable onPress={() => router.push("/bildirimler")} style={{ padding: 4 }} hitSlop={8}>
+            <BellIcon color={colors.text} size={24} />
+            {unreadCount > 0 && (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  backgroundColor: colors.accent,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: 3,
+                }}
+              >
+                <ThemedText variant="caption" color="#fff" style={{ fontSize: 10, lineHeight: 12 }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </ThemedText>
+              </View>
+            )}
+          </Pressable>
+          {profile && <Avatar id={profile.id} name={profile.name ?? profile.username} imageUrl={profile.image} size={36} />}
+        </View>
       </View>
 
       {error ? (

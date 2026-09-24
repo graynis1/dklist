@@ -1,13 +1,22 @@
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { ChevronRightIcon, UserIcon, HeartIcon, ListIcon, SettingsIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 
+const MENU: { icon: typeof UserIcon; label: string; href: "/profil/[username]" | "/favoriler" | "/listelerim" | "/hesap-duzenle" }[] = [
+  { icon: UserIcon, label: "Profilimi Görüntüle", href: "/profil/[username]" },
+  { icon: HeartIcon, label: "Favorilerim", href: "/favoriler" },
+  { icon: ListIcon, label: "Listelerim", href: "/listelerim" },
+  { icon: SettingsIcon, label: "Hesap Ayarları", href: "/hesap-duzenle" },
+];
+
 export default function ProfilScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const { profile, logout } = useAuth();
 
   // No manual navigation after logout - see login.tsx's own comment;
@@ -37,11 +46,31 @@ export default function ProfilScreen() {
           <ThemedText variant="body">{profile.mail}</ThemedText>
         </View>
 
-        <Button title="Çıkış Yap" variant="secondary" onPress={() => logout()} block />
+        <View style={{ borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" }}>
+          {MENU.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <Pressable
+                key={item.label}
+                onPress={() => router.push(item.href === "/profil/[username]" ? { pathname: item.href, params: { username: profile.username } } : item.href)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.sm,
+                  padding: spacing.md,
+                  borderTopWidth: i === 0 ? 0 : 1,
+                  borderTopColor: colors.divider,
+                }}
+              >
+                <Icon color={colors.text} size={18} />
+                <ThemedText variant="body" style={{ flex: 1 }}>{item.label}</ThemedText>
+                <ChevronRightIcon color={colors.neutral400} size={18} />
+              </Pressable>
+            );
+          })}
+        </View>
 
-        <ThemedText variant="caption" muted style={{ textAlign: "center" }}>
-          Diğer ayarlar ve kitaplığın yakında burada olacak.
-        </ThemedText>
+        <Button title="Çıkış Yap" variant="secondary" onPress={() => logout()} block />
       </ScrollView>
     </SafeAreaView>
   );

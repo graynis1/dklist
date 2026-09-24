@@ -1,5 +1,6 @@
 import "server-only";
-import { updateTag, cacheTag, cacheLife } from "next/cache";
+import { cacheTag, cacheLife } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { userBook, userWriter, userTranslator, userPublisher, writer, translator, publisher } from "@/db/schema";
@@ -49,7 +50,7 @@ export async function toggleBookLike(
     await db.insert(userBook).values({ userId, bookId });
     await awardPoints(userId, (await getPointSettings()).like, "like", `like:book:${bookId}`);
   }
-  updateTag(`book-like-count:${bookId}`);
+  invalidateTag(`book-like-count:${bookId}`);
   return { liked: !already };
 }
 
@@ -94,8 +95,8 @@ export async function toggleWriterLike(
     await db.insert(userWriter).values({ userId, writerId });
     await awardPoints(userId, (await getPointSettings()).like, "like", `like:writer:${writerId}`);
   }
-  updateTag(`writer-like-count:${writerId}`);
-  updateTag(`liked-writers:${userId}`);
+  invalidateTag(`writer-like-count:${writerId}`);
+  invalidateTag(`liked-writers:${userId}`);
   return { liked: !already };
 }
 
@@ -133,8 +134,8 @@ export async function toggleTranslatorLike(
     await db.insert(userTranslator).values({ userId, translatorId });
     await awardPoints(userId, (await getPointSettings()).like, "like", `like:translator:${translatorId}`);
   }
-  updateTag(`translator-like-count:${translatorId}`);
-  updateTag(`liked-translators:${userId}`);
+  invalidateTag(`translator-like-count:${translatorId}`);
+  invalidateTag(`liked-translators:${userId}`);
   return { liked: !already };
 }
 
@@ -181,8 +182,8 @@ export async function togglePublisherLike(
     await db.insert(userPublisher).values({ userId, publisherId });
     await awardPoints(userId, (await getPointSettings()).like, "like", `like:publisher:${publisherId}`);
   }
-  updateTag(`publisher-like-count:${publisherId}`);
-  updateTag(`liked-publishers:${userId}`);
+  invalidateTag(`publisher-like-count:${publisherId}`);
+  invalidateTag(`liked-publishers:${userId}`);
   return { liked: !already };
 }
 

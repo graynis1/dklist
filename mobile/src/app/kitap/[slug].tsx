@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { BookCover } from "@/components/BookCover";
-import { getBook, rateBook, type BookDetailResponse } from "@/api/book";
+import { Avatar } from "@/components/Avatar";
+import { Button } from "@/components/Button";
+import { TextField } from "@/components/TextField";
+import { getBook, rateBook, toggleBookLike, addBookComment, type BookDetailResponse } from "@/api/book";
 import { setLibraryStatus, type ReadStatus } from "@/api/library";
+import { relativeTime } from "@/lib/relativeTime";
+import { getMyLists, addBookToList, type UserListSummary } from "@/api/lists";
 
 const STATUS_LABELS: Record<ReadStatus, string> = {
   currentRead: "Okuyorum",
@@ -23,6 +28,11 @@ export default function BookDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
   const [rateSaving, setRateSaving] = useState(false);
+  const [likeSaving, setLikeSaving] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [myLists, setMyLists] = useState<UserListSummary[] | null>(null);
+  const [showListPicker, setShowListPicker] = useState(false);
 
   const load = useCallback(async (ignore?: { current: boolean }) => {
     try {
@@ -72,6 +82,49 @@ export default function BookDetailScreen() {
     }
   }
 
+  async function onOpenListPicker() {
+    if (!myLists) {
+      const result = await getMyLists();
+      setMyLists(result.lists);
+    }
+    setShowListPicker((v) => !v);
+  }
+
+  async function onAddToList(listSlug: string) {
+    try {
+      await addBookToList(listSlug, slug);
+      setShowListPicker(false);
+      Alert.alert("Eklendi", "Kitap listeye eklendi.");
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Eklenemedi.");
+    }
+  }
+
+  async function onToggleLike() {
+    setLikeSaving(true);
+    try {
+      await toggleBookLike(slug);
+      await load();
+    } finally {
+      setLikeSaving(false);
+    }
+  }
+
+  async function submitComment() {
+    const trimmed = commentText.trim();
+    if (trimmed.length < 2) return;
+    setCommentSaving(true);
+    try {
+      await addBookComment(slug, trimmed);
+      setCommentText("");
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Yorum eklenemedi.");
+    } finally {
+      setCommentSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
@@ -90,7 +143,7 @@ export default function BookDetailScreen() {
     );
   }
 
-  const { book, displayScore, pooledEditionCount, ratingCount, myRating, myStatus } = data;
+  const { book, displayScore, pooledEditionCount, ratingCount, myRating, myStatus, likeCount, liked, comments } = data;
   const writerNames = book.writers.map((w) => w.name).join(", ");
 
   return (
@@ -99,13 +152,17 @@ export default function BookDetailScreen() {
         <BookCover id={book.id} title={book.name} author={writerNames} width={110} height={160} />
         <View style={{ flex: 1, justifyContent: "center", gap: spacing.xs }}>
           <ThemedText variant="headline">{book.name}</ThemedText>
-          {writerNames && (
+          {book.writers.length > 0 && (
             <ThemedText variant="body" muted>
-              {writerNames}
+              {book.writers.map((w, i) => (
+                <ThemedText key={w.id} variant="body" muted onPress={() => router.push({ pathname: "/yazar/[slug]", params: { slug: w.slug } })}>
+                  {w.name}{i < book.writers.length - 1 ? ", " : ""}
+                </ThemedText>
+              ))}
             </ThemedText>
           )}
           {book.publisher && (
-            <ThemedText variant="caption" muted>
+            <ThemedText variant="caption" muted onPress={() => router.push({ pathname: "/yayinevi/[slug]", params: { slug: book.publisher!.slug } })}>
               {book.publisher.name}
             </ThemedText>
           )}
@@ -121,6 +178,30 @@ export default function BookDetailScreen() {
           </View>
         </View>
       </View>
+
+      <View style={{ flexDirection: "row", gap: spacing.sm }}>
+        <Button
+          title={liked ? `Beğenildi ✓ (${likeCount})` : `Beğen (${likeCount})`}
+          variant={liked ? "primary" : "secondary"}
+          onPress={onToggleLike}
+          disabled={likeSaving}
+          style={{ flex: 1 }}
+        />
+        <Button title="Listeye Ekle" variant="secondary" onPress={onOpenListPicker} style={{ flex: 1 }} />
+      </View>
+
+      {showListPicker && (
+        <View style={{ gap: spacing.xs, borderWidth: 1, borderColor: colors.divider, borderRadius: radius.lg, padding: spacing.md }}>
+          {myLists && myLists.length === 0 && (
+            <ThemedText variant="body" muted>Henüz bir listen yok - önce Listelerim&apos;den bir liste oluştur.</ThemedText>
+          )}
+          {myLists?.map((l) => (
+            <Pressable key={l.id} onPress={() => onAddToList(l.slug)} style={{ paddingVertical: spacing.xs }}>
+              <ThemedText variant="body">{l.title}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       <View style={{ gap: spacing.sm }}>
         <ThemedText variant="label" color={colors.textMuted}>
@@ -180,6 +261,36 @@ export default function BookDetailScreen() {
           <ThemedText variant="body">{book.content ?? book.aiSummary}</ThemedText>
         </View>
       )}
+
+      <View style={{ gap: spacing.sm }}>
+        <ThemedText variant="label" color={colors.textMuted}>
+          Yorumlar ({comments.length})
+        </ThemedText>
+
+        <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-end" }}>
+          <View style={{ flex: 1 }}>
+            <TextField label="" value={commentText} onChangeText={setCommentText} placeholder="Bir yorum yaz…" multiline />
+          </View>
+          <Button title="Gönder" onPress={submitComment} disabled={commentSaving || commentText.trim().length < 2} />
+        </View>
+
+        {comments.map((c) => (
+          <Pressable
+            key={c.id}
+            onPress={() => router.push({ pathname: "/profil/[username]", params: { username: c.authorUsername } })}
+            style={{ flexDirection: "row", gap: spacing.sm }}
+          >
+            <Avatar id={c.authorUserId} name={c.authorUsername} imageUrl={c.authorImage} size={32} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
+                <ThemedText variant="bodySemibold">@{c.authorUsername}</ThemedText>
+                <ThemedText variant="caption" muted>{relativeTime(c.date)}</ThemedText>
+              </View>
+              <ThemedText variant="body">{c.text}</ThemedText>
+            </View>
+          </Pressable>
+        ))}
+      </View>
     </ScrollView>
   );
 }

@@ -103,13 +103,28 @@ export default function KesfetScreen() {
         )}
 
         {!loading && results && results.writers.length > 0 && (
-          <ResultSection title="Yazarlar" items={results.writers.map((w) => ({ id: w.id, label: w.name }))} />
+          <ResultSection
+            title="Yazarlar"
+            items={results.writers.map((w) => ({ id: w.id, label: w.name, slug: w.slug }))}
+            hrefBase="/yazar/[slug]"
+            paramKey="slug"
+          />
         )}
         {!loading && results && results.translators.length > 0 && (
-          <ResultSection title="Çevirmenler" items={results.translators.map((w) => ({ id: w.id, label: w.name }))} />
+          <ResultSection
+            title="Çevirmenler"
+            items={results.translators.map((w) => ({ id: w.id, label: w.name, slug: w.slug }))}
+            hrefBase="/cevirmen/[slug]"
+            paramKey="slug"
+          />
         )}
         {!loading && results && results.publishers.length > 0 && (
-          <ResultSection title="Yayınevleri" items={results.publishers.map((w) => ({ id: w.id, label: w.name }))} />
+          <ResultSection
+            title="Yayınevleri"
+            items={results.publishers.map((w) => ({ id: w.id, label: w.name, slug: w.slug }))}
+            hrefBase="/yayinevi/[slug]"
+            paramKey="slug"
+          />
         )}
         {!loading && results && results.users.length > 0 && (
           <View style={{ gap: spacing.sm }}>
@@ -117,10 +132,14 @@ export default function KesfetScreen() {
               Kullanıcılar
             </ThemedText>
             {results.users.map((u) => (
-              <View key={u.id} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
+              <Pressable
+                key={u.id}
+                onPress={() => router.push({ pathname: "/profil/[username]", params: { username: u.username } })}
+                style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}
+              >
                 <Avatar id={u.id} name={u.username} size={32} />
                 <ThemedText variant="body">@{u.username}</ThemedText>
-              </View>
+              </Pressable>
             ))}
           </View>
         )}
@@ -129,11 +148,17 @@ export default function KesfetScreen() {
   );
 }
 
-/** Writer/translator/publisher search results don't have their own mobile
- * detail screens yet (only book detail is built this pass) - shown as
- * informational rows for now rather than a broken/missing navigation
- * target; a real next step, not silently dropped. */
-function ResultSection({ title, items }: { title: string; items: { id: number; label: string }[] }) {
+function ResultSection({
+  title,
+  items,
+  hrefBase,
+  paramKey,
+}: {
+  title: string;
+  items: { id: number; label: string; slug: string }[];
+  hrefBase: "/yazar/[slug]" | "/cevirmen/[slug]" | "/yayinevi/[slug]";
+  paramKey: "slug";
+}) {
   const { colors, spacing } = useTheme();
   return (
     <View style={{ gap: spacing.sm }}>
@@ -141,9 +166,9 @@ function ResultSection({ title, items }: { title: string; items: { id: number; l
         {title}
       </ThemedText>
       {items.map((item) => (
-        <ThemedText key={item.id} variant="body">
-          {item.label}
-        </ThemedText>
+        <Pressable key={item.id} onPress={() => router.push({ pathname: hrefBase, params: { [paramKey]: item.slug } })}>
+          <ThemedText variant="body">{item.label}</ThemedText>
+        </Pressable>
       ))}
     </View>
   );

@@ -1,5 +1,6 @@
 import "server-only";
-import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import bcrypt from "bcryptjs";
@@ -103,7 +104,7 @@ function generateRecoveryCode(): string {
  * why this reuses an already-frozen column instead of a new migration. */
 export async function setProfilePrivacy(userId: number, isPrivate: boolean): Promise<void> {
   await db.update(user).set({ privacy: isPrivate ? 1 : 0 }).where(eq(user.id, userId));
-  updateTag(`profile:${await getUsernameById(userId)}`);
+  invalidateTag(`profile:${await getUsernameById(userId)}`);
 }
 
 export interface UpdateProfileInput {
@@ -155,7 +156,7 @@ export async function updateProfile(userId: number, input: UpdateProfileInput): 
   }
 
   await db.update(user).set(values).where(eq(user.id, userId));
-  updateTag(`profile:${await getUsernameById(userId)}`);
+  invalidateTag(`profile:${await getUsernameById(userId)}`);
 }
 
 async function getUsernameById(userId: number): Promise<string> {
@@ -214,7 +215,7 @@ export async function toggleVerified(targetUserId: number): Promise<boolean> {
   await db.update(user).set({ verified: next }).where(eq(user.id, targetUserId));
 
   const [target] = await db.select({ username: user.username }).from(user).where(eq(user.id, targetUserId)).limit(1);
-  if (target) updateTag(`profile:${target.username}`);
+  if (target) invalidateTag(`profile:${target.username}`);
 
   return Boolean(next);
 }
@@ -347,10 +348,10 @@ export async function toggleFollow(followerId: number, followedId: number): Prom
     await awardPoints(followerId, (await getPointSettings()).follow, "follow", `follow:${followedId}`);
   }
 
-  updateTag(`follow-counts:${followedId}`);
-  updateTag(`follow-counts:${followerId}`);
-  updateTag(`followers-list:${followedId}`);
-  updateTag(`following-list:${followerId}`);
+  invalidateTag(`follow-counts:${followedId}`);
+  invalidateTag(`follow-counts:${followerId}`);
+  invalidateTag(`followers-list:${followedId}`);
+  invalidateTag(`following-list:${followerId}`);
   return { following: !already };
 }
 
