@@ -8,7 +8,9 @@ import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { FeedCard } from "@/components/FeedCard";
-import { getFeed, type FeedItem } from "@/api/feed";
+import { TextField } from "@/components/TextField";
+import { Button } from "@/components/Button";
+import { getFeed, createFeedPost, type FeedItem } from "@/api/feed";
 import { getNotifications } from "@/api/notifications";
 
 export default function AkisScreen() {
@@ -20,6 +22,8 @@ export default function AkisScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [postText, setPostText] = useState("");
+  const [posting, setPosting] = useState(false);
 
   const loadFirstPage = useCallback(async (ignore?: { current: boolean }) => {
     try {
@@ -63,6 +67,19 @@ export default function AkisScreen() {
     setRefreshing(true);
     await loadFirstPage();
     setRefreshing(false);
+  }
+
+  async function onPost() {
+    const trimmed = postText.trim();
+    if (!trimmed) return;
+    setPosting(true);
+    try {
+      await createFeedPost(trimmed);
+      setPostText("");
+      await loadFirstPage();
+    } finally {
+      setPosting(false);
+    }
   }
 
   async function loadMore() {
@@ -120,6 +137,14 @@ export default function AkisScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
+          ListHeaderComponent={
+            <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-end", marginBottom: spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <TextField label="" value={postText} onChangeText={setPostText} placeholder="Ne düşünüyorsun?" multiline />
+              </View>
+              <Button title="Paylaş" onPress={onPost} disabled={posting || !postText.trim()} />
+            </View>
+          }
           ListEmptyComponent={
             !loading ? (
               <View style={{ alignItems: "center", paddingTop: spacing["3xl"] }}>

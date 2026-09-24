@@ -58,3 +58,9 @@ export async function getFeed(cursor?: number | null): Promise<FeedPage> {
   const result = await apiFetch<{ status: "ok" } & FeedPage>(`/feed${query}`);
   return { items: result.items, nextCursor: result.nextCursor };
 }
+
+/** Text-only for now - see the backend route's own doc comment for the
+ * image/book-attach scope cut. */
+export async function createFeedPost(text: string): Promise<{ id: number }> {
+  return apiFetch("/feed/post", { method: "POST", body: JSON.stringify({ text }) });
+}

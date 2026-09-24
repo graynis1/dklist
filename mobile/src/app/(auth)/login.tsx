@@ -22,23 +22,30 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [needsCode, setNeedsCode] = useState(false);
+  const [code, setCode] = useState("");
 
   async function submit() {
     if (!username.trim() || !password) {
       setError("Kullanıcı adı ve şifre gerekli.");
       return;
     }
+    if (needsCode && !code.trim()) {
+      setError("Doğrulama kodunu gir.");
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
-      const result = await login(username.trim(), password);
+      const result = await login(username.trim(), password, needsCode ? code.trim() : undefined);
       // No manual navigation on success - RootNavigator's Stack.Protected
       // guards flip automatically once AuthContext's profile updates, and
       // Expo Router steers here-to-(tabs) itself.
       if (result.status === "ok") {
         // nothing to do
       } else if (result.status === "two_factor_required") {
-        setError("Bu hesapta iki adımlı doğrulama açık - mobil uygulama henüz bu adımı desteklemiyor, lütfen web'den giriş yap.");
+        setNeedsCode(true);
+        setError(needsCode ? "Kod geçersiz veya süresi dolmuş, tekrar dene." : "Bu hesapta iki adımlı doğrulama açık - e-postana gönderilen kodu gir.");
       } else if (result.status === "suspended") {
         setError("Hesabınız geçici olarak askıya alındı.");
       } else {
@@ -93,6 +100,18 @@ export default function LoginScreen() {
               Şifremi Unuttum
             </ThemedText>
           </Pressable>
+
+          {needsCode && (
+            <TextField
+              label="Doğrulama Kodu"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="number-pad"
+              value={code}
+              onChangeText={setCode}
+              placeholder="E-postana gelen kod"
+            />
+          )}
 
           {error && (
             <ThemedText variant="caption" color="#c0392b">

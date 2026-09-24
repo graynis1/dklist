@@ -8,7 +8,7 @@ interface AuthState {
    * isLoading boolean so a screen can't accidentally render the signed-out
    * UI for one frame before the stored token is checked. */
   profile: MobileProfile | null | undefined;
-  login: (username: string, password: string) => Promise<{ status: "ok" } | { status: "invalid" | "two_factor_required" | "suspended"; message?: string }>;
+  login: (username: string, password: string, code?: string) => Promise<{ status: "ok" } | { status: "invalid" | "two_factor_required" | "suspended"; message?: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -56,8 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function login(username: string, password: string) {
-    const result = await apiLogin(username, password);
+  async function login(username: string, password: string, code?: string) {
+    const result = await apiLogin(username, password, code);
     if (result.status === "ok") {
       await refresh();
       return { status: "ok" as const };

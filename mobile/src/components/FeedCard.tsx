@@ -24,6 +24,12 @@ export function FeedCard({ item }: { item: FeedItem }) {
   const { colors, spacing, radius, shadow } = useTheme();
   const { verb, target } = describeFeedItem(item);
   const isQuoteCard = item.reason === "comment" && item.isQuote && item.excerpt;
+  // Standalone status-update posts (see mobile's own composer on Akış) -
+  // `describeFeedItem` deliberately returns target:null for these (same
+  // as the web copy it's ported from - the post's own text isn't a
+  // "target" the way a book/writer is), so the post body has to be read
+  // straight off `excerpt` here instead.
+  const isPostCard = item.reason === "feed_post" && item.excerpt;
   const bookImageUrl = item.bookCover?.hasImage ? `${API_BASE_URL}/kapak/${item.bookCover.id}` : null;
   const targetHref = resolveFeedTargetHref(item);
 
@@ -53,6 +59,16 @@ export function FeedCard({ item }: { item: FeedItem }) {
         <ThemedText variant="caption" muted>
           {target}
         </ThemedText>
+      )}
+    </View>
+  ) : isPostCard ? (
+    <View style={{ gap: spacing.sm }}>
+      <ThemedText variant="body">{item.excerpt}</ThemedText>
+      {item.entityKind === "book" && (
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <BookCover id={item.bookCover?.id ?? item.actorId} title={item.targetLabel ?? ""} width={40} height={58} imageUrl={bookImageUrl} />
+          <ThemedText variant="title" style={{ flex: 1, alignSelf: "center" }}>{item.targetLabel}</ThemedText>
+        </View>
       )}
     </View>
   ) : target && item.entityKind === "book" ? (
