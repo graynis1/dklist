@@ -11,7 +11,7 @@ Claude-Design mockup handed over 2026-09-24) - same palette/type/radii, not
 a reinterpretation, but with real backend data and native-only touches
 (haptics, safe-area handling) the static mockup couldn't show.
 
-## Status: first real screens (Android verified on a real emulator)
+## Status: every tab is real and backend-connected (Android verified on a real emulator)
 
 Built and end-to-end verified so far (2026-09-24/25):
 
@@ -29,16 +29,35 @@ Built and end-to-end verified so far (2026-09-24/25):
   pagination, real empty/error states.
 - **Profil**: real signed-in user's name/username/email, working
   "Çıkış Yap".
-- **Keşfet / Kitaplığım / Mesajlar**: honest "yakında" placeholders, not
-  silently missing - real screens, just not built this pass.
+- **Keşfet**: real debounced (350ms) search against `/api/mobile/v1/search`
+  - books (tappable to detail), writers/translators/publishers/users
+    (informational rows for now - no detail screens for those yet, a real
+    next step, not silently dropped).
+- **Kitaplığım**: real reading-status shelves (Okuyorum/Okudum/
+  Okuyacağım/Yarıda Bıraktım) with counts, 3-column `BookCover` grid
+  against `/api/mobile/v1/library`, tap-through to book detail.
+- **Mesajlar**: real conversation list (requests + conversations merged)
+  against `/api/mobile/v1/messages/conversations`, unread badges,
+  relative time, tap-through to a real chat thread
+  (`mesajlar/[username].tsx`) with a 5s poll and a working composer against
+  `/api/mobile/v1/messages/send`.
+- **Book detail** (`kitap/[slug].tsx`): pooled/own score, tappable
+  read-status pills and a 10-star tap-to-rate control, both wired to real
+  write endpoints (`/library/status`, `/book/[slug]/rate`).
 
 Verified on a real Android emulator (`DKList_Pixel7`, API 34), not just
-typechecked: fresh app launch → login with a throwaway test account →
-landed in Akış → navigated every tab via real taps → real profile data →
-logout → back to login screen. See `v2/PLAN.md`'s matching entry for the
-full account of what was checked and two real bugs found doing it (a
-backend crash-on-request bug, unrelated to mobile itself; two ESLint
-`react-hooks/set-state-in-effect` false-positives).
+typechecked, across two passes: the first covering fresh launch → login →
+Akış → every tab → logout; the second (after the user's correction that a
+front-end-only pass wasn't a real professional app) covering real search →
+book detail with a live status change and rating write that persisted →
+Kitaplığım shelf reflecting that same write → Mesajlar conversation list →
+chat thread → sending a real new message that rendered immediately. See
+`v2/PLAN.md`'s matching entries for the full account of what was checked
+and the real bugs found doing it (a backend crash-on-request bug and a
+`updateTag()`-from-Route-Handler bug, both unrelated to mobile UI itself;
+several ESLint `react-hooks/set-state-in-effect` false-positives; a
+corrupted Expo Router typed-routes cache after many hot-reloads, fixed by
+a clean `--clear` restart).
 
 ## Why Expo (React Native), not separate Swift/Kotlin apps
 
@@ -113,6 +132,14 @@ re-exporting anything.
 | `/auth/login` | POST | none | `{username, password, code?}` → `{token, user}` or `two_factor_required`/`suspended` |
 | `/me` | GET | Bearer | current user's profile |
 | `/feed` | GET | optional | `?cursor=<id>` for pagination; wraps the same feed the web `/akis` page uses |
+| `/search` | GET | optional | `?q=` across books/writers/translators/publishers/users |
+| `/library` | GET | Bearer | reading-status shelves for the signed-in user |
+| `/library/status` | POST | Bearer | `{bookId, status}` sets/clears a read status |
+| `/book/[slug]` | GET | optional | book detail + pooled/own score + own status |
+| `/book/[slug]/rate` | POST | Bearer | `{value}` 1-10 |
+| `/messages/conversations` | GET | Bearer | merged requests + conversations |
+| `/messages/thread/[username]` | GET | Bearer | full message history with one user |
+| `/messages/send` | POST | Bearer | `{username, text}` |
 
 Verified against the real local database (not just typechecked): a real
 login with a correct/incorrect password, a valid token reaching `/me`, an
@@ -139,8 +166,8 @@ Router and every file in it becomes a screen.
 
 ## Deliberately not decided/built yet
 
-- Keşfet (search/discover), Kitaplığım (reading-status shelves), Mesajlar
-  (chat) - real "yakında" placeholders exist, no logic behind them yet.
+- Writer/translator/publisher detail screens - Keşfet search finds them
+  but only shows informational rows, no tap-through yet.
 - Push notifications (Expo Push / APNs / FCM) - no device-token table on
   the backend yet either.
 - 2FA login flow - the backend already returns `two_factor_required`
