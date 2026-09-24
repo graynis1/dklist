@@ -201,6 +201,26 @@ function RootNavigator() {
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen
+          name="rozetler"
+          options={{
+            headerShown: true,
+            title: "Rozet Galerisi",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="puan-tablosu"
+          options={{
+            headerShown: true,
+            title: "Puan Tablosu",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
     </Stack>
   );
