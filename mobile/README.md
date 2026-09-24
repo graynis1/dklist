@@ -11,53 +11,71 @@ Claude-Design mockup handed over 2026-09-24) - same palette/type/radii, not
 a reinterpretation, but with real backend data and native-only touches
 (haptics, safe-area handling) the static mockup couldn't show.
 
-## Status: every tab is real and backend-connected (Android verified on a real emulator)
+## Status: every tab and every secondary screen is real and backend-connected
 
-Built and end-to-end verified so far (2026-09-24/25):
+Built and end-to-end verified on a real Android emulator (2026-09-24/25):
 
-- **Auth**: login screen (`(auth)/login.tsx`) against the real
-  `/api/mobile/v1/auth/login`, token in `expo-secure-store`.
-  `Stack.Protected` (Expo Router's own auth-flow primitive, not a hand-
-  rolled redirect) gates `(auth)` vs `(tabs)` based on `AuthContext`'s
-  resolved profile - no manual navigation calls anywhere, including on
-  logout.
-- **5-tab shell** (`(tabs)/_layout.tsx`): Akış / Keşfet / Kitaplığım /
-  Mesajlar / Profil, `lucide-react-native` icons, haptic feedback on every
-  tab switch and button press, safe-area-aware tab bar height.
-- **Akış**: real `FlatList` against `/api/mobile/v1/feed` (wraps the same
-  `getSiteFeed()` the web `/akis` page uses), pull-to-refresh, cursor
-  pagination, real empty/error states.
-- **Profil**: real signed-in user's name/username/email, working
-  "Çıkış Yap".
-- **Keşfet**: real debounced (350ms) search against `/api/mobile/v1/search`
-  - books (tappable to detail), writers/translators/publishers/users
-    (informational rows for now - no detail screens for those yet, a real
-    next step, not silently dropped).
-- **Kitaplığım**: real reading-status shelves (Okuyorum/Okudum/
-  Okuyacağım/Yarıda Bıraktım) with counts, 3-column `BookCover` grid
-  against `/api/mobile/v1/library`, tap-through to book detail.
-- **Mesajlar**: real conversation list (requests + conversations merged)
-  against `/api/mobile/v1/messages/conversations`, unread badges,
-  relative time, tap-through to a real chat thread
-  (`mesajlar/[username].tsx`) with a 5s poll and a working composer against
-  `/api/mobile/v1/messages/send`.
-- **Book detail** (`kitap/[slug].tsx`): pooled/own score, tappable
-  read-status pills and a 10-star tap-to-rate control, both wired to real
-  write endpoints (`/library/status`, `/book/[slug]/rate`).
+**Core**
+- **Auth**: login (`(auth)/login.tsx`) against the real
+  `/api/mobile/v1/auth/login`, token in `expo-secure-store`, full 2FA
+  round trip (code field appears on `two_factor_required`, resubmits with
+  `code`). `Stack.Protected` gates `(auth)` vs `(tabs)` on `AuthContext`'s
+  resolved profile - no manual navigation calls anywhere.
+- **5-tab shell**: Akış / Keşfet / Kitaplığım / Mesajlar / Profil,
+  `lucide-react-native` icons, haptics, safe-area-aware tab bar.
+- **Akış**: real feed (`getSiteFeed()`, pull-to-refresh, cursor
+  pagination) plus a real text post composer ("Ne düşünüyorsun?" →
+  `createFeedPost()`); every card's actor jumps to their profile and its
+  target (book/writer/translator/publisher/another user, via
+  `resolveFeedTargetHref`) jumps to that entity's own detail screen.
 
-Verified on a real Android emulator (`DKList_Pixel7`, API 34), not just
-typechecked, across two passes: the first covering fresh launch → login →
-Akış → every tab → logout; the second (after the user's correction that a
-front-end-only pass wasn't a real professional app) covering real search →
-book detail with a live status change and rating write that persisted →
-Kitaplığım shelf reflecting that same write → Mesajlar conversation list →
-chat thread → sending a real new message that rendered immediately. See
-`v2/PLAN.md`'s matching entries for the full account of what was checked
-and the real bugs found doing it (a backend crash-on-request bug and a
-`updateTag()`-from-Route-Handler bug, both unrelated to mobile UI itself;
-several ESLint `react-hooks/set-state-in-effect` false-positives; a
-corrupted Expo Router typed-routes cache after many hot-reloads, fixed by
-a clean `--clear` restart).
+**Catalog**
+- **Keşfet**: debounced search across books/writers/translators/
+  publishers/users, all five kinds now tap through to a real screen.
+- **Book detail**: pooled/own score, read-status pills, 10-star rating,
+  a like button, view+post comments, and "Listeye Ekle" (add to any of
+  the signed-in user's own reading lists).
+- **Yazar / Çevirmen / Yayınevi detail screens**: bio, book grid, a
+  like/follow toggle.
+- **Kitaplığım**: reading-status shelves with counts, tap-through to
+  book detail.
+
+**Social**
+- **Mesajlar**: conversation list (requests + conversations), unread
+  badges, a real chat thread (5s poll, working composer).
+- **Profil**: rebuilt into a real menu hub (own identity + email, then
+  Profilimi Görüntüle / Bildirimler / Favorilerim / Listelerim / Rozet
+  Galerisi / Puan Tablosu / Hesap Ayarları), not a bare placeholder.
+- **Other users' profiles** (`profil/[username]`): follow/unfollow,
+  follower/following counts, badges, a privacy-aware library view (a
+  private profile's shelves are hidden from non-followers, same rule as
+  the web).
+- **Bildirimler**: real notification list, unread badge on Akış's bell,
+  mark-all-read, delete-all.
+- **Favorilerim**: liked writers/translators/publishers.
+- **Listelerim** / **Liste detail**: create/view/delete reading lists,
+  add/remove books (from the list itself or from any book detail screen).
+- **Hesap Ayarları**: edit name/surname/bio/city/password, privacy and
+  2FA toggles - both persist to the real database.
+- **Rozet Galerisi** / **Puan Tablosu**: the public badge gallery (real
+  earned-by counts) and the weekly points leaderboard (plus the caller's
+  own rank even when outside the visible list).
+
+Verified via real taps on a real Android emulator (`DKList_Pixel7`,
+API 34) across several passes, not just typechecked - including full
+round trips like create-list → add-a-book-from-its-detail-screen →
+confirm-in-list-detail, a profile edit that persisted to the database, a
+follow/unfollow toggle, a 2FA login using a real generated OTP (read
+from the database, since there's no way to receive the mailed code in
+this dev environment), and a feed post that rendered correctly
+afterward. See `v2/PLAN.md`'s matching entries for the full account of
+what was checked and the real bugs found along the way (a backend
+crash-on-request bug, an `updateTag()`-from-Route-Handler bug hit in
+three different query files, a `FeedCard` gap where standalone posts
+never rendered their own text, a corrupted Expo Router typed-routes
+cache after heavy hot-reloading, and a `curl`-specific Turkish-character
+encoding bug in this dev environment that was initially mistaken for an
+app bug twice before being isolated and ruled out).
 
 ## Why Expo (React Native), not separate Swift/Kotlin apps
 
@@ -130,22 +148,39 @@ re-exporting anything.
 |---|---|---|---|
 | `/health` | GET | none | connectivity/version check |
 | `/auth/login` | POST | none | `{username, password, code?}` → `{token, user}` or `two_factor_required`/`suspended` |
-| `/me` | GET | Bearer | current user's profile |
+| `/me` | GET / POST | Bearer | profile; POST updates name/surname/bio/city/password/privacy/2FA |
+| `/me/edit` | GET | Bearer | full editable-profile fields for the account-settings form |
 | `/feed` | GET | optional | `?cursor=<id>` for pagination; wraps the same feed the web `/akis` page uses |
+| `/feed/post` | POST | Bearer | `{text}` - text-only status post (see deferred items below) |
 | `/search` | GET | optional | `?q=` across books/writers/translators/publishers/users |
 | `/library` | GET | Bearer | reading-status shelves for the signed-in user |
 | `/library/status` | POST | Bearer | `{bookId, status}` sets/clears a read status |
-| `/book/[slug]` | GET | optional | book detail + pooled/own score + own status |
+| `/book/[slug]` | GET | optional | book detail + pooled/own score + status + like state + comments |
 | `/book/[slug]/rate` | POST | Bearer | `{value}` 1-10 |
+| `/book/[slug]/like` | POST | Bearer | toggle like |
+| `/book/[slug]/comment` | POST | Bearer | `{text}` |
+| `/writer\|translator\|publisher/[slug]` | GET | optional | entity detail + books + like state |
+| `/writer\|translator\|publisher/[slug]/like` | POST | Bearer | toggle like/follow |
+| `/profile/[username]` | GET | optional | public profile + follow counts + privacy-aware badges/library |
+| `/profile/[username]/follow` | POST | Bearer | toggle follow |
+| `/notifications` | GET / DELETE | Bearer | list + unread count; DELETE (`?id=`) removes one or (no query) all |
+| `/notifications/read-all` | POST | Bearer | mark all read |
+| `/favorites` | GET | Bearer | liked writers/translators/publishers |
+| `/lists` | GET / POST | Bearer | the caller's reading lists; POST creates one |
+| `/lists/[slug]` | GET / DELETE | Bearer\* | list detail (public lists readable without auth); DELETE (owner only) |
+| `/lists/[slug]/books` | POST / DELETE | Bearer | add/remove a book |
+| `/badges` | GET | none | public badge gallery |
+| `/leaderboard` | GET | optional | weekly leaderboard + caller's own rank |
 | `/messages/conversations` | GET | Bearer | merged requests + conversations |
 | `/messages/thread/[username]` | GET | Bearer | full message history with one user |
 | `/messages/send` | POST | Bearer | `{username, text}` |
 
-Verified against the real local database (not just typechecked): a real
-login with a correct/incorrect password, a valid token reaching `/me`, an
-absent/invalid token being rejected, and `/feed` returning real (or
-correctly empty) data - all confirmed via direct HTTP calls and, for the
-full auth+feed loop, a real run on the Android emulator.
+Verified against the real local database (not just typechecked): every
+route above has been exercised with a real signed-in test account (curl
+or the app itself), including full read/write round trips - a profile
+edit that persisted, a follow toggle, a list create→add-book→verify
+chain, a real posted status update, and a 2FA login using a real
+generated OTP.
 
 ## Folder layout
 
@@ -154,11 +189,13 @@ src/
   app/          # Expo Router screens/layouts ONLY - routing, not logic
     (auth)/     # login (unauthenticated stack)
     (tabs)/     # the 5-tab authenticated shell
+    kitap/, yazar/, cevirmen/, yayinevi/, profil/, liste/, mesajlar/
+                # dynamic detail screens reachable from more than one tab
   api/          # backend client (config, fetch wrapper, per-feature calls)
   auth/         # token storage + AuthContext (profile state, login/logout)
   components/   # shared UI (ThemedText, Button, TextField, Avatar, BookCover, FeedCard, ComingSoon)
   theme/        # design tokens (colors/type/spacing/radius/shadow) + useTheme()
-  lib/          # pure helpers (feedCopy, relativeTime) - no React, no fetch
+  lib/          # pure helpers (feedCopy, feedNav, relativeTime) - no React, no fetch
 ```
 
 Non-route code stays out of `src/app/` - that directory is scanned by Expo
@@ -166,20 +203,34 @@ Router and every file in it becomes a screen.
 
 ## Deliberately not decided/built yet
 
-- Writer/translator/publisher detail screens - Keşfet search finds them
-  but only shows informational rows, no tap-through yet.
-- Push notifications (Expo Push / APNs / FCM) - no device-token table on
+Genuinely large sub-systems, each deserving its own dedicated pass rather
+than a rushed partial version bolted onto this one:
+- **Store/marketplace** (Askıda Kitap listings, sepetim/cart, siparislerim/
+  orders, İyzico payment) - the web app's own biggest single feature area.
+- **Kulüpler** (book clubs) and **Premium** - not started.
+- **Push notifications** (Expo Push/APNs/FCM) - no device-token table on
   the backend yet either.
-- 2FA login flow - the backend already returns `two_factor_required`
-  correctly, but there's no code-entry screen yet; login correctly tells
-  the user to use the web instead rather than failing silently.
-- Refresh-token rotation - the mobile JWT is a single 30-day token for now,
-  a deliberately simple choice for this phase, not a final security design.
-- EAS project linkage / bundle identifiers are placeholders
-  (`com.dklist.app`) - real Apple Developer / Google Play accounts needed
+- **Blog/Videolar reading in-app** - the web has both; mobile has neither
+  a browse list nor a reader screen for them yet.
+
+Smaller, real gaps:
+- **Feed post composer is text-only** - the web composer also supports
+  attaching an image (multipart upload) or a book; not built here.
+- **Comment reply threads** (sub-comments) - `comments.ts` already has
+  `getRepliesForComments`/`addSubComment`; book detail only shows
+  top-level comments so far, no reply UI.
+- **Kategori (category) browsing** - Keşfet's search covers finding a
+  book directly; browsing a whole category's book list isn't wired.
+- **Puan Mağazası** (spending points on rewards) - the leaderboard and
+  badge gallery are read-only views; the store itself isn't built.
+- **Refresh-token rotation** - the mobile JWT is a single 30-day token
+  for now, a deliberately simple choice for this phase, not a final
+  security design.
+- **EAS project linkage / bundle identifiers** are placeholders
+  (`com.dklist.app`) - real Apple Developer/Google Play accounts needed
   before any real build or store submission.
-- iOS build/testing - Android was done first per explicit instruction (this
-  Windows PC can't run an iOS simulator); the design system/components are
-  platform-agnostic already, but nothing has been run on iOS yet.
+- **iOS build/testing** - Android was done first per explicit instruction
+  (this Windows PC can't run an iOS simulator); the design system/
+  components are platform-agnostic already, but nothing has run on iOS.
 - Offline queueing, widgets, Live Activities, Siri Shortcuts - all in the
   separate design brief, none started.
