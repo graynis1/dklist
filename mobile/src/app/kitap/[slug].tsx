@@ -7,7 +7,7 @@ import { BookCover } from "@/components/BookCover";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
-import { getBook, rateBook, toggleBookLike, addBookComment, type BookDetailResponse } from "@/api/book";
+import { getBook, rateBook, toggleBookLike, addBookComment, addCommentReply, type BookDetailResponse, type BookComment } from "@/api/book";
 import { setLibraryStatus, type ReadStatus } from "@/api/library";
 import { relativeTime } from "@/lib/relativeTime";
 import { getMyLists, addBookToList, type UserListSummary } from "@/api/lists";
@@ -275,22 +275,78 @@ export default function BookDetailScreen() {
         </View>
 
         {comments.map((c) => (
-          <Pressable
-            key={c.id}
-            onPress={() => router.push({ pathname: "/profil/[username]", params: { username: c.authorUsername } })}
-            style={{ flexDirection: "row", gap: spacing.sm }}
-          >
-            <Avatar id={c.authorUserId} name={c.authorUsername} imageUrl={c.authorImage} size={32} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
-                <ThemedText variant="bodySemibold">@{c.authorUsername}</ThemedText>
-                <ThemedText variant="caption" muted>{relativeTime(c.date)}</ThemedText>
-              </View>
-              <ThemedText variant="body">{c.text}</ThemedText>
-            </View>
-          </Pressable>
+          <CommentRow key={c.id} comment={c} onReplied={load} />
         ))}
       </View>
     </ScrollView>
+  );
+}
+
+function CommentRow({ comment, onReplied }: { comment: BookComment; onReplied: () => Promise<void> }) {
+  const { colors, spacing } = useTheme();
+  const [showReplyBox, setShowReplyBox] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submitReply() {
+    const trimmed = replyText.trim();
+    if (trimmed.length < 2) return;
+    setSaving(true);
+    try {
+      await addCommentReply(comment.id, trimmed);
+      setReplyText("");
+      setShowReplyBox(false);
+      await onReplied();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Yanıt eklenemedi.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <View style={{ gap: spacing.xs }}>
+      <Pressable
+        onPress={() => router.push({ pathname: "/profil/[username]", params: { username: comment.authorUsername } })}
+        style={{ flexDirection: "row", gap: spacing.sm }}
+      >
+        <Avatar id={comment.authorUserId} name={comment.authorUsername} imageUrl={comment.authorImage} size={32} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
+            <ThemedText variant="bodySemibold">@{comment.authorUsername}</ThemedText>
+            <ThemedText variant="caption" muted>{relativeTime(comment.date)}</ThemedText>
+          </View>
+          <ThemedText variant="body">{comment.text}</ThemedText>
+        </View>
+      </Pressable>
+
+      <Pressable onPress={() => setShowReplyBox((v) => !v)} style={{ marginLeft: 44 }}>
+        <ThemedText variant="caption" color={colors.accent}>Yanıtla</ThemedText>
+      </Pressable>
+
+      {showReplyBox && (
+        <View style={{ flexDirection: "row", gap: spacing.xs, marginLeft: 44, alignItems: "flex-end" }}>
+          <View style={{ flex: 1 }}>
+            <TextField label="" value={replyText} onChangeText={setReplyText} placeholder="Yanıt yaz…" />
+          </View>
+          <Button title="Gönder" onPress={submitReply} disabled={saving || replyText.trim().length < 2} />
+        </View>
+      )}
+
+      {comment.replies.map((r) => (
+        <View key={r.id} style={{ marginLeft: 44, gap: 2 }}>
+          <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
+            <ThemedText variant="bodySemibold">@{r.authorUsername}</ThemedText>
+          </View>
+          <ThemedText variant="body">{r.text}</ThemedText>
+          {r.replies.map((r2) => (
+            <View key={r2.id} style={{ marginLeft: 20, gap: 2 }}>
+              <ThemedText variant="bodySemibold">@{r2.authorUsername}</ThemedText>
+              <ThemedText variant="body">{r2.text}</ThemedText>
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
   );
 }

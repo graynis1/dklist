@@ -2,13 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { SearchIcon } from "lucide-react-native";
+import {
+  SearchIcon,
+  NewspaperIcon,
+  PlayCircleIcon,
+  UsersIcon,
+  LayoutGridIcon,
+  AwardIcon,
+  TrophyIcon,
+  GiftIcon,
+  SparklesIcon,
+  ChevronRightIcon,
+  TagIcon,
+} from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { BookCover } from "@/components/BookCover";
 import { Avatar } from "@/components/Avatar";
 import { search as searchApi, type SearchResults } from "@/api/search";
+
+const COMMUNITY_LINKS: { icon: typeof NewspaperIcon; label: string; href: "/bloglar" | "/videolar" | "/kulupler" | "/kategoriler" | "/rozetler" | "/puan-tablosu" | "/puan-magazasi" | "/premium" | "/askida-kitap" }[] = [
+  { icon: TagIcon, label: "Askıda Kitap", href: "/askida-kitap" },
+  { icon: NewspaperIcon, label: "Bloglar", href: "/bloglar" },
+  { icon: PlayCircleIcon, label: "Videolar", href: "/videolar" },
+  { icon: UsersIcon, label: "Kulüpler", href: "/kulupler" },
+  { icon: LayoutGridIcon, label: "Kategoriler", href: "/kategoriler" },
+  { icon: AwardIcon, label: "Rozet Galerisi", href: "/rozetler" },
+  { icon: TrophyIcon, label: "Puan Tablosu", href: "/puan-tablosu" },
+  { icon: GiftIcon, label: "Puan Mağazası", href: "/puan-magazasi" },
+  { icon: SparklesIcon, label: "Premium", href: "/premium" },
+];
 
 export default function KesfetScreen() {
   const { colors, spacing } = useTheme();
@@ -62,6 +86,32 @@ export default function KesfetScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }} keyboardShouldPersistTaps="handled">
+        {query.trim().length < 2 && (
+          <View style={{ borderRadius: 12, borderWidth: 1, borderColor: colors.divider, overflow: "hidden" }}>
+            {COMMUNITY_LINKS.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <Pressable
+                  key={item.label}
+                  onPress={() => router.push(item.href)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: spacing.sm,
+                    padding: spacing.md,
+                    borderTopWidth: i === 0 ? 0 : 1,
+                    borderTopColor: colors.divider,
+                  }}
+                >
+                  <Icon color={colors.text} size={18} />
+                  <ThemedText variant="body" style={{ flex: 1 }}>{item.label}</ThemedText>
+                  <ChevronRightIcon color={colors.neutral400} size={18} />
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
         {loading && (
           <View style={{ paddingTop: spacing.xl }}>
             <ActivityIndicator color={colors.accent} />

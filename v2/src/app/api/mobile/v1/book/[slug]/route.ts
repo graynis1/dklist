@@ -2,7 +2,7 @@ import { getBookBySlug, getWorkPooledScore } from "@/db/queries/book-detail";
 import { getUserBookRating, getBookRatingCount } from "@/db/queries/rating";
 import { getReadStatus } from "@/db/queries/reading-status";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
-import { getEntityComments } from "@/db/queries/comments";
+import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getMobileSession } from "@/lib/mobile-auth";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
@@ -28,6 +28,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     getEntityComments(book.id, "book"),
   ]);
 
+  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const commentsWithReplies = comments.map((c) => ({ ...c, replies: repliesByComment.get(c.id) ?? [] }));
+
   return mobileJson({
     status: "ok",
     book,
@@ -38,7 +41,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     myStatus,
     likeCount,
     liked,
-    comments,
+    comments: commentsWithReplies,
   });
 }
 

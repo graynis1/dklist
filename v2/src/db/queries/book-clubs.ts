@@ -1,5 +1,6 @@
 import "server-only";
-import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { bookClub, bookClubMember, bookClubJoinRequest, user, book, writerBook, writer } from "@/db/schema";
@@ -253,7 +254,7 @@ export async function joinClub(clubId: number, userId: number): Promise<{ pendin
     throw err;
   }
   await awardPoints(userId, (await getPointSettings()).clubJoin, "club_join", `club_join:${userId}:${clubId}`);
-  updateTag("book-club-list");
+  invalidateTag("book-club-list");
   return { pending: false };
 }
 
@@ -295,7 +296,7 @@ export async function approveClubJoinRequest(clubId: number, targetUserId: numbe
   if (club) {
     await addNotification(targetUserId, actorUserId, `"${club.name}" kulübüne katılma isteğin onaylandı.`, `Your request to join "${club.name}" was approved.`, "club");
   }
-  updateTag("book-club-list");
+  invalidateTag("book-club-list");
 }
 
 export async function rejectClubJoinRequest(clubId: number, targetUserId: number, actorUserId: number, actorUserType: string): Promise<void> {
@@ -327,7 +328,7 @@ export async function removeClubMember(clubId: number, targetUserId: number, act
   if (!membership) return;
   if (membership.role === "owner") throw new Error("Kulüp sahibi çıkarılamaz.");
   await db.delete(bookClubMember).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, targetUserId)));
-  updateTag("book-club-list");
+  invalidateTag("book-club-list");
 }
 
 export async function leaveClub(clubId: number, userId: number): Promise<void> {
@@ -337,7 +338,7 @@ export async function leaveClub(clubId: number, userId: number): Promise<void> {
     throw new Error("Kulüp sahibi kulüpten ayrılamaz. Önce sahipliği devretmeli veya kulübü silmelisiniz.");
   }
   await db.delete(bookClubMember).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, userId)));
-  updateTag("book-club-list");
+  invalidateTag("book-club-list");
 }
 
 async function requireClubManagePermission(clubId: number, actorUserId: number, actorUserType: string): Promise<void> {
@@ -402,14 +403,14 @@ export async function updateClubName(clubId: number, name: string, actorUserId: 
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Kulüp adı boş olamaz.");
   await db.update(bookClub).set({ name: trimmed }).where(eq(bookClub.id, clubId));
-  updateTag("book-club-list");
+  invalidateTag("book-club-list");
 }
 
 export async function deleteClub(clubId: number, actorUserId: number, actorUserType: string): Promise<void> {
   await requireClubManagePermission(clubId, actorUserId, actorUserType);
   await db.delete(bookClubMember).where(eq(bookClubMember.clubId, clubId));
   await db.delete(bookClub).where(eq(bookClub.id, clubId));
-  updateTag("book-club-list");
+  invalidateTag("book-club-list");
 }
 
 export interface UserClubSummary {

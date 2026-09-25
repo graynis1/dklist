@@ -1,7 +1,7 @@
 import { View, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { ChevronRightIcon, UserIcon, HeartIcon, ListIcon, SettingsIcon, AwardIcon, TrophyIcon, BellIcon } from "lucide-react-native";
+import { ChevronRightIcon, UserIcon, HeartIcon, ListIcon, SettingsIcon, AwardIcon, TrophyIcon, BellIcon, ShoppingCartIcon, PackageIcon, TagIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
@@ -11,7 +11,17 @@ import { Button } from "@/components/Button";
 const MENU: {
   icon: typeof UserIcon;
   label: string;
-  href: "/profil/[username]" | "/favoriler" | "/listelerim" | "/hesap-duzenle" | "/bildirimler" | "/rozetler" | "/puan-tablosu";
+  href:
+    | "/profil/[username]"
+    | "/favoriler"
+    | "/listelerim"
+    | "/hesap-duzenle"
+    | "/bildirimler"
+    | "/rozetler"
+    | "/puan-tablosu"
+    | "/sepetim"
+    | "/siparislerim"
+    | "/ilanlarim";
 }[] = [
   { icon: UserIcon, label: "Profilimi Görüntüle", href: "/profil/[username]" },
   { icon: BellIcon, label: "Bildirimler", href: "/bildirimler" },
@@ -19,6 +29,9 @@ const MENU: {
   { icon: ListIcon, label: "Listelerim", href: "/listelerim" },
   { icon: AwardIcon, label: "Rozet Galerisi", href: "/rozetler" },
   { icon: TrophyIcon, label: "Puan Tablosu", href: "/puan-tablosu" },
+  { icon: ShoppingCartIcon, label: "Sepetim", href: "/sepetim" },
+  { icon: PackageIcon, label: "Siparişlerim", href: "/siparislerim" },
+  { icon: TagIcon, label: "İlanlarım", href: "/ilanlarim" },
   { icon: SettingsIcon, label: "Hesap Ayarları", href: "/hesap-duzenle" },
 ];
 

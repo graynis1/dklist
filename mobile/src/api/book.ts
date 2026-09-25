@@ -25,6 +25,15 @@ export interface CurrentReadStatus {
   dropPercentage: number | null;
 }
 
+export interface CommentReply {
+  id: number;
+  text: string;
+  authorUsername: string;
+  authorUserId: number;
+  authorImage: string | null;
+  replies: CommentReply[];
+}
+
 export interface BookComment {
   id: number;
   text: string;
@@ -32,6 +41,7 @@ export interface BookComment {
   authorUsername: string;
   authorUserId: number;
   authorImage: string | null;
+  replies: CommentReply[];
 }
 
 export interface BookDetailResponse {
@@ -64,6 +74,13 @@ export async function toggleBookLike(slug: string): Promise<{ liked: boolean }> 
 
 export async function addBookComment(slug: string, text: string): Promise<{ id: number }> {
   return apiFetch(`/book/${encodeURIComponent(slug)}/comment`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
+export async function addCommentReply(commentId: number, text: string): Promise<{ id: number }> {
+  return apiFetch(`/comment/${commentId}/reply`, {
     method: "POST",
     body: JSON.stringify({ text }),
   });

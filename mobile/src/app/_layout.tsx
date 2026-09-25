@@ -221,6 +221,156 @@ function RootNavigator() {
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen
+          name="bloglar"
+          options={{
+            headerShown: true,
+            title: "Bloglar",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="blog/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="videolar"
+          options={{
+            headerShown: true,
+            title: "Videolar",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="video/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="kulupler"
+          options={{
+            headerShown: true,
+            title: "Kulüpler",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="kulup/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="kategori/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="kategoriler"
+          options={{
+            headerShown: true,
+            title: "Kategoriler",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="premium"
+          options={{
+            headerShown: true,
+            title: "Premium",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="puan-magazasi"
+          options={{
+            headerShown: true,
+            title: "Puan Mağazası",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="askida-kitap"
+          options={{
+            headerShown: true,
+            title: "Askıda Kitap",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="askida-kitap/[slug]"
+          options={{
+            headerShown: true,
+            title: "",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="sepetim"
+          options={{
+            headerShown: true,
+            title: "Sepetim",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="siparislerim"
+          options={{
+            headerShown: true,
+            title: "Siparişlerim",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="ilanlarim"
+          options={{
+            headerShown: true,
+            title: "İlanlarım",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
     </Stack>
   );
