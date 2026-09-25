@@ -77,6 +77,42 @@ cache after heavy hot-reloading, and a `curl`-specific Turkish-character
 encoding bug in this dev environment that was initially mistaken for an
 app bug twice before being isolated and ruled out).
 
+**Content, community, commerce (2026-09-25)** - closed out every
+remaining "not built yet" item from the previous pass:
+- **Comment reply threads**: "Yanıtla" composer on `kitap/[slug]`, two
+  levels of nested replies rendered.
+- **Bloglar / Videolar**: browse + detail screens; blog's Quill-authored
+  HTML is stripped to clean plain text (`lib/stripHtml.ts`) since mobile
+  has no HTML renderer - a real, documented formatting loss (no bold/
+  italic), not pretended away; video playback hands off to the real
+  YouTube app/browser via `Linking.openURL` rather than embedding a
+  player (the one deliberate exception to this app's "no WebView" rule).
+- **Kulüpler** (book clubs): browse, detail, join/leave.
+- **Kategoriler**: browse + category detail with a Popülerlik/Puan sort
+  toggle; a huge category's timeout is surfaced as a graceful Turkish
+  error, not a crash.
+- **Askıda Kitap** (marketplace): browse/filter, listing detail (photo
+  carousel, favorite, add-to-cart), **Sepetim** (per-seller checkout with
+  a shipping form), **Siparişlerim** (buyer/seller roles), **İlanlarım**.
+  Checkout for both marketplace listings and Premium hands off to
+  İyzico's hosted checkout page via `expo-web-browser`'s in-app browser
+  sheet - a real native modal, not an embedded WebView, and the app
+  never touches raw card data.
+- **Premium** and **Puan Mağazası** (redeem points for rewards, equip a
+  profile frame).
+- **Push notifications**: backend is fully live (`push_token` table,
+  `/push-token` register/unregister route, wired into every
+  `addNotification()` call via Expo's push HTTP API). The mobile client
+  (`api/pushNotifications.ts`) requests permission and registers a token
+  on login, unregisters on logout - but **this has never actually
+  delivered a push in testing**: Expo Go on SDK 53+ throws just from
+  importing `expo-notifications`, so the client lazy-loads that module
+  and no-ops entirely unless both an EAS project (`extra.eas.projectId`)
+  and a real development build exist - neither does yet. Verified so far
+  is only that the no-op path is safe (login/logout don't crash); real
+  delivery needs `eas init` + `npx expo run:android` and hasn't been
+  attempted.
+
 ## Why Expo (React Native), not separate Swift/Kotlin apps
 
 One TypeScript codebase covering iOS *and* Android, maintainable by the same
@@ -174,6 +210,24 @@ re-exporting anything.
 | `/messages/conversations` | GET | Bearer | merged requests + conversations |
 | `/messages/thread/[username]` | GET | Bearer | full message history with one user |
 | `/messages/send` | POST | Bearer | `{username, text}` |
+| `/comment/[id]/reply` | POST | Bearer | `{text}` - reply to a comment |
+| `/blog` / `/blog/[slug]` | GET | optional | list / detail (+ like state, view-count increment) |
+| `/blog/[slug]/like` | POST | Bearer | toggle like |
+| `/video` / `/video/[slug]` | GET | optional | list / detail (+ view-count increment) |
+| `/clubs` / `/clubs/[slug]` | GET | optional | list / detail (+ membership state) |
+| `/clubs/[slug]/join` \| `/leave` | POST | Bearer | join/leave a club |
+| `/categories` / `/category/[slug]` | GET | optional | top categories / a category's book list |
+| `/store` / `/store/[slug]` | GET | optional | marketplace listing list / detail |
+| `/store/[slug]/favorite` \| `/cart` | POST | Bearer | toggle favorite / cart membership |
+| `/cart` | GET | Bearer | cart grouped by seller |
+| `/cart/checkout` | POST | Bearer | shipping fields → `{paymentPageUrl}` |
+| `/orders` | GET | Bearer | `?role=buyer\|seller` |
+| `/my-listings` | GET | Bearer | the caller's own marketplace listings |
+| `/premium` | GET | optional | settings + the caller's premium status |
+| `/premium/checkout` | POST | Bearer | → `{paymentPageUrl}` |
+| `/point-store` | GET | Bearer | active rewards + redeemed state + balance + equipped frame |
+| `/point-store/redeem` \| `/equip` | POST | Bearer | redeem a reward / equip a frame |
+| `/push-token` | POST / DELETE | Bearer | register/unregister an Expo push token (see push notifications above) |
 
 Verified against the real local database (not just typechecked): every
 route above has been exercised with a real signed-in test account (curl
@@ -203,34 +257,41 @@ Router and every file in it becomes a screen.
 
 ## Deliberately not decided/built yet
 
-Genuinely large sub-systems, each deserving its own dedicated pass rather
-than a rushed partial version bolted onto this one:
-- **Store/marketplace** (Askıda Kitap listings, sepetim/cart, siparislerim/
-  orders, İyzico payment) - the web app's own biggest single feature area.
-- **Kulüpler** (book clubs) and **Premium** - not started.
-- **Push notifications** (Expo Push/APNs/FCM) - no device-token table on
-  the backend yet either.
-- **Blog/Videolar reading in-app** - the web has both; mobile has neither
-  a browse list nor a reader screen for them yet.
-
-Smaller, real gaps:
+Every screen-level feature from the web app now has a mobile
+equivalent. What's left is either infrastructure that needs an account/
+credential the maintainer doesn't have yet, or genuinely deeper work
+than a single pass justifies:
+- **Real push delivery** - see the push-notifications entry above; blocked
+  on `eas init` (no EAS project linked yet) and a development build
+  (Expo Go can't receive remote push at all on SDK 53+). The backend and
+  client code are both done and safe to leave in place either way.
+- **Production write-path verification** - every route above has been
+  exercised against the local dev database; production has only been
+  checked read-only (`curl` against `/badges`, `/search`, `/leaderboard`
+  after each deploy). A `curl`-based production login attempt was
+  refused by Claude Code's own auto-mode safety classifier as a
+  production write; this is an honest gap, not a silent assumption -
+  the local/production code is identical, but a live write round trip
+  on prod itself is unverified.
+- **Marketplace listing creation** (photo upload) - browsing, favoriting,
+  cart, checkout, and viewing your own listings are all built; creating
+  a *new* listing with photos isn't.
+- **Club admin/moderation UI** - join/leave works; managing a club you
+  own (approving members, editing its info) doesn't have a screen yet.
+- **Comment replies deeper than 2 levels** - `kitap/[slug]` renders a
+  reply and one level of replies-to-that-reply; v1's data model allows
+  deeper nesting than that.
 - **Feed post composer is text-only** - the web composer also supports
   attaching an image (multipart upload) or a book; not built here.
-- **Comment reply threads** (sub-comments) - `comments.ts` already has
-  `getRepliesForComments`/`addSubComment`; book detail only shows
-  top-level comments so far, no reply UI.
-- **Kategori (category) browsing** - Keşfet's search covers finding a
-  book directly; browsing a whole category's book list isn't wired.
-- **Puan Mağazası** (spending points on rewards) - the leaderboard and
-  badge gallery are read-only views; the store itself isn't built.
 - **Refresh-token rotation** - the mobile JWT is a single 30-day token
   for now, a deliberately simple choice for this phase, not a final
   security design.
 - **EAS project linkage / bundle identifiers** are placeholders
   (`com.dklist.app`) - real Apple Developer/Google Play accounts needed
-  before any real build or store submission.
+  before any real build, push delivery, or store submission.
 - **iOS build/testing** - Android was done first per explicit instruction
   (this Windows PC can't run an iOS simulator); the design system/
   components are platform-agnostic already, but nothing has run on iOS.
+  This is a hard blocker (no Mac), not a scheduling choice.
 - Offline queueing, widgets, Live Activities, Siri Shortcuts - all in the
   separate design brief, none started.

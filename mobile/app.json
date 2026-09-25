@@ -37,7 +37,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#b68235"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1405,3 +1405,16 @@ export const categoryNonTrBook = mysqlTable("category_non_tr_book", {
 	index("idx_category_non_tr_book_viewcount").on(table.categoryId, table.viewCount),
 	index("idx_category_non_tr_book_score").on(table.categoryId, table.score),
 ]);
+
+export const pushToken = mysqlTable("push_token", {
+	id: int().autoincrement().notNull(),
+	userId: int("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+	token: varchar({ length: 255 }).notNull(),
+	platform: varchar({ length: 20 }).notNull().default("unknown"),
+	createdDate: datetime("created_date", { mode: 'string'}).notNull(),
+},
+(table) => [
+	index("idx_push_token_user").on(table.userId),
+	primaryKey({ columns: [table.id], name: "push_token_id"}),
+	unique("uniq_push_token_token").on(table.token),
+]);

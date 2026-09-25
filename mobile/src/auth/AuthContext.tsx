@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getStoredToken } from "@/auth/token-storage";
 import { login as apiLogin, logout as apiLogout, getMe, type MobileProfile } from "@/api/auth";
+import { registerForPushNotifications, unregisterPushNotifications } from "@/api/pushNotifications";
 
 interface AuthState {
   /** undefined = still checking SecureStore on launch, null = signed out,
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await getMe();
       if (ignore?.current) return;
       setProfile(me);
+      void registerForPushNotifications();
     } catch {
       // Token present but rejected by the backend (expired/invalid) -
       // treat exactly like signed-out rather than looping forever.
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    await unregisterPushNotifications();
     await apiLogout();
     setProfile(null);
   }

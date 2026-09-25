@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { dknotifiaction, notificationPreference, user } from "@/db/schema";
 import { publishUserEvent } from "@/lib/event-bus";
 import { CONFIGURABLE_NOTIFICATION_TYPES, type NotificationType } from "@/lib/notification-types";
+import { sendPushNotification } from "@/db/queries/push-tokens";
 
 export type { NotificationType } from "@/lib/notification-types";
 export { NOTIFICATION_TYPES, CONFIGURABLE_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from "@/lib/notification-types";
@@ -83,6 +84,9 @@ export async function addNotification(
   invalidateTag(`notifications:${ownerUserId}`);
   invalidateTag(`unread-notifications:${ownerUserId}`);
   publishUserEvent(ownerUserId, "notification");
+  // Fire-and-forget - see sendPushNotification()'s own doc comment for
+  // why this never blocks or throws into the caller.
+  void sendPushNotification(ownerUserId, "DKList", messageTr);
 }
 
 export interface NotificationItem {

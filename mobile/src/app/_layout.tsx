@@ -12,9 +12,11 @@ import {
 } from "@expo-google-fonts/cormorant-garamond";
 import { useFonts as useLoraFonts, Lora_400Regular, Lora_600SemiBold } from "@expo-google-fonts/lora";
 import { AuthProvider, useAuth } from "@/auth/AuthContext";
+import { setupNotificationChannel } from "@/api/pushNotifications";
 import { palette } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+void setupNotificationChannel();
 
 export default function RootLayout() {
   const scheme = useColorScheme();
