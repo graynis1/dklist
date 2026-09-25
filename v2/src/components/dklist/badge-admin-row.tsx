@@ -19,13 +19,23 @@ export function BadgeAdminRow({ badge }: { badge: BadgeListItem }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Real customer report: fields save silently on blur with no visible
+  // confirmation, which reads as "there's no edit/save option at all" even
+  // though editing does work - a transient "Kaydedildi" makes the save
+  // itself visible instead of relying on the user noticing nothing broke.
   function saveField(mode: "name" | "comment" | "nameUs" | "commentUs", value: string) {
     startTransition(async () => {
       const result = await updateBadgeFieldAction(badge.id, mode, value);
-      if (!result.status) setError(result.message ?? "Güncelleme başarısız.");
-      else router.refresh();
+      if (!result.status) {
+        setError(result.message ?? "Güncelleme başarısız.");
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+        router.refresh();
+      }
     });
   }
 
@@ -104,6 +114,7 @@ export function BadgeAdminRow({ badge }: { badge: BadgeListItem }) {
           />
         </div>
         {error && <p className="text-xs text-destructive">{error}</p>}
+        {saved && !error && <p className="text-xs text-muted-foreground">Kaydedildi.</p>}
       </div>
 
       <Button variant="ghost" size="sm" className="text-destructive" disabled={isPending} onClick={remove}>

@@ -40,7 +40,10 @@ async function AdminBadgesContent({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <AdminPageHeader title="Rozetler" description={`Rozet tanımlarını yönet - toplam ${total} kayıt.`} />
+      <AdminPageHeader
+        title="Rozetler"
+        description={`Rozet tanımlarını yönet - toplam ${total} kayıt. Aşağıdaki alanlar düzenlenebilir, bir alandan çıkınca (blur) otomatik kaydedilir.`}
+      />
 
       <CreateBadgeForm />
 

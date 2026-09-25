@@ -64,6 +64,24 @@ export async function getActiveAd(
   return row ?? null;
 }
 
+/**
+ * Real customer ask (2026-09-21): "Reklam alınan alan olarak gösterilmeli
+ * mi?" - /reklam-ver listed every placement with zero indication of which
+ * ones are already sold. A placement counts as occupied if it has ANY
+ * active ad, language-targeted or not - a prospective advertiser cares
+ * whether the spot is free for THEIR context, but this page has no single
+ * content-language to check against, so "any active row" is the honest
+ * signal available here (a language-specific slot could still have room
+ * for a different language, but that nuance isn't worth a second page).
+ */
+export async function getOccupiedPlacements(): Promise<Set<string>> {
+  const rows = await db
+    .select({ placement: advertisement.placement })
+    .from(advertisement)
+    .where(eq(advertisement.active, 1));
+  return new Set(rows.map((r) => r.placement));
+}
+
 /** /api/ad-click/[id] - increments the click counter then the caller
  * redirects to the ad's real linkUrl. Returns null if the ad doesn't exist
  * or has no link (nothing to redirect to). */

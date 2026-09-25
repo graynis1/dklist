@@ -15,6 +15,7 @@ import { AdInquiryForm } from "@/components/dklist/ad-inquiry-form";
 import { HouseAd } from "@/components/dklist/house-ad";
 import { AD_PLACEMENTS } from "@/lib/ad-placements";
 import { getSiteStatsForAdvertisers } from "@/db/queries/ad-inquiry";
+import { getOccupiedPlacements } from "@/db/queries/advertisements";
 
 export default function AdvertiseWithUsPage() {
   return (
@@ -51,33 +52,13 @@ export default function AdvertiseWithUsPage() {
             Reklamınız, kitleye göre seçtiğiniz bir veya birden fazla alanda gösterilir. Aşağıdaki
             önizlemeler, reklamınızın o sayfada gerçekte nasıl göründüğünü birebir yansıtır.
           </p>
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {AD_PLACEMENTS.map((p) => (
-              <li key={p.id} className="overflow-hidden rounded-lg border border-border">
-                <div className="pointer-events-none h-28 overflow-hidden bg-muted/30">
-                  {/* Fixed pixel height (not just "taller than the crop")
-                      matters for the two skyscraper placements specifically -
-                      their layout relies on filling an ancestor's real height
-                      via h-full, which a height:auto wrapper would collapse
-                      to zero. */}
-                  <div className="h-[420px] w-[260%] origin-top-left scale-[0.38]">
-                    <HouseAd placement={p.id} className="h-full px-0" />
-                  </div>
-                </div>
-                <div className="border-t border-border p-3">
-                  <p className="text-sm font-medium">{p.label}</p>
-                  {/* Customer's ask: exact creative dimensions, so an
-                      advertiser knows what they're actually designing for -
-                      the real, current container sizes (see ad-slot.tsx/
-                      skyscraper-ads.tsx), not an invented IAB standard size
-                      this system was never built against. */}
-                  <p className="text-xs text-muted-foreground">
-                    {p.id.startsWith("skyscraper") ? "160px genişlik × ekrana göre değişken yükseklik (en fazla 850px), sabit/sticky" : "en fazla 768px genişlik, içeriğe göre değişken yükseklik"}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <Suspense fallback={<PlacementGrid occupied={null} />}>
+            <PlacementSection />
+          </Suspense>
+          <p className="mt-3 text-xs text-muted-foreground">
+            &quot;Dolu&quot; şu anda o alanda yayında bir kampanya olduğu anlamına gelir - dil/tarih
+            bazlı boşluk olabilir, kesin durumu iletişim formundan sorabilirsiniz.
+          </p>
         </div>
 
         <div>
@@ -86,6 +67,64 @@ export default function AdvertiseWithUsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+async function PlacementSection() {
+  // Same dynamic-boundary requirement as StatsSection below - "Dolu"/
+  // "Müsait" reflects live ad state and must never be baked into the
+  // static prerendered shell.
+  await connection();
+  const occupied = await getOccupiedPlacements();
+  return <PlacementGrid occupied={occupied} />;
+}
+
+/** `occupied === null` (Suspense fallback, availability not known yet) omits
+ * the badge entirely rather than guessing - showing "Müsait" and having it
+ * flip to "Dolu" a moment later would be a worse first impression than a
+ * one-frame delay. */
+function PlacementGrid({ occupied }: { occupied: Set<string> | null }) {
+  return (
+    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {AD_PLACEMENTS.map((p) => (
+        <li key={p.id} className="overflow-hidden rounded-lg border border-border">
+          <div className="pointer-events-none h-28 overflow-hidden bg-muted/30">
+            {/* Fixed pixel height (not just "taller than the crop")
+                matters for the two skyscraper placements specifically -
+                their layout relies on filling an ancestor's real height
+                via h-full, which a height:auto wrapper would collapse
+                to zero. */}
+            <div className="h-[420px] w-[260%] origin-top-left scale-[0.38]">
+              <HouseAd placement={p.id} className="h-full px-0" />
+            </div>
+          </div>
+          <div className="border-t border-border p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium">{p.label}</p>
+              {occupied && (
+                <span
+                  className={
+                    occupied.has(p.id)
+                      ? "shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
+                      : "shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                  }
+                >
+                  {occupied.has(p.id) ? "Dolu" : "Müsait"}
+                </span>
+              )}
+            </div>
+            {/* Customer's ask: exact creative dimensions, so an
+                advertiser knows what they're actually designing for -
+                the real, current container sizes (see ad-slot.tsx/
+                skyscraper-ads.tsx), not an invented IAB standard size
+                this system was never built against. */}
+            <p className="text-xs text-muted-foreground">
+              {p.id.startsWith("skyscraper") ? "160px genişlik × ekrana göre değişken yükseklik (en fazla 850px), sabit/sticky" : "en fazla 768px genişlik, içeriğe göre değişken yükseklik"}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 

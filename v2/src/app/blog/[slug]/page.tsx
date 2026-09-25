@@ -39,7 +39,11 @@ export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): P
     title: post.title,
     description: truncateDescription(post.preview || post.title),
     path: `/blog/${post.slug}`,
-    image: post.img ?? undefined,
+    // Real customer report (2026-09-21): X/Twitter share showed no image
+    // while Facebook/WhatsApp did - see api/blog-og-image's own doc comment.
+    // Always generated now (like the Askıda Kitap listing card), not the
+    // raw uploaded cover, so every platform gets a correctly-sized card.
+    image: `/api/blog-og-image/${post.slug}`,
   });
 }
 
