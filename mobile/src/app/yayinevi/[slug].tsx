@@ -84,7 +84,7 @@ export default function PublisherScreen() {
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
             <Pressable style={{ flex: 1, gap: spacing.xs }} onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: item.slug } })}>
-              <BookCover id={item.id} title={item.name} author={publisher.name} width={104} height={152} />
+              <BookCover id={item.id} title={item.name} author={publisher.name} width={104} height={152} hasImage={item.hasImage} />
               <ThemedText variant="caption" numberOfLines={2}>{item.name}</ThemedText>
             </Pressable>
           )}

@@ -9,6 +9,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { FeedCard } from "@/components/FeedCard";
+import { BookCover } from "@/components/BookCover";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { getFeed, createFeedPost, type FeedItem } from "@/api/feed";
@@ -201,9 +202,12 @@ export default function AkisScreen() {
                 <View style={{ gap: spacing.xs }}>
                   <TextField label="" value={bookQuery} onChangeText={onBookQueryChange} placeholder="Kitap ara…" autoFocus />
                   {bookResults.map((b) => (
-                    <Pressable key={b.id} onPress={() => selectBook(b)} style={{ paddingVertical: 6 }}>
-                      <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
-                      <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+                    <Pressable key={b.id} onPress={() => selectBook(b)} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", paddingVertical: 6 }}>
+                      <BookCover id={b.id} title={b.name} width={28} height={40} hasImage={b.hasImage} />
+                      <View style={{ flex: 1 }}>
+                        <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
+                        <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+                      </View>
                     </Pressable>
                   ))}
                 </View>

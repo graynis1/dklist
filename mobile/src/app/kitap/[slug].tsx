@@ -149,7 +149,7 @@ export default function BookDetailScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
       <View style={{ flexDirection: "row", gap: spacing.lg }}>
-        <BookCover id={book.id} title={book.name} author={writerNames} width={110} height={160} />
+        <BookCover id={book.id} title={book.name} author={writerNames} width={110} height={160} hasImage={book.hasImage} />
         <View style={{ flex: 1, justifyContent: "center", gap: spacing.xs }}>
           <ThemedText variant="headline">{book.name}</ThemedText>
           {book.writers.length > 0 && (

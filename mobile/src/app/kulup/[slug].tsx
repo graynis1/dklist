@@ -7,6 +7,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
+import { BookCover } from "@/components/BookCover";
 import { useAuth } from "@/auth/AuthContext";
 import { search, type SearchResultBook } from "@/api/search";
 import {
@@ -270,12 +271,16 @@ export default function KulupDetailScreen() {
 
       {club.currentBookName && !bookPickerOpen && (
         <View style={{ gap: 4 }}>
+          <ThemedText variant="label" color={colors.textMuted}>Şu An Okunan Kitap</ThemedText>
           <Pressable
             onPress={() => club.currentBookSlug && router.push({ pathname: "/kitap/[slug]", params: { slug: club.currentBookSlug } })}
+            style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}
           >
-            <ThemedText variant="label" color={colors.textMuted}>Şu An Okunan Kitap</ThemedText>
-            <ThemedText variant="title">{club.currentBookName}</ThemedText>
-            <ThemedText variant="caption" muted>{club.currentBookWriters.join(", ")}</ThemedText>
+            <BookCover id={club.currentBookId ?? 0} title={club.currentBookName} width={44} height={64} hasImage={club.currentBookHasImage} />
+            <View>
+              <ThemedText variant="title">{club.currentBookName}</ThemedText>
+              <ThemedText variant="caption" muted>{club.currentBookWriters.join(", ")}</ThemedText>
+            </View>
           </Pressable>
           {canManage && (
             <View style={{ flexDirection: "row", gap: spacing.md, marginTop: 4 }}>
@@ -300,9 +305,12 @@ export default function KulupDetailScreen() {
         <View style={{ gap: spacing.xs }}>
           <TextField label="Kitap ara" value={bookQuery} onChangeText={onBookQueryChange} placeholder="Kitap adı…" autoFocus />
           {bookResults.map((b) => (
-            <Pressable key={b.id} onPress={() => onSelectCurrentBook(b)} style={{ paddingVertical: 6 }}>
-              <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
-              <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+            <Pressable key={b.id} onPress={() => onSelectCurrentBook(b)} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", paddingVertical: 6 }}>
+              <BookCover id={b.id} title={b.name} width={28} height={40} hasImage={b.hasImage} />
+              <View style={{ flex: 1 }}>
+                <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
+                <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+              </View>
             </Pressable>
           ))}
           <Pressable onPress={() => setBookPickerOpen(false)}>

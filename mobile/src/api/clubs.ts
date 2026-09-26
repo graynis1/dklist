@@ -25,8 +25,10 @@ export interface ClubDetail {
   visibility: string;
   ownerId: number | null;
   ownerUsername: string | null;
+  currentBookId: number | null;
   currentBookName: string | null;
   currentBookSlug: string | null;
+  currentBookHasImage: boolean;
   currentBookWriters: string[];
   memberCount: number;
   members: ClubMember[];

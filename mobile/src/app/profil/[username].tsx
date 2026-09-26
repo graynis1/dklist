@@ -138,7 +138,7 @@ export default function OtherProfileScreen() {
                 contentContainerStyle={{ gap: spacing.sm }}
                 renderItem={({ item }) => (
                   <Pressable onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: item.slug } })}>
-                    <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={88} height={128} />
+                    <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={88} height={128} hasImage={item.hasImage} />
                   </Pressable>
                 )}
               />

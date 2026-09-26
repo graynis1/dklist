@@ -83,7 +83,7 @@ export default function ListeDetailScreen() {
         {list.books.map((b) => (
           <View key={b.id} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
             <Pressable style={{ flexDirection: "row", gap: spacing.sm, flex: 1 }} onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: b.slug } })}>
-              <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={56} height={82} />
+              <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={56} height={82} hasImage={b.hasImage} />
               <View style={{ flex: 1, justifyContent: "center" }}>
                 <ThemedText variant="title" numberOfLines={2}>{b.name}</ThemedText>
                 <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>

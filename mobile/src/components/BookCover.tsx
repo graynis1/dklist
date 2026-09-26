@@ -1,6 +1,7 @@
 import { View, Text, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/theme/useTheme";
+import { API_BASE_URL } from "@/api/config";
 
 /**
  * Ported from the reference's "Kitap Kapağı Sistemi" tile - degrade zemin
@@ -17,20 +18,33 @@ export function BookCover({
   width = 52,
   height = 76,
   imageUrl,
+  hasImage,
 }: {
   id: number;
   title: string;
   author?: string;
   width?: number;
   height?: number;
+  /** Pass this directly when the caller already built the right URL
+   * (e.g. FeedCard, which needs bookCover.id, not the row's own id). */
   imageUrl?: string | null;
+  /** Shortcut for every other caller: every book-list API response
+   * already carries `hasImage` (see book.ts/library.ts/etc.) - this
+   * builds the same `/kapak/{id}` URL FeedCard builds by hand, so a
+   * new call site can't forget to and silently fall back to the
+   * gradient placeholder (a real bug that hit almost every screen
+   * before this - see the customer report this fixes). Ignored if
+   * `imageUrl` is explicitly passed.
+   */
+  hasImage?: boolean;
 }) {
   const { colors, fontFamily } = useTheme();
+  const resolvedImageUrl = imageUrl ?? (hasImage ? `${API_BASE_URL}/kapak/${id}` : null);
 
-  if (imageUrl) {
+  if (resolvedImageUrl) {
     return (
       <View style={{ width, height, borderRadius: 5, overflow: "hidden", backgroundColor: colors.surface }}>
-        <Image source={{ uri: imageUrl }} style={{ width, height }} resizeMode="cover" />
+        <Image source={{ uri: resolvedImageUrl }} style={{ width, height }} resizeMode="cover" />
       </View>
     );
   }

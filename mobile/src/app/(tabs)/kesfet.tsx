@@ -138,7 +138,7 @@ export default function KesfetScreen() {
                 onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: b.slug } })}
                 style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}
               >
-                <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={40} height={58} />
+                <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={40} height={58} hasImage={b.hasImage} />
                 <View style={{ flex: 1 }}>
                   <ThemedText variant="title" numberOfLines={1}>
                     {b.name}
