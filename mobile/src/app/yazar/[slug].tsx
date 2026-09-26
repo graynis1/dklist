@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, FlatList } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, FlatList, Alert } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { BookCover } from "@/components/BookCover";
-import { getWriter, toggleWriterLike, type EntityDetail, type EntityBookItem } from "@/api/entity";
+import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
+import { getWriter, toggleWriterLike, addWriterComment, type EntityDetail, type EntityBookItem } from "@/api/entity";
 
 export default function WriterScreen() {
   const { colors, spacing } = useTheme();
@@ -14,6 +15,9 @@ export default function WriterScreen() {
   const [books, setBooks] = useState<EntityBookItem[]>([]);
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
+  const [comments, setComments] = useState<EntityComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -24,6 +28,7 @@ export default function WriterScreen() {
     setBooks(result.books);
     setLikeCount(result.likeCount);
     setLiked(result.liked);
+    setComments(result.comments);
   }, [slug]);
 
   useEffect(() => {
@@ -45,6 +50,21 @@ export default function WriterScreen() {
       setLikeCount((n) => (result.liked ? n + 1 : Math.max(0, n - 1)));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function submitComment() {
+    const trimmed = commentText.trim();
+    if (trimmed.length < 2) return;
+    setCommentSaving(true);
+    try {
+      await addWriterComment(slug, trimmed);
+      setCommentText("");
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Yorum eklenemedi.");
+    } finally {
+      setCommentSaving(false);
     }
   }
 
@@ -92,6 +112,15 @@ export default function WriterScreen() {
           ListEmptyComponent={<ThemedText variant="body" muted>Henüz kitap bulunamadı.</ThemedText>}
         />
       </View>
+
+      <EntityCommentSection
+        comments={comments}
+        commentText={commentText}
+        onCommentTextChange={setCommentText}
+        onSubmitComment={submitComment}
+        submitting={commentSaving}
+        onReplied={load}
+      />
     </ScrollView>
   );
 }
