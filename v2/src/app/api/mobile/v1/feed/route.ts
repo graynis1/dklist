@@ -1,6 +1,7 @@
 import { getSiteFeed } from "@/db/queries/feed";
 import { getMobileSession } from "@/lib/mobile-auth";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
+import { feedPostImageUrl } from "@/lib/image-urls";
 
 /**
  * Mobile "Akış" tab - wraps the same `getSiteFeed()` the web `/akis` page
@@ -23,7 +24,14 @@ export async function GET(request: Request) {
     mode: "all",
   });
 
-  return mobileJson({ status: "ok", ...page });
+  return mobileJson({
+    status: "ok",
+    ...page,
+    items: page.items.map((item) => ({
+      ...item,
+      feedPostImage: item.feedPostImage ? feedPostImageUrl(item.feedPostImage) : null,
+    })),
+  });
 }
 
 export async function OPTIONS() {

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, FlatList, RefreshControl, Pressable } from "react-native";
+import { View, FlatList, RefreshControl, Pressable, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
-import { BellIcon } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import { BellIcon, ImageIcon, BookIcon, XIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
@@ -12,6 +13,7 @@ import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { getFeed, createFeedPost, type FeedItem } from "@/api/feed";
 import { getNotifications } from "@/api/notifications";
+import { search, type SearchResultBook } from "@/api/search";
 
 export default function AkisScreen() {
   const { colors, spacing } = useTheme();
@@ -24,6 +26,11 @@ export default function AkisScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [postText, setPostText] = useState("");
   const [posting, setPosting] = useState(false);
+  const [postImage, setPostImage] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [bookPickerOpen, setBookPickerOpen] = useState(false);
+  const [bookQuery, setBookQuery] = useState("");
+  const [bookResults, setBookResults] = useState<SearchResultBook[]>([]);
+  const [postBook, setPostBook] = useState<SearchResultBook | null>(null);
 
   const loadFirstPage = useCallback(async (ignore?: { current: boolean }) => {
     try {
@@ -69,13 +76,41 @@ export default function AkisScreen() {
     setRefreshing(false);
   }
 
+  async function pickPostImage() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setPostImage({ uri: asset.uri, name: asset.fileName ?? `feed-${Date.now()}.jpg`, type: asset.mimeType ?? "image/jpeg" });
+  }
+
+  async function onBookQueryChange(q: string) {
+    setBookQuery(q);
+    if (q.trim().length < 2) {
+      setBookResults([]);
+      return;
+    }
+    const result = await search(q);
+    setBookResults(result.books.slice(0, 5));
+  }
+
+  function selectBook(book: SearchResultBook) {
+    setPostBook(book);
+    setBookPickerOpen(false);
+    setBookQuery("");
+    setBookResults([]);
+  }
+
   async function onPost() {
     const trimmed = postText.trim();
-    if (!trimmed) return;
+    if (!trimmed && !postImage && !postBook) return;
     setPosting(true);
     try {
-      await createFeedPost(trimmed);
+      await createFeedPost({ text: trimmed, image: postImage, bookId: postBook?.id ?? null });
       setPostText("");
+      setPostImage(null);
+      setPostBook(null);
       await loadFirstPage();
     } finally {
       setPosting(false);
@@ -138,11 +173,52 @@ export default function AkisScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
           ListHeaderComponent={
-            <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-end", marginBottom: spacing.md }}>
-              <View style={{ flex: 1 }}>
-                <TextField label="" value={postText} onChangeText={setPostText} placeholder="Ne düşünüyorsun?" multiline />
+            <View style={{ gap: spacing.sm, marginBottom: spacing.md }}>
+              <TextField label="" value={postText} onChangeText={setPostText} placeholder="Ne düşünüyorsun?" multiline />
+
+              {postImage && (
+                <View style={{ alignSelf: "flex-start" }}>
+                  <Image source={{ uri: postImage.uri }} style={{ width: 64, height: 64, borderRadius: 8 }} />
+                  <Pressable
+                    onPress={() => setPostImage(null)}
+                    style={{ position: "absolute", top: -6, right: -6, backgroundColor: colors.bg, borderRadius: 999, borderWidth: 1, borderColor: colors.divider, padding: 3 }}
+                  >
+                    <XIcon size={12} color={colors.text} />
+                  </Pressable>
+                </View>
+              )}
+
+              {postBook && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs, alignSelf: "flex-start", borderWidth: 1, borderColor: colors.divider, borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10 }}>
+                  <ThemedText variant="caption" numberOfLines={1}>{postBook.name}</ThemedText>
+                  <Pressable onPress={() => setPostBook(null)}>
+                    <XIcon size={12} color={colors.textMuted} />
+                  </Pressable>
+                </View>
+              )}
+
+              {bookPickerOpen && (
+                <View style={{ gap: spacing.xs }}>
+                  <TextField label="" value={bookQuery} onChangeText={onBookQueryChange} placeholder="Kitap ara…" autoFocus />
+                  {bookResults.map((b) => (
+                    <Pressable key={b.id} onPress={() => selectBook(b)} style={{ paddingVertical: 6 }}>
+                      <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
+                      <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                <Pressable onPress={pickPostImage} hitSlop={8}>
+                  <ImageIcon size={20} color={colors.textMuted} />
+                </Pressable>
+                <Pressable onPress={() => setBookPickerOpen((o) => !o)} hitSlop={8}>
+                  <BookIcon size={20} color={bookPickerOpen ? colors.accent : colors.textMuted} />
+                </Pressable>
+                <View style={{ flex: 1 }} />
+                <Button title="Paylaş" onPress={onPost} disabled={posting || (!postText.trim() && !postImage && !postBook)} />
               </View>
-              <Button title="Paylaş" onPress={onPost} disabled={posting || !postText.trim()} />
             </View>
           }
           ListEmptyComponent={

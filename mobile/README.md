@@ -24,8 +24,11 @@ Built and end-to-end verified on a real Android emulator (2026-09-24/25):
 - **5-tab shell**: Akış / Keşfet / Kitaplığım / Mesajlar / Profil,
   `lucide-react-native` icons, haptics, safe-area-aware tab bar.
 - **Akış**: real feed (`getSiteFeed()`, pull-to-refresh, cursor
-  pagination) plus a real text post composer ("Ne düşünüyorsun?" →
-  `createFeedPost()`); every card's actor jumps to their profile and its
+  pagination) plus a real post composer ("Ne düşünüyorsun?" →
+  `createFeedPost()`) that now also supports an attached photo
+  (`expo-image-picker`, multipart) and/or a linked catalog book
+  (inline search picker, reusing `/search`); every card's actor jumps
+  to their profile and its
   target (book/writer/translator/publisher/another user, via
   `resolveFeedTargetHref`) jumps to that entity's own detail screen.
 
@@ -290,8 +293,6 @@ than a single pass justifies:
 - **Comment replies deeper than 2 levels** - `kitap/[slug]` renders a
   reply and one level of replies-to-that-reply; v1's data model allows
   deeper nesting than that.
-- **Feed post composer is text-only** - the web composer also supports
-  attaching an image (multipart upload) or a book; not built here.
 - **Refresh-token rotation** - the mobile JWT is a single 30-day token
   for now, a deliberately simple choice for this phase, not a final
   security design.

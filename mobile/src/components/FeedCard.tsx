@@ -1,4 +1,4 @@
-import { View, Pressable } from "react-native";
+import { View, Pressable, Image } from "react-native";
 import { router } from "expo-router";
 import type { FeedItem } from "@/api/feed";
 import { describeFeedItem } from "@/lib/feedCopy";
@@ -64,6 +64,9 @@ export function FeedCard({ item }: { item: FeedItem }) {
   ) : isPostCard ? (
     <View style={{ gap: spacing.sm }}>
       <ThemedText variant="body">{item.excerpt}</ThemedText>
+      {item.feedPostImage && (
+        <Image source={{ uri: item.feedPostImage }} style={{ width: "100%", height: 180, borderRadius: radius.md }} resizeMode="cover" />
+      )}
       {item.entityKind === "book" && (
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
           <BookCover id={item.bookCover?.id ?? item.actorId} title={item.targetLabel ?? ""} width={40} height={58} imageUrl={bookImageUrl} />

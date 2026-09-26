@@ -46,6 +46,7 @@ export interface FeedItem {
   progressPercentage: number | null;
   readingDurationDays: number | null;
   ratingValue: number | null;
+  feedPostImage: string | null;
 }
 
 export interface FeedPage {
@@ -59,8 +60,22 @@ export async function getFeed(cursor?: number | null): Promise<FeedPage> {
   return { items: result.items, nextCursor: result.nextCursor };
 }
 
-/** Text-only for now - see the backend route's own doc comment for the
- * image/book-attach scope cut. */
-export async function createFeedPost(text: string): Promise<{ id: number }> {
-  return apiFetch("/feed/post", { method: "POST", body: JSON.stringify({ text }) });
+export interface CreateFeedPostInput {
+  text: string;
+  image?: { uri: string; name: string; type: string } | null;
+  bookId?: number | null;
+}
+
+/** Multipart, same shape as api/store.ts's createListing() - see that
+ * file's own comment on why apiFetch needs the FormData carve-out. */
+export async function createFeedPost(input: CreateFeedPostInput): Promise<{ id: number }> {
+  const formData = new FormData();
+  formData.append("text", input.text);
+  if (input.bookId) formData.append("bookId", String(input.bookId));
+  if (input.image) {
+    // @ts-expect-error - RN's fetch/FormData accepts this shape for a
+    // local asset URI, not a real Blob/File.
+    formData.append("image", { uri: input.image.uri, name: input.image.name, type: input.image.type });
+  }
+  return apiFetch("/feed/post", { method: "POST", body: formData });
 }
