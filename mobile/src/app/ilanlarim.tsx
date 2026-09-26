@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-native";
-import { router } from "expo-router";
+import { router, useNavigation, useFocusEffect } from "expo-router";
+import { PlusIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { getMyListings, type MyStoreItem } from "@/api/store";
 
-/**
- * Read-only this pass - creating a new listing needs a photo picker +
- * multipart upload, a real next step not built here (see mobile/README.md).
- * Viewing/managing what you already have doesn't need that.
- */
 export default function IlanlarimScreen() {
   const { colors, spacing, radius } = useTheme();
+  const navigation = useNavigation();
   const [listings, setListings] = useState<MyStoreItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,15 +18,30 @@ export default function IlanlarimScreen() {
   }, []);
 
   useEffect(() => {
-    const ignore = { current: false };
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load(ignore).finally(() => {
-      if (!ignore.current) setLoading(false);
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => router.push("/askida-kitap/yeni")} style={{ padding: 4 }}>
+          <PlusIcon size={22} color={colors.accent} />
+        </Pressable>
+      ),
     });
-    return () => {
-      ignore.current = true;
-    };
-  }, [load]);
+  }, [navigation, colors.accent]);
+
+  // Refreshes on mount AND every time this screen regains focus - covers
+  // returning from /askida-kitap/yeni (a new listing) or from a listing's
+  // own detail screen (status might have changed there), not just the
+  // first load.
+  useFocusEffect(
+    useCallback(() => {
+      const ignore = { current: false };
+      load(ignore).finally(() => {
+        if (!ignore.current) setLoading(false);
+      });
+      return () => {
+        ignore.current = true;
+      };
+    }, [load]),
+  );
 
   if (loading) {
     return (

@@ -44,6 +44,12 @@
           "icon": "./assets/images/icon.png",
           "color": "#b68235"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Askıda Kitap ilanına fotoğraf eklemek için galeriye erişim gerekiyor."
+        }
       ]
     ],
     "experiments": {

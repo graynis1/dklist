@@ -119,3 +119,43 @@ export interface MyStoreItem {
 export async function getMyListings() {
   return apiFetch<{ status: "ok"; listings: MyStoreItem[] }>("/my-listings");
 }
+
+export interface CreateListingInput {
+  title: string;
+  content: string;
+  location: string;
+  shipment: string;
+  images: { uri: string; name: string; type: string }[];
+  listingType: "free" | "paid";
+  price?: number;
+  stock?: number;
+  shippingFee?: number;
+  bookId?: number;
+}
+
+/** Multipart upload - see apiFetch's own FormData carve-out for why this
+ * can't go through the usual JSON-body path. React Native's fetch accepts
+ * `{ uri, name, type }` in place of a real File/Blob for a picked local
+ * asset - the standard RN upload shape (expo-image-picker's own asset
+ * `uri` works directly here). */
+export async function createListing(input: CreateListingInput) {
+  const formData = new FormData();
+  formData.append("title", input.title);
+  formData.append("content", input.content);
+  formData.append("location", input.location);
+  formData.append("shipment", input.shipment);
+  formData.append("listingType", input.listingType);
+  if (input.listingType === "paid") {
+    formData.append("price", String(input.price ?? 0));
+    formData.append("stock", String(input.stock ?? 0));
+    if (input.shippingFee != null) formData.append("shippingFee", String(input.shippingFee));
+  }
+  if (input.bookId) formData.append("bookId", String(input.bookId));
+  for (const image of input.images) {
+    // @ts-expect-error - RN's fetch/FormData accepts this shape for a
+    // local asset URI, not a real Blob/File (no such thing on-device).
+    formData.append("images", { uri: image.uri, name: image.name, type: image.type });
+  }
+
+  return apiFetch<{ status: "ok"; slug: string }>("/store", { method: "POST", body: formData });
+}

@@ -1,15 +1,30 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-native";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
+import { PlusIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
+import { useAuth } from "@/auth/AuthContext";
 import { getStoreList, type StoreListItem } from "@/api/store";
 
 export default function AskidaKitapScreen() {
   const { colors, spacing, radius } = useTheme();
+  const navigation = useNavigation();
+  const { profile } = useAuth();
   const [type, setType] = useState<"free" | "paid" | null>(null);
   const [items, setItems] = useState<StoreListItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!profile) return;
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => router.push("/askida-kitap/yeni")} style={{ padding: 4 }}>
+          <PlusIcon size={22} color={colors.accent} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, profile, colors.accent]);
 
   const load = useCallback(async (t: "free" | "paid" | null, ignore?: { current: boolean }) => {
     const result = await getStoreList(t);

@@ -93,7 +93,11 @@ remaining "not built yet" item from the previous pass:
   error, not a crash.
 - **Askıda Kitap** (marketplace): browse/filter, listing detail (photo
   carousel, favorite, add-to-cart), **Sepetim** (per-seller checkout with
-  a shipping form), **Siparişlerim** (buyer/seller roles), **İlanlarım**.
+  a shipping form), **Siparişlerim** (buyer/seller roles), **İlanlarım**
+  (now with a real "+ Yeni İlan" creation flow: multi-photo picker via
+  `expo-image-picker`, free/paid toggle, price/stock/shipping fields -
+  multipart upload straight to the same `createStore()` the web form
+  uses, so a new listing lands in the same pending-approval queue).
   Checkout for both marketplace listings and Premium hands off to
   İyzico's hosted checkout page via `expo-web-browser`'s in-app browser
   sheet - a real native modal, not an embedded WebView, and the app
@@ -218,6 +222,7 @@ re-exporting anything.
 | `/clubs/[slug]/join` \| `/leave` | POST | Bearer | join/leave a club |
 | `/categories` / `/category/[slug]` | GET | optional | top categories / a category's book list |
 | `/store` / `/store/[slug]` | GET | optional | marketplace listing list / detail |
+| `/store` | POST | Bearer | multipart: create a new listing (same `createStore()` as web) |
 | `/store/[slug]/favorite` \| `/cart` | POST | Bearer | toggle favorite / cart membership |
 | `/cart` | GET | Bearer | cart grouped by seller |
 | `/cart/checkout` | POST | Bearer | shipping fields → `{paymentPageUrl}` |
@@ -273,9 +278,6 @@ than a single pass justifies:
   production write; this is an honest gap, not a silent assumption -
   the local/production code is identical, but a live write round trip
   on prod itself is unverified.
-- **Marketplace listing creation** (photo upload) - browsing, favoriting,
-  cart, checkout, and viewing your own listings are all built; creating
-  a *new* listing with photos isn't.
 - **Club admin/moderation UI** - join/leave works; managing a club you
   own (approving members, editing its info) doesn't have a screen yet.
 - **Comment replies deeper than 2 levels** - `kitap/[slug]` renders a

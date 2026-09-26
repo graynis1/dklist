@@ -344,6 +344,16 @@ function RootNavigator() {
           }}
         />
         <Stack.Screen
+          name="askida-kitap/yeni"
+          options={{
+            headerShown: true,
+            title: "Yeni İlan",
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
           name="sepetim"
           options={{
             headerShown: true,
