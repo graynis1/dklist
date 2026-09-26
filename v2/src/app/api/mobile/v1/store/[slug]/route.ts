@@ -1,4 +1,7 @@
 import { getStoreBySlug, isStoreFavorited, getStoreFavoriteCount, isInCart, storeImageUrl } from "@/db/queries/store";
+import { isStorePinned } from "@/db/queries/store-pin";
+import { getUserSellerRating } from "@/db/queries/rating";
+import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getMobileSession } from "@/lib/mobile-auth";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
@@ -10,11 +13,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   }
 
   const session = await getMobileSession(request);
-  const [favoriteCount, isFavorited, inCart] = await Promise.all([
+  const [favoriteCount, isFavorited, inCart, pinned, myRatingOfSeller, sellerReviews] = await Promise.all([
     getStoreFavoriteCount(store.id),
     session ? isStoreFavorited(session.userId, store.id) : Promise.resolve(false),
     session ? isInCart(session.userId, store.id) : Promise.resolve(false),
+    isStorePinned(store.id),
+    session ? getUserSellerRating(session.userId, store.ownerId) : Promise.resolve(null),
+    getEntityComments(store.ownerId, "user"),
   ]);
+  const repliesByComment = await getRepliesForComments(sellerReviews.map((c) => c.id));
+  const sellerReviewsWithReplies = sellerReviews.map((c) => ({ ...c, replies: repliesByComment.get(c.id) ?? [] }));
 
   return mobileJson({
     status: "ok",
@@ -22,6 +30,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     favoriteCount,
     isFavorited,
     inCart,
+    pinned,
+    myRatingOfSeller,
+    sellerReviews: sellerReviewsWithReplies,
   });
 }
 

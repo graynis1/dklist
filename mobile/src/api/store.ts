@@ -1,4 +1,5 @@
 import { apiFetch } from "@/api/client";
+import type { EntityComment } from "@/components/EntityCommentSection";
 
 export interface StoreListItem {
   id: number;
@@ -25,6 +26,7 @@ export interface StoreDetail {
   status: string;
   location: string | null;
   stock: number | null;
+  shipment: string | null;
   createdDate: string;
   pictures: string[];
   ownerId: number;
@@ -40,9 +42,16 @@ export async function getStoreList(type: "free" | "paid" | null = null, q = "") 
 }
 
 export async function getStore(slug: string) {
-  return apiFetch<{ status: "ok"; store: StoreDetail; favoriteCount: number; isFavorited: boolean; inCart: boolean }>(
-    `/store/${encodeURIComponent(slug)}`,
-  );
+  return apiFetch<{
+    status: "ok";
+    store: StoreDetail;
+    favoriteCount: number;
+    isFavorited: boolean;
+    inCart: boolean;
+    pinned: boolean;
+    myRatingOfSeller: number | null;
+    sellerReviews: EntityComment[];
+  }>(`/store/${encodeURIComponent(slug)}`);
 }
 
 export async function toggleStoreFavorite(slug: string) {
@@ -51,6 +60,20 @@ export async function toggleStoreFavorite(slug: string) {
 
 export async function toggleCartItem(slug: string) {
   return apiFetch<{ status: "ok"; inCart: boolean }>(`/store/${encodeURIComponent(slug)}/cart`, { method: "POST" });
+}
+
+export async function rateSeller(slug: string, value: number) {
+  return apiFetch<{ status: "ok"; newAverage: number }>(`/store/${encodeURIComponent(slug)}/rate`, {
+    method: "POST",
+    body: JSON.stringify({ value }),
+  });
+}
+
+export async function addSellerReview(slug: string, text: string) {
+  return apiFetch<{ status: "ok"; id: number }>(`/store/${encodeURIComponent(slug)}/review`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
 }
 
 export interface CartItem {

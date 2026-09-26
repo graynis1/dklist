@@ -1,20 +1,27 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Image } from "react-native";
+import { View, ScrollView, ActivityIndicator, Image, Alert } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { getStore, toggleStoreFavorite, toggleCartItem, type StoreDetail } from "@/api/store";
+import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
+import { getStore, toggleStoreFavorite, toggleCartItem, rateSeller, addSellerReview, type StoreDetail } from "@/api/store";
 
 export default function AskidaKitapDetailScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, fontFamily } = useTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const [store, setStore] = useState<StoreDetail | null>(null);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [isFavorited, setIsFavorited] = useState(false);
   const [inCart, setInCart] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const [myRatingOfSeller, setMyRatingOfSeller] = useState<number | null>(null);
+  const [sellerReviews, setSellerReviews] = useState<EntityComment[]>([]);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewSaving, setReviewSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [ratingSaving, setRatingSaving] = useState(false);
 
   const load = useCallback(async (ignore?: { current: boolean }) => {
     const result = await getStore(slug);
@@ -23,6 +30,9 @@ export default function AskidaKitapDetailScreen() {
       setFavoriteCount(result.favoriteCount);
       setIsFavorited(result.isFavorited);
       setInCart(result.inCart);
+      setPinned(result.pinned);
+      setMyRatingOfSeller(result.myRatingOfSeller);
+      setSellerReviews(result.sellerReviews);
     }
   }, [slug]);
 
@@ -57,6 +67,33 @@ export default function AskidaKitapDetailScreen() {
     }
   }
 
+  async function submitRating(value: number) {
+    setRatingSaving(true);
+    try {
+      await rateSeller(slug, value);
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Puan verilemedi.");
+    } finally {
+      setRatingSaving(false);
+    }
+  }
+
+  async function submitReview() {
+    const trimmed = reviewText.trim();
+    if (trimmed.length < 2) return;
+    setReviewSaving(true);
+    try {
+      await addSellerReview(slug, trimmed);
+      setReviewText("");
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Yorum eklenemedi.");
+    } finally {
+      setReviewSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
@@ -85,9 +122,16 @@ export default function AskidaKitapDetailScreen() {
         </ScrollView>
       )}
 
+      {pinned && <ThemedText variant="caption" color={colors.accent}>★ Öne Çıkan İlan</ThemedText>}
       <ThemedText variant="headline">{store.title}</ThemedText>
       <ThemedText variant="title" color={colors.accent700}>{isPaid ? `${store.price!.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}</ThemedText>
+      {isPaid && (
+        <ThemedText variant="caption" muted>
+          {store.shippingFee ? `+ ${store.shippingFee.toLocaleString("tr-TR")} ₺ kargo` : "kargo dahil"}
+        </ThemedText>
+      )}
       {store.location && <ThemedText variant="caption" muted>{store.location}</ThemedText>}
+      {store.shipment && <ThemedText variant="caption" muted>Kargo: {store.shipment}</ThemedText>}
 
       <ThemedText
         variant="body"
@@ -124,6 +168,35 @@ export default function AskidaKitapDetailScreen() {
           />
         )}
       </View>
+
+      <View style={{ gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.md }}>
+        <ThemedText variant="label" color={colors.textMuted}>
+          Bu satıcıyı değerlendir {myRatingOfSeller ? `(${myRatingOfSeller}/10)` : ""}
+        </ThemedText>
+        <ThemedText variant="caption" muted>Sadece bu satıcıdan gerçekten bir ilan satın almış üyeler puan/yorum bırakabilir.</ThemedText>
+        <View style={{ flexDirection: "row", gap: spacing.xs }}>
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <ThemedText
+              key={n}
+              variant="title"
+              onPress={() => !ratingSaving && submitRating(n)}
+              color={myRatingOfSeller != null && n <= myRatingOfSeller ? colors.accent : colors.neutral400}
+              style={{ fontFamily: fontFamily.headingSemibold, fontSize: 18 }}
+            >
+              ★
+            </ThemedText>
+          ))}
+        </View>
+      </View>
+
+      <EntityCommentSection
+        comments={sellerReviews}
+        commentText={reviewText}
+        onCommentTextChange={setReviewText}
+        onSubmitComment={submitReview}
+        submitting={reviewSaving}
+        onReplied={load}
+      />
     </ScrollView>
   );
 }

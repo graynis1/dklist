@@ -77,10 +77,18 @@ export default function AskidaKitapScreen() {
           renderItem={({ item }) => (
             <Pressable
               onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })}
-              style={{ flexDirection: "row", gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider }}
+              style={{
+                flexDirection: "row",
+                gap: spacing.sm,
+                padding: spacing.sm,
+                borderRadius: radius.lg,
+                borderWidth: item.isPinned ? 2 : 1,
+                borderColor: item.isPinned ? colors.accent : colors.divider,
+              }}
             >
               {item.image && <Image source={{ uri: item.image }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" />}
               <View style={{ flex: 1, gap: 2 }}>
+                {item.isPinned && <ThemedText variant="caption" color={colors.accent}>★ Öne Çıkan</ThemedText>}
                 <ThemedText variant="title" numberOfLines={1}>{item.title}</ThemedText>
                 <ThemedText variant="caption" muted>@{item.ownerUsername}{item.location ? ` · ${item.location}` : ""}</ThemedText>
                 <ThemedText variant="bodySemibold" color={colors.accent}>
