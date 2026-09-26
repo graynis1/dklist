@@ -1,15 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator } from "react-native";
-import { router } from "expo-router";
-import { UsersIcon } from "lucide-react-native";
+import { router, useNavigation } from "expo-router";
+import { UsersIcon, PlusIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { getClubList, type ClubListItem } from "@/api/clubs";
 
 export default function KuluplerScreen() {
   const { colors, spacing, radius } = useTheme();
+  const navigation = useNavigation();
   const [items, setItems] = useState<ClubListItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable onPress={() => router.push("/kulup/yeni")} style={{ padding: 4 }}>
+          <PlusIcon size={22} color={colors.accent} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, colors.accent]);
 
   const load = useCallback(async (ignore?: { current: boolean }) => {
     const result = await getClubList();

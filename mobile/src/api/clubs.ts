@@ -51,6 +51,13 @@ export async function getClub(slug: string) {
   return apiFetch<{ status: "ok"; club: ClubDetail; isMember: boolean; isPending: boolean }>(`/clubs/${encodeURIComponent(slug)}`);
 }
 
+export async function createClub(input: { name: string; description: string; visibility: "public" | "private"; currentBookId?: number | null }) {
+  return apiFetch<{ status: "ok"; id: number; slug: string }>("/clubs", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function joinClub(slug: string) {
   return apiFetch<{ status: "ok"; pending: boolean }>(`/clubs/${encodeURIComponent(slug)}/join`, { method: "POST" });
 }
