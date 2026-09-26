@@ -13,3 +13,13 @@
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://dklist.com";
 
 export const MOBILE_API_BASE = `${API_BASE_URL}/api/mobile/v1`;
+
+/**
+ * Google Sign-In needs a real OAuth Client ID from Google Cloud Console
+ * (Android + Web, matching the app's package name/SHA-1) - there is no
+ * default here because one genuinely doesn't exist yet for this app.
+ * Until these are set in `.env.local`, the login screen's Google button
+ * stays visible but explains why it can't proceed instead of crashing.
+ */
+export const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? "";
+export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getStoredToken } from "@/auth/token-storage";
-import { login as apiLogin, logout as apiLogout, getMe, type MobileProfile } from "@/api/auth";
+import { login as apiLogin, logout as apiLogout, register as apiRegister, googleLogin as apiGoogleLogin, getMe, type MobileProfile, type RegisterInput } from "@/api/auth";
 import { registerForPushNotifications, unregisterPushNotifications } from "@/api/pushNotifications";
 
 interface AuthState {
@@ -10,6 +10,8 @@ interface AuthState {
    * UI for one frame before the stored token is checked. */
   profile: MobileProfile | null | undefined;
   login: (username: string, password: string, code?: string) => Promise<{ status: "ok" } | { status: "invalid" | "two_factor_required" | "suspended"; message?: string }>;
+  register: (input: RegisterInput) => Promise<{ status: "ok" } | { status: "error"; message: string }>;
+  googleLogin: (idToken: string) => Promise<{ status: "ok" } | { status: "error"; message: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -67,6 +69,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result;
   }
 
+  async function register(input: RegisterInput) {
+    const result = await apiRegister(input);
+    if (result.status === "ok") {
+      await refresh();
+      return { status: "ok" as const };
+    }
+    return result;
+  }
+
+  async function googleLogin(idToken: string) {
+    const result = await apiGoogleLogin(idToken);
+    if (result.status === "ok") {
+      await refresh();
+      return { status: "ok" as const };
+    }
+    return result;
+  }
+
   async function logout() {
     await unregisterPushNotifications();
     await apiLogout();
@@ -74,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ profile, login, logout, refresh }}>
+    <AuthContext.Provider value={{ profile, login, register, googleLogin, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

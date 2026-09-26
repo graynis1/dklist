@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { View, ActivityIndicator, useColorScheme, Platform } from "react-native";
 import { Stack } from "expo-router";
+import { getHasSeenOnboarding } from "@/auth/onboarding-storage";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
@@ -77,12 +78,29 @@ export default function RootLayout() {
  * Stack screens too (`headerShown: false`, matching the old Tabs'
  * screenOptions), indistinguishable from any other route except that
  * BottomTabBar treats them as its own active/highlighted destinations.
+ *
+ * A one-time onboarding carousel gates the auth screens the same way -
+ * `hasSeenOnboarding` (SecureStore, same mechanism as the token itself)
+ * starts `undefined` while checked, then the onboarding screen is simply
+ * excluded from the navigator once true, exactly like `(auth)` once a
+ * profile exists.
  */
 function RootNavigator() {
   const { profile } = useAuth();
   const colors = useColorScheme() === "dark" ? palette.dark : palette.light;
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | undefined>(undefined);
 
-  if (profile === undefined) {
+  useEffect(() => {
+    const ignore = { current: false };
+    getHasSeenOnboarding().then((seen) => {
+      if (!ignore.current) setHasSeenOnboarding(seen);
+    });
+    return () => {
+      ignore.current = true;
+    };
+  }, []);
+
+  if (profile === undefined || hasSeenOnboarding === undefined) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
         <ActivityIndicator color={colors.accent} />
@@ -93,7 +111,10 @@ function RootNavigator() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!profile}>
+      <Stack.Protected guard={!hasSeenOnboarding}>
+        <Stack.Screen name="onboarding" />
+      </Stack.Protected>
+      <Stack.Protected guard={hasSeenOnboarding && !profile}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
       <Stack.Protected guard={Boolean(profile)}>

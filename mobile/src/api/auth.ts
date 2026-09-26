@@ -39,6 +39,75 @@ export async function login(username: string, password: string, code?: string): 
   return result;
 }
 
+type GoogleLoginResult = { status: "ok"; token: string; user: MobileUser } | { status: "error"; message: string };
+
+export async function googleLogin(idToken: string): Promise<GoogleLoginResult> {
+  const result = await apiFetch<GoogleLoginResult>("/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  }).catch((err) => {
+    if (err && typeof err === "object" && "body" in err && err.body) return err.body as GoogleLoginResult;
+    throw err;
+  });
+
+  if (result.status === "ok") await setStoredToken(result.token);
+  return result;
+}
+
+export interface RegisterInput {
+  name: string;
+  surname: string;
+  username: string;
+  mail: string;
+  birthDate: string;
+  sex: string;
+  password: string;
+}
+
+type RegisterResult =
+  | { status: "ok"; token: string; user: MobileUser; verificationRequired: boolean; mailSent: boolean; devVerificationCode?: string }
+  | { status: "error"; message: string };
+
+export async function register(input: RegisterInput): Promise<RegisterResult> {
+  const result = await apiFetch<RegisterResult>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  }).catch((err) => {
+    if (err && typeof err === "object" && "body" in err && err.body) return err.body as RegisterResult;
+    throw err;
+  });
+
+  if (result.status === "ok") await setStoredToken(result.token);
+  return result;
+}
+
+type ForgotPasswordResult = { status: "ok"; userId: number; mailSent: boolean; devResetCode?: string } | { status: "error"; message: string };
+
+export async function requestPasswordReset(target: string): Promise<ForgotPasswordResult> {
+  return apiFetch<ForgotPasswordResult>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ target }) }).catch((err) => {
+    if (err && typeof err === "object" && "body" in err && err.body) return err.body as ForgotPasswordResult;
+    throw err;
+  });
+}
+
+type ResetPasswordResult = { status: "ok"; mailSent: boolean; devNewPassword?: string } | { status: "error"; message: string };
+
+export async function confirmPasswordReset(userId: number, code: string): Promise<ResetPasswordResult> {
+  return apiFetch<ResetPasswordResult>("/auth/reset-password", { method: "POST", body: JSON.stringify({ userId, code }) }).catch((err) => {
+    if (err && typeof err === "object" && "body" in err && err.body) return err.body as ResetPasswordResult;
+    throw err;
+  });
+}
+
+type ResendResetCodeResult = { status: "ok"; mailSent: boolean; devResetCode?: string } | { status: "error"; message: string };
+
+export async function resendResetCode(userId: number): Promise<ResendResetCodeResult> {
+  return apiFetch<ResendResetCodeResult>("/auth/reset-password/resend", { method: "POST", body: JSON.stringify({ userId }) }).catch((err) => {
+    if (err && typeof err === "object" && "body" in err && err.body) return err.body as ResendResetCodeResult;
+    throw err;
+  });
+}
+
 export async function logout(): Promise<void> {
   await clearStoredToken();
 }
