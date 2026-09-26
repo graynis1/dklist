@@ -35,8 +35,13 @@ export default function LoginScreen() {
   const [googleBusy, setGoogleBusy] = useState(false);
 
   const googleConfigured = Boolean(GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
+  // useIdTokenAuthRequest throws synchronously on Android if androidClientId
+  // is undefined (its own internal validation, not a lazy check) - hooks
+  // can't be called conditionally, so an unconfigured setup gets a dummy
+  // placeholder here instead. onGooglePress's own googleConfigured check
+  // is what actually stops a real prompt from ever firing with it.
   const [, googleResponse, promptGoogle] = Google.useIdTokenAuthRequest({
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID || "unconfigured.apps.googleusercontent.com",
     webClientId: GOOGLE_WEB_CLIENT_ID || undefined,
   });
 

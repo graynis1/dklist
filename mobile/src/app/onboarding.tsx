@@ -1,13 +1,12 @@
 import { useRef, useState } from "react";
 import { View, FlatList, Pressable, useWindowDimensions, type NativeSyntheticEvent, type NativeScrollEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { BookOpen, Users, Sparkles, MessageCircle } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
-import { setHasSeenOnboarding } from "@/auth/onboarding-storage";
+import { useOnboarding } from "@/auth/OnboardingContext";
 
 const SLIDES = [
   {
@@ -34,13 +33,16 @@ const SLIDES = [
 
 export default function OnboardingScreen() {
   const { colors, spacing, fontFamily } = useTheme();
+  const { markSeen } = useOnboarding();
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList>(null);
 
-  async function finish() {
-    await setHasSeenOnboarding();
-    router.replace("/login");
+  function finish() {
+    // No manual navigation - markSeen() flips OnboardingContext's own
+    // state, and Stack.Protected steers to (auth) automatically, same
+    // pattern as a successful login flipping the profile guard.
+    void markSeen();
   }
 
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {

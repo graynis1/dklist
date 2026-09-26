@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { View, ActivityIndicator, useColorScheme, Platform } from "react-native";
 import { Stack } from "expo-router";
-import { getHasSeenOnboarding } from "@/auth/onboarding-storage";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
@@ -13,6 +12,7 @@ import {
 } from "@expo-google-fonts/cormorant-garamond";
 import { useFonts as useLoraFonts, Lora_400Regular, Lora_600SemiBold } from "@expo-google-fonts/lora";
 import { AuthProvider, useAuth } from "@/auth/AuthContext";
+import { OnboardingProvider, useOnboarding } from "@/auth/OnboardingContext";
 import { BottomTabBar } from "@/components/BottomTabBar";
 import { setupNotificationChannel } from "@/api/pushNotifications";
 import { palette } from "@/theme/tokens";
@@ -55,8 +55,10 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-      <RootNavigator />
+      <OnboardingProvider>
+        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+        <RootNavigator />
+      </OnboardingProvider>
     </AuthProvider>
   );
 }
@@ -80,25 +82,15 @@ export default function RootLayout() {
  * BottomTabBar treats them as its own active/highlighted destinations.
  *
  * A one-time onboarding carousel gates the auth screens the same way -
- * `hasSeenOnboarding` (SecureStore, same mechanism as the token itself)
- * starts `undefined` while checked, then the onboarding screen is simply
- * excluded from the navigator once true, exactly like `(auth)` once a
- * profile exists.
+ * `hasSeenOnboarding` comes from `OnboardingContext` (SecureStore-backed,
+ * same mechanism as the auth token itself - see that context's own doc
+ * comment for the real bug this fixed: a local, non-reactive copy of this
+ * flag never flipped the guard when onboarding finished).
  */
 function RootNavigator() {
   const { profile } = useAuth();
+  const { hasSeenOnboarding } = useOnboarding();
   const colors = useColorScheme() === "dark" ? palette.dark : palette.light;
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | undefined>(undefined);
-
-  useEffect(() => {
-    const ignore = { current: false };
-    getHasSeenOnboarding().then((seen) => {
-      if (!ignore.current) setHasSeenOnboarding(seen);
-    });
-    return () => {
-      ignore.current = true;
-    };
-  }, []);
 
   if (profile === undefined || hasSeenOnboarding === undefined) {
     return (
