@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Switch, Alert } from "react-native";
+import { View, ScrollView, ActivityIndicator, Switch, Alert, Share, Pressable } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
-import { getEditableProfile, updateAccount, type EditableProfile } from "@/api/accountEdit";
+import { Avatar } from "@/components/Avatar";
+import { getEditableProfile, updateAccount, uploadAvatar, getDataExport, type EditableProfile } from "@/api/accountEdit";
 
 /**
  * Hesap düzenle - name/surname/bio/city/password/privacy/2FA. `sex` and
@@ -16,10 +19,11 @@ import { getEditableProfile, updateAccount, type EditableProfile } from "@/api/a
  */
 export default function HesapDuzenleScreen() {
   const { colors, spacing } = useTheme();
-  const { refresh } = useAuth();
+  const { refresh, profile: authProfile } = useAuth();
   const [profile, setProfile] = useState<EditableProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
@@ -82,6 +86,36 @@ export default function HesapDuzenleScreen() {
     }
   }
 
+  async function onExportData() {
+    try {
+      const result = await getDataExport();
+      await Share.share({ message: JSON.stringify(result.data, null, 2), title: "dklist-verilerim.json" });
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Verileriniz alınamadı.");
+    }
+  }
+
+  async function onPickAvatar() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("İzin gerekli", "Fotoğraf değiştirmek için galeri izni vermelisin.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+    if (result.canceled || result.assets.length === 0) return;
+    const asset = result.assets[0];
+    setAvatarUploading(true);
+    try {
+      await uploadAvatar({ uri: asset.uri, name: asset.fileName ?? `avatar-${Date.now()}.jpg`, type: asset.mimeType ?? "image/jpeg" });
+      await refresh();
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Fotoğraf yüklenemedi.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   if (loading || !profile) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
@@ -92,6 +126,11 @@ export default function HesapDuzenleScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+      <Pressable onPress={onPickAvatar} disabled={avatarUploading} style={{ alignItems: "center", gap: spacing.xs }}>
+        <Avatar id={authProfile?.id ?? 0} name={name || "?"} imageUrl={profile.image} size={84} />
+        <ThemedText variant="caption" color={colors.accent}>{avatarUploading ? "Yükleniyor…" : "Fotoğrafı Değiştir"}</ThemedText>
+      </Pressable>
+
       <TextField label="Ad" value={name} onChangeText={setName} />
       <TextField label="Soyad" value={surname} onChangeText={setSurname} />
       <TextField label="Şehir" value={livingCity} onChangeText={setLivingCity} />
@@ -115,6 +154,11 @@ export default function HesapDuzenleScreen() {
       </View>
 
       <Button title="Kaydet" onPress={onSave} disabled={saving} block />
+
+      <View style={{ gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.md }}>
+        <Button title="Engellenen Kullanıcılar" variant="ghost" onPress={() => router.push("/engellenenler")} />
+        <Button title="Verilerimi İndir (KVKK)" variant="ghost" onPress={onExportData} />
+      </View>
     </ScrollView>
   );
 }

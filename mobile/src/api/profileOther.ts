@@ -18,6 +18,7 @@ export interface OtherProfileResponse {
   counts: { followers: number; following: number };
   isSelf: boolean;
   following: boolean;
+  blocked: boolean;
   canSeeLibrary: boolean;
   badges: { id: number; name: string; comment: string; img: string }[];
   library: LibraryByStatus | null;
@@ -29,6 +30,12 @@ export async function getProfile(username: string) {
 
 export async function toggleFollow(username: string) {
   return apiFetch<{ status: "ok"; following: boolean }>(`/profile/${encodeURIComponent(username)}/follow`, {
+    method: "POST",
+  });
+}
+
+export async function toggleBlock(username: string) {
+  return apiFetch<{ status: "ok"; blocked: boolean }>(`/profile/${encodeURIComponent(username)}/block`, {
     method: "POST",
   });
 }

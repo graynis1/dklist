@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, Image } from "react-native";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { getFavorites, type FavoritesResponse } from "@/api/favorites";
 
 export default function FavorilerScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const [data, setData] = useState<FavoritesResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,15 +41,39 @@ export default function FavorilerScreen() {
         { title: "Yayınevleri", items: data.publishers, hrefBase: "/yayinevi/[slug]" },
       ]
     : [];
-  const hasAny = sections.some((s) => s.items.length > 0);
+  const stores = data?.stores ?? [];
+  const hasAny = sections.some((s) => s.items.length > 0) || stores.length > 0;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
       {!hasAny && (
         <View style={{ alignItems: "center", paddingTop: spacing["3xl"] }}>
-          <ThemedText variant="body" muted>Henüz beğendiğin bir yazar, çevirmen veya yayınevi yok.</ThemedText>
+          <ThemedText variant="body" muted>Henüz favorilediğin bir şey yok.</ThemedText>
         </View>
       )}
+
+      {stores.length > 0 && (
+        <View style={{ gap: spacing.sm }}>
+          <ThemedText variant="label" color={colors.textMuted}>İlanlar</ThemedText>
+          {stores.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })}
+              style={{ flexDirection: "row", gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider }}
+            >
+              {item.image && <Image source={{ uri: item.image }} style={{ width: 56, height: 56, borderRadius: 8 }} resizeMode="cover" />}
+              <View style={{ flex: 1, gap: 2 }}>
+                <ThemedText variant="title" numberOfLines={1}>{item.title}</ThemedText>
+                <ThemedText variant="caption" muted>{item.location ?? ""}</ThemedText>
+                <ThemedText variant="bodySemibold" color={colors.accent}>
+                  {item.listingType === "paid" && item.price ? `${item.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}
+                </ThemedText>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       {sections.map(
         (section) =>
           section.items.length > 0 && (

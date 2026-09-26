@@ -5,6 +5,7 @@ import {
   getUserBadges,
   getBooksByStatus,
 } from "@/db/queries/profile";
+import { isBlockedByMe } from "@/db/queries/blocks";
 import { getMobileSession } from "@/lib/mobile-auth";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
@@ -21,9 +22,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
 
   const session = await getMobileSession(request);
   const isSelf = session?.userId === target.id;
-  const [counts, following] = await Promise.all([
+  const [counts, following, blocked] = await Promise.all([
     getFollowCounts(target.id),
     session && !isSelf ? isFollowing(session.userId, target.id) : Promise.resolve(false),
+    session && !isSelf ? isBlockedByMe(session.userId, target.id) : Promise.resolve(false),
   ]);
 
   const canSeeLibrary = isSelf || !target.privacy || following;
@@ -37,6 +39,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     counts,
     isSelf,
     following,
+    blocked,
     canSeeLibrary,
     badges,
     library,

@@ -6,6 +6,13 @@ import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { getMyListings, type MyStoreItem } from "@/api/store";
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Onay Bekliyor",
+  active: "Mevcut",
+  completed: "Verildi",
+  cancelled: "İptal Edildi",
+};
+
 export default function IlanlarimScreen() {
   const { colors, spacing, radius } = useTheme();
   const navigation = useNavigation();
@@ -64,7 +71,7 @@ export default function IlanlarimScreen() {
         >
           {item.image && <Image source={{ uri: item.image }} style={{ width: 48, height: 48, borderRadius: 8 }} />}
           <ThemedText variant="body" style={{ flex: 1 }} numberOfLines={1}>{item.title}</ThemedText>
-          <ThemedText variant="caption" color={colors.accent}>{item.status}</ThemedText>
+          <ThemedText variant="caption" color={colors.accent}>{STATUS_LABELS[item.status] ?? item.status}</ThemedText>
         </Pressable>
       )}
       ListEmptyComponent={

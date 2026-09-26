@@ -38,3 +38,15 @@ export async function updateAccount(input: UpdateAccountInput) {
     body: JSON.stringify(input),
   });
 }
+
+export async function getDataExport() {
+  return apiFetch<{ status: "ok"; data: unknown }>("/me/data-export");
+}
+
+export async function uploadAvatar(image: { uri: string; name: string; type: string }) {
+  const formData = new FormData();
+  // @ts-expect-error - RN's fetch/FormData accepts this shape for a local
+  // asset URI, not a real Blob/File (no such thing on-device).
+  formData.append("avatar", { uri: image.uri, name: image.name, type: image.type });
+  return apiFetch<{ status: "ok"; image: string }>("/me/avatar", { method: "POST", body: formData });
+}

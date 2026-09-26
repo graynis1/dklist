@@ -6,7 +6,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { BookCover } from "@/components/BookCover";
 import { Button } from "@/components/Button";
-import { getProfile, toggleFollow, type OtherProfileResponse } from "@/api/profileOther";
+import { getProfile, toggleFollow, toggleBlock, type OtherProfileResponse } from "@/api/profileOther";
 import type { ReadStatus } from "@/api/library";
 import { API_BASE_URL } from "@/api/config";
 import { badgeImageUrl } from "@/api/community";
@@ -25,6 +25,7 @@ export default function OtherProfileScreen() {
   const [data, setData] = useState<OtherProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [followSaving, setFollowSaving] = useState(false);
+  const [blockSaving, setBlockSaving] = useState(false);
 
   useEffect(() => {
     navigation.setOptions({ title: `@${username}` });
@@ -57,6 +58,16 @@ export default function OtherProfileScreen() {
     }
   }
 
+  async function onToggleBlock() {
+    setBlockSaving(true);
+    try {
+      await toggleBlock(username);
+      await load();
+    } finally {
+      setBlockSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
@@ -73,7 +84,7 @@ export default function OtherProfileScreen() {
     );
   }
 
-  const { profile, counts, isSelf, following, canSeeLibrary, badges, library } = data;
+  const { profile, counts, isSelf, following, blocked, canSeeLibrary, badges, library } = data;
   const displayName = [profile.name, profile.surname].filter(Boolean).join(" ") || profile.username;
   const shelves: ReadStatus[] = ["currentRead", "finishRead", "targetRead", "dropRead"];
 
@@ -97,13 +108,20 @@ export default function OtherProfileScreen() {
         </View>
 
         {!isSelf && (
-          <Button
-            title={following ? "Takip Ediliyor ✓" : "Takip Et"}
-            variant={following ? "primary" : "secondary"}
-            onPress={onToggleFollow}
-            disabled={followSaving}
-            style={{ marginTop: spacing.sm }}
-          />
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+            <Button
+              title={following ? "Takip Ediliyor ✓" : "Takip Et"}
+              variant={following ? "primary" : "secondary"}
+              onPress={onToggleFollow}
+              disabled={followSaving || blocked}
+            />
+            <Button
+              title={blocked ? "Engeli Kaldır" : "Engelle"}
+              variant="ghost"
+              onPress={onToggleBlock}
+              disabled={blockSaving}
+            />
+          </View>
         )}
       </View>
 
