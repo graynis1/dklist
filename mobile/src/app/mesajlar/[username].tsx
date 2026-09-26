@@ -1,14 +1,50 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { View, FlatList, Pressable, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
+import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
+import { BookCover } from "@/components/BookCover";
 import { getThread, sendMessage, type MessageItem } from "@/api/messages";
 import { useAuth } from "@/auth/AuthContext";
+import { API_BASE_URL } from "@/api/config";
 
 const POLL_MS = 5000;
+
+function AttachmentCard({ item }: { item: MessageItem }) {
+  const { colors, spacing, radius } = useTheme();
+  if (!item.attachment) return null;
+
+  if (item.type === "book") {
+    return (
+      <Pressable
+        onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: item.attachment!.slug } })}
+        style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.surface }}
+      >
+        <BookCover id={item.attachment.id} title={item.attachment.title} width={40} height={58} imageUrl={`${API_BASE_URL}${item.attachment.image}`} />
+        <ThemedText variant="body" numberOfLines={2} style={{ flex: 1 }}>{item.attachment.title}</ThemedText>
+      </Pressable>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.attachment!.slug } })}
+      style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, backgroundColor: colors.surface }}
+    >
+      {item.attachment.image && (
+        <Image source={{ uri: `${API_BASE_URL}${item.attachment.image}` }} style={{ width: 40, height: 40, borderRadius: 6 }} />
+      )}
+      <View style={{ flex: 1 }}>
+        <ThemedText variant="body" numberOfLines={1}>{item.attachment.title}</ThemedText>
+        {item.attachment.price != null && (
+          <ThemedText variant="caption" color={colors.accent}>{item.attachment.price.toLocaleString("tr-TR")} ₺</ThemedText>
+        )}
+      </View>
+    </Pressable>
+  );
+}
 
 export default function ThreadScreen() {
   const { colors, spacing, radius } = useTheme();
@@ -75,20 +111,23 @@ export default function ThreadScreen() {
         renderItem={({ item }) => {
           const mine = item.senderId === profile?.id;
           return (
-            <View style={{ alignItems: mine ? "flex-end" : "flex-start" }}>
-              <View
-                style={{
-                  maxWidth: "78%",
-                  borderRadius: radius.lg,
-                  paddingVertical: 9,
-                  paddingHorizontal: 13,
-                  backgroundColor: mine ? colors.accent : colors.surface,
-                }}
-              >
-                <ThemedText variant="body" color={mine ? "#fff" : colors.text}>
-                  {item.text}
-                </ThemedText>
-              </View>
+            <View style={{ alignItems: mine ? "flex-end" : "flex-start", gap: 4 }}>
+              {item.attachment && <View style={{ maxWidth: "78%" }}><AttachmentCard item={item} /></View>}
+              {item.text && (
+                <View
+                  style={{
+                    maxWidth: "78%",
+                    borderRadius: radius.lg,
+                    paddingVertical: 9,
+                    paddingHorizontal: 13,
+                    backgroundColor: mine ? colors.accent : colors.surface,
+                  }}
+                >
+                  <ThemedText variant="body" color={mine ? "#fff" : colors.text}>
+                    {item.text}
+                  </ThemedText>
+                </View>
+              )}
             </View>
           );
         }}
