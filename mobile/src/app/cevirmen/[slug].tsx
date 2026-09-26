@@ -5,8 +5,10 @@ import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { BookCover } from "@/components/BookCover";
+import { Avatar } from "@/components/Avatar";
 import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
 import { getTranslator, toggleTranslatorLike, addTranslatorComment, type EntityDetail, type EntityBookItem } from "@/api/entity";
+import { API_BASE_URL } from "@/api/config";
 
 export default function TranslatorScreen() {
   const { colors, spacing } = useTheme();
@@ -86,10 +88,15 @@ export default function TranslatorScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+      <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
+        <Avatar id={translator.id} name={translator.name} imageUrl={translator.img ? `${API_BASE_URL}/api/translator-image/${translator.img}` : null} size={64} />
+        <View style={{ flex: 1, gap: spacing.xs }}>
+          <ThemedText variant="headline">{translator.name}</ThemedText>
+          <ThemedText variant="caption" muted>{likeCount} beğeni</ThemedText>
+        </View>
+      </View>
       <View style={{ gap: spacing.xs }}>
-        <ThemedText variant="headline">{translator.name}</ThemedText>
         {translator.biyo && <ThemedText variant="body" muted>{translator.biyo}</ThemedText>}
-        <ThemedText variant="caption" muted>{likeCount} beğeni</ThemedText>
       </View>
 
       <Button title={liked ? "Beğenildi ✓" : "Beğen"} variant={liked ? "primary" : "secondary"} onPress={onToggleLike} disabled={saving} block />

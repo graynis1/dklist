@@ -5,8 +5,10 @@ import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { BookCover } from "@/components/BookCover";
+import { Avatar } from "@/components/Avatar";
 import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
 import { getWriter, toggleWriterLike, addWriterComment, type EntityDetail, type EntityBookItem } from "@/api/entity";
+import { API_BASE_URL } from "@/api/config";
 
 export default function WriterScreen() {
   const { colors, spacing } = useTheme();
@@ -86,10 +88,15 @@ export default function WriterScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+      <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
+        <Avatar id={writer.id} name={writer.name} imageUrl={writer.img ? `${API_BASE_URL}/api/writer-image/${writer.img}` : null} size={64} />
+        <View style={{ flex: 1, gap: spacing.xs }}>
+          <ThemedText variant="headline">{writer.name}</ThemedText>
+          <ThemedText variant="caption" muted>{likeCount} beğeni</ThemedText>
+        </View>
+      </View>
       <View style={{ gap: spacing.xs }}>
-        <ThemedText variant="headline">{writer.name}</ThemedText>
         {writer.biyo && <ThemedText variant="body" muted>{writer.biyo}</ThemedText>}
-        <ThemedText variant="caption" muted>{likeCount} beğeni</ThemedText>
       </View>
 
       <Button title={liked ? "Beğenildi ✓" : "Beğen"} variant={liked ? "primary" : "secondary"} onPress={onToggleLike} disabled={saving} block />
