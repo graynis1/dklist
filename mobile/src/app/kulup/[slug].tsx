@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, ActivityIndicator, Pressable, Alert, Switch } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { XIcon } from "lucide-react-native";
+import { XIcon, PencilIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
+import { TextField } from "@/components/TextField";
 import { Avatar } from "@/components/Avatar";
 import { Button } from "@/components/Button";
 import { useAuth } from "@/auth/AuthContext";
+import { search, type SearchResultBook } from "@/api/search";
 import {
   getClub,
   joinClub,
@@ -15,6 +17,10 @@ import {
   respondToClubJoinRequest,
   setClubRequiresApproval,
   removeClubMember,
+  updateClubName,
+  updateClubDescription,
+  updateClubCurrentBook,
+  deleteClub,
   type ClubDetail,
   type ClubJoinRequest,
 } from "@/api/clubs";
@@ -32,6 +38,13 @@ export default function KulupDetailScreen() {
   const [saving, setSaving] = useState(false);
   const [requests, setRequests] = useState<ClubJoinRequest[]>([]);
   const [approvalBusy, setApprovalBusy] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [infoSaving, setInfoSaving] = useState(false);
+  const [bookPickerOpen, setBookPickerOpen] = useState(false);
+  const [bookQuery, setBookQuery] = useState("");
+  const [bookResults, setBookResults] = useState<SearchResultBook[]>([]);
 
   const canManage = Boolean(
     club && profile && (club.ownerId === profile.id || MANAGE_ROLES.includes(profile.userType)),
@@ -133,6 +146,80 @@ export default function KulupDetailScreen() {
     ]);
   }
 
+  function openInfoEdit() {
+    if (!club) return;
+    setNameDraft(club.name);
+    setDescriptionDraft(club.description);
+    setEditingInfo(true);
+  }
+
+  async function onSaveInfo() {
+    if (!nameDraft.trim() || !descriptionDraft.trim()) {
+      Alert.alert("Eksik bilgi", "Kulüp adı ve açıklaması boş olamaz.");
+      return;
+    }
+    setInfoSaving(true);
+    try {
+      await updateClubName(slug, nameDraft.trim());
+      await updateClubDescription(slug, descriptionDraft.trim());
+      setEditingInfo(false);
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Güncellenemedi.");
+    } finally {
+      setInfoSaving(false);
+    }
+  }
+
+  async function onBookQueryChange(q: string) {
+    setBookQuery(q);
+    if (q.trim().length < 2) {
+      setBookResults([]);
+      return;
+    }
+    const result = await search(q);
+    setBookResults(result.books.slice(0, 5));
+  }
+
+  async function onSelectCurrentBook(book: SearchResultBook) {
+    setBookPickerOpen(false);
+    setBookQuery("");
+    setBookResults([]);
+    try {
+      await updateClubCurrentBook(slug, book.id);
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Güncellenemedi.");
+    }
+  }
+
+  async function onClearCurrentBook() {
+    try {
+      await updateClubCurrentBook(slug, null);
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Güncellenemedi.");
+    }
+  }
+
+  function onDeleteClub() {
+    Alert.alert("Kulübü Sil", "Bu kulüp kalıcı olarak silinsin mi? Bu işlem geri alınamaz.", [
+      { text: "Vazgeç", style: "cancel" },
+      {
+        text: "Sil",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteClub(slug);
+            router.back();
+          } catch (err) {
+            Alert.alert("Hata", err instanceof Error ? err.message : "Kulüp silinemedi.");
+          }
+        },
+      },
+    ]);
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
@@ -153,25 +240,75 @@ export default function KulupDetailScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
-      <View style={{ gap: spacing.xs }}>
-        <ThemedText variant="headline">{club.name}</ThemedText>
-        <ThemedText variant="caption" muted>{club.memberCount} üye · {club.visibility === "public" ? "Herkese açık" : "Gizli"}</ThemedText>
-        <ThemedText variant="body">{club.description}</ThemedText>
-      </View>
+      {editingInfo ? (
+        <View style={{ gap: spacing.sm }}>
+          <TextField label="Kulüp Adı" value={nameDraft} onChangeText={setNameDraft} />
+          <TextField label="Açıklama" value={descriptionDraft} onChangeText={setDescriptionDraft} multiline style={{ height: 80 }} />
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <Button title="Vazgeç" variant="secondary" onPress={() => setEditingInfo(false)} disabled={infoSaving} />
+            <Button title="Kaydet" onPress={onSaveInfo} disabled={infoSaving} />
+          </View>
+        </View>
+      ) : (
+        <View style={{ gap: spacing.xs }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <ThemedText variant="headline" style={{ flex: 1 }}>{club.name}</ThemedText>
+            {canManage && (
+              <Pressable onPress={openInfoEdit} hitSlop={8}>
+                <PencilIcon size={18} color={colors.textMuted} />
+              </Pressable>
+            )}
+          </View>
+          <ThemedText variant="caption" muted>{club.memberCount} üye · {club.visibility === "public" ? "Herkese açık" : "Gizli"}</ThemedText>
+          <ThemedText variant="body">{club.description}</ThemedText>
+        </View>
+      )}
 
       {!canManage && (
         <Button title={buttonTitle} variant={isMember ? "secondary" : "primary"} onPress={onToggleMembership} disabled={saving || isPending} />
       )}
 
-      {club.currentBookName && (
-        <Pressable
-          onPress={() => club.currentBookSlug && router.push({ pathname: "/kitap/[slug]", params: { slug: club.currentBookSlug } })}
-          style={{ gap: 4 }}
-        >
-          <ThemedText variant="label" color={colors.textMuted}>Şu An Okunan Kitap</ThemedText>
-          <ThemedText variant="title">{club.currentBookName}</ThemedText>
-          <ThemedText variant="caption" muted>{club.currentBookWriters.join(", ")}</ThemedText>
+      {club.currentBookName && !bookPickerOpen && (
+        <View style={{ gap: 4 }}>
+          <Pressable
+            onPress={() => club.currentBookSlug && router.push({ pathname: "/kitap/[slug]", params: { slug: club.currentBookSlug } })}
+          >
+            <ThemedText variant="label" color={colors.textMuted}>Şu An Okunan Kitap</ThemedText>
+            <ThemedText variant="title">{club.currentBookName}</ThemedText>
+            <ThemedText variant="caption" muted>{club.currentBookWriters.join(", ")}</ThemedText>
+          </Pressable>
+          {canManage && (
+            <View style={{ flexDirection: "row", gap: spacing.md, marginTop: 4 }}>
+              <Pressable onPress={() => setBookPickerOpen(true)}>
+                <ThemedText variant="caption" color={colors.accent}>Değiştir</ThemedText>
+              </Pressable>
+              <Pressable onPress={onClearCurrentBook}>
+                <ThemedText variant="caption" color={colors.textMuted}>Kaldır</ThemedText>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
+
+      {canManage && !club.currentBookName && !bookPickerOpen && (
+        <Pressable onPress={() => setBookPickerOpen(true)}>
+          <ThemedText variant="caption" color={colors.accent}>+ Şu an okunan kitabı seç</ThemedText>
         </Pressable>
+      )}
+
+      {bookPickerOpen && (
+        <View style={{ gap: spacing.xs }}>
+          <TextField label="Kitap ara" value={bookQuery} onChangeText={onBookQueryChange} placeholder="Kitap adı…" autoFocus />
+          {bookResults.map((b) => (
+            <Pressable key={b.id} onPress={() => onSelectCurrentBook(b)} style={{ paddingVertical: 6 }}>
+              <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
+              <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+            </Pressable>
+          ))}
+          <Pressable onPress={() => setBookPickerOpen(false)}>
+            <ThemedText variant="caption" muted>Vazgeç</ThemedText>
+          </Pressable>
+        </View>
       )}
 
       {canManage && (
@@ -199,6 +336,10 @@ export default function KulupDetailScreen() {
               ))}
             </View>
           )}
+
+          <Pressable onPress={onDeleteClub} style={{ marginTop: spacing.sm }}>
+            <ThemedText variant="caption" color="#c0392b">Kulübü Sil</ThemedText>
+          </Pressable>
         </View>
       )}
 

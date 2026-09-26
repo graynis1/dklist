@@ -73,3 +73,28 @@ export async function setClubRequiresApproval(slug: string, requiresApproval: bo
 export async function removeClubMember(slug: string, userId: number) {
   return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/members/${userId}`, { method: "DELETE" });
 }
+
+export async function updateClubName(slug: string, name: string) {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/name`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function updateClubDescription(slug: string, description: string) {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/description`, {
+    method: "POST",
+    body: JSON.stringify({ description }),
+  });
+}
+
+export async function updateClubCurrentBook(slug: string, bookId: number | null) {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/current-book`, {
+    method: "POST",
+    body: JSON.stringify({ bookId }),
+  });
+}
+
+export async function deleteClub(slug: string) {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}`, { method: "DELETE" });
+}

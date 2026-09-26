@@ -92,7 +92,9 @@ remaining "not built yet" item from the previous pass:
   player (the one deliberate exception to this app's "no WebView" rule).
 - **Kulüpler** (book clubs): browse, detail, join/leave, plus a
   "Kulüp Yönetimi" panel for the owner (or Admin/Mod) - toggle
-  join-approval, approve/reject pending requests, remove a member.
+  join-approval, approve/reject pending requests, remove a member,
+  edit the club's name/description, change/clear the current book
+  (inline search picker), and delete the club (with confirmation).
 - **Kategoriler**: browse + category detail with a Popülerlik/Puan sort
   toggle; a huge category's timeout is surfaced as a graceful Turkish
   error, not a crash.
@@ -229,6 +231,9 @@ re-exporting anything.
 | `/clubs/[slug]/requests/[userId]?action=approve\|reject` | POST | Bearer | owner/mod: respond to a request |
 | `/clubs/[slug]/approval` | POST | Bearer | owner/mod: `{requiresApproval}` |
 | `/clubs/[slug]/members/[userId]` | DELETE | Bearer | owner/mod: remove a member |
+| `/clubs/[slug]/name` \| `/description` | POST | Bearer | owner/mod: edit club info |
+| `/clubs/[slug]/current-book` | POST | Bearer | owner/mod: `{bookId}` (null clears it) |
+| `/clubs/[slug]` | DELETE | Bearer | owner/mod: delete the club |
 | `/categories` / `/category/[slug]` | GET | optional | top categories / a category's book list |
 | `/store` / `/store/[slug]` | GET | optional | marketplace listing list / detail |
 | `/store` | POST | Bearer | multipart: create a new listing (same `createStore()` as web) |
@@ -287,9 +292,6 @@ than a single pass justifies:
   production write; this is an honest gap, not a silent assumption -
   the local/production code is identical, but a live write round trip
   on prod itself is unverified.
-- **Club admin editing** - membership moderation is built (see below);
-  editing a club's own name/description/current-book, and deleting a
-  club, are still web-only.
 - **Comment replies deeper than 2 levels** - `kitap/[slug]` renders a
   reply and one level of replies-to-that-reply; v1's data model allows
   deeper nesting than that.
