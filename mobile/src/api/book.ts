@@ -41,6 +41,7 @@ export interface BookComment {
   authorUsername: string;
   authorUserId: number;
   authorImage: string | null;
+  authorScore: number | null;
   replies: CommentReply[];
 }
 

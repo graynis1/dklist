@@ -314,6 +314,9 @@ function CommentRow({ comment, onReplied }: { comment: BookComment; onReplied: (
         <View style={{ flex: 1, gap: 2 }}>
           <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
             <ThemedText variant="bodySemibold">@{comment.authorUsername}</ThemedText>
+            {comment.authorScore != null && (
+              <ThemedText variant="caption" color={colors.accent}>★ {comment.authorScore}/10</ThemedText>
+            )}
             <ThemedText variant="caption" muted>{relativeTime(comment.date)}</ThemedText>
           </View>
           <ThemedText variant="body">{comment.text}</ThemedText>
