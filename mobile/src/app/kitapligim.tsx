@@ -59,7 +59,12 @@ export default function KitapligimScreen() {
         <ThemedText variant="display">Kitaplığım</ThemedText>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.xs, paddingBottom: spacing.sm }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.xs, paddingBottom: spacing.sm, alignItems: "center" }}
+      >
         {TABS.map((t) => {
           const isActive = active === t.key;
           const count = library?.[t.key]?.length ?? 0;
