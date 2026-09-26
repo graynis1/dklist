@@ -12,6 +12,7 @@ import {
 } from "@expo-google-fonts/cormorant-garamond";
 import { useFonts as useLoraFonts, Lora_400Regular, Lora_600SemiBold } from "@expo-google-fonts/lora";
 import { AuthProvider, useAuth } from "@/auth/AuthContext";
+import { BottomTabBar } from "@/components/BottomTabBar";
 import { setupNotificationChannel } from "@/api/pushNotifications";
 import { palette } from "@/theme/tokens";
 
@@ -63,11 +64,19 @@ export default function RootLayout() {
  * `Stack.Protected` (expo-router's own documented auth-flow primitive,
  * not a hand-rolled redirect) - a screen inside a `guard={false}` block is
  * simply not part of the navigator, and Expo Router automatically steers
- * navigation away from it if it was active. No competing root `index.tsx`
- * needed (one was tried first and removed - it collided with `(tabs)`'s
- * own `index.tsx` for the `/` path, a real routing conflict, not a style
- * choice). `profile === undefined` (still checking SecureStore) shows a
- * loading view rather than flashing the login screen for one frame.
+ * navigation away from it if it was active. `profile === undefined`
+ * (still checking SecureStore) shows a loading view rather than flashing
+ * the login screen for one frame.
+ *
+ * The bottom tab bar is a plain custom component (`BottomTabBar`)
+ * rendered as a fixed sibling BELOW the entire `<Stack>`, not
+ * expo-router's `Tabs` navigator - see that component's own doc comment
+ * for why (real bug: most secondary screens lost the tab bar entirely
+ * under the old `Tabs`-based setup, since they were root Stack screens
+ * outside the tabs group). The 5 former tab screens are now plain root
+ * Stack screens too (`headerShown: false`, matching the old Tabs'
+ * screenOptions), indistinguishable from any other route except that
+ * BottomTabBar treats them as its own active/highlighted destinations.
  */
 function RootNavigator() {
   const { profile } = useAuth();
@@ -82,12 +91,17 @@ function RootNavigator() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!profile}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
       <Stack.Protected guard={Boolean(profile)}>
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="kesfet" />
+        <Stack.Screen name="kitapligim" />
+        <Stack.Screen name="mesajlar" />
+        <Stack.Screen name="profil" />
         {/* Detail screens reachable from more than one tab (Keşfet/
             Kitaplığım both link to a book; the Mesajlar tab's conversation
             list pushes a thread) - real Stack screens, not nested inside
@@ -384,6 +398,8 @@ function RootNavigator() {
           }}
         />
       </Stack.Protected>
-    </Stack>
+      </Stack>
+      {Boolean(profile) && <BottomTabBar />}
+    </View>
   );
 }
