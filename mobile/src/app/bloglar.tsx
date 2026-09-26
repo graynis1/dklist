@@ -3,6 +3,7 @@ import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-nativ
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
+import { Avatar } from "@/components/Avatar";
 import { API_BASE_URL } from "@/api/config";
 import { getBlogList, type BlogListItem } from "@/api/content";
 
@@ -57,7 +58,12 @@ export default function BloglarScreen() {
             <View style={{ padding: spacing.md, gap: 4 }}>
               <ThemedText variant="title">{item.title}</ThemedText>
               <ThemedText variant="caption" muted numberOfLines={2}>{item.preview}</ThemedText>
-              {item.ownerUsername && <ThemedText variant="caption" color={colors.accent}>@{item.ownerUsername}</ThemedText>}
+              {item.ownerUsername && (
+                <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "center" }}>
+                  <Avatar id={0} name={item.ownerUsername} imageUrl={item.ownerImage} size={20} />
+                  <ThemedText variant="caption" color={colors.accent}>@{item.ownerUsername}</ThemedText>
+                </View>
+              )}
             </View>
           </Pressable>
         );

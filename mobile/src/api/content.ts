@@ -1,4 +1,5 @@
 import { apiFetch } from "@/api/client";
+import type { EntityComment } from "@/components/EntityCommentSection";
 
 export interface BlogListItem {
   id: number;
@@ -39,13 +40,22 @@ export async function getBlogList(page = 1, q = "") {
 }
 
 export async function getBlog(slug: string) {
-  return apiFetch<{ status: "ok"; blog: BlogDetail; like: BlogLikeState }>(`/blog/${encodeURIComponent(slug)}`);
+  return apiFetch<{ status: "ok"; blog: BlogDetail; like: BlogLikeState; comments: EntityComment[] }>(
+    `/blog/${encodeURIComponent(slug)}`,
+  );
 }
 
 export async function toggleBlogLike(slug: string, value: 1 | -1 = 1) {
   return apiFetch<{ status: "ok"; reaction: 1 | -1 | null }>(`/blog/${encodeURIComponent(slug)}/like`, {
     method: "POST",
     body: JSON.stringify({ value }),
+  });
+}
+
+export async function addBlogComment(slug: string, text: string) {
+  return apiFetch<{ status: "ok"; id: number }>(`/blog/${encodeURIComponent(slug)}/comment`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
   });
 }
 
@@ -69,5 +79,12 @@ export async function getVideoList(page = 1, q = "") {
 }
 
 export async function getVideo(slug: string) {
-  return apiFetch<{ status: "ok"; video: VideoDetail }>(`/video/${encodeURIComponent(slug)}`);
+  return apiFetch<{ status: "ok"; video: VideoDetail; comments: EntityComment[] }>(`/video/${encodeURIComponent(slug)}`);
+}
+
+export async function addVideoComment(slug: string, text: string) {
+  return apiFetch<{ status: "ok"; id: number }>(`/video/${encodeURIComponent(slug)}/comment`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
 }

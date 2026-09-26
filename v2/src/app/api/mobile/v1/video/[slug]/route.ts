@@ -1,4 +1,5 @@
 import { getVideoBySlug, incrementVideoViewCount } from "@/db/queries/videos";
+import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -9,7 +10,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   }
 
   incrementVideoViewCount(video.id).catch(() => {});
-  return mobileJson({ status: "ok", video });
+
+  const comments = await getEntityComments(video.id, "video");
+  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const commentsWithReplies = comments.map((c) => ({ ...c, replies: repliesByComment.get(c.id) ?? [] }));
+
+  return mobileJson({ status: "ok", video, comments: commentsWithReplies });
 }
 
 export async function OPTIONS() {

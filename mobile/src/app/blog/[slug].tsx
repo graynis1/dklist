@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Image } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { View, ScrollView, ActivityIndicator, Image, Pressable, Alert } from "react-native";
+import { useLocalSearchParams, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
+import { Avatar } from "@/components/Avatar";
+import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
 import { API_BASE_URL } from "@/api/config";
-import { getBlog, toggleBlogLike, type BlogDetail, type BlogLikeState } from "@/api/content";
+import { getBlog, toggleBlogLike, addBlogComment, type BlogDetail, type BlogLikeState } from "@/api/content";
 import { stripHtml } from "@/lib/stripHtml";
 
 function imgUrl(img: string | null): string | null {
@@ -18,6 +20,9 @@ export default function BlogDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const [blog, setBlog] = useState<BlogDetail | null>(null);
   const [like, setLike] = useState<BlogLikeState | null>(null);
+  const [comments, setComments] = useState<EntityComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -26,6 +31,7 @@ export default function BlogDetailScreen() {
     if (!ignore?.current) {
       setBlog(result.blog);
       setLike(result.like);
+      setComments(result.comments);
     }
   }, [slug]);
 
@@ -40,13 +46,28 @@ export default function BlogDetailScreen() {
     };
   }, [load]);
 
-  async function onLike() {
+  async function onReact(value: 1 | -1) {
     setSaving(true);
     try {
-      await toggleBlogLike(slug);
+      await toggleBlogLike(slug, value);
       await load();
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function submitComment() {
+    const trimmed = commentText.trim();
+    if (trimmed.length < 2) return;
+    setCommentSaving(true);
+    try {
+      await addBlogComment(slug, trimmed);
+      setCommentText("");
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Yorum eklenemedi.");
+    } finally {
+      setCommentSaving(false);
     }
   }
 
@@ -72,14 +93,43 @@ export default function BlogDetailScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
       {src && <Image source={{ uri: src }} style={{ width: "100%", height: 200, borderRadius: 8 }} resizeMode="cover" />}
       <ThemedText variant="headline">{blog.title}</ThemedText>
-      {blog.ownerUsername && <ThemedText variant="caption" muted>@{blog.ownerUsername} · {blog.viewCount} görüntülenme</ThemedText>}
+      {blog.ownerUsername && (
+        <Pressable
+          onPress={() => router.push({ pathname: "/profil/[username]", params: { username: blog.ownerUsername! } })}
+          style={{ flexDirection: "row", gap: spacing.xs, alignItems: "center" }}
+        >
+          <Avatar id={0} name={blog.ownerUsername} imageUrl={blog.ownerImage} size={28} />
+          <ThemedText variant="caption" muted>@{blog.ownerUsername} · {blog.viewCount} görüntülenme</ThemedText>
+        </Pressable>
+      )}
       <ThemedText variant="body">{stripHtml(blog.content ?? blog.preview)}</ThemedText>
       {like && (
-        <Button
-          title={like.liked ? `Beğenildi ✓ (${like.count})` : `Beğen (${like.count})`}
-          variant={like.liked ? "primary" : "secondary"}
-          onPress={onLike}
-          disabled={saving}
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Button
+            title={like.liked ? `Beğenildi ✓ (${like.count})` : `Beğen (${like.count})`}
+            variant={like.liked ? "primary" : "secondary"}
+            onPress={() => onReact(1)}
+            disabled={saving}
+          />
+          <Button
+            title={like.disliked ? `Beğenilmedi ✓ (${like.dislikeCount})` : `Beğenme (${like.dislikeCount})`}
+            variant={like.disliked ? "primary" : "secondary"}
+            onPress={() => onReact(-1)}
+            disabled={saving}
+          />
+        </View>
+      )}
+
+      {blog.commentsDisabled ? (
+        <ThemedText variant="caption" muted>Bu yazıda yorumlar kapalı.</ThemedText>
+      ) : (
+        <EntityCommentSection
+          comments={comments}
+          commentText={commentText}
+          onCommentTextChange={setCommentText}
+          onSubmitComment={submitComment}
+          submitting={commentSaving}
+          onReplied={load}
         />
       )}
     </ScrollView>

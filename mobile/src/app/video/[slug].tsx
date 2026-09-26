@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ActivityIndicator, Image, Pressable, Linking } from "react-native";
+import { View, ActivityIndicator, Image, Pressable, Linking, Alert, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { PlayCircleIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
-import { getVideo, type VideoDetail } from "@/api/content";
+import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
+import { getVideo, addVideoComment, type VideoDetail } from "@/api/content";
 
 /**
  * Deliberately hands off to the real YouTube app (or the system browser as
@@ -19,11 +20,17 @@ export default function VideoDetailScreen() {
   const { colors, spacing } = useTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const [video, setVideo] = useState<VideoDetail | null>(null);
+  const [comments, setComments] = useState<EntityComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (ignore?: { current: boolean }) => {
     const result = await getVideo(slug);
-    if (!ignore?.current) setVideo(result.video);
+    if (!ignore?.current) {
+      setVideo(result.video);
+      setComments(result.comments);
+    }
   }, [slug]);
 
   useEffect(() => {
@@ -42,6 +49,21 @@ export default function VideoDetailScreen() {
     const appUrl = `vnd.youtube://${video.youtubeVideoId}`;
     const webUrl = `https://www.youtube.com/watch?v=${video.youtubeVideoId}`;
     Linking.openURL(appUrl).catch(() => Linking.openURL(webUrl));
+  }
+
+  async function submitComment() {
+    const trimmed = commentText.trim();
+    if (trimmed.length < 2) return;
+    setCommentSaving(true);
+    try {
+      await addVideoComment(slug, trimmed);
+      setCommentText("");
+      await load();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Yorum eklenemedi.");
+    } finally {
+      setCommentSaving(false);
+    }
   }
 
   if (loading) {
@@ -63,7 +85,7 @@ export default function VideoDetailScreen() {
   const thumb = video.youtubeVideoId ? `https://img.youtube.com/vi/${video.youtubeVideoId}/hqdefault.jpg` : null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg, padding: spacing.lg, gap: spacing.md }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
       <Pressable onPress={onPlay}>
         {thumb && <Image source={{ uri: thumb }} style={{ width: "100%", height: 220, borderRadius: 8 }} resizeMode="cover" />}
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
@@ -72,6 +94,15 @@ export default function VideoDetailScreen() {
       </Pressable>
       <ThemedText variant="headline">{video.title}</ThemedText>
       <ThemedText variant="caption" muted>{video.viewCount} görüntülenme</ThemedText>
-    </View>
+
+      <EntityCommentSection
+        comments={comments}
+        commentText={commentText}
+        onCommentTextChange={setCommentText}
+        onSubmitComment={submitComment}
+        submitting={commentSaving}
+        onReplied={load}
+      />
+    </ScrollView>
   );
 }
