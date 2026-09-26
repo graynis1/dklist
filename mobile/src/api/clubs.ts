@@ -13,6 +13,7 @@ export interface ClubListItem {
 export interface ClubMember {
   userId: number;
   username: string;
+  image: string | null;
   role: string;
   joinedAt: string;
 }
@@ -38,6 +39,7 @@ export interface ClubDetail {
 export interface ClubJoinRequest {
   userId: number;
   username: string;
+  image: string | null;
   requestedAt: string;
 }
 

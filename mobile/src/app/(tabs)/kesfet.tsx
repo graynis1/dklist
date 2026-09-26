@@ -187,7 +187,7 @@ export default function KesfetScreen() {
                 onPress={() => router.push({ pathname: "/profil/[username]", params: { username: u.username } })}
                 style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}
               >
-                <Avatar id={u.id} name={u.username} size={32} />
+                <Avatar id={u.id} name={u.username} imageUrl={u.image} size={32} />
                 <ThemedText variant="body">@{u.username}</ThemedText>
               </Pressable>
             ))}

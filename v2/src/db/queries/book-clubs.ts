@@ -137,6 +137,7 @@ export async function getClubList(page = 1, pageSize = 20, search = ""): Promise
 export interface ClubMember {
   userId: number;
   username: string;
+  image: string | null;
   role: string;
   joinedAt: string;
 }
@@ -188,7 +189,7 @@ export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
   const club = { ...row, currentBookHasImage: Boolean(row.currentBookHasImage), requiresApproval: Boolean(row.requiresApproval) };
 
   const memberRows = await db
-    .select({ userId: bookClubMember.userId, username: user.username, role: bookClubMember.role, joinedAt: bookClubMember.joinedAt })
+    .select({ userId: bookClubMember.userId, username: user.username, image: user.image, role: bookClubMember.role, joinedAt: bookClubMember.joinedAt })
     .from(bookClubMember)
     .innerJoin(user, eq(bookClubMember.userId, user.id))
     .where(eq(bookClubMember.clubId, club.id))
@@ -266,13 +267,14 @@ export async function hasPendingClubJoinRequest(clubId: number, userId: number):
 export interface ClubJoinRequestItem {
   userId: number;
   username: string;
+  image: string | null;
   requestedAt: string;
 }
 
 export async function getClubJoinRequests(clubId: number, actorUserId: number, actorUserType: string): Promise<ClubJoinRequestItem[]> {
   await requireClubManagePermission(clubId, actorUserId, actorUserType);
   return db
-    .select({ userId: bookClubJoinRequest.userId, username: user.username, requestedAt: bookClubJoinRequest.requestedAt })
+    .select({ userId: bookClubJoinRequest.userId, username: user.username, image: user.image, requestedAt: bookClubJoinRequest.requestedAt })
     .from(bookClubJoinRequest)
     .innerJoin(user, eq(bookClubJoinRequest.userId, user.id))
     .where(eq(bookClubJoinRequest.clubId, clubId))

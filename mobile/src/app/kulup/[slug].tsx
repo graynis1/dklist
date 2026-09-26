@@ -332,7 +332,7 @@ export default function KulupDetailScreen() {
               <ThemedText variant="caption" muted>Bekleyen İstekler ({requests.length})</ThemedText>
               {requests.map((r) => (
                 <View key={r.userId} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                  <Avatar id={r.userId} name={r.username} size={26} />
+                  <Avatar id={r.userId} name={r.username} imageUrl={r.image} size={26} />
                   <ThemedText variant="body" style={{ flex: 1 }}>@{r.username}</ThemedText>
                   <Pressable onPress={() => onRespondToRequest(r.userId, "reject")}>
                     <ThemedText variant="caption" color={colors.textMuted}>Reddet</ThemedText>
@@ -359,7 +359,7 @@ export default function KulupDetailScreen() {
               onPress={() => router.push({ pathname: "/profil/[username]", params: { username: m.username } })}
               style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", flex: 1 }}
             >
-              <Avatar id={m.userId} name={m.username} size={28} />
+              <Avatar id={m.userId} name={m.username} imageUrl={m.image} size={28} />
               <ThemedText variant="body">@{m.username}</ThemedText>
               {m.role !== "member" && <ThemedText variant="caption" color={colors.accent}>· {m.role}</ThemedText>}
             </Pressable>

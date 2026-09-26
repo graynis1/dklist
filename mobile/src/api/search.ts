@@ -19,6 +19,7 @@ export interface SearchResultEntity {
 export interface SearchResultUser {
   id: number;
   username: string;
+  image: string | null;
 }
 
 export interface SearchResults {

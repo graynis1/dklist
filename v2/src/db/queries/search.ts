@@ -116,6 +116,7 @@ export async function searchPublishers(term: string, limit = 5): Promise<SearchR
 export interface SearchResultUser {
   id: number;
   username: string;
+  image: string | null;
 }
 
 export async function searchUsers(term: string, limit = 5): Promise<SearchResultUser[]> {
@@ -127,6 +128,6 @@ export async function searchUsers(term: string, limit = 5): Promise<SearchResult
   if (trimmed.length < 2) return [];
 
   return (await db.execute(sql`
-    SELECT id, username FROM user WHERE username LIKE ${trimmed + "%"} LIMIT ${limit}
+    SELECT id, username, image FROM user WHERE username LIKE ${trimmed + "%"} LIMIT ${limit}
   `))[0] as unknown as SearchResultUser[];
 }
