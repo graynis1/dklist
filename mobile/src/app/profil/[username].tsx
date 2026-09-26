@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, FlatList } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, FlatList, Image } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
@@ -8,6 +8,8 @@ import { BookCover } from "@/components/BookCover";
 import { Button } from "@/components/Button";
 import { getProfile, toggleFollow, type OtherProfileResponse } from "@/api/profileOther";
 import type { ReadStatus } from "@/api/library";
+import { API_BASE_URL } from "@/api/config";
+import { badgeImageUrl } from "@/api/community";
 
 const SHELF_LABELS: Record<ReadStatus, string> = {
   currentRead: "Okuyor",
@@ -110,7 +112,10 @@ export default function OtherProfileScreen() {
           <ThemedText variant="label" color={colors.textMuted}>Rozetler</ThemedText>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
             {badges.map((b) => (
-              <View key={b.id} style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.divider }}>
+              <View key={b.id} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.divider }}>
+                {badgeImageUrl(b.img, API_BASE_URL) && (
+                  <Image source={{ uri: badgeImageUrl(b.img, API_BASE_URL)! }} style={{ width: 18, height: 18, borderRadius: 9 }} />
+                )}
                 <ThemedText variant="caption">{b.name}</ThemedText>
               </View>
             ))}

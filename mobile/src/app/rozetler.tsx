@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, FlatList, ActivityIndicator } from "react-native";
+import { View, FlatList, ActivityIndicator, Image } from "react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
-import { getBadgeGallery, type PublicBadgeItem } from "@/api/community";
+import { getBadgeGallery, badgeImageUrl, type PublicBadgeItem } from "@/api/community";
+import { API_BASE_URL } from "@/api/config";
 
 export default function RozetlerScreen() {
   const { colors, spacing, radius } = useTheme();
@@ -41,6 +42,9 @@ export default function RozetlerScreen() {
       contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}
       renderItem={({ item }) => (
         <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider }}>
+          {badgeImageUrl(item.img, API_BASE_URL) && (
+            <Image source={{ uri: badgeImageUrl(item.img, API_BASE_URL)! }} style={{ width: 48, height: 48, borderRadius: 24 }} />
+          )}
           <View style={{ flex: 1 }}>
             <ThemedText variant="title">{item.name}</ThemedText>
             <ThemedText variant="caption" muted>{item.comment}</ThemedText>
