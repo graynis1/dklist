@@ -87,7 +87,9 @@ remaining "not built yet" item from the previous pass:
   italic), not pretended away; video playback hands off to the real
   YouTube app/browser via `Linking.openURL` rather than embedding a
   player (the one deliberate exception to this app's "no WebView" rule).
-- **Kulüpler** (book clubs): browse, detail, join/leave.
+- **Kulüpler** (book clubs): browse, detail, join/leave, plus a
+  "Kulüp Yönetimi" panel for the owner (or Admin/Mod) - toggle
+  join-approval, approve/reject pending requests, remove a member.
 - **Kategoriler**: browse + category detail with a Popülerlik/Puan sort
   toggle; a huge category's timeout is surfaced as a graceful Turkish
   error, not a crash.
@@ -220,6 +222,10 @@ re-exporting anything.
 | `/video` / `/video/[slug]` | GET | optional | list / detail (+ view-count increment) |
 | `/clubs` / `/clubs/[slug]` | GET | optional | list / detail (+ membership state) |
 | `/clubs/[slug]/join` \| `/leave` | POST | Bearer | join/leave a club |
+| `/clubs/[slug]/requests` | GET | Bearer | owner/mod: pending join requests |
+| `/clubs/[slug]/requests/[userId]?action=approve\|reject` | POST | Bearer | owner/mod: respond to a request |
+| `/clubs/[slug]/approval` | POST | Bearer | owner/mod: `{requiresApproval}` |
+| `/clubs/[slug]/members/[userId]` | DELETE | Bearer | owner/mod: remove a member |
 | `/categories` / `/category/[slug]` | GET | optional | top categories / a category's book list |
 | `/store` / `/store/[slug]` | GET | optional | marketplace listing list / detail |
 | `/store` | POST | Bearer | multipart: create a new listing (same `createStore()` as web) |
@@ -278,8 +284,9 @@ than a single pass justifies:
   production write; this is an honest gap, not a silent assumption -
   the local/production code is identical, but a live write round trip
   on prod itself is unverified.
-- **Club admin/moderation UI** - join/leave works; managing a club you
-  own (approving members, editing its info) doesn't have a screen yet.
+- **Club admin editing** - membership moderation is built (see below);
+  editing a club's own name/description/current-book, and deleting a
+  club, are still web-only.
 - **Comment replies deeper than 2 levels** - `kitap/[slug]` renders a
   reply and one level of replies-to-that-reply; v1's data model allows
   deeper nesting than that.

@@ -23,6 +23,7 @@ export interface ClubDetail {
   slug: string;
   description: string;
   visibility: string;
+  ownerId: number | null;
   ownerUsername: string | null;
   currentBookName: string | null;
   currentBookSlug: string | null;
@@ -30,6 +31,12 @@ export interface ClubDetail {
   memberCount: number;
   members: ClubMember[];
   requiresApproval: boolean;
+}
+
+export interface ClubJoinRequest {
+  userId: number;
+  username: string;
+  requestedAt: string;
 }
 
 export async function getClubList(q = "") {
@@ -46,4 +53,23 @@ export async function joinClub(slug: string) {
 
 export async function leaveClub(slug: string) {
   return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/leave`, { method: "POST" });
+}
+
+export async function getClubJoinRequests(slug: string) {
+  return apiFetch<{ status: "ok"; items: ClubJoinRequest[] }>(`/clubs/${encodeURIComponent(slug)}/requests`);
+}
+
+export async function respondToClubJoinRequest(slug: string, userId: number, action: "approve" | "reject") {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/requests/${userId}?action=${action}`, { method: "POST" });
+}
+
+export async function setClubRequiresApproval(slug: string, requiresApproval: boolean) {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/approval`, {
+    method: "POST",
+    body: JSON.stringify({ requiresApproval }),
+  });
+}
+
+export async function removeClubMember(slug: string, userId: number) {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/members/${userId}`, { method: "DELETE" });
 }
