@@ -1,10 +1,25 @@
 import { apiFetch } from "@/api/client";
 
+/** Mirrors comments.ts's CommentReply / feed-posts.ts's own reply shape -
+ * both resolve to the same fields, just rooted at different parent types. */
+export interface FeedReply {
+  id: number;
+  text: string;
+  authorUsername: string;
+  authorUserId: number;
+  authorImage: string | null;
+  replies: FeedReply[];
+}
+
+export interface FeedLikeState {
+  count: number;
+  liked: boolean;
+  dislikeCount: number;
+  disliked: boolean;
+}
+
 /** Mirrors v2's `FeedItem` (src/db/queries/feed.ts) - kept in sync by
- * hand, same as MobileProfile in api/auth.ts. Only the fields this pass's
- * Akış screen actually renders; the backend returns more (replies, like
- * state) that aren't wired here yet - real next-step scope, not dropped
- * silently, see mobile/README.md. */
+ * hand, same as MobileProfile in api/auth.ts. */
 export type FeedReason =
   | "book_read"
   | "comment"
@@ -47,6 +62,16 @@ export interface FeedItem {
   readingDurationDays: number | null;
   ratingValue: number | null;
   feedPostImage: string | null;
+  /** Set only for reason "comment" - the real like button (comment_like). */
+  commentId: number | null;
+  likeState: FeedLikeState | null;
+  /** Set only for reason "feed_post" - its own, separate like system. */
+  feedPostId: number | null;
+  postLikeState: FeedLikeState | null;
+  /** Present for both "comment" and "feed_post" reasons - which id/type a
+   * reply should be posted against. */
+  replyTarget: { parentType: "comment" | "feedPost"; parentId: number } | null;
+  replies: FeedReply[];
 }
 
 export interface FeedPage {
@@ -58,6 +83,25 @@ export async function getFeed(cursor?: number | null): Promise<FeedPage> {
   const query = cursor ? `?cursor=${cursor}` : "";
   const result = await apiFetch<{ status: "ok" } & FeedPage>(`/feed${query}`);
   return { items: result.items, nextCursor: result.nextCursor };
+}
+
+export async function reactToComment(commentId: number, value: 1 | -1) {
+  return apiFetch<{ status: "ok"; reaction: 1 | -1 | null }>(`/comment/${commentId}/react`, {
+    method: "POST",
+    body: JSON.stringify({ value }),
+  });
+}
+
+export async function reactToFeedPost(postId: number, value: 1 | -1) {
+  return apiFetch<{ status: "ok"; reaction: 1 | -1 | null }>(`/feed/${postId}/react`, {
+    method: "POST",
+    body: JSON.stringify({ value }),
+  });
+}
+
+export async function replyToFeedItem(target: { parentType: "comment" | "feedPost"; parentId: number }, text: string) {
+  const path = target.parentType === "comment" ? `/comment/${target.parentId}/reply` : `/feed/${target.parentId}/reply`;
+  return apiFetch<{ status: "ok"; id: number }>(path, { method: "POST", body: JSON.stringify({ text }) });
 }
 
 export interface CreateFeedPostInput {
