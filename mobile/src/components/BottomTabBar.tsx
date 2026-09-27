@@ -48,7 +48,7 @@ export function BottomTabBar() {
     };
   }, []);
 
-  if (keyboardOpen) return null;
+  if (keyboardOpen || pathname === "/barkod") return null;
 
   return (
     <View

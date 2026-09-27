@@ -150,6 +150,26 @@ function RootNavigator() {
             headerShadowVisible: false,
           }}
         />
+        <Stack.Screen name="barkod" options={{ headerShown: false, animation: "slide_from_bottom" }} />
+        {(
+          [
+            ["kitap/yeni", "Kitap Ekle"],
+            ["yazarhane", "Yazarhane"],
+            ["yazarhane/[username]", ""],
+          ] as const
+        ).map(([name, title]) => (
+          <Stack.Screen
+            key={name}
+            name={name}
+            options={{
+              headerShown: true,
+              title,
+              headerStyle: { backgroundColor: colors.bg },
+              headerTintColor: colors.accent,
+              headerShadowVisible: false,
+            }}
+          />
+        ))}
         <Stack.Screen
           name="yazar/[slug]"
           options={{

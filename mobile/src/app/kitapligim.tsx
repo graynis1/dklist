@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ActivityIndicator, FlatList, RefreshControl, Alert, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
-import { LayoutGridIcon, ListIcon, ArrowUpDownIcon, LibraryIcon, BookOpenIcon, CheckCircle2Icon, BookmarkIcon, PauseCircleIcon } from "lucide-react-native";
+import { LayoutGridIcon, ListIcon, ArrowUpDownIcon, LibraryIcon, BookOpenIcon, CheckCircle2Icon, BookmarkIcon, PauseCircleIcon, ScanBarcodeIcon, BookPlusIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { BookCover } from "@/components/BookCover";
@@ -207,8 +207,16 @@ export default function KitapligimScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md }}>
-        <ThemedText variant="display">Kitaplığım</ThemedText>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md }}>
+        <ThemedText variant="display" style={{ flex: 1 }}>Kitaplığım</ThemedText>
+        {[
+          { key: "scan", Icon: ScanBarcodeIcon, onPress: () => router.push("/barkod") },
+          { key: "add", Icon: BookPlusIcon, onPress: () => router.push("/kitap/yeni") },
+        ].map(({ key, Icon, onPress }) => (
+          <Pressable key={key} onPress={onPress} hitSlop={6} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral300 : colors.neutral200, alignItems: "center", justifyContent: "center" })}>
+            <Icon size={20} color={colors.text} />
+          </Pressable>
+        ))}
       </View>
 
       {loading ? (

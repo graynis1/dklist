@@ -14,15 +14,21 @@ import {
   SparklesIcon,
   ChevronRightIcon,
   TagIcon,
+  FeatherIcon,
+  ScanBarcodeIcon,
+  BookPlusIcon,
 } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
-import { TextField } from "@/components/TextField";
+import { SearchBar } from "@/components/SearchBar";
 import { BookCover } from "@/components/BookCover";
 import { Avatar } from "@/components/Avatar";
 import { search as searchApi, type SearchResults } from "@/api/search";
 
-const COMMUNITY_LINKS: { icon: typeof NewspaperIcon; label: string; href: "/bloglar" | "/videolar" | "/kulupler" | "/kategoriler" | "/rozetler" | "/puan-tablosu" | "/puan-magazasi" | "/premium" | "/askida-kitap" }[] = [
+const COMMUNITY_LINKS: { icon: typeof NewspaperIcon; label: string; href: "/bloglar" | "/videolar" | "/kulupler" | "/kategoriler" | "/rozetler" | "/puan-tablosu" | "/puan-magazasi" | "/premium" | "/askida-kitap" | "/yazarhane" | "/barkod" | "/kitap/yeni" }[] = [
+  { icon: FeatherIcon, label: "Yazarhane", href: "/yazarhane" },
+  { icon: ScanBarcodeIcon, label: "Barkodla Kitap Bul", href: "/barkod" },
+  { icon: BookPlusIcon, label: "Kitap Ekle", href: "/kitap/yeni" },
   { icon: TagIcon, label: "Askıda Kitap", href: "/askida-kitap" },
   { icon: NewspaperIcon, label: "Bloglar", href: "/bloglar" },
   { icon: PlayCircleIcon, label: "Videolar", href: "/videolar" },
@@ -75,14 +81,24 @@ export default function KesfetScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.md }}>
         <ThemedText variant="display">Keşfet</ThemedText>
-        <TextField
-          label=""
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Kitap, yazar, çevirmen, yayınevi veya kullanıcı ara…"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <SearchBar
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Kitap, yazar, yayınevi, kullanıcı…"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+          <Pressable
+            onPress={() => router.push("/barkod")}
+            hitSlop={6}
+            style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, backgroundColor: pressed ? colors.accent700 : colors.accent, alignItems: "center", justifyContent: "center" })}
+          >
+            <ScanBarcodeIcon size={20} color="#fff" />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }} keyboardShouldPersistTaps="handled">
