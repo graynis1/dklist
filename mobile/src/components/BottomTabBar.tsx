@@ -74,7 +74,7 @@ export function BottomTabBar() {
         style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
       >
         {profile ? (
-          <Avatar id={profile.id} name={profile.name ?? profile.username} imageUrl={profile.image} size={24} />
+          <Avatar id={profile.id} name={profile.name ?? profile.username} imageUrl={profile.image} size={24} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
         ) : (
           <Avatar id={0} name="?" size={24} />
         )}

@@ -50,7 +50,7 @@ export default function ProfilScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
         <View style={{ alignItems: "center", gap: spacing.sm, paddingTop: spacing.lg }}>
-          <Avatar id={profile.id} name={displayName} imageUrl={profile.image} size={84} />
+          <Avatar id={profile.id} name={displayName} imageUrl={profile.image} size={84} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
           <ThemedText variant="headline" style={{ textAlign: "center" }}>
             {displayName}
           </ThemedText>

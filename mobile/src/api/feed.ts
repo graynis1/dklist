@@ -8,6 +8,8 @@ export interface FeedReply {
   authorUsername: string;
   authorUserId: number;
   authorImage: string | null;
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
   replies: FeedReply[];
 }
 
@@ -45,6 +47,8 @@ export interface FeedItem {
   actorId: number;
   actorUsername: string;
   actorImage: string | null;
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
   reason: FeedReason;
   entityKind: "book" | "writer" | "translator" | "user" | "blog" | "store" | "club" | "publisher" | null;
   isQuote: boolean;

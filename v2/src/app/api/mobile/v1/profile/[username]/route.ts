@@ -6,6 +6,7 @@ import {
   getBooksByStatus,
 } from "@/db/queries/profile";
 import { isBlockedByMe } from "@/db/queries/blocks";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 import { getMobileSession } from "@/lib/mobile-auth";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
@@ -33,9 +34,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     ? await Promise.all([getUserBadges(target.id), getBooksByStatus(target.id)])
     : [[], null];
 
+  const decorations = await getUserDecorations([target.id]);
+  const { frameTier } = decorationFor(decorations, target.id);
+
   return mobileJson({
     status: "ok",
-    profile: target,
+    profile: { ...target, frameTier },
     counts,
     isSelf,
     following,

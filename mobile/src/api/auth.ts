@@ -16,6 +16,10 @@ export interface MobileProfile extends MobileUser {
   surname: string | null;
   mail: string;
   verified: boolean;
+  /** Equipped Puan Mağazası profile frame color + its cost-derived tier -
+   * see components/Avatar.tsx's FrameRing for how these render. */
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
 }
 
 type LoginResult =

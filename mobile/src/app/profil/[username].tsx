@@ -91,7 +91,7 @@ export default function OtherProfileScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
       <View style={{ alignItems: "center", gap: spacing.sm }}>
-        <Avatar id={profile.id} name={displayName} imageUrl={profile.image} size={84} />
+        <Avatar id={profile.id} name={displayName} imageUrl={profile.image} size={84} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
         <ThemedText variant="headline" style={{ textAlign: "center" }}>{displayName}</ThemedText>
         <ThemedText variant="caption" muted>@{profile.username}</ThemedText>
         {profile.biyo && <ThemedText variant="body" style={{ textAlign: "center" }}>{profile.biyo}</ThemedText>}

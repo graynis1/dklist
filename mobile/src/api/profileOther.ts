@@ -10,6 +10,7 @@ export interface OtherProfile {
   image: string | null;
   verified: boolean;
   profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
   privacy: boolean;
 }
 

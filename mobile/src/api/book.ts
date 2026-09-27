@@ -31,6 +31,8 @@ export interface CommentReply {
   authorUsername: string;
   authorUserId: number;
   authorImage: string | null;
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
   replies: CommentReply[];
 }
 
@@ -42,6 +44,12 @@ export interface BookComment {
   authorUserId: number;
   authorImage: string | null;
   authorScore: number | null;
+  /** Field names match comments.ts's decorationFor() spread exactly
+   * (profileFrame/frameTier, not authorProfileFrame/authorFrameTier) -
+   * kept as-is rather than renamed, since every other comment-shaped
+   * type in this app (EntityComment, FeedReply) does the same. */
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
   replies: CommentReply[];
 }
 

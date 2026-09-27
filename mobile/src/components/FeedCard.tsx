@@ -69,7 +69,16 @@ export function FeedCard({ item }: { item: FeedItem }) {
       const result = await replyToFeedItem(item.replyTarget, trimmed);
       setReplies((prev) => [
         ...prev,
-        { id: result.id, text: trimmed, authorUsername: profile.username, authorUserId: profile.id, authorImage: profile.image, replies: [] },
+        {
+          id: result.id,
+          text: trimmed,
+          authorUsername: profile.username,
+          authorUserId: profile.id,
+          authorImage: profile.image,
+          profileFrame: profile.profileFrame,
+          frameTier: profile.frameTier,
+          replies: [],
+        },
       ]);
       setReplyText("");
     } catch (err) {
@@ -90,7 +99,14 @@ export function FeedCard({ item }: { item: FeedItem }) {
 
   const actorRow = (
     <Pressable onPress={() => router.push(actorProfileHref(item))} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-      <Avatar id={item.actorId} name={item.actorUsername} imageUrl={item.actorImage} size={item.reason === "badge_earned" ? 26 : 32} />
+      <Avatar
+        id={item.actorId}
+        name={item.actorUsername}
+        imageUrl={item.actorImage}
+        size={item.reason === "badge_earned" ? 26 : 32}
+        frameColor={item.profileFrame}
+        frameTier={item.frameTier}
+      />
       <ThemedText variant="body" style={{ flex: 1 }}>
         <ThemedText variant="bodySemibold">{item.actorUsername}</ThemedText> <ThemedText variant="body" muted>{verb}</ThemedText>
       </ThemedText>
@@ -185,7 +201,7 @@ export function FeedCard({ item }: { item: FeedItem }) {
         <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>
           {replies.map((r) => (
             <View key={r.id} style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Avatar id={r.authorUserId} name={r.authorUsername} imageUrl={r.authorImage} size={24} />
+              <Avatar id={r.authorUserId} name={r.authorUsername} imageUrl={r.authorImage} size={24} frameColor={r.profileFrame} frameTier={r.frameTier} />
               <View style={{ flex: 1 }}>
                 <ThemedText variant="caption" style={{ fontWeight: "600" }}>@{r.authorUsername}</ThemedText>
                 <ThemedText variant="caption">{r.text}</ThemedText>

@@ -15,6 +15,8 @@ export interface EntityCommentReply {
   authorUsername: string;
   authorUserId: number;
   authorImage: string | null;
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
   replies: EntityCommentReply[];
 }
 
@@ -26,6 +28,8 @@ export interface EntityComment {
   authorUserId: number;
   authorImage: string | null;
   authorScore: number | null;
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
   replies: EntityCommentReply[];
 }
 
@@ -101,7 +105,7 @@ function EntityCommentRow({ comment, onReplied }: { comment: EntityComment; onRe
         onPress={() => router.push({ pathname: "/profil/[username]", params: { username: comment.authorUsername } })}
         style={{ flexDirection: "row", gap: spacing.sm }}
       >
-        <Avatar id={comment.authorUserId} name={comment.authorUsername} imageUrl={comment.authorImage} size={32} />
+        <Avatar id={comment.authorUserId} name={comment.authorUsername} imageUrl={comment.authorImage} size={32} frameColor={comment.profileFrame} frameTier={comment.frameTier} />
         <View style={{ flex: 1, gap: 2 }}>
           <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
             <ThemedText variant="bodySemibold">@{comment.authorUsername}</ThemedText>

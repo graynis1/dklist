@@ -153,7 +153,9 @@ export default function AkisScreen() {
               </View>
             )}
           </Pressable>
-          {profile && <Avatar id={profile.id} name={profile.name ?? profile.username} imageUrl={profile.image} size={36} />}
+          {profile && (
+            <Avatar id={profile.id} name={profile.name ?? profile.username} imageUrl={profile.image} size={36} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
+          )}
         </View>
       </View>
 

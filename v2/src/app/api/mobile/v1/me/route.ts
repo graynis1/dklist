@@ -4,6 +4,7 @@ import { user as userTable } from "@/db/schema";
 import { getMobileSession } from "@/lib/mobile-auth";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 import { updateProfile, setProfilePrivacy, setTwoFactorEnabled } from "@/db/queries/profile";
+import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 
 /** Bearer-token-gated "who am I" - the first real endpoint any signed-in
  * mobile screen will call, and a template for how every future
@@ -34,7 +35,10 @@ export async function GET(request: Request) {
     return mobileJson({ status: "invalid", message: "Kullanıcı bulunamadı." }, { status: 404 });
   }
 
-  return mobileJson({ status: "ok", user: { ...row, verified: Boolean(row.verified) } });
+  const decorations = await getUserDecorations([row.id]);
+  const { profileFrame, frameTier } = decorationFor(decorations, row.id);
+
+  return mobileJson({ status: "ok", user: { ...row, verified: Boolean(row.verified), profileFrame, frameTier } });
 }
 
 /** Hesap düzenle - name/surname/sex/birthDate come back from the edit
