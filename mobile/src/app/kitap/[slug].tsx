@@ -371,7 +371,7 @@ export default function BookDetailScreen() {
         {/* About */}
         {description ? (
           <Card>
-            <SectionHeader title={book.content ? "Kitap hakkında" : "Yapay zekâ özeti"} />
+            <SectionHeader title="Kitap hakkında" />
             <ThemedText variant="body" style={{ lineHeight: 22 }} numberOfLines={descExpanded ? undefined : 5}>
               {description}
             </ThemedText>

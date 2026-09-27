@@ -7,7 +7,7 @@ import { defineConfig } from "drizzle-kit";
 config({ path: ".env.local" });
 
 // Introspection-only config. Per the v2 rewrite plan (see
-// C:\Users\ysf_2\.claude\plans\linked-mapping-snail.md), this project never runs
+// v2/PLAN.md), this project never runs
 // `drizzle-kit push` or trusts `drizzle-kit generate`'s diff engine against this
 // schema - schema changes are hand-written ALTER TABLE + a manually-edited schema.ts.
 // `npx drizzle-kit pull` (one-time introspection snapshot) is the only command this

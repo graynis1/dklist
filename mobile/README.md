@@ -7,7 +7,7 @@ Native iOS + Android app for [dklist.com](https://dklist.com), built on Expo
 Not a WebView wrapper anywhere in this app - every screen is real native
 React Native components (checked: no `react-native-webview` dependency, no
 site-scraping). Design ported from `referans/DKList iOS App.dc.html` (a
-Claude-Design mockup handed over 2026-09-24) - same palette/type/radii, not
+design mockup handed over 2026-09-24) - same palette/type/radii, not
 a reinterpretation, but with real backend data and native-only touches
 (haptics, safe-area handling) the static mockup couldn't show.
 
@@ -288,7 +288,7 @@ than a single pass justifies:
   exercised against the local dev database; production has only been
   checked read-only (`curl` against `/badges`, `/search`, `/leaderboard`
   after each deploy). A `curl`-based production login attempt was
-  refused by Claude Code's own auto-mode safety classifier as a
+  refused by the development environment's safety check as a
   production write; this is an honest gap, not a silent assumption -
   the local/production code is identical, but a live write round trip
   on prod itself is unverified.
