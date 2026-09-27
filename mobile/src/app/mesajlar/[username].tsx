@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, FlatList, Pressable, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
+import { BookIcon, TagIcon, XIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { BookCover } from "@/components/BookCover";
 import { getThread, sendMessage, type MessageItem } from "@/api/messages";
+import { search, type SearchResultBook } from "@/api/search";
+import { getStoreList, type StoreListItem } from "@/api/store";
 import { useAuth } from "@/auth/AuthContext";
 import { API_BASE_URL } from "@/api/config";
+import { Avatar } from "@/components/Avatar";
+import { relativeTime } from "@/lib/relativeTime";
 
 const POLL_MS = 5000;
 
@@ -52,17 +57,37 @@ export default function ThreadScreen() {
   const navigation = useNavigation();
   const { profile } = useAuth();
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [otherProfile, setOtherProfile] = useState<{ id: number; image: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
+  const [pickerOpen, setPickerOpen] = useState<"book" | "store" | null>(null);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [bookResults, setBookResults] = useState<SearchResultBook[]>([]);
+  const [storeResults, setStoreResults] = useState<StoreListItem[]>([]);
+  const [pickedBook, setPickedBook] = useState<SearchResultBook | null>(null);
+  const [pickedStore, setPickedStore] = useState<StoreListItem | null>(null);
+
   useEffect(() => {
-    navigation.setOptions({ title: `@${username}` });
-  }, [navigation, username]);
+    navigation.setOptions({
+      headerTitle: () => (
+        <Pressable
+          onPress={() => router.push({ pathname: "/profil/[username]", params: { username } })}
+          style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}
+        >
+          <Avatar id={otherProfile?.id ?? 0} name={username} imageUrl={otherProfile?.image ?? null} size={30} />
+          <ThemedText variant="bodySemibold">@{username}</ThemedText>
+        </Pressable>
+      ),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, username, otherProfile]);
 
   const load = useCallback(async () => {
     const result = await getThread(username);
     setMessages(result.messages);
+    setOtherProfile({ id: result.otherUserId, image: result.otherImage });
   }, [username]);
 
   useEffect(() => {
@@ -81,13 +106,51 @@ export default function ThreadScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
+  async function onPickerQueryChange(q: string) {
+    setPickerQuery(q);
+    if (q.trim().length < 2) {
+      setBookResults([]);
+      setStoreResults([]);
+      return;
+    }
+    if (pickerOpen === "book") {
+      const result = await search(q);
+      setBookResults(result.books.slice(0, 5));
+    } else if (pickerOpen === "store") {
+      const result = await getStoreList(null, q);
+      setStoreResults(result.items.slice(0, 5));
+    }
+  }
+
+  function openPicker(kind: "book" | "store") {
+    setPickedBook(null);
+    setPickedStore(null);
+    setPickerQuery("");
+    setBookResults([]);
+    setStoreResults([]);
+    setPickerOpen((current) => (current === kind ? null : kind));
+  }
+
+  function selectBook(book: SearchResultBook) {
+    setPickedBook(book);
+    setPickerOpen(null);
+  }
+
+  function selectStore(item: StoreListItem) {
+    setPickedStore(item);
+    setPickerOpen(null);
+  }
+
   async function submit() {
     const trimmed = text.trim();
     if (!trimmed) return;
     setText("");
+    const attachment = pickedBook ? { type: "book" as const, id: pickedBook.id } : pickedStore ? { type: "store" as const, id: pickedStore.id } : undefined;
+    setPickedBook(null);
+    setPickedStore(null);
     setSending(true);
     try {
-      const sent = await sendMessage(username, trimmed);
+      const sent = await sendMessage(username, trimmed, attachment);
       setMessages((prev) => [...prev, sent]);
     } finally {
       setSending(false);
@@ -128,6 +191,11 @@ export default function ThreadScreen() {
                   </ThemedText>
                 </View>
               )}
+              {item.createdAt && (
+                <ThemedText variant="caption" muted style={{ fontSize: 10 }}>
+                  {relativeTime(item.createdAt)}
+                </ThemedText>
+              )}
             </View>
           );
         }}
@@ -139,7 +207,56 @@ export default function ThreadScreen() {
           </View>
         }
       />
+
+      {(pickedBook || pickedStore) && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginHorizontal: spacing.md, marginBottom: spacing.xs, padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider }}>
+          {pickedBook && <BookCover id={pickedBook.id} title={pickedBook.name} width={32} height={46} hasImage={pickedBook.hasImage} />}
+          {pickedStore?.image && <Image source={{ uri: pickedStore.image }} style={{ width: 32, height: 32, borderRadius: 6 }} />}
+          <ThemedText variant="caption" numberOfLines={1} style={{ flex: 1 }}>
+            {pickedBook?.name ?? pickedStore?.title}
+          </ThemedText>
+          <Pressable onPress={() => { setPickedBook(null); setPickedStore(null); }} hitSlop={8}>
+            <XIcon size={16} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      )}
+
+      {pickerOpen && (
+        <View style={{ maxHeight: 260, marginHorizontal: spacing.md, marginBottom: spacing.xs, gap: spacing.xs }}>
+          <TextField label="" value={pickerQuery} onChangeText={onPickerQueryChange} placeholder={pickerOpen === "book" ? "Kitap ara…" : "İlan ara…"} autoFocus />
+          {pickerOpen === "book" ? (
+            <FlatList
+              data={bookResults}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <Pressable onPress={() => selectBook(item)} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", paddingVertical: 6 }}>
+                  <BookCover id={item.id} title={item.name} width={28} height={40} hasImage={item.hasImage} />
+                  <ThemedText variant="body" numberOfLines={1}>{item.name}</ThemedText>
+                </Pressable>
+              )}
+            />
+          ) : (
+            <FlatList
+              data={storeResults}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => (
+                <Pressable onPress={() => selectStore(item)} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", paddingVertical: 6 }}>
+                  {item.image && <Image source={{ uri: item.image }} style={{ width: 28, height: 28, borderRadius: 6 }} />}
+                  <ThemedText variant="body" numberOfLines={1}>{item.title}</ThemedText>
+                </Pressable>
+              )}
+            />
+          )}
+        </View>
+      )}
+
       <View style={{ flexDirection: "row", gap: spacing.sm, padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, alignItems: "flex-end" }}>
+        <Pressable onPress={() => openPicker("book")} hitSlop={8} style={{ paddingBottom: 10 }}>
+          <BookIcon size={20} color={pickerOpen === "book" ? colors.accent : colors.textMuted} />
+        </Pressable>
+        <Pressable onPress={() => openPicker("store")} hitSlop={8} style={{ paddingBottom: 10 }}>
+          <TagIcon size={20} color={pickerOpen === "store" ? colors.accent : colors.textMuted} />
+        </Pressable>
         <View style={{ flex: 1 }}>
           <TextField label="" value={text} onChangeText={setText} placeholder="Mesaj yaz…" multiline />
         </View>

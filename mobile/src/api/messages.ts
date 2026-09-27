@@ -33,15 +33,27 @@ export async function getConversations(): Promise<{ conversations: ConversationI
   return { conversations: result.conversations, requests: result.requests };
 }
 
-export async function getThread(username: string, cursor?: number): Promise<{ otherUserId: number; messages: MessageItem[]; hasMore: boolean; nextCursor: number | null }> {
+export async function getThread(
+  username: string,
+  cursor?: number,
+): Promise<{ otherUserId: number; otherUsername: string; otherImage: string | null; messages: MessageItem[]; hasMore: boolean; nextCursor: number | null }> {
   const query = cursor ? `?cursor=${cursor}` : "";
   return apiFetch(`/messages/thread/${encodeURIComponent(username)}${query}`);
 }
 
-export async function sendMessage(username: string, text: string): Promise<MessageItem> {
+export async function sendMessage(
+  username: string,
+  text: string,
+  attachment?: { type: "book" | "store"; id: number },
+): Promise<MessageItem> {
   const result = await apiFetch<{ status: "ok"; message: MessageItem }>("/messages/send", {
     method: "POST",
-    body: JSON.stringify({ username, text }),
+    body: JSON.stringify({
+      username,
+      text,
+      attachmentType: attachment?.type,
+      referencedId: attachment?.id,
+    }),
   });
   return result.message;
 }

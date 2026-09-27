@@ -20,7 +20,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
   const cursor = cursorParam ? Number(cursorParam) : undefined;
 
   const page = await getMessages(session.userId, profile.id, cursor);
-  return mobileJson({ status: "ok", otherUserId: profile.id, ...page });
+  return mobileJson({
+    status: "ok",
+    otherUserId: profile.id,
+    otherUsername: profile.username,
+    otherImage: profile.image,
+    ...page,
+  });
 }
 
 export async function OPTIONS() {
