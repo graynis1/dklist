@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View, Text, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/theme/useTheme";
@@ -39,12 +40,25 @@ export function BookCover({
   hasImage?: boolean;
 }) {
   const { colors, fontFamily } = useTheme();
+  const [broken, setBroken] = useState(false);
   const resolvedImageUrl = imageUrl ?? (hasImage ? `${API_BASE_URL}/kapak/${id}` : null);
 
-  if (resolvedImageUrl) {
+  // Some stored covers are real-but-degenerate files (a few-byte solid-color
+  // image) that load "successfully" and render as a flat colored slab -
+  // anything too small to be a real jacket falls back to the designed placeholder.
+  if (resolvedImageUrl && !broken) {
     return (
       <View style={{ width, height, borderRadius: 5, overflow: "hidden", backgroundColor: colors.surface }}>
-        <Image source={{ uri: resolvedImageUrl }} style={{ width, height }} resizeMode="cover" />
+        <Image
+          source={{ uri: resolvedImageUrl }}
+          style={{ width, height }}
+          resizeMode="cover"
+          onError={() => setBroken(true)}
+          onLoad={(e) => {
+            const src = e.nativeEvent.source;
+            if (src && (src.width < 24 || src.height < 24)) setBroken(true);
+          }}
+        />
       </View>
     );
   }

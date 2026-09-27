@@ -1,71 +1,129 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, FlatList, Image } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, FlatList, Image, Alert, Share, RefreshControl } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { BadgeCheckIcon, MessageCircleIcon, MoreHorizontalIcon, UserPlusIcon, UserCheckIcon, LockIcon, LibraryIcon, AwardIcon, PencilIcon, Share2Icon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { BookCover } from "@/components/BookCover";
-import { Button } from "@/components/Button";
+import { SegmentedTabs } from "@/components/SegmentedTabs";
+import { EmptyState, SectionHeader } from "@/components/EmptyState";
 import { getProfile, toggleFollow, toggleBlock, type OtherProfileResponse } from "@/api/profileOther";
 import type { ReadStatus } from "@/api/library";
 import { API_BASE_URL } from "@/api/config";
 import { badgeImageUrl } from "@/api/community";
 
 const SHELF_LABELS: Record<ReadStatus, string> = {
-  currentRead: "Okuyor",
+  currentRead: "Şu an okuyor",
   finishRead: "Okudu",
   targetRead: "Okuyacak",
-  dropRead: "Yarıda Bıraktı",
+  dropRead: "Yarıda bıraktı",
 };
+const SHELVES: ReadStatus[] = ["currentRead", "finishRead", "targetRead", "dropRead"];
+
+function ActionButton({ label, icon, onPress, primary, disabled, square }: { label?: string; icon: React.ReactNode; onPress: () => void; primary?: boolean; disabled?: boolean; square?: boolean }) {
+  const { colors, radius } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => ({
+        flex: square ? undefined : 1,
+        width: square ? 44 : undefined,
+        height: 40,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        borderRadius: radius.lg,
+        opacity: disabled ? 0.5 : 1,
+        backgroundColor: primary ? (pressed ? colors.accent700 : colors.accent) : pressed ? colors.neutral300 : colors.neutral200,
+      })}
+    >
+      {icon}
+      {label && (
+        <ThemedText variant="bodySemibold" color={primary ? "#fff" : colors.text} style={{ fontSize: 14 }}>
+          {label}
+        </ThemedText>
+      )}
+    </Pressable>
+  );
+}
 
 export default function OtherProfileScreen() {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, shadow } = useTheme();
   const { username } = useLocalSearchParams<{ username: string }>();
   const navigation = useNavigation();
   const [data, setData] = useState<OtherProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [followSaving, setFollowSaving] = useState(false);
-  const [blockSaving, setBlockSaving] = useState(false);
+  const [tab, setTab] = useState<"library" | "badges">("library");
 
   useEffect(() => {
     navigation.setOptions({ title: `@${username}` });
   }, [navigation, username]);
 
-  const load = useCallback(async (ignore?: { current: boolean }) => {
-    const result = await getProfile(username);
-    if (ignore?.current) return;
-    setData(result);
+  const load = useCallback(async () => {
+    try {
+      setData(await getProfile(username));
+    } catch {
+      setData(null);
+    }
   }, [username]);
 
   useEffect(() => {
-    const ignore = { current: false };
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    load(ignore).finally(() => {
-      if (!ignore.current) setLoading(false);
-    });
-    return () => {
-      ignore.current = true;
-    };
+    load().finally(() => setLoading(false));
   }, [load]);
 
+  async function onRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
+
   async function onToggleFollow() {
+    if (!data) return;
     setFollowSaving(true);
     try {
-      await toggleFollow(username);
-      await load();
+      const r = await toggleFollow(username);
+      setData({ ...data, following: r.following, counts: { ...data.counts, followers: data.counts.followers + (r.following ? 1 : -1) } });
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "İşlem yapılamadı.");
     } finally {
       setFollowSaving(false);
     }
   }
 
-  async function onToggleBlock() {
-    setBlockSaving(true);
-    try {
-      await toggleBlock(username);
-      await load();
-    } finally {
-      setBlockSaving(false);
-    }
+  function onShare() {
+    const url = `https://dklist.com/profil/${username}`;
+    Share.share({ message: `DKList'te @${username} profilene göz at: ${url}`, url }).catch(() => {});
+  }
+
+  function onMore() {
+    if (!data) return;
+    Alert.alert(`@${username}`, undefined, [
+      { text: "Profili paylaş", onPress: onShare },
+      {
+        text: data.blocked ? "Engeli kaldır" : "Engelle",
+        style: data.blocked ? "default" : "destructive",
+        onPress: () => {
+          const run = async () => {
+            await toggleBlock(username);
+            await load();
+          };
+          if (data.blocked) run();
+          else
+            Alert.alert("Engellensin mi?", `@${username} sana mesaj gönderemeyecek ve seni takip edemeyecek.`, [
+              { text: "Vazgeç", style: "cancel" },
+              { text: "Engelle", style: "destructive", onPress: run },
+            ]);
+        },
+      },
+      { text: "Kapat", style: "cancel" },
+    ]);
   }
 
   if (loading) {
@@ -78,96 +136,159 @@ export default function OtherProfileScreen() {
 
   if (!data) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg, padding: spacing["2xl"] }}>
-        <ThemedText variant="body" muted>Kullanıcı bulunamadı.</ThemedText>
+      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: "center" }}>
+        <EmptyState icon={<LockIcon size={30} color={colors.accent} />} title="Kullanıcı bulunamadı" subtitle="Bu profil silinmiş ya da hiç var olmamış olabilir." />
       </View>
     );
   }
 
   const { profile, counts, isSelf, following, blocked, canSeeLibrary, badges, library } = data;
   const displayName = [profile.name, profile.surname].filter(Boolean).join(" ") || profile.username;
-  const shelves: ReadStatus[] = ["currentRead", "finishRead", "targetRead", "dropRead"];
+  const readCount = library?.finishRead.length ?? 0;
+  const AVATAR = 112;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
-      <View style={{ alignItems: "center", gap: spacing.sm }}>
-        <Avatar id={profile.id} name={displayName} imageUrl={profile.image} size={84} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
-        <ThemedText variant="headline" style={{ textAlign: "center" }}>{displayName}</ThemedText>
-        <ThemedText variant="caption" muted>@{profile.username}</ThemedText>
-        {profile.biyo && <ThemedText variant="body" style={{ textAlign: "center" }}>{profile.biyo}</ThemedText>}
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={{ paddingBottom: spacing["3xl"] }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
+    >
+      <View style={{ backgroundColor: colors.card, paddingBottom: spacing.md, ...shadow.sm }}>
+        <LinearGradient colors={[colors.accent700, colors.accent400]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 150 }}>
+          <View style={{ position: "absolute", right: -40, top: -30, width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)" }} />
+          <View style={{ position: "absolute", right: 70, bottom: -50, width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(255,255,255,0.06)" }} />
+          <ThemedText variant="quote" color="rgba(255,255,255,0.75)" style={{ position: "absolute", right: spacing.lg, bottom: spacing.md, fontSize: 13 }}>
+            “Bir kitap, bir dünya.”
+          </ThemedText>
+        </LinearGradient>
 
-        <View style={{ flexDirection: "row", gap: spacing.xl, marginTop: spacing.xs }}>
-          <View style={{ alignItems: "center" }}>
-            <ThemedText variant="title">{counts.followers}</ThemedText>
-            <ThemedText variant="caption" muted>Takipçi</ThemedText>
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <View style={{ marginTop: -AVATAR / 2, alignSelf: "flex-start", borderRadius: AVATAR, padding: 4, backgroundColor: colors.card }}>
+            <Avatar id={profile.id} name={displayName} imageUrl={profile.image} size={AVATAR} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
           </View>
-          <View style={{ alignItems: "center" }}>
-            <ThemedText variant="title">{counts.following}</ThemedText>
-            <ThemedText variant="caption" muted>Takip</ThemedText>
-          </View>
-        </View>
 
-        {!isSelf && (
-          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
-            <Button
-              title={following ? "Takip Ediliyor ✓" : "Takip Et"}
-              variant={following ? "primary" : "secondary"}
-              onPress={onToggleFollow}
-              disabled={followSaving || blocked}
-            />
-            <Button
-              title={blocked ? "Engeli Kaldır" : "Engelle"}
-              variant="ghost"
-              onPress={onToggleBlock}
-              disabled={blockSaving}
-            />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.sm }}>
+            <ThemedText variant="headline" style={{ fontSize: 26 }} numberOfLines={1}>{displayName}</ThemedText>
+            {profile.verified && <BadgeCheckIcon size={20} color={colors.accent} fill={`${colors.accent}30`} />}
           </View>
-        )}
-      </View>
+          <ThemedText variant="body" muted>@{profile.username}</ThemedText>
 
-      {badges.length > 0 && (
-        <View style={{ gap: spacing.sm }}>
-          <ThemedText variant="label" color={colors.textMuted}>Rozetler</ThemedText>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-            {badges.map((b) => (
-              <View key={b.id} style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.divider }}>
-                {badgeImageUrl(b.img, API_BASE_URL) && (
-                  <Image source={{ uri: badgeImageUrl(b.img, API_BASE_URL)! }} style={{ width: 18, height: 18, borderRadius: 9 }} />
-                )}
-                <ThemedText variant="caption">{b.name}</ThemedText>
-              </View>
+          {profile.biyo ? (
+            <ThemedText variant="body" style={{ marginTop: spacing.sm, lineHeight: 21 }}>{profile.biyo}</ThemedText>
+          ) : null}
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.lg, marginTop: spacing.md }}>
+            {[
+              { n: readCount, label: "okudu" },
+              { n: counts.followers, label: "takipçi" },
+              { n: counts.following, label: "takip" },
+              { n: badges.length, label: "rozet" },
+            ].map((s) => (
+              <ThemedText key={s.label} variant="body" muted>
+                <ThemedText variant="bodySemibold" style={{ fontSize: 16 }}>{s.n}</ThemedText> {s.label}
+              </ThemedText>
             ))}
           </View>
-        </View>
-      )}
 
-      {!canSeeLibrary ? (
-        <ThemedText variant="body" muted style={{ textAlign: "center", paddingTop: spacing.lg }}>
-          Bu kullanıcının kitaplığı gizli.
-        </ThemedText>
-      ) : (
-        library &&
-        shelves.map((shelf) =>
-          library[shelf].length > 0 ? (
-            <View key={shelf} style={{ gap: spacing.sm }}>
-              <ThemedText variant="label" color={colors.textMuted}>
-                {SHELF_LABELS[shelf]} ({library[shelf].length})
-              </ThemedText>
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.md }}>
+            {isSelf ? (
+              <>
+                <ActionButton primary label="Profili Düzenle" icon={<PencilIcon size={16} color="#fff" />} onPress={() => router.push("/hesap-duzenle")} />
+                <ActionButton label="Paylaş" icon={<Share2Icon size={16} color={colors.text} />} onPress={onShare} />
+              </>
+            ) : (
+              <>
+                <ActionButton
+                  primary={!following}
+                  label={following ? "Takip Ediliyor" : "Takip Et"}
+                  icon={following ? <UserCheckIcon size={17} color={colors.text} /> : <UserPlusIcon size={17} color="#fff" />}
+                  onPress={onToggleFollow}
+                  disabled={followSaving || blocked}
+                />
+                <ActionButton
+                  label="Mesaj"
+                  icon={<MessageCircleIcon size={17} color={colors.text} />}
+                  onPress={() => router.push({ pathname: "/mesajlar/[username]", params: { username } })}
+                  disabled={blocked}
+                />
+                <ActionButton square icon={<MoreHorizontalIcon size={20} color={colors.text} />} onPress={onMore} />
+              </>
+            )}
+          </View>
+          {blocked && (
+            <ThemedText variant="caption" color={colors.accent700} style={{ marginTop: spacing.sm }}>
+              Bu kullanıcıyı engelledin. Engeli kaldırmak için ⋯ menüsünü kullan.
+            </ThemedText>
+          )}
+        </View>
+      </View>
+
+      <View style={{ backgroundColor: colors.card, marginTop: spacing.sm }}>
+        <SegmentedTabs
+          scrollable={false}
+          tabs={[
+            { key: "library" as const, label: "Kitaplık" },
+            { key: "badges" as const, label: "Rozetler", count: badges.length },
+          ]}
+          active={tab}
+          onChange={setTab}
+        />
+      </View>
+
+      {tab === "library" ? (
+        !canSeeLibrary ? (
+          <EmptyState icon={<LockIcon size={30} color={colors.accent} />} title="Kitaplık gizli" subtitle={`@${profile.username} kitaplığını yalnızca kendisi görebilecek şekilde ayarlamış.`} />
+        ) : !library || SHELVES.every((s) => library[s].length === 0) ? (
+          <EmptyState icon={<LibraryIcon size={30} color={colors.accent} />} title="Kitaplık henüz boş" subtitle={isSelf ? "Kitap sayfalarından okuma durumunu işaretleyerek başla." : "Bu okur henüz rafına kitap eklememiş."} />
+        ) : (
+          SHELVES.filter((s) => library[s].length > 0).map((shelf) => (
+            <View key={shelf} style={{ backgroundColor: colors.card, marginTop: spacing.sm, paddingVertical: spacing.md, ...shadow.sm }}>
+              <View style={{ paddingHorizontal: spacing.lg }}>
+                <SectionHeader title={SHELF_LABELS[shelf]} count={library[shelf].length} />
+              </View>
               <FlatList
                 data={library[shelf]}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => String(item.id)}
-                contentContainerStyle={{ gap: spacing.sm }}
+                contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}
                 renderItem={({ item }) => (
-                  <Pressable onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: item.slug } })}>
-                    <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={88} height={128} hasImage={item.hasImage} />
+                  <Pressable onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: item.slug } })} style={({ pressed }) => ({ width: 104, gap: 6, opacity: pressed ? 0.8 : 1 })}>
+                    <View style={{ borderRadius: 5, ...shadow.md }}>
+                      <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={104} height={154} hasImage={item.hasImage} />
+                    </View>
+                    <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 12, lineHeight: 15.5 }}>{item.name}</ThemedText>
+                    {item.writers.length > 0 && (
+                      <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 11, marginTop: -4 }}>{item.writers.join(", ")}</ThemedText>
+                    )}
                   </Pressable>
                 )}
               />
             </View>
-          ) : null,
+          ))
         )
+      ) : badges.length === 0 ? (
+        <EmptyState icon={<AwardIcon size={30} color={colors.accent} />} title="Henüz rozet yok" subtitle="Okudukça, yorum yaptıkça ve toplulukta aktif oldukça rozetler kazanılır." />
+      ) : (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, padding: spacing.lg }}>
+          {badges.map((b) => {
+            const img = badgeImageUrl(b.img, API_BASE_URL);
+            return (
+              <View
+                key={b.id}
+                style={{ width: "48.5%", backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, padding: spacing.md, alignItems: "center", gap: 6, ...shadow.sm }}
+              >
+                <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {img ? <Image source={{ uri: img }} style={{ width: 52, height: 52, borderRadius: 26 }} /> : <AwardIcon size={28} color={colors.accent} />}
+                </View>
+                <ThemedText variant="title" style={{ textAlign: "center", fontSize: 15 }} numberOfLines={2}>{b.name}</ThemedText>
+                {b.comment ? (
+                  <ThemedText variant="caption" muted style={{ textAlign: "center" }} numberOfLines={3}>{b.comment}</ThemedText>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
       )}
     </ScrollView>
   );

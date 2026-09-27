@@ -1,4 +1,5 @@
-import { View, Pressable } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Pressable, Keyboard } from "react-native";
 import { router, usePathname } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -34,6 +35,20 @@ export function BottomTabBar() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // With Android's adjustResize the bar would otherwise ride up and sit
+  // between a chat/comment composer and the keyboard.
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  if (keyboardOpen) return null;
 
   return (
     <View
@@ -48,7 +63,7 @@ export function BottomTabBar() {
       }}
     >
       {TABS.map((tab) => {
-        const active = pathname === tab.href;
+        const active = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(`${tab.href}/`));
         const color = active ? colors.accent : colors.neutral500;
         return (
           <Pressable
