@@ -156,6 +156,7 @@ function RootNavigator() {
           [
             ["kitap/yeni", "Kitap Ekle"],
             ["yazarhane", "Yazarhane"],
+            ["blog/yeni", "Yeni Yazı"],
             ["yazarhane/[username]", ""],
           ] as const
         ).map(([name, title]) => (

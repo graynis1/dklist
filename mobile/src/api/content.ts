@@ -34,9 +34,20 @@ export interface BlogLikeState {
 }
 
 export async function getBlogList(page = 1, q = "") {
-  return apiFetch<{ status: "ok"; items: BlogListItem[]; total: number; page: number; lastPage: number }>(
+  return apiFetch<{ status: "ok"; items: BlogListItem[]; total: number; page: number; lastPage: number; canWrite?: boolean }>(
     `/blog?page=${page}&q=${encodeURIComponent(q)}`,
   );
+}
+
+/** Multipart, like createFeedPost - the cover image is required server-side. */
+export async function createBlog(input: { title: string; preview: string; content: string; image: { uri: string; name: string; type: string } }) {
+  const fd = new FormData();
+  fd.append("title", input.title);
+  fd.append("preview", input.preview);
+  fd.append("content", input.content);
+  // @ts-expect-error - RN FormData accepts a local-asset descriptor, not a Blob.
+  fd.append("image", { uri: input.image.uri, name: input.image.name, type: input.image.type });
+  return apiFetch<{ status: "ok"; slug: string }>("/blog", { method: "POST", body: fd });
 }
 
 export async function getBlog(slug: string) {

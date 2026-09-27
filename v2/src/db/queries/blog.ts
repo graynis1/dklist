@@ -1,7 +1,8 @@
 import "server-only";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
-import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
 import { and, desc, eq, like, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { blog, user, blogLike } from "@/db/schema";
@@ -345,7 +346,7 @@ export async function getBlogBySlug(slug: string): Promise<BlogDetail | null> {
  * kullanıyorlar bilmiyorum)". Fire-and-forget from the page, same as
  * store/writer/translator view-count bumps elsewhere in this app. */
 export async function incrementBlogViewCount(blogId: number): Promise<void> {
-  // Deliberately no updateTag() here - getBlogBySlug()'s own "minutes"
+  // Deliberately no invalidateTag() here - getBlogBySlug()'s own "minutes"
   // cacheLife already makes the displayed count eventually consistent,
   // same tradeoff writer/store view counts elsewhere in this app make.
   // Invalidating on every single view would defeat the point of caching
@@ -423,7 +424,7 @@ export async function setBlogCommentsDisabled(userId: number, userType: string, 
     throw new Error("Bu işlem için yetkiniz yok.");
   }
   await db.update(blog).set({ commentsDisabled: disabled ? 1 : 0 }).where(eq(blog.id, blogId));
-  updateTag(`blog:${row.slug}`);
+  invalidateTag(`blog:${row.slug}`);
 }
 
 const BLOGGER_TYPE = "Blog_Yazari";
@@ -474,7 +475,7 @@ export async function createBlogPost(
     hasPendingRevision: 0,
   });
 
-  updateTag("blog-list");
+  invalidateTag("blog-list");
   return { status: true, slug };
 }
 
@@ -534,7 +535,7 @@ export async function updateBlogPost(
       })
       .where(eq(blog.id, blogId));
 
-    updateTag(`blog:${existing.slug}`);
+    invalidateTag(`blog:${existing.slug}`);
     return {
       status: true,
       pending: true,
@@ -572,9 +573,9 @@ export async function updateBlogPost(
     })
     .where(eq(blog.id, blogId));
 
-  updateTag("blog-list");
-  updateTag(`blog:${existing.slug}`);
-  if (newSlug !== existing.slug) updateTag(`blog:${newSlug}`);
+  invalidateTag("blog-list");
+  invalidateTag(`blog:${existing.slug}`);
+  if (newSlug !== existing.slug) invalidateTag(`blog:${newSlug}`);
   return { status: true, pending: false, message: "Blog güncellendi." };
 }
 
@@ -604,8 +605,8 @@ export async function deleteBlogPost(
   if (existing.pendingImage) await unlink(path.join(UPLOAD_DIR, existing.pendingImage)).catch(() => {});
 
   await db.delete(blog).where(eq(blog.id, blogId));
-  updateTag("blog-list");
-  updateTag(`blog:${existing.slug}`);
+  invalidateTag("blog-list");
+  invalidateTag(`blog:${existing.slug}`);
   return { status: true };
 }
 
@@ -717,7 +718,7 @@ export async function setBlogApproval(blogId: number, approve: boolean): Promise
     }
   }
 
-  updateTag("blog-list");
-  updateTag(`blog:${existing.slug}`);
+  invalidateTag("blog-list");
+  invalidateTag(`blog:${existing.slug}`);
   return { status: true };
 }

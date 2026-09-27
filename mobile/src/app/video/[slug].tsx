@@ -1,48 +1,52 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ActivityIndicator, Image, Pressable, Linking, Alert, ScrollView } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { PlayCircleIcon } from "lucide-react-native";
+import { View, ActivityIndicator, Image, Pressable, Linking, Alert, ScrollView, Share, KeyboardAvoidingView, Platform } from "react-native";
+import { useLocalSearchParams, useNavigation, router } from "expo-router";
+import { PlayIcon, Share2Icon, EyeIcon, CalendarIcon, PlayCircleIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
+import { EmptyState } from "@/components/EmptyState";
 import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
-import { getVideo, addVideoComment, type VideoDetail } from "@/api/content";
+import { getVideo, getVideoList, addVideoComment, type VideoDetail, type VideoListItem } from "@/api/content";
+import { videoThumb } from "@/lib/videoThumb";
+import { formatDateTr } from "@/lib/dateTr";
 
 /**
- * Deliberately hands off to the real YouTube app (or the system browser as
- * its fallback) instead of embedding a WebView-based player in-app - the
- * one place an embedded YouTube player would be justified even under this
- * app's own "no WebView" rule, and this is a cleaner alternative to it:
- * YouTube's own native app gives a genuinely better playback experience
- * (picture-in-picture, background audio, the visitor's own account/
- * watch history) than any in-app embed could.
+ * Playback hands off to the YouTube app (browser as fallback) rather than an
+ * in-app WebView embed: better playback (PiP, background audio, the viewer's
+ * own account) and no embed-restriction failures.
  */
 export default function VideoDetailScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius, shadow } = useTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const navigation = useNavigation();
   const [video, setVideo] = useState<VideoDetail | null>(null);
   const [comments, setComments] = useState<EntityComment[]>([]);
+  const [more, setMore] = useState<VideoListItem[]>([]);
   const [commentText, setCommentText] = useState("");
   const [commentSaving, setCommentSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async (ignore?: { current: boolean }) => {
-    const result = await getVideo(slug);
-    if (!ignore?.current) {
+  const load = useCallback(async () => {
+    try {
+      const result = await getVideo(slug);
       setVideo(result.video);
       setComments(result.comments);
+    } catch {
+      setVideo(null);
     }
   }, [slug]);
 
   useEffect(() => {
-    const ignore = { current: false };
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    load(ignore).finally(() => {
-      if (!ignore.current) setLoading(false);
-    });
-    return () => {
-      ignore.current = true;
-    };
-  }, [load]);
+    load().finally(() => setLoading(false));
+    getVideoList(1)
+      .then((r) => setMore(r.items.filter((v) => v.slug !== slug).slice(0, 6)))
+      .catch(() => {});
+  }, [load, slug]);
+
+  useEffect(() => {
+    navigation.setOptions({ title: "" });
+  }, [navigation]);
 
   function onPlay() {
     if (!video?.youtubeVideoId) return;
@@ -76,33 +80,87 @@ export default function VideoDetailScreen() {
 
   if (!video) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg, padding: spacing["2xl"] }}>
-        <ThemedText variant="body" muted>Video bulunamadı.</ThemedText>
+      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: "center" }}>
+        <EmptyState icon={<PlayCircleIcon size={30} color={colors.accent} />} title="Video bulunamadı" actionLabel="Videolara Dön" onAction={() => router.back()} />
       </View>
     );
   }
 
-  const thumb = video.youtubeVideoId ? `https://img.youtube.com/vi/${video.youtubeVideoId}/hqdefault.jpg` : null;
+  const thumb = videoThumb(video.youtubeVideoId);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-      <Pressable onPress={onPlay}>
-        {thumb && <Image source={{ uri: thumb }} style={{ width: "100%", height: 220, borderRadius: 8 }} resizeMode="cover" />}
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
-          <PlayCircleIcon color="#fff" size={64} />
-        </View>
-      </Pressable>
-      <ThemedText variant="headline">{video.title}</ThemedText>
-      <ThemedText variant="caption" muted>{video.viewCount} görüntülenme</ThemedText>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView contentContainerStyle={{ paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
+        <Pressable onPress={onPlay} style={{ backgroundColor: "#000" }}>
+          {thumb ? <Image source={{ uri: thumb }} style={{ width: "100%", aspectRatio: 16 / 9 }} resizeMode="cover" /> : <View style={{ width: "100%", aspectRatio: 16 / 9 }} />}
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.25)" }}>
+            <View style={{ width: 76, height: 54, borderRadius: 14, backgroundColor: "#d93025", alignItems: "center", justifyContent: "center", ...shadow.lg }}>
+              <PlayIcon size={28} color="#fff" fill="#fff" style={{ marginLeft: 3 }} />
+            </View>
+          </View>
+        </Pressable>
 
-      <EntityCommentSection
-        comments={comments}
-        commentText={commentText}
-        onCommentTextChange={setCommentText}
-        onSubmitComment={submitComment}
-        submitting={commentSaving}
-        onReplied={load}
-      />
-    </ScrollView>
+        <View style={{ backgroundColor: colors.card, padding: spacing.lg, gap: spacing.sm, ...shadow.sm }}>
+          <ThemedText variant="headline" style={{ fontSize: 22, lineHeight: 28 }}>{video.title}</ThemedText>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <EyeIcon size={13} color={colors.textMuted} />
+              <ThemedText variant="caption" muted>{video.viewCount} görüntülenme</ThemedText>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <CalendarIcon size={13} color={colors.textMuted} />
+              <ThemedText variant="caption" muted>{formatDateTr(video.createdDate)}</ThemedText>
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+            <Pressable
+              onPress={onPlay}
+              style={({ pressed }) => ({ flex: 1, height: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: radius.lg, backgroundColor: pressed ? "#b3261e" : "#d93025" })}
+            >
+              <PlayIcon size={17} color="#fff" fill="#fff" />
+              <ThemedText variant="bodySemibold" color="#fff">YouTube&apos;da İzle</ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => Share.share({ message: `${video.title}\nhttps://dklist.com/video/${video.slug}` }).catch(() => {})}
+              style={({ pressed }) => ({ height: 44, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}
+            >
+              <Share2Icon size={17} color={colors.text} />
+              <ThemedText variant="bodySemibold">Paylaş</ThemedText>
+            </Pressable>
+          </View>
+        </View>
+
+        {more.length > 0 && (
+          <View style={{ backgroundColor: colors.card, marginTop: spacing.sm, paddingVertical: spacing.md, gap: spacing.sm, ...shadow.sm }}>
+            <ThemedText variant="title" style={{ fontSize: 18, paddingHorizontal: spacing.lg }}>Sıradaki videolar</ThemedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+              {more.map((v) => (
+                <Pressable key={v.id} onPress={() => router.push({ pathname: "/video/[slug]", params: { slug: v.slug } })} style={({ pressed }) => ({ width: 200, gap: 6, opacity: pressed ? 0.8 : 1 })}>
+                  <View style={{ borderRadius: radius.lg, overflow: "hidden", backgroundColor: "#000" }}>
+                    {videoThumb(v.youtubeVideoId, false) && <Image source={{ uri: videoThumb(v.youtubeVideoId, false)! }} style={{ width: "100%", aspectRatio: 16 / 9 }} resizeMode="cover" />}
+                    <View style={{ position: "absolute", right: 6, bottom: 6, width: 26, height: 26, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.65)", alignItems: "center", justifyContent: "center" }}>
+                      <PlayIcon size={12} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />
+                    </View>
+                  </View>
+                  <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 13.5, lineHeight: 18 }}>{v.title}</ThemedText>
+                  <ThemedText variant="caption" muted style={{ fontSize: 11, marginTop: -3 }}>{v.viewCount} görüntülenme</ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        <View style={{ backgroundColor: colors.card, marginTop: spacing.sm, padding: spacing.lg, ...shadow.sm }}>
+          <EntityCommentSection
+            comments={comments}
+            commentText={commentText}
+            onCommentTextChange={setCommentText}
+            onSubmitComment={submitComment}
+            submitting={commentSaving}
+            onReplied={load}
+          />
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

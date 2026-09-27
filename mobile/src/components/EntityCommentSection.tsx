@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { View, Pressable, Alert } from "react-native";
 import { router } from "expo-router";
+import { MessageSquareIcon, StarIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
+import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
-import { Button } from "@/components/Button";
-import { TextField } from "@/components/TextField";
+import { ComposerBar } from "@/components/ComposerBar";
 import { relativeTime } from "@/lib/relativeTime";
 import { addCommentReply } from "@/api/book";
 
@@ -33,13 +34,36 @@ export interface EntityComment {
   replies: EntityCommentReply[];
 }
 
-/**
- * Same comment+reply UI as kitap/[slug].tsx's own CommentRow, extracted so
- * yazar/cevirmen (and any future entity with the generic addEntityComment/
- * getEntityComments backend) don't each need their own copy. Reply posting
- * reuses the same generic /comment/[id]/reply route book comments already
- * use - it only needs the comment's own id, not its entity type.
- */
+function Bubble({ username, userId, image, frameColor, frameTier, text, size, meta }: {
+  username: string;
+  userId: number;
+  image: string | null;
+  frameColor: string | null;
+  frameTier: 1 | 2 | 3 | 4;
+  text: string;
+  size: number;
+  meta?: React.ReactNode;
+}) {
+  const { colors, spacing } = useTheme();
+  const go = () => router.push({ pathname: "/profil/[username]", params: { username } });
+  return (
+    <View style={{ flexDirection: "row", gap: spacing.sm }}>
+      <Pressable onPress={go}>
+        <Avatar id={userId} name={username} imageUrl={image} size={size} frameColor={frameColor} frameTier={frameTier} />
+      </Pressable>
+      <View style={{ flex: 1, alignItems: "flex-start" }}>
+        <View style={{ maxWidth: "100%", backgroundColor: colors.neutral200, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12 }}>
+          <ThemedText variant="bodySemibold" style={{ fontSize: 13.5 }} onPress={go}>{username}</ThemedText>
+          <ThemedText variant="body" style={{ lineHeight: 20, marginTop: 1 }}>{text}</ThemedText>
+        </View>
+        {meta}
+      </View>
+    </View>
+  );
+}
+
+/** Shared comment thread for book-like entities (writer, translator, blog,
+ * video, ...): Facebook-style bubbles, inline replies, pill composer. */
 export function EntityCommentSection({
   comments,
   commentText,
@@ -47,6 +71,7 @@ export function EntityCommentSection({
   onSubmitComment,
   submitting,
   onReplied,
+  title = "Yorumlar",
 }: {
   comments: EntityComment[];
   commentText: string;
@@ -54,25 +79,41 @@ export function EntityCommentSection({
   onSubmitComment: () => void;
   submitting: boolean;
   onReplied: () => Promise<void>;
+  title?: string;
 }) {
   const { colors, spacing } = useTheme();
+  const { profile } = useAuth();
 
   return (
-    <View style={{ gap: spacing.sm }}>
-      <ThemedText variant="label" color={colors.textMuted}>
-        Yorumlar ({comments.length})
+    <View style={{ gap: spacing.md }}>
+      <ThemedText variant="title" style={{ fontSize: 18 }}>
+        {title}
+        <ThemedText variant="body" muted>{`  ${comments.length}`}</ThemedText>
       </ThemedText>
 
-      <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "flex-end" }}>
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: spacing.sm }}>
+        {profile && <Avatar id={profile.id} name={profile.username} imageUrl={profile.image} size={36} frameColor={profile.profileFrame} frameTier={profile.frameTier} />}
         <View style={{ flex: 1 }}>
-          <TextField label="" value={commentText} onChangeText={onCommentTextChange} placeholder="Bir yorum yaz…" multiline />
+          <ComposerBar
+            bordered={false}
+            value={commentText}
+            onChangeText={onCommentTextChange}
+            onSend={onSubmitComment}
+            sending={submitting}
+            canSend={commentText.trim().length >= 2}
+            placeholder="Bir yorum yaz…"
+          />
         </View>
-        <Button title="Gönder" onPress={onSubmitComment} disabled={submitting || commentText.trim().length < 2} />
       </View>
 
-      {comments.map((c) => (
-        <EntityCommentRow key={c.id} comment={c} onReplied={onReplied} />
-      ))}
+      {comments.length === 0 ? (
+        <View style={{ alignItems: "center", paddingVertical: spacing.lg, gap: spacing.xs }}>
+          <MessageSquareIcon size={28} color={colors.neutral400} />
+          <ThemedText variant="body" muted>İlk yorumu sen yaz.</ThemedText>
+        </View>
+      ) : (
+        comments.map((c) => <EntityCommentRow key={c.id} comment={c} onReplied={onReplied} />)
+      )}
     </View>
   );
 }
@@ -99,52 +140,53 @@ function EntityCommentRow({ comment, onReplied }: { comment: EntityComment; onRe
     }
   }
 
+  const renderReply = (r: EntityCommentReply, depth: number): React.ReactNode => (
+    <View key={r.id} style={{ marginLeft: depth === 1 ? 44 : 30, marginTop: spacing.sm }}>
+      <Bubble username={r.authorUsername} userId={r.authorUserId} image={r.authorImage} frameColor={r.profileFrame} frameTier={r.frameTier} text={r.text} size={26} />
+      {r.replies.map((r2) => renderReply(r2, depth + 1))}
+    </View>
+  );
+
   return (
-    <View style={{ gap: spacing.xs }}>
-      <Pressable
-        onPress={() => router.push({ pathname: "/profil/[username]", params: { username: comment.authorUsername } })}
-        style={{ flexDirection: "row", gap: spacing.sm }}
-      >
-        <Avatar id={comment.authorUserId} name={comment.authorUsername} imageUrl={comment.authorImage} size={32} frameColor={comment.profileFrame} frameTier={comment.frameTier} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
-            <ThemedText variant="bodySemibold">@{comment.authorUsername}</ThemedText>
-            {comment.authorScore != null && (
-              <ThemedText variant="caption" color={colors.accent}>★ {comment.authorScore}/10</ThemedText>
-            )}
+    <View>
+      <Bubble
+        username={comment.authorUsername}
+        userId={comment.authorUserId}
+        image={comment.authorImage}
+        frameColor={comment.profileFrame}
+        frameTier={comment.frameTier}
+        text={comment.text}
+        size={36}
+        meta={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: 12, paddingTop: 4 }}>
             <ThemedText variant="caption" muted>{relativeTime(comment.date)}</ThemedText>
+            {comment.authorScore != null && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                <StarIcon size={11} color={colors.accent} fill={colors.accent} />
+                <ThemedText variant="caption" color={colors.accent700} style={{ fontWeight: "600" }}>{comment.authorScore}/10</ThemedText>
+              </View>
+            )}
+            <ThemedText variant="caption" color={showReplyBox ? colors.accent : colors.textMuted} style={{ fontWeight: "700" }} onPress={() => setShowReplyBox((v) => !v)}>
+              Yanıtla
+            </ThemedText>
           </View>
-          <ThemedText variant="body">{comment.text}</ThemedText>
-        </View>
-      </Pressable>
-
-      <Pressable onPress={() => setShowReplyBox((v) => !v)} style={{ marginLeft: 44 }}>
-        <ThemedText variant="caption" color={colors.accent}>Yanıtla</ThemedText>
-      </Pressable>
-
+        }
+      />
+      {comment.replies.map((r) => renderReply(r, 1))}
       {showReplyBox && (
-        <View style={{ flexDirection: "row", gap: spacing.xs, marginLeft: 44, alignItems: "flex-end" }}>
-          <View style={{ flex: 1 }}>
-            <TextField label="" value={replyText} onChangeText={setReplyText} placeholder="Yanıt yaz…" />
-          </View>
-          <Button title="Gönder" onPress={submitReply} disabled={saving || replyText.trim().length < 2} />
+        <View style={{ marginLeft: 44, marginTop: spacing.sm }}>
+          <ComposerBar
+            bordered={false}
+            value={replyText}
+            onChangeText={setReplyText}
+            onSend={submitReply}
+            sending={saving}
+            canSend={replyText.trim().length >= 2}
+            placeholder={`${comment.authorUsername} kullanıcısına yanıt ver…`}
+            autoFocus
+          />
         </View>
       )}
-
-      {comment.replies.map((r) => (
-        <View key={r.id} style={{ marginLeft: 44, gap: 2 }}>
-          <View style={{ flexDirection: "row", gap: spacing.xs, alignItems: "baseline" }}>
-            <ThemedText variant="bodySemibold">@{r.authorUsername}</ThemedText>
-          </View>
-          <ThemedText variant="body">{r.text}</ThemedText>
-          {r.replies.map((r2) => (
-            <View key={r2.id} style={{ marginLeft: 20, gap: 2 }}>
-              <ThemedText variant="bodySemibold">@{r2.authorUsername}</ThemedText>
-              <ThemedText variant="body">{r2.text}</ThemedText>
-            </View>
-          ))}
-        </View>
-      ))}
     </View>
   );
 }

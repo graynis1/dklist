@@ -1,5 +1,6 @@
 import "server-only";
-import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
+import { cacheLife, cacheTag } from "next/cache";
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { book, publisher, writer, writerBook, category, bookCategory, translator, translatorBook, user } from "@/db/schema";
@@ -158,9 +159,9 @@ export async function createBookSubmission(
     await db.insert(bookCategory).values(categoryIds.map((categoryId) => ({ bookId, categoryId })));
   }
 
-  updateTag("pending-book-submissions");
+  invalidateTag("pending-book-submissions");
   if (approved) {
-    updateTag("latest-books");
+    invalidateTag("latest-books");
     if (writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, name);
   }
 
@@ -258,9 +259,9 @@ export async function getPendingBookSubmissions(): Promise<PendingBookSubmission
 
 export async function approveBookSubmission(bookId: number): Promise<void> {
   await db.update(book).set({ approve: 1 }).where(eq(book.id, bookId));
-  updateTag("pending-book-submissions");
-  updateTag("latest-books");
-  updateTag("admin-book-list");
+  invalidateTag("pending-book-submissions");
+  invalidateTag("latest-books");
+  invalidateTag("admin-book-list");
 
   const [bookRow] = await db.select({ name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
   const writerRows = await db.select({ writerId: writerBook.writerId }).from(writerBook).where(eq(writerBook.bookId, bookId));
@@ -276,8 +277,8 @@ export async function rejectBookSubmission(bookId: number): Promise<void> {
   await db.delete(writerBook).where(eq(writerBook.bookId, bookId));
   await db.delete(translatorBook).where(eq(translatorBook.bookId, bookId));
   await db.delete(book).where(and(eq(book.id, bookId), eq(book.approve, 0)));
-  updateTag("pending-book-submissions");
-  updateTag("admin-book-list");
+  invalidateTag("pending-book-submissions");
+  invalidateTag("admin-book-list");
 }
 
 export interface BookAdminListItem {
@@ -489,16 +490,16 @@ export async function updateBookAdminField(
       break;
     case "approve":
       await db.update(book).set({ approve: text === "1" ? 1 : 0 }).where(eq(book.id, bookId));
-      updateTag("pending-book-submissions");
-      updateTag("latest-books");
+      invalidateTag("pending-book-submissions");
+      invalidateTag("latest-books");
       break;
   }
-  updateTag("admin-book-list");
+  invalidateTag("admin-book-list");
 }
 
 export async function deleteBookAdmin(bookId: number): Promise<void> {
   await deleteBookCascade(bookId);
-  updateTag("admin-book-list");
+  invalidateTag("admin-book-list");
 }
 
 export async function deleteBooksAdmin(bookIds: number[]): Promise<{ success: number; fail: number }> {
@@ -510,6 +511,6 @@ export async function deleteBooksAdmin(bookIds: number[]): Promise<{ success: nu
       success++;
     }
   }
-  updateTag("admin-book-list");
+  invalidateTag("admin-book-list");
   return { success, fail: bookIds.length - success };
 }

@@ -1,5 +1,6 @@
 import "server-only";
-import { updateTag } from "next/cache";
+import { invalidateTag } from "@/lib/cache-tag";
+
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { libraryBook } from "@/db/schema";
@@ -38,6 +39,6 @@ export async function toggleLibrary(
   // isInLibrary itself is deliberately not cached (cheap indexed lookup read
   // right after this write), but the profile page's getLibraryBooks() IS
   // cached - that one needs the explicit invalidation.
-  updateTag(`library-books:${ownerId}`);
+  invalidateTag(`library-books:${ownerId}`);
   return { inLibrary: !already };
 }
