@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-native";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
-import { API_BASE_URL } from "@/api/config";
 import { getBlogList, type BlogListItem } from "@/api/content";
 
-function imgUrl(img: string | null): string | null {
-  if (!img) return null;
-  return /^https?:\/\//i.test(img) ? img : `${API_BASE_URL}/api/blog-image/${img}`;
-}
+const imgUrl = (img: string | null) => mediaUrl(img);
 
 export default function BloglarScreen() {
   const { colors, spacing, radius } = useTheme();

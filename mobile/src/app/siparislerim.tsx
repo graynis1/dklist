@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-native";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
@@ -67,7 +68,7 @@ export default function SiparislerimScreen() {
               onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.store.slug } })}
               style={{ flexDirection: "row", gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider }}
             >
-              {item.store.image && <Image source={{ uri: item.store.image }} style={{ width: 48, height: 48, borderRadius: 8 }} />}
+              {item.store.image && <Image source={{ uri: mediaUrl(item.store.image)! }} style={{ width: 48, height: 48, borderRadius: 8 }} />}
               <View style={{ flex: 1, gap: 2 }}>
                 <ThemedText variant="body" numberOfLines={1}>{item.store.title}</ThemedText>
                 <ThemedText variant="caption" muted>

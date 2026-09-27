@@ -13,7 +13,10 @@ export function describeFeedItem(item: FeedItem): { verb: string; target: string
   const target = item.targetLabel ? `"${item.targetLabel}"` : null;
   switch (item.reason) {
     case "book_read":
-      return { verb: item.readingDurationDays != null ? `kitabı ${item.readingDurationDays} günde okudu` : "kitabı okudu", target };
+      return {
+        verb: item.readingDurationDays == null ? "kitabı okudu" : item.readingDurationDays <= 0 ? "kitabı aynı gün bitirdi" : `kitabı ${item.readingDurationDays} günde okudu`,
+        target,
+      };
     case "reading_progress":
       return { verb: item.progressPercentage ? `kitabının %${item.progressPercentage}'ini tamamladı` : "kitabında ilerledi", target };
     case "social_share":

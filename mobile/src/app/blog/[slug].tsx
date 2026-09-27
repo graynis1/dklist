@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, ScrollView, ActivityIndicator, Image, Pressable, Alert } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
@@ -6,14 +7,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { Avatar } from "@/components/Avatar";
 import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
-import { API_BASE_URL } from "@/api/config";
 import { getBlog, toggleBlogLike, addBlogComment, type BlogDetail, type BlogLikeState } from "@/api/content";
 import { stripHtml } from "@/lib/stripHtml";
 
-function imgUrl(img: string | null): string | null {
-  if (!img) return null;
-  return /^https?:\/\//i.test(img) ? img : `${API_BASE_URL}/api/blog-image/${img}`;
-}
+const imgUrl = (img: string | null) => mediaUrl(img);
 
 export default function BlogDetailScreen() {
   const { colors, spacing } = useTheme();

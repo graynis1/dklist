@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, ScrollView, ActivityIndicator, Image, Alert } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { useTheme } from "@/theme/useTheme";
@@ -80,7 +81,7 @@ export default function SepetimScreen() {
               <ThemedText variant="label" color={colors.textMuted}>@{group.sellerUsername}</ThemedText>
               {group.items.map((item) => (
                 <View key={item.id} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
-                  {item.image && <Image source={{ uri: item.image }} style={{ width: 40, height: 40, borderRadius: 6 }} />}
+                  {item.image && <Image source={{ uri: mediaUrl(item.image)! }} style={{ width: 40, height: 40, borderRadius: 6 }} />}
                   <ThemedText variant="body" style={{ flex: 1 }} numberOfLines={1}>{item.title}</ThemedText>
                   <ThemedText variant="caption">{item.price.toLocaleString("tr-TR")} ₺</ThemedText>
                 </View>

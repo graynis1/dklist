@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { PlusIcon } from "lucide-react-native";
@@ -86,7 +87,7 @@ export default function AskidaKitapScreen() {
                 borderColor: item.isPinned ? colors.accent : colors.divider,
               }}
             >
-              {item.image && <Image source={{ uri: item.image }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" />}
+              {item.image && <Image source={{ uri: mediaUrl(item.image)! }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" />}
               <View style={{ flex: 1, gap: 2 }}>
                 {item.isPinned && <ThemedText variant="caption" color={colors.accent}>★ Öne Çıkan</ThemedText>}
                 <ThemedText variant="title" numberOfLines={1}>{item.title}</ThemedText>

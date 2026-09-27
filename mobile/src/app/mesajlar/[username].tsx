@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, FlatList, Pressable, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { BookIcon, TagIcon, XIcon, PlusIcon, ChevronRightIcon } from "lucide-react-native";
@@ -380,7 +381,7 @@ export default function ThreadScreen() {
                 </Pressable>
               ) : (
                 <Pressable onPress={() => selectStore(item as StoreListItem)} style={({ pressed }) => ({ flexDirection: "row", gap: spacing.md, alignItems: "center", paddingVertical: 8, paddingHorizontal: spacing.md, backgroundColor: pressed ? colors.neutral200 : "transparent" })}>
-                  <StoreThumb uri={(item as StoreListItem).image} size={44} />
+                  <StoreThumb uri={mediaUrl((item as StoreListItem).image)} size={44} />
                   <ThemedText variant="bodySemibold" numberOfLines={2} style={{ flex: 1 }}>{(item as StoreListItem).title}</ThemedText>
                   <PlusIcon size={18} color={colors.accent} />
                 </Pressable>
@@ -392,7 +393,7 @@ export default function ThreadScreen() {
 
       {hasAttachment && !pickerOpen && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider, backgroundColor: colors.neutral100 }}>
-          {pickedBook ? <BookCover id={pickedBook.id} title={pickedBook.name} width={30} height={44} hasImage={pickedBook.hasImage} /> : <StoreThumb uri={pickedStore?.image ?? null} size={40} />}
+          {pickedBook ? <BookCover id={pickedBook.id} title={pickedBook.name} width={30} height={44} hasImage={pickedBook.hasImage} /> : <StoreThumb uri={mediaUrl(pickedStore?.image)} size={40} />}
           <View style={{ flex: 1 }}>
             <ThemedText variant="caption" color={colors.accent} style={{ fontWeight: "600" }}>{pickedBook ? "Kitap ekleniyor" : "İlan ekleniyor"}</ThemedText>
             <ThemedText variant="bodySemibold" numberOfLines={1}>{pickedBook?.name ?? pickedStore?.title}</ThemedText>

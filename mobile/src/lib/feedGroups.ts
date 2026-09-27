@@ -66,7 +66,8 @@ export function shortAction(item: FeedItem): string {
     case "rating":
       return item.ratingValue != null ? `${item.ratingValue}/10 puan verdi` : "puanladı";
     case "book_read":
-      return item.readingDurationDays != null ? `${item.readingDurationDays} günde bitirdi` : "okudu";
+      if (item.readingDurationDays == null) return "okudu";
+      return item.readingDurationDays <= 0 ? "aynı gün bitirdi" : `${item.readingDurationDays} günde bitirdi`;
     case "library_add":
       return "kitaplığına ekledi";
     case "reading_progress":

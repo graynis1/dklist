@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, ScrollView, ActivityIndicator, Image, Alert } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
@@ -117,7 +118,7 @@ export default function AskidaKitapDetailScreen() {
       {store.pictures.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
           {store.pictures.map((pic, i) => (
-            <Image key={i} source={{ uri: pic }} style={{ width: 220, height: 220, borderRadius: 8 }} resizeMode="cover" />
+            <Image key={i} source={{ uri: mediaUrl(pic)! }} style={{ width: 220, height: 220, borderRadius: 8 }} resizeMode="cover" />
           ))}
         </ScrollView>
       )}

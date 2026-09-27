@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, ScrollView, Pressable, ActivityIndicator, Image } from "react-native";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
@@ -61,7 +62,7 @@ export default function FavorilerScreen() {
               onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })}
               style={{ flexDirection: "row", gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider }}
             >
-              {item.image && <Image source={{ uri: item.image }} style={{ width: 56, height: 56, borderRadius: 8 }} resizeMode="cover" />}
+              {item.image && <Image source={{ uri: mediaUrl(item.image)! }} style={{ width: 56, height: 56, borderRadius: 8 }} resizeMode="cover" />}
               <View style={{ flex: 1, gap: 2 }}>
                 <ThemedText variant="title" numberOfLines={1}>{item.title}</ThemedText>
                 <ThemedText variant="caption" muted>{item.location ?? ""}</ThemedText>

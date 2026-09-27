@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { mediaUrl } from "@/lib/media";
 import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-native";
 import { router, useNavigation, useFocusEffect } from "expo-router";
 import { PlusIcon } from "lucide-react-native";
@@ -69,7 +70,7 @@ export default function IlanlarimScreen() {
           onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })}
           style={{ flexDirection: "row", gap: spacing.sm, padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, alignItems: "center" }}
         >
-          {item.image && <Image source={{ uri: item.image }} style={{ width: 48, height: 48, borderRadius: 8 }} />}
+          {item.image && <Image source={{ uri: mediaUrl(item.image)! }} style={{ width: 48, height: 48, borderRadius: 8 }} />}
           <ThemedText variant="body" style={{ flex: 1 }} numberOfLines={1}>{item.title}</ThemedText>
           <ThemedText variant="caption" color={colors.accent}>{STATUS_LABELS[item.status] ?? item.status}</ThemedText>
         </Pressable>
