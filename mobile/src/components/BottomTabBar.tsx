@@ -48,7 +48,7 @@ export function BottomTabBar() {
     };
   }, []);
 
-  if (keyboardOpen || pathname === "/barkod") return null;
+  if (keyboardOpen || pathname === "/barkod" || pathname === "/gonderi-yeni") return null;
 
   return (
     <View

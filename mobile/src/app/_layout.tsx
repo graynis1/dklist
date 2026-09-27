@@ -151,6 +151,7 @@ function RootNavigator() {
           }}
         />
         <Stack.Screen name="barkod" options={{ headerShown: false, animation: "slide_from_bottom" }} />
+        <Stack.Screen name="gonderi-yeni" options={{ headerShown: false, animation: "slide_from_bottom" }} />
         {(
           [
             ["kitap/yeni", "Kitap Ekle"],
