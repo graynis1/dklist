@@ -107,9 +107,17 @@ export function FeedCard({ item }: { item: FeedItem }) {
         frameColor={item.profileFrame}
         frameTier={item.frameTier}
       />
-      <ThemedText variant="body" style={{ flex: 1 }}>
-        <ThemedText variant="bodySemibold">{item.actorUsername}</ThemedText> <ThemedText variant="body" muted>{verb}</ThemedText>
-      </ThemedText>
+      <View style={{ flex: 1 }}>
+        <ThemedText variant="body">
+          <ThemedText variant="bodySemibold">{item.actorUsername}</ThemedText> <ThemedText variant="body" muted>{verb}</ThemedText>
+        </ThemedText>
+        {/* Facebook-style placement: the timestamp sits right under the
+            actor line, not mixed into the action row below - it reads as
+            metadata about the POST, not another action button. */}
+        <ThemedText variant="caption" muted style={{ marginTop: 1 }}>
+          {relativeTime(item.createdAt)}
+        </ThemedText>
+      </View>
     </Pressable>
   );
 
@@ -171,31 +179,73 @@ export function FeedCard({ item }: { item: FeedItem }) {
         targetContent
       )}
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.lg, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider }}>
-        <ThemedText variant="caption" muted>
-          {relativeTime(item.createdAt)}
-        </ThemedText>
-        {canInteract && (
-          <>
-            <Pressable onPress={onToggleLike} disabled={likeSaving} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <HeartIcon size={16} color={liked ? colors.accent : colors.textMuted} fill={liked ? colors.accent : "transparent"} />
-              <ThemedText variant="caption" color={liked ? colors.accent : colors.textMuted}>
-                {likeCount > 0 ? likeCount : "Beğen"}
+      {canInteract && (likeCount > 0 || replies.length > 0) && (
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: spacing.xs }}>
+          {likeCount > 0 ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <View
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  backgroundColor: colors.accent,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <HeartIcon size={9} color="#fff" fill="#fff" />
+              </View>
+              <ThemedText variant="caption" muted>{likeCount}</ThemedText>
+            </View>
+          ) : (
+            <View />
+          )}
+          {replies.length > 0 && (
+            <ThemedText variant="caption" muted>{replies.length} yorum</ThemedText>
+          )}
+        </View>
+      )}
+
+      {canInteract && (
+        <>
+          <View style={{ height: 1, backgroundColor: colors.divider }} />
+          {/* Facebook's own post-footer anatomy: three EQUAL-width buttons
+              spanning the full card, icon-over/beside-label centered in
+              each third - not loosely left-aligned icons with gaps
+              (the previous layout, and the customer's explicit "diziliş...
+              Facebook'a benzet" complaint). */}
+          <View style={{ flexDirection: "row" }}>
+            <Pressable
+              onPress={onToggleLike}
+              disabled={likeSaving}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: spacing.sm }}
+            >
+              <HeartIcon size={18} color={liked ? colors.accent : colors.textMuted} fill={liked ? colors.accent : "transparent"} />
+              <ThemedText variant="caption" color={liked ? colors.accent : colors.textMuted} style={{ fontWeight: "600" }}>
+                Beğen
               </ThemedText>
             </Pressable>
-            <Pressable onPress={() => setShowReplies((v) => !v)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <MessageCircleIcon size={16} color={showReplies ? colors.accent : colors.textMuted} />
-              <ThemedText variant="caption" color={showReplies ? colors.accent : colors.textMuted}>
-                {replies.length > 0 ? replies.length : "Yorum"}
+            <Pressable
+              onPress={() => setShowReplies((v) => !v)}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: spacing.sm }}
+            >
+              <MessageCircleIcon size={18} color={showReplies ? colors.accent : colors.textMuted} />
+              <ThemedText variant="caption" color={showReplies ? colors.accent : colors.textMuted} style={{ fontWeight: "600" }}>
+                Yorum Yap
               </ThemedText>
             </Pressable>
-            <Pressable onPress={onShare} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Share2Icon size={16} color={colors.textMuted} />
-              <ThemedText variant="caption" color={colors.textMuted}>Paylaş</ThemedText>
+            <Pressable
+              onPress={onShare}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: spacing.sm }}
+            >
+              <Share2Icon size={18} color={colors.textMuted} />
+              <ThemedText variant="caption" color={colors.textMuted} style={{ fontWeight: "600" }}>
+                Paylaş
+              </ThemedText>
             </Pressable>
-          </>
-        )}
-      </View>
+          </View>
+        </>
+      )}
 
       {showReplies && canInteract && (
         <View style={{ gap: spacing.sm, paddingTop: spacing.xs }}>

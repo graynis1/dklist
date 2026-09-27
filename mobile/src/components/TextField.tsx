@@ -35,7 +35,7 @@ export function TextField({
             height: 48,
             borderWidth: 1,
             borderColor: focused ? colors.accent : colors.divider,
-            borderRadius: radius.md,
+            borderRadius: radius.lg,
             paddingHorizontal: 14,
             fontSize: 15,
             fontFamily: fontFamily.bodyRegular,

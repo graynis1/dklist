@@ -6,13 +6,14 @@ import { ThemedText } from "@/components/ThemedText";
 export type ButtonVariant = "primary" | "secondary" | "ghost";
 
 /**
- * Ported from the reference's `.btn-primary`/`.btn-secondary`/`.btn-ghost`
- * - a deliberate choice worth preserving, not "fixing": every CTA in the
- * reference (including onboarding's "İleri", the login screen's "Giriş
- * Yap") is an OUTLINED button (accent border + accent text, no fill), not
- * the solid-filled button most mobile UIs default to. That's this design
- * system's own refined, understated character - a filled button here
- * would read as a generic template, not this app.
+ * Real customer report: every button in the app - including primary CTAs
+ * like "Giriş Yap"/"Üye Ol" - was a thin-outlined, unfilled button (an
+ * earlier deliberate design choice, since overridden: "Butonlar berbat...
+ * Facebook'a benzet"). Rebuilt around the pattern real, familiar social
+ * apps (Facebook's own primary/secondary button pair) actually use: a
+ * solid, confident fill for the primary action and a light neutral fill
+ * for the secondary one, both the same rounded-rect shape - not the
+ * classical design system's original hairline-outline treatment.
  */
 export function Button({
   title,
@@ -23,10 +24,11 @@ export function Button({
   onPress,
   ...rest
 }: PressableProps & { title: string; variant?: ButtonVariant; block?: boolean; disabled?: boolean }) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, shadow } = useTheme();
 
-  const borderColor = variant === "primary" ? colors.accent : variant === "secondary" ? colors.divider : "transparent";
-  const textColor = variant === "secondary" ? colors.text : colors.accent;
+  const fill = variant === "primary" ? colors.accent : variant === "secondary" ? colors.neutral200 : "transparent";
+  const pressedFill = variant === "primary" ? colors.accent700 : variant === "secondary" ? colors.neutral300 : `${colors.accent}14`;
+  const textColor = variant === "primary" ? "#ffffff" : variant === "secondary" ? colors.text : colors.accent;
 
   // Design brief's own explicit ask: a native app should have real haptic
   // feedback at meaningful moments, not just visual state - a light tap
@@ -43,23 +45,22 @@ export function Button({
       onPress={handlePress}
       style={({ pressed }) => [
         {
-          height: 52,
-          borderRadius: radius.md,
-          borderWidth: variant === "ghost" ? 0 : 1.5,
-          borderColor,
+          height: 48,
+          borderRadius: radius.lg,
           alignItems: "center",
           justifyContent: "center",
           paddingHorizontal: spacing.lg,
-          opacity: disabled ? 0.45 : pressed ? 0.7 : 1,
-          backgroundColor: pressed && variant !== "ghost" ? `${colors.accent}1F` : "transparent",
+          opacity: disabled ? 0.45 : 1,
+          backgroundColor: pressed ? pressedFill : fill,
           width: block ? "100%" : undefined,
           alignSelf: block ? "stretch" : "flex-start",
+          ...(variant === "primary" && !disabled ? shadow.sm : null),
         },
         style as object,
       ]}
       {...rest}
     >
-      <ThemedText variant="title" color={textColor}>
+      <ThemedText variant="title" color={textColor} style={{ fontWeight: variant === "ghost" ? "500" : "600" }}>
         {title}
       </ThemedText>
     </Pressable>
