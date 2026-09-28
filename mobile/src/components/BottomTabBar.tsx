@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Pressable, Keyboard } from "react-native";
+import { View, Pressable, Keyboard, Platform } from "react-native";
 import { router, usePathname } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,8 +40,11 @@ export function BottomTabBar() {
   // With Android's adjustResize the bar would otherwise ride up and sit
   // between a chat/comment composer and the keyboard.
   useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardOpen(true));
-    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardOpen(false));
+    // iOS fires the "will" events before its keyboard animation, so the bar
+    // is gone before the screen above it re-lays out; Android only has "did".
+    const ios = Platform.OS === "ios";
+    const show = Keyboard.addListener(ios ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener(ios ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboardOpen(false));
     return () => {
       show.remove();
       hide.remove();

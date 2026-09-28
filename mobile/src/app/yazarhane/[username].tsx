@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator, RefreshControl, Alert } from "react-native";
+import { showActionSheet } from "@/components/ActionSheet";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { BookOpenIcon, UserIcon, MessageCircleIcon, PenLineIcon, StarIcon } from "lucide-react-native";
@@ -43,29 +44,32 @@ export default function AuthorHubScreen() {
   }, [load]);
 
   function onPostMore(p: AuthorPost) {
-    Alert.alert(p.title, undefined, [
-      {
-        text: "Paylaşımı sil",
-        style: "destructive",
-        onPress: () =>
-          Alert.alert("Silinsin mi?", "Bu paylaşım kalıcı olarak silinecek.", [
-            { text: "Vazgeç", style: "cancel" },
-            {
-              text: "Sil",
-              style: "destructive",
-              onPress: async () => {
-                try {
-                  await deleteAuthorPost(p.id);
-                  setPosts((prev) => prev.filter((x) => x.id !== p.id));
-                } catch (err) {
-                  Alert.alert("Silinemedi", err instanceof Error ? err.message : "Bir hata oluştu.");
-                }
+    showActionSheet({
+      title: p.title,
+      options: [
+        {
+          text: "Paylaşımı sil",
+          destructive: true,
+          onPress: () =>
+            Alert.alert("Silinsin mi?", "Bu paylaşım kalıcı olarak silinecek.", [
+              { text: "Vazgeç", style: "cancel" },
+              {
+                text: "Sil",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    await deleteAuthorPost(p.id);
+                    setPosts((prev) => prev.filter((x) => x.id !== p.id));
+                  } catch (err) {
+                    Alert.alert("Silinemedi", err instanceof Error ? err.message : "Bir hata oluştu.");
+                  }
+                },
               },
-            },
-          ]),
-      },
-      { text: "Kapat", style: "cancel" },
-    ]);
+            ]),
+        },
+      ],
+      cancelText: "Kapat",
+    });
   }
 
   if (loading) {

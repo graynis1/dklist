@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Pressable, Share } from "react-native";
+import { View, Pressable } from "react-native";
+import { shareLink } from "@/lib/share";
 import { router } from "expo-router";
 import { PenLineIcon, MoreHorizontalIcon, Share2Icon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
@@ -46,7 +47,7 @@ export function AuthorPostCard({ post, onMore }: { post: AuthorPost; onMore?: ()
 
       <View style={{ height: 1, backgroundColor: colors.divider, marginTop: spacing.xs }} />
       <Pressable
-        onPress={() => Share.share({ message: `${post.title} — @${post.username}\nhttps://dklist.com/yazarhane/${post.username}` }).catch(() => {})}
+        onPress={() => void shareLink(`${post.title} — @${post.username}`, `https://dklist.com/yazarhane/${post.username}`)}
         style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 6, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral200 : "transparent" })}
       >
         <Share2Icon size={17} color={colors.textMuted} />

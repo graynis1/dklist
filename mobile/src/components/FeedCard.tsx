@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Pressable, Image, Share, Alert, ScrollView } from "react-native";
+import { View, Pressable, Image, Alert, ScrollView } from "react-native";
 import { router, type Href } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -36,6 +36,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { BookCover } from "@/components/BookCover";
 import { ComposerBar } from "@/components/ComposerBar";
+import { showActionSheet } from "@/components/ActionSheet";
+import { shareLink } from "@/lib/share";
 
 function shareUrl(item: FeedItem) {
   return item.targetHref ? `https://dklist.com${item.targetHref}` : "https://dklist.com/akis";
@@ -67,12 +69,15 @@ function ActorHeader({ item, subtitle, onMore }: { item: FeedItem; subtitle: Rea
 
 function moreMenu(item: FeedItem) {
   const target = resolveFeedTargetHref(item);
-  Alert.alert(item.actorUsername, undefined, [
-    { text: "Profili görüntüle", onPress: () => router.push(actorProfileHref(item)) },
-    ...(target ? [{ text: item.entityKind === "book" ? "Kitabı görüntüle" : "Görüntüle", onPress: () => router.push(target) }] : []),
-    { text: "Paylaş", onPress: () => Share.share({ message: shareUrl(item) }).catch(() => {}) },
-    { text: "Kapat", style: "cancel" as const },
-  ]);
+  showActionSheet({
+    title: item.actorUsername,
+    options: [
+      { text: "Profili görüntüle", onPress: () => router.push(actorProfileHref(item)) },
+      ...(target ? [{ text: item.entityKind === "book" ? "Kitabı görüntüle" : "Görüntüle", onPress: () => router.push(target) }] : []),
+      { text: "Paylaş", onPress: () => void shareLink(item.targetLabel ?? "", shareUrl(item)) },
+    ],
+    cancelText: "Kapat",
+  });
 }
 
 /** Tappable book attachment - gray inset box, like a link preview on Facebook. */
@@ -314,7 +319,7 @@ export function PostCard({ item }: { item: FeedItem }) {
             />
             <ActionButton onPress={() => setComposing(true)} icon={<MessageCircleIcon size={19} color={colors.textMuted} />} label="Yorum Yap" color={colors.textMuted} />
             <ActionButton
-              onPress={() => Share.share({ message: text ? `${text}\n\n${shareUrl(item)}` : shareUrl(item) }).catch(() => {})}
+              onPress={() => void shareLink(text, shareUrl(item))}
               icon={<Share2Icon size={19} color={colors.textMuted} />}
               label="Paylaş"
               color={colors.textMuted}
@@ -442,7 +447,7 @@ function SameTargetCard({ items }: { items: FeedItem[] }) {
           <View style={{ flexDirection: "row", paddingVertical: 3 }}>
             <ActionButton onPress={() => router.push(href)} icon={<BookOpenIcon size={18} color={colors.textMuted} />} label="Kitabı İncele" color={colors.textMuted} />
             <ActionButton
-              onPress={() => Share.share({ message: `${first.targetLabel ?? ""}\n${shareUrl(first)}` }).catch(() => {})}
+              onPress={() => void shareLink(first.targetLabel ?? "", shareUrl(first))}
               icon={<Share2Icon size={18} color={colors.textMuted} />}
               label="Paylaş"
               color={colors.textMuted}

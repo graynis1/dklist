@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Pressable, TextInput, Image, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { View, Pressable, TextInput, Image, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -98,7 +99,7 @@ export default function GonderiYeniScreen() {
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.card }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardScreen offset="safeTop">
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.divider }}>
           <Pressable onPress={close} hitSlop={10} style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" }}>
             <XIcon size={24} color={colors.text} />
@@ -215,7 +216,7 @@ export default function GonderiYeniScreen() {
             ))}
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardScreen>
     </SafeAreaView>
   );
 }

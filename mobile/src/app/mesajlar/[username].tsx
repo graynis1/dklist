@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { mediaUrl } from "@/lib/media";
-import { View, FlatList, Pressable, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from "react-native";
+import { View, FlatList, Pressable, Image, ActivityIndicator, Alert } from "react-native";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { BookIcon, TagIcon, XIcon, PlusIcon, ChevronRightIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
@@ -280,7 +281,7 @@ export default function ThreadScreen() {
   const tight = 4;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.card }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.card }}>
       <FlatList
         data={rows}
         inverted
@@ -445,6 +446,6 @@ export default function ThreadScreen() {
           }
         />
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }

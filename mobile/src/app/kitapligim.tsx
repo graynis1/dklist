@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Pressable, ActivityIndicator, FlatList, RefreshControl, Alert, useWindowDimensions } from "react-native";
+import { View, Pressable, ActivityIndicator, FlatList, RefreshControl, useWindowDimensions } from "react-native";
+import { showActionSheet } from "@/components/ActionSheet";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import { LayoutGridIcon, ListIcon, ArrowUpDownIcon, LibraryIcon, BookOpenIcon, CheckCircle2Icon, BookmarkIcon, PauseCircleIcon, ScanBarcodeIcon, BookPlusIcon } from "lucide-react-native";
@@ -87,24 +88,27 @@ export default function KitapligimScreen() {
 
   function onLongPressBook(book: LibraryBookItem) {
     const others = TABS.filter((t) => t.key !== active);
-    Alert.alert(book.name, "Bu kitabı hangi rafa taşımak istersin?", [
-      ...others.map((t) => ({
-        text: t.label,
-        onPress: async () => {
-          await setLibraryStatus(book.id, t.key);
-          await load();
+    showActionSheet({
+      title: book.name,
+      message: "Bu kitabı hangi rafa taşımak istersin?",
+      options: [
+        ...others.map((t) => ({
+          text: t.label,
+          onPress: async () => {
+            await setLibraryStatus(book.id, t.key);
+            await load();
+          },
+        })),
+        {
+          text: "Kitaplıktan çıkar",
+          destructive: true,
+          onPress: async () => {
+            await setLibraryStatus(book.id, null);
+            await load();
+          },
         },
-      })),
-      {
-        text: "Kitaplıktan çıkar",
-        style: "destructive" as const,
-        onPress: async () => {
-          await setLibraryStatus(book.id, null);
-          await load();
-        },
-      },
-      { text: "Vazgeç", style: "cancel" as const },
-    ]);
+      ],
+    });
   }
 
   const openBook = (b: LibraryBookItem) => router.push({ pathname: "/kitap/[slug]", params: { slug: b.slug } });

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, FlatList, Image, Alert, Share, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, FlatList, Image, Alert, RefreshControl } from "react-native";
+import { shareLink } from "@/lib/share";
+import { showActionSheet } from "@/components/ActionSheet";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { BadgeCheckIcon, MessageCircleIcon, MoreHorizontalIcon, UserPlusIcon, UserCheckIcon, LockIcon, LibraryIcon, AwardIcon, PencilIcon, Share2Icon } from "lucide-react-native";
@@ -99,16 +101,18 @@ export default function OtherProfileScreen() {
 
   function onShare() {
     const url = `https://dklist.com/profil/${username}`;
-    Share.share({ message: `DKList'te @${username} profilene göz at: ${url}`, url }).catch(() => {});
+    shareLink(`DKList'te @${username} profiline göz at`, url);
   }
 
   function onMore() {
     if (!data) return;
-    Alert.alert(`@${username}`, undefined, [
+    showActionSheet({
+      title: `@${username}`,
+      options: [
       { text: "Profili paylaş", onPress: onShare },
       {
         text: data.blocked ? "Engeli kaldır" : "Engelle",
-        style: data.blocked ? "default" : "destructive",
+        destructive: !data.blocked,
         onPress: () => {
           const run = async () => {
             await toggleBlock(username);
@@ -122,8 +126,9 @@ export default function OtherProfileScreen() {
             ]);
         },
       },
-      { text: "Kapat", style: "cancel" },
-    ]);
+      ],
+      cancelText: "Kapat",
+    });
   }
 
   if (loading) {

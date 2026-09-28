@@ -1,4 +1,4 @@
-import { confirmPasswordReset, resendResetCode } from "@/db/queries/auth-account";
+import { confirmPasswordReset } from "@/db/queries/auth-account";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
 /** confirmPasswordReset() generates a random new password server-side and

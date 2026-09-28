@@ -1,16 +1,19 @@
-import { useState } from "react";
-import { View, ScrollView, Pressable, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { useEffect, useState } from "react";
+import { View, ScrollView, Pressable, Platform, Alert, Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
-import { LinearGradient } from "expo-linear-gradient";
-import { BookOpen } from "lucide-react-native";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
-import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/api/config";
+import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/api/config";
+
+const LOGO = require("../../../assets/brand/dklist-mark.png");
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -23,8 +26,39 @@ WebBrowser.maybeCompleteAuthSession();
  * their now-existing screens, and added Google Sign-In.
  */
 export default function LoginScreen() {
-  const { colors, spacing } = useTheme();
-  const { login, googleLogin } = useAuth();
+  const { colors, spacing, isDark } = useTheme();
+  const { login, googleLogin, appleLogin } = useAuth();
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const [appleBusy, setAppleBusy] = useState(false);
+
+  useEffect(() => {
+    AppleAuthentication.isAvailableAsync()
+      .then(setAppleAvailable)
+      .catch(() => setAppleAvailable(false));
+  }, []);
+
+  async function onApplePress() {
+    setError(null);
+    setAppleBusy(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      });
+      if (!credential.identityToken) {
+        setError("Apple'dan kimlik bilgisi alınamadı.");
+        return;
+      }
+      const result = await appleLogin(credential.identityToken, credential.fullName?.givenName, credential.fullName?.familyName);
+      if (result.status === "error") setError(result.message);
+    } catch (err) {
+      // The user closing the Apple sheet is not an error worth showing.
+      if (!(err && typeof err === "object" && "code" in err && err.code === "ERR_REQUEST_CANCELED")) {
+        setError("Apple ile giriş başarısız oldu.");
+      }
+    } finally {
+      setAppleBusy(false);
+    }
+  }
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +68,7 @@ export default function LoginScreen() {
   const [code, setCode] = useState("");
   const [googleBusy, setGoogleBusy] = useState(false);
 
-  const googleConfigured = Boolean(GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
+  const googleConfigured = Boolean(Platform.OS === "ios" ? GOOGLE_IOS_CLIENT_ID : GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID);
   // useIdTokenAuthRequest throws synchronously on Android if androidClientId
   // is undefined (its own internal validation, not a lazy check) - hooks
   // can't be called conditionally, so an unconfigured setup gets a dummy
@@ -42,6 +76,7 @@ export default function LoginScreen() {
   // is what actually stops a real prompt from ever firing with it.
   const [, googleResponse, promptGoogle] = Google.useIdTokenAuthRequest({
     androidClientId: GOOGLE_ANDROID_CLIENT_ID || "unconfigured.apps.googleusercontent.com",
+    iosClientId: GOOGLE_IOS_CLIENT_ID || "unconfigured.apps.googleusercontent.com",
     webClientId: GOOGLE_WEB_CLIENT_ID || undefined,
   });
 
@@ -110,20 +145,11 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.bg }}>
+      <KeyboardScreen offset="safeTop">
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing["2xl"] }} keyboardShouldPersistTaps="handled">
         <View style={{ alignItems: "center", paddingTop: spacing["2xl"], paddingBottom: spacing.lg, gap: spacing.md }}>
-          <LinearGradient
-            colors={[colors.accent300, colors.accent700]}
-            start={{ x: 0.15, y: 0 }}
-            end={{ x: 0.85, y: 1 }}
-            style={{ width: 72, height: 72, borderRadius: 20, alignItems: "center", justifyContent: "center" }}
-          >
-            <BookOpen color="#fff" size={34} strokeWidth={1.75} />
-          </LinearGradient>
+          <Image source={LOGO} style={{ width: 132, height: 77, tintColor: colors.text }} resizeMode="contain" accessibilityLabel="DKList" />
           <ThemedText variant="headline" style={{ fontSize: 30, lineHeight: 35, textAlign: "center" }}>
             DKList&apos;e Hoş Geldin
           </ThemedText>
@@ -188,6 +214,18 @@ export default function LoginScreen() {
             <View style={{ flex: 1, height: 1, backgroundColor: colors.divider }} />
           </View>
 
+          {appleAvailable && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={isDark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={8}
+              style={{ width: "100%", height: 48, opacity: appleBusy ? 0.6 : 1 }}
+              onPress={() => {
+                if (!appleBusy) void onApplePress();
+              }}
+            />
+          )}
+
           <Button
             title={googleBusy ? "Bağlanılıyor..." : "Google ile Giriş Yap"}
             variant="secondary"
@@ -205,6 +243,7 @@ export default function LoginScreen() {
           </ThemedText>
         </Pressable>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
+    </SafeAreaView>
   );
 }

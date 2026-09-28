@@ -120,3 +120,18 @@ export async function getMe(): Promise<MobileProfile> {
   const result = await apiFetch<{ status: "ok"; user: MobileProfile }>("/me");
   return result.user;
 }
+
+/** identityToken from expo-apple-authentication; Apple only provides the
+ * name on the first authorization, so it is forwarded for account creation. */
+export async function appleLogin(identityToken: string, givenName?: string | null, familyName?: string | null): Promise<GoogleLoginResult> {
+  const result = await apiFetch<GoogleLoginResult>("/auth/apple", {
+    method: "POST",
+    body: JSON.stringify({ identityToken, givenName: givenName ?? "", familyName: familyName ?? "" }),
+  }).catch((err) => {
+    if (err && typeof err === "object" && "body" in err && err.body) return err.body as GoogleLoginResult;
+    throw err;
+  });
+
+  if (result.status === "ok") await setStoredToken(result.token);
+  return result;
+}

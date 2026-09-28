@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { View, ScrollView, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
@@ -61,7 +63,8 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.bg }}>
+      <KeyboardScreen offset="safeTop">
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing["2xl"], paddingBottom: spacing["2xl"] }} keyboardShouldPersistTaps="handled">
         <View style={{ paddingTop: spacing["2xl"], paddingBottom: spacing.lg }}>
           <ThemedText variant="headline" style={{ fontSize: 30, lineHeight: 35 }}>
@@ -159,6 +162,7 @@ export default function RegisterScreen() {
           </ThemedText>
         </Pressable>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
+    </SafeAreaView>
   );
 }

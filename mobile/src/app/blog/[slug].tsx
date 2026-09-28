@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Image, Pressable, Alert, Share, KeyboardAvoidingView, Platform } from "react-native";
+import { View, ScrollView, ActivityIndicator, Image, Pressable, Alert } from "react-native";
+import { shareLink } from "@/lib/share";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { ThumbsUpIcon, ThumbsDownIcon, Share2Icon, ClockIcon, EyeIcon, NewspaperIcon, ChevronRightIcon, MessageSquareOffIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
@@ -104,7 +106,7 @@ export default function BlogDetailScreen() {
   const goAuthor = () => blog.ownerUsername && router.push({ pathname: "/profil/[username]", params: { username: blog.ownerUsername } });
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
         {src && <Image source={{ uri: src }} style={{ width: "100%", aspectRatio: 16 / 10, backgroundColor: colors.surface }} resizeMode="cover" />}
 
@@ -156,7 +158,7 @@ export default function BlogDetailScreen() {
                   label: "Paylaş",
                   Icon: Share2Icon,
                   on: false,
-                  onPress: () => Share.share({ message: `${blog.title}\nhttps://dklist.com/blog/${blog.slug}` }).catch(() => {}),
+                  onPress: () => void shareLink(blog.title, `https://dklist.com/blog/${blog.slug}`),
                 },
               ].map((a) => (
                 <Pressable
@@ -203,6 +205,6 @@ export default function BlogDetailScreen() {
           )}
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }

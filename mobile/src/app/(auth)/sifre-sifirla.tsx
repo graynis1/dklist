@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { View, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { View, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
@@ -70,7 +72,8 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.bg }}>
+      <KeyboardScreen offset="safeTop">
       <View style={{ flex: 1, paddingHorizontal: spacing["2xl"], paddingTop: spacing["3xl"], gap: spacing.md }}>
         <ThemedText variant="headline" style={{ fontSize: 30 }}>
           Şifre Sıfırlama
@@ -96,6 +99,7 @@ export default function ResetPasswordScreen() {
         <Button title={submitting ? "Sıfırlanıyor…" : "Şifreyi Sıfırla"} onPress={submit} disabled={submitting} block />
         {!devResetCode && <Button title={resending ? "Gönderiliyor…" : "Kodu Tekrar Gönder"} variant="ghost" onPress={resend} disabled={resending} block />}
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
+    </SafeAreaView>
   );
 }

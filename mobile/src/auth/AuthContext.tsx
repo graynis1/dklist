@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getStoredToken } from "@/auth/token-storage";
-import { login as apiLogin, logout as apiLogout, register as apiRegister, googleLogin as apiGoogleLogin, getMe, type MobileProfile, type RegisterInput } from "@/api/auth";
+import { login as apiLogin, logout as apiLogout, register as apiRegister, googleLogin as apiGoogleLogin, appleLogin as apiAppleLogin, getMe, type MobileProfile, type RegisterInput } from "@/api/auth";
 import { registerForPushNotifications, unregisterPushNotifications } from "@/api/pushNotifications";
 
 interface AuthState {
@@ -12,6 +12,7 @@ interface AuthState {
   login: (username: string, password: string, code?: string) => Promise<{ status: "ok" } | { status: "invalid" | "two_factor_required" | "suspended"; message?: string }>;
   register: (input: RegisterInput) => Promise<{ status: "ok" } | { status: "error"; message: string }>;
   googleLogin: (idToken: string) => Promise<{ status: "ok" } | { status: "error"; message: string }>;
+  appleLogin: (identityToken: string, givenName?: string | null, familyName?: string | null) => Promise<{ status: "ok" } | { status: "error"; message: string }>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -87,6 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result;
   }
 
+  async function appleLogin(identityToken: string, givenName?: string | null, familyName?: string | null) {
+    const result = await apiAppleLogin(identityToken, givenName, familyName);
+    if (result.status === "ok") {
+      await refresh();
+      return { status: "ok" as const };
+    }
+    return result;
+  }
+
   async function logout() {
     await unregisterPushNotifications();
     await apiLogout();
@@ -94,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ profile, login, register, googleLogin, logout, refresh }}>
+    <AuthContext.Provider value={{ profile, login, register, googleLogin, appleLogin, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ActivityIndicator, Image, Pressable, Linking, Alert, ScrollView, Share, KeyboardAvoidingView, Platform } from "react-native";
+import { View, ActivityIndicator, Image, Pressable, Linking, Alert, ScrollView, Platform } from "react-native";
+import { shareLink } from "@/lib/share";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { PlayIcon, Share2Icon, EyeIcon, CalendarIcon, PlayCircleIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
@@ -50,7 +52,7 @@ export default function VideoDetailScreen() {
 
   function onPlay() {
     if (!video?.youtubeVideoId) return;
-    const appUrl = `vnd.youtube://${video.youtubeVideoId}`;
+    const appUrl = Platform.OS === "ios" ? `youtube://watch?v=${video.youtubeVideoId}` : `vnd.youtube://${video.youtubeVideoId}`;
     const webUrl = `https://www.youtube.com/watch?v=${video.youtubeVideoId}`;
     Linking.openURL(appUrl).catch(() => Linking.openURL(webUrl));
   }
@@ -89,7 +91,7 @@ export default function VideoDetailScreen() {
   const thumb = videoThumb(video.youtubeVideoId);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
         <Pressable onPress={onPlay} style={{ backgroundColor: "#000" }}>
           {thumb ? <Image source={{ uri: thumb }} style={{ width: "100%", aspectRatio: 16 / 9 }} resizeMode="cover" /> : <View style={{ width: "100%", aspectRatio: 16 / 9 }} />}
@@ -121,7 +123,7 @@ export default function VideoDetailScreen() {
               <ThemedText variant="bodySemibold" color="#fff">YouTube&apos;da İzle</ThemedText>
             </Pressable>
             <Pressable
-              onPress={() => Share.share({ message: `${video.title}\nhttps://dklist.com/video/${video.slug}` }).catch(() => {})}
+              onPress={() => void shareLink(video.title, `https://dklist.com/video/${video.slug}`)}
               style={({ pressed }) => ({ height: 44, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}
             >
               <Share2Icon size={17} color={colors.text} />
@@ -161,6 +163,6 @@ export default function VideoDetailScreen() {
           />
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }

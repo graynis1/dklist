@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, Alert, Image, Share, KeyboardAvoidingView, Platform } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, Alert, Image } from "react-native";
+import { shareLink } from "@/lib/share";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -143,7 +145,7 @@ export default function BookDetailScreen() {
     if (!data) return;
     const url = `https://dklist.com/kitap/${slug}`;
     const by = data.book.writers.map((w) => w.name).join(", ");
-    Share.share({ message: `${data.book.name}${by ? ` — ${by}` : ""}\n${url}`, url }).catch(() => {});
+    void shareLink(`${data.book.name}${by ? ` — ${by}` : ""}`, url);
   }
 
   async function submitComment() {
@@ -202,7 +204,7 @@ export default function BookDetailScreen() {
   ];
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
         {/* Hero */}
         <View style={{ overflow: "hidden" }}>
@@ -439,7 +441,7 @@ export default function BookDetailScreen() {
           )}
         </Card>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
 

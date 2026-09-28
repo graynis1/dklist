@@ -14,6 +14,7 @@ import { useFonts as useLoraFonts, Lora_400Regular, Lora_600SemiBold } from "@ex
 import { AuthProvider, useAuth } from "@/auth/AuthContext";
 import { OnboardingProvider, useOnboarding } from "@/auth/OnboardingContext";
 import { BottomTabBar } from "@/components/BottomTabBar";
+import { ActionSheetHost } from "@/components/ActionSheet";
 import { setupNotificationChannel } from "@/api/pushNotifications";
 import { palette } from "@/theme/tokens";
 
@@ -435,6 +436,7 @@ function RootNavigator() {
       </Stack.Protected>
       </Stack>
       {Boolean(profile) && <BottomTabBar />}
+      <ActionSheetHost />
     </View>
   );
 }

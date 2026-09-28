@@ -8,9 +8,18 @@
     "scheme": "dklist",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon-ios.png",
       "bundleIdentifier": "com.dklist.app",
-      "supportsTablet": true
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "youtube"
+        ],
+        "CFBundleDevelopmentRegion": "tr"
+      }
     },
     "android": {
       "package": "com.dklist.app",
@@ -41,7 +50,12 @@
           "imageWidth": 240
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "expo-font",
       [
         "expo-notifications",
@@ -54,16 +68,19 @@
         "expo-image-picker",
         {
           "photosPermission": "Gönderi, blog ve ilanlarına fotoğraf eklemek için galerine erişim gerekiyor.",
-          "cameraPermission": "Gönderine fotoğraf çekip eklemek için kamera erişimi gerekiyor."
+          "cameraPermission": "Kitapların barkodunu okumak ve gönderine fotoğraf çekmek için kamera erişimi gerekiyor.",
+          "microphonePermission": false
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Kitabın barkodunu okuyarak kitabı bulmak için kamera erişimi gerekiyor.",
-          "recordAudioAndroid": false
+          "cameraPermission": "Kitapların barkodunu okumak ve gönderine fotoğraf çekmek için kamera erişimi gerekiyor.",
+          "recordAudioAndroid": false,
+          "microphonePermission": false
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,

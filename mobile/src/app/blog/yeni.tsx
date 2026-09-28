@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { View, ScrollView, Pressable, TextInput, Image, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import { View, ScrollView, Pressable, TextInput, Image, ActivityIndicator, Alert } from "react-native";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router, useNavigation } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { ImagePlusIcon, XIcon, CheckCircle2Icon, InfoIcon, RefreshCwIcon } from "lucide-react-native";
@@ -83,7 +84,7 @@ export default function BlogYeniScreen() {
   const bare = { fontFamily: fontFamily.bodyRegular, color: colors.text, paddingHorizontal: 0 };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.card }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.card }}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: spacing["3xl"] }}>
         {image ? (
           <View>
@@ -147,6 +148,6 @@ export default function BlogYeniScreen() {
           </ThemedText>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, RefreshControl, TextInput, Alert, FlatList, KeyboardAvoidingView, Platform } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, RefreshControl, TextInput, Alert, FlatList } from "react-native";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { PenLineIcon, FeatherIcon, ClockIcon, XCircleIcon, SendIcon, UsersIcon, SearchIcon, XIcon, CheckIcon } from "lucide-react-native";
@@ -259,7 +260,7 @@ export default function YazarhaneScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: spacing["3xl"] }}
@@ -323,6 +324,6 @@ export default function YazarhaneScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }

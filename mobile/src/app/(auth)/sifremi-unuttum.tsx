@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { View, KeyboardAvoidingView, Platform } from "react-native";
+import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
@@ -35,7 +37,8 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <SafeAreaView edges={["top", "bottom"]} style={{ flex: 1, backgroundColor: colors.bg }}>
+      <KeyboardScreen offset="safeTop">
       <View style={{ flex: 1, paddingHorizontal: spacing["2xl"], paddingTop: spacing["3xl"], gap: spacing.md }}>
         <ThemedText variant="headline" style={{ fontSize: 30 }}>
           Şifremi Unuttum
@@ -54,6 +57,7 @@ export default function ForgotPasswordScreen() {
 
         <Button title={submitting ? "Gönderiliyor…" : "Sıfırlama Kodu Gönder"} onPress={submit} disabled={submitting} block />
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
+    </SafeAreaView>
   );
 }

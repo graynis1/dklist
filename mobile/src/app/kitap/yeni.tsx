@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, TextInput, Alert } from "react-native";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router, useLocalSearchParams } from "expo-router";
 import { ScanBarcodeIcon, XIcon, PlusIcon, BookPlusIcon, CheckCircle2Icon, CheckIcon, LockIcon, SearchIcon, InfoIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
@@ -285,7 +286,7 @@ export default function KitapEkleScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: spacing["3xl"] }}>
         <Pressable
           onPress={() => router.push({ pathname: "/barkod", params: { fill: "1" } })}
@@ -387,6 +388,6 @@ export default function KitapEkleScreen() {
           <ThemedText variant="bodySemibold" color="#fff">Kitabı Gönder</ThemedText>
         </Pressable>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardScreen>
   );
 }
