@@ -270,12 +270,12 @@ export function PostCard({ item }: { item: FeedItem }) {
       {isQuote ? (
         <View style={{ marginHorizontal: spacing.lg, paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: 12, backgroundColor: colors.accent100, gap: spacing.sm }}>
           <QuoteIcon size={22} color={colors.accent} />
-          <ThemedText variant="quote" style={{ fontSize: 19, lineHeight: 27, color: colors.accent900 }}>{text}</ThemedText>
+          <ThemedText variant="quote" style={{ fontSize: 17, lineHeight: 25, color: colors.accent900 }}>{text}</ThemedText>
         </View>
       ) : text ? (
         <ThemedText
           variant="body"
-          style={{ paddingHorizontal: spacing.lg, fontSize: shortText ? 19 : 15.5, lineHeight: shortText ? 26 : 22, fontFamily: shortText ? fontFamily.bodyRegular : undefined }}
+          style={{ paddingHorizontal: spacing.lg, fontSize: shortText ? 17 : 15.5, lineHeight: shortText ? 24 : 22, fontFamily: shortText ? fontFamily.bodyRegular : undefined }}
         >
           {text}
         </ThemedText>

@@ -21,8 +21,8 @@ export async function getCategories() {
   return apiFetch<{ status: "ok"; categories: TopCategory[] }>("/categories");
 }
 
-export async function getCategory(slug: string, page = 1, sort: "viewCount" | "score" = "viewCount") {
+export async function getCategory(slug: string, page = 1, sort: "viewCount" | "score" = "viewCount", q = "") {
   return apiFetch<{ status: "ok"; category: { id: number; name: string; slug: string }; items: CategoryBookItem[]; total: number; lastPage: number }>(
-    `/category/${encodeURIComponent(slug)}?page=${page}&sort=${sort}`,
+    `/category/${encodeURIComponent(slug)}?page=${page}&sort=${sort}${q ? `&q=${encodeURIComponent(q)}` : ""}`,
   );
 }

@@ -137,6 +137,10 @@ export interface MyStoreItem {
   slug: string;
   status: string;
   image: string | null;
+  listingType?: string;
+  price?: number | null;
+  stock?: number | null;
+  shippingFee?: number | null;
 }
 
 export async function getMyListings() {
@@ -181,4 +185,18 @@ export async function createListing(input: CreateListingInput) {
   }
 
   return apiFetch<{ status: "ok"; slug: string }>("/store", { method: "POST", body: formData });
+}
+
+export type ListingStatus = "active" | "completed" | "cancelled";
+
+export async function setListingStatus(id: number, status: ListingStatus): Promise<void> {
+  await apiFetch(`/my-listings/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+}
+
+export async function updateListingPrice(id: number, fields: { price: number; stock: number; shippingFee: number | null }): Promise<void> {
+  await apiFetch(`/my-listings/${id}`, { method: "PUT", body: JSON.stringify(fields) });
+}
+
+export async function deleteListing(id: number): Promise<void> {
+  await apiFetch(`/my-listings/${id}`, { method: "DELETE" });
 }

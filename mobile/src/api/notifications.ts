@@ -5,6 +5,10 @@ export interface NotificationItem {
   contentTr: string;
   view: boolean;
   senderUsername: string;
+  senderImage: string | null;
+  type: string;
+  /** Site-relative page the notification is about, when known. */
+  link: string | null;
 }
 
 export async function getNotifications() {
@@ -21,4 +25,8 @@ export async function deleteNotification(id: number) {
 
 export async function deleteAllNotifications() {
   return apiFetch<{ status: "ok" }>("/notifications", { method: "DELETE" });
+}
+
+export async function markNotificationRead(id: number) {
+  return apiFetch<{ status: "ok" }>(`/notifications?id=${id}`, { method: "PATCH" });
 }

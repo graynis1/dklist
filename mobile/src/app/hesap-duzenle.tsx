@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Switch, Alert, Share, Pressable } from "react-native";
+import { View, ScrollView, ActivityIndicator, Switch, Alert, Share, Pressable, Modal, TextInput } from "react-native";
+import { MailCheckIcon, TriangleAlertIcon } from "lucide-react-native";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
+import { deleteAccount, verifyEmail, resendVerificationEmail } from "@/api/auth";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
@@ -18,8 +21,13 @@ import { getEditableProfile, updateAccount, uploadAvatar, getDataExport, type Ed
  * dropped or faked.
  */
 export default function HesapDuzenleScreen() {
-  const { colors, spacing } = useTheme();
-  const { refresh, profile: authProfile } = useAuth();
+  const { colors, spacing, radius } = useTheme();
+  const { refresh, logout, profile: authProfile } = useAuth();
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [profile, setProfile] = useState<EditableProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,6 +103,44 @@ export default function HesapDuzenleScreen() {
     }
   }
 
+  async function onVerify() {
+    if (verifyCode.trim().length < 4) return;
+    setVerifying(true);
+    try {
+      await verifyEmail(verifyCode.trim());
+      setVerifyCode("");
+      await refresh();
+      Alert.alert("Doğrulandı", "E-posta adresin doğrulandı.");
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Kod doğrulanamadı.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function onResend() {
+    try {
+      const r = await resendVerificationEmail();
+      Alert.alert("Kod gönderildi", r.mailSent ? "Doğrulama kodu e-posta adresine gönderildi." : "Kod oluşturuldu ancak e-posta gönderilemedi, biraz sonra tekrar dene.");
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Kod gönderilemedi.");
+    }
+  }
+
+  async function onDeleteAccount() {
+    if (!authProfile || deleteConfirm.trim() !== authProfile.username) return;
+    setDeleting(true);
+    try {
+      await deleteAccount(deleteConfirm.trim());
+      setShowDelete(false);
+      await logout();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Hesap silinemedi.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function onPickAvatar() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -125,7 +171,33 @@ export default function HesapDuzenleScreen() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+    <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
+      {authProfile?.mailVerified === false && (
+        <View style={{ padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.accent100, gap: spacing.sm }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <MailCheckIcon size={20} color={colors.accent700} />
+            <ThemedText variant="bodySemibold" color={colors.accent800} style={{ flex: 1 }}>E-postanı doğrula</ThemedText>
+          </View>
+          <ThemedText variant="caption" color={colors.accent800}>
+            {authProfile.mail ? `${authProfile.mail} adresine gönderilen kodu gir.` : "E-posta adresine gönderilen kodu gir."}
+          </ThemedText>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <TextInput
+              value={verifyCode}
+              onChangeText={setVerifyCode}
+              placeholder="Doğrulama kodu"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              keyboardType="number-pad"
+              style={{ flex: 1, height: 44, borderRadius: radius.md, paddingHorizontal: spacing.md, backgroundColor: colors.card, color: colors.text, fontSize: 16, letterSpacing: 2 }}
+            />
+            <Button title={verifying ? "…" : "Doğrula"} onPress={onVerify} disabled={verifying || verifyCode.trim().length < 4} />
+          </View>
+          <ThemedText variant="caption" color={colors.accent} style={{ fontWeight: "700" }} onPress={onResend}>Kodu tekrar gönder</ThemedText>
+        </View>
+      )}
+
       <Pressable onPress={onPickAvatar} disabled={avatarUploading} style={{ alignItems: "center", gap: spacing.xs }}>
         <Avatar id={authProfile?.id ?? 0} name={name || "?"} imageUrl={profile.image} size={84} />
         <ThemedText variant="caption" color={colors.accent}>{avatarUploading ? "Yükleniyor…" : "Fotoğrafı Değiştir"}</ThemedText>
@@ -159,6 +231,50 @@ export default function HesapDuzenleScreen() {
         <Button title="Engellenen Kullanıcılar" variant="ghost" onPress={() => router.push("/engellenenler")} />
         <Button title="Verilerimi İndir (KVKK)" variant="ghost" onPress={onExportData} />
       </View>
+
+      <View style={{ gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: "#c0504d55" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <TriangleAlertIcon size={18} color="#c0504d" />
+          <ThemedText variant="bodySemibold" color="#c0504d">Tehlikeli Bölge</ThemedText>
+        </View>
+        <ThemedText variant="caption" muted>Hesabını sildiğinde kitaplığın, yorumların, gönderilerin ve mesajların kalıcı olarak silinir. Bu işlem geri alınamaz.</ThemedText>
+        <Pressable onPress={() => { setDeleteConfirm(""); setShowDelete(true); }} style={({ pressed }) => ({ alignItems: "center", paddingVertical: 11, borderRadius: radius.md, backgroundColor: pressed ? "#c0504d22" : "#c0504d14" })}>
+          <ThemedText variant="bodySemibold" color="#c0504d">Hesabımı Sil</ThemedText>
+        </Pressable>
+      </View>
     </ScrollView>
+
+    <Modal visible={showDelete} transparent animationType="fade" onRequestClose={() => setShowDelete(false)}>
+      <KeyboardScreen style={{ flex: 1 }}>
+        <Pressable onPress={() => setShowDelete(false)} style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "center", padding: spacing.lg }}>
+          <Pressable onPress={() => {}} style={{ backgroundColor: colors.card, borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md }}>
+            <ThemedText variant="title" style={{ fontSize: 19 }}>Hesabı kalıcı olarak sil</ThemedText>
+            <ThemedText variant="body" muted>
+              Onaylamak için kullanıcı adını yaz: <ThemedText variant="bodySemibold">{authProfile?.username}</ThemedText>
+            </ThemedText>
+            <TextInput
+              value={deleteConfirm}
+              onChangeText={setDeleteConfirm}
+              placeholder={authProfile?.username}
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={{ height: 46, borderRadius: radius.md, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.divider, color: colors.text, fontSize: 16 }}
+            />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <View style={{ flex: 1 }}><Button title="Vazgeç" variant="secondary" onPress={() => setShowDelete(false)} block /></View>
+              <Pressable
+                onPress={onDeleteAccount}
+                disabled={deleting || deleteConfirm.trim() !== authProfile?.username}
+                style={{ flex: 1, alignItems: "center", justifyContent: "center", borderRadius: radius.lg, backgroundColor: "#c0504d", opacity: deleting || deleteConfirm.trim() !== authProfile?.username ? 0.45 : 1 }}
+              >
+                {deleting ? <ActivityIndicator color="#fff" /> : <ThemedText variant="bodySemibold" color="#fff">Sil</ThemedText>}
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </KeyboardScreen>
+    </Modal>
+    </KeyboardScreen>
   );
 }

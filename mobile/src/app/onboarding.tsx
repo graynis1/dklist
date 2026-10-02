@@ -7,6 +7,7 @@ import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Button } from "@/components/Button";
 import { useOnboarding } from "@/auth/OnboardingContext";
+import { router } from "expo-router";
 
 const SLIDES = [
   {
@@ -38,11 +39,13 @@ export default function OnboardingScreen() {
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList>(null);
 
-  function finish() {
-    // No manual navigation - markSeen() flips OnboardingContext's own
-    // state, and Stack.Protected steers to (auth) automatically, same
-    // pattern as a successful login flipping the profile guard.
-    void markSeen();
+  function finish(to?: "kayit-ol") {
+    // markSeen() flips OnboardingContext's own state and Stack.Protected
+    // steers to (auth) (the login screen) automatically. "Üye Ol" then
+    // pushes the sign-up screen on top once that group is mounted.
+    void markSeen().then(() => {
+      if (to) setTimeout(() => router.push("/kayit-ol"), 50);
+    });
   }
 
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
@@ -61,7 +64,7 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ alignItems: "flex-end", paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
-        <Pressable onPress={finish} hitSlop={8}>
+        <Pressable onPress={() => finish()} hitSlop={8}>
           <ThemedText variant="caption" muted>
             Geç
           </ThemedText>
@@ -112,7 +115,14 @@ export default function OnboardingScreen() {
             />
           ))}
         </View>
-        <Button title={index === SLIDES.length - 1 ? "Başla" : "İleri"} onPress={next} block />
+        {index === SLIDES.length - 1 ? (
+          <View style={{ gap: spacing.sm }}>
+            <Button title="Üye Ol" onPress={() => finish("kayit-ol")} block />
+            <Button title="Giriş Yap" variant="secondary" onPress={() => finish()} block />
+          </View>
+        ) : (
+          <Button title="İleri" onPress={next} block />
+        )}
       </View>
     </SafeAreaView>
   );

@@ -1,108 +1,125 @@
-import { useCallback, useEffect, useState } from "react";
-import { mediaUrl } from "@/lib/media";
-import { View, FlatList, Pressable, ActivityIndicator, Image } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { View, FlatList, Pressable, ActivityIndicator, Image, RefreshControl, useWindowDimensions } from "react-native";
 import { router, useNavigation } from "expo-router";
-import { PlusIcon } from "lucide-react-native";
+import { PlusIcon, TagIcon, MapPinIcon, PinIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
+import { SearchBar } from "@/components/SearchBar";
+import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/auth/AuthContext";
 import { getStoreList, type StoreListItem } from "@/api/store";
+import { mediaUrl } from "@/lib/media";
 
+type TypeFilter = "free" | "paid" | null;
+
+/** Askıda Kitap - customer: "arama yok, sitede olduğu gibi aramalar eklenmeli". */
 export default function AskidaKitapScreen() {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing, radius, shadow } = useTheme();
+  const { width } = useWindowDimensions();
   const navigation = useNavigation();
   const { profile } = useAuth();
-  const [type, setType] = useState<"free" | "paid" | null>(null);
+  const [type, setType] = useState<TypeFilter>(null);
+  const [query, setQuery] = useState("");
   const [items, setItems] = useState<StoreListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const seq = useRef(0);
 
   useEffect(() => {
     if (!profile) return;
     navigation.setOptions({
       headerRight: () => (
-        <Pressable onPress={() => router.push("/askida-kitap/yeni")} style={{ padding: 4 }}>
-          <PlusIcon size={22} color={colors.accent} />
+        <Pressable onPress={() => router.push("/askida-kitap/yeni")} hitSlop={8} style={{ padding: 4 }}>
+          <PlusIcon size={24} color={colors.accent} />
         </Pressable>
       ),
     });
   }, [navigation, profile, colors.accent]);
 
-  const load = useCallback(async (t: "free" | "paid" | null, ignore?: { current: boolean }) => {
-    const result = await getStoreList(t);
-    if (!ignore?.current) setItems(result.items);
+  const load = useCallback(async (t: TypeFilter, q: string) => {
+    const mySeq = ++seq.current;
+    try {
+      const result = await getStoreList(t, q.trim());
+      if (mySeq === seq.current) setItems(result.items);
+    } catch {
+      // keep current results
+    } finally {
+      if (mySeq === seq.current) setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    const ignore = { current: false };
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    load(type, ignore).finally(() => {
-      if (!ignore.current) setLoading(false);
-    });
-    return () => {
-      ignore.current = true;
-    };
-  }, [load, type]);
+    const t = setTimeout(() => void load(type, query), query ? 400 : 0);
+    return () => clearTimeout(t);
+  }, [load, type, query]);
+
+  const colW = Math.floor((width - spacing.lg * 2 - spacing.md) / 2);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flexDirection: "row", gap: spacing.xs, padding: spacing.lg, paddingBottom: spacing.sm }}>
-        {([null, "free", "paid"] as const).map((t) => (
-          <Pressable
-            key={t ?? "all"}
-            onPress={() => setType(t)}
-            style={{
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 999,
-              borderWidth: 1.5,
-              borderColor: type === t ? colors.accent : colors.divider,
-            }}
-          >
-            <ThemedText variant="caption" color={type === t ? colors.accent : colors.text}>
-              {t === null ? "Hepsi" : t === "free" ? "Ücretsiz" : "Satılık"}
-            </ThemedText>
-          </Pressable>
-        ))}
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.sm }}>
+        <SearchBar value={query} onChangeText={setQuery} placeholder="Kitap veya ilan ara…" />
+        <View style={{ flexDirection: "row", gap: 6, paddingBottom: spacing.sm }}>
+          {([null, "free", "paid"] as const).map((t) => {
+            const on = type === t;
+            return (
+              <Pressable key={t ?? "all"} onPress={() => setType(t)} style={{ paddingVertical: 7, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: on ? colors.accent : colors.neutral200 }}>
+                <ThemedText variant="bodySemibold" color={on ? "#fff" : colors.text} style={{ fontSize: 13.5 }}>{t === null ? "Hepsi" : t === "free" ? "Ücretsiz" : "Satılık"}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {loading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
+        <ActivityIndicator color={colors.accent} style={{ marginTop: spacing["3xl"] }} />
       ) : (
         <FlatList
           data={items}
+          numColumns={2}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })}
-              style={{
-                flexDirection: "row",
-                gap: spacing.sm,
-                padding: spacing.sm,
-                borderRadius: radius.lg,
-                borderWidth: item.isPinned ? 2 : 1,
-                borderColor: item.isPinned ? colors.accent : colors.divider,
-              }}
-            >
-              {item.image && <Image source={{ uri: mediaUrl(item.image)! }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" />}
-              <View style={{ flex: 1, gap: 2 }}>
-                {item.isPinned && <ThemedText variant="caption" color={colors.accent}>★ Öne Çıkan</ThemedText>}
-                <ThemedText variant="title" numberOfLines={1}>{item.title}</ThemedText>
-                <ThemedText variant="caption" muted>@{item.ownerUsername}{item.location ? ` · ${item.location}` : ""}</ThemedText>
-                <ThemedText variant="bodySemibold" color={colors.accent}>
-                  {item.listingType === "paid" && item.price ? `${item.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}
-                </ThemedText>
-              </View>
-            </Pressable>
-          )}
+          columnWrapperStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}
+          contentContainerStyle={{ paddingTop: spacing.sm, paddingBottom: spacing["3xl"], gap: spacing.md }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(type, query); setRefreshing(false); }} tintColor={colors.accent} />}
           ListEmptyComponent={
-            <View style={{ alignItems: "center", paddingTop: spacing["2xl"] }}>
-              <ThemedText variant="body" muted>Henüz ilan yok.</ThemedText>
-            </View>
+            <EmptyState
+              icon={<TagIcon size={30} color={colors.accent} />}
+              title={query ? "İlan bulunamadı" : "Henüz ilan yok"}
+              subtitle={query ? `“${query}” için bir ilan yok.` : "Okuduğun kitapları askıya bırakarak başkalarına ulaştır."}
+              actionLabel={profile ? "İlan Ver" : undefined}
+              onAction={() => router.push("/askida-kitap/yeni")}
+            />
           }
+          renderItem={({ item }) => {
+            const img = mediaUrl(item.image);
+            return (
+              <Pressable onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })} style={({ pressed }) => ({ width: colW, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.card, borderWidth: item.isPinned ? 2 : 1, borderColor: item.isPinned ? colors.accent : colors.divider, opacity: pressed ? 0.85 : 1, ...shadow.sm })}>
+                {img ? (
+                  <Image source={{ uri: img }} style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.surface }} resizeMode="cover" />
+                ) : (
+                  <View style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
+                    <TagIcon size={30} color={colors.accent} />
+                  </View>
+                )}
+                {item.isPinned && (
+                  <View style={{ position: "absolute", top: 6, left: 6, flexDirection: "row", alignItems: "center", gap: 3, paddingVertical: 2, paddingHorizontal: 7, borderRadius: radius.pill, backgroundColor: colors.accent }}>
+                    <PinIcon size={10} color="#fff" />
+                    <ThemedText variant="caption" color="#fff" style={{ fontSize: 10, fontWeight: "700" }}>Öne çıkan</ThemedText>
+                  </View>
+                )}
+                <View style={{ padding: spacing.sm, gap: 2 }}>
+                  <ThemedText variant="bodySemibold" color={colors.accent700} style={{ fontSize: 15.5 }}>
+                    {item.listingType === "paid" && item.price ? `${item.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}
+                  </ThemedText>
+                  <ThemedText variant="body" numberOfLines={2} style={{ fontSize: 13.5, lineHeight: 18 }}>{item.title}</ThemedText>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 2 }}>
+                    {item.location ? <MapPinIcon size={11} color={colors.textMuted} /> : null}
+                    <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 11, flex: 1 }}>{item.location || item.ownerUsername}</ThemedText>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          }}
         />
       )}
     </View>

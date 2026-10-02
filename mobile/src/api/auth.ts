@@ -16,6 +16,8 @@ export interface MobileProfile extends MobileUser {
   surname: string | null;
   mail: string;
   verified: boolean;
+  /** E-mail address confirmed with the emailed code. */
+  mailVerified?: boolean;
   /** Equipped Puan Mağazası profile frame color + its cost-derived tier -
    * see components/Avatar.tsx's FrameRing for how these render. */
   profileFrame: string | null;
@@ -134,4 +136,17 @@ export async function appleLogin(identityToken: string, givenName?: string | nul
 
   if (result.status === "ok") await setStoredToken(result.token);
   return result;
+}
+
+/** App Store guideline 5.1.1(v): in-app account deletion, confirmed by typing the username. */
+export async function deleteAccount(confirmUsername: string): Promise<void> {
+  await apiFetch("/me/delete", { method: "POST", body: JSON.stringify({ confirm: confirmUsername }) });
+}
+
+export async function verifyEmail(code: string): Promise<void> {
+  await apiFetch("/me/verify-email", { method: "POST", body: JSON.stringify({ code }) });
+}
+
+export async function resendVerificationEmail(): Promise<{ mailSent: boolean; devVerificationCode?: string }> {
+  return apiFetch("/me/verify-email/resend", { method: "POST" });
 }

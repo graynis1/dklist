@@ -9,7 +9,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { BookCover } from "@/components/BookCover";
 import { SearchBar } from "@/components/SearchBar";
 import { ComposerBar, ComposerIconButton } from "@/components/ComposerBar";
-import { getThread, sendMessage, type MessageItem } from "@/api/messages";
+import { getThread, sendMessage, deleteOwnMessage, type MessageItem } from "@/api/messages";
+import { showActionSheet } from "@/components/ActionSheet";
+import * as Clipboard from "expo-clipboard";
 import { search, type SearchResultBook } from "@/api/search";
 import { getStoreList, type StoreListItem } from "@/api/store";
 import { useAuth } from "@/auth/AuthContext";
@@ -328,11 +330,37 @@ export default function ThreadScreen() {
               <View style={{ maxWidth: "76%", alignItems: mine ? "flex-end" : "flex-start", gap: 3 }}>
                 {item.attachment && <AttachmentCard item={item} mine={mine} />}
                 {item.text ? (
-                  <View style={{ paddingVertical: 8, paddingHorizontal: 13, backgroundColor: mine ? colors.accent : colors.neutral200, ...corners }}>
+                  <Pressable
+                    delayLongPress={350}
+                    onLongPress={() =>
+                      showActionSheet({
+                        options: [
+                          { text: "Metni kopyala", onPress: () => void Clipboard.setStringAsync(item.text) },
+                          ...(mine
+                            ? [
+                                {
+                                  text: "Mesajı sil",
+                                  destructive: true,
+                                  onPress: async () => {
+                                    setMessages((prev) => prev.filter((m) => m.id !== item.id));
+                                    try {
+                                      await deleteOwnMessage(item.id);
+                                    } catch (err) {
+                                      Alert.alert("Silinemedi", err instanceof Error ? err.message : "Bir hata oluştu.");
+                                    }
+                                  },
+                                },
+                              ]
+                            : []),
+                        ],
+                      })
+                    }
+                    style={{ paddingVertical: 8, paddingHorizontal: 13, backgroundColor: mine ? colors.accent : colors.neutral200, ...corners }}
+                  >
                     <ThemedText variant="body" color={mine ? "#fff" : colors.text} style={{ lineHeight: 20 }}>
                       {item.text}
                     </ThemedText>
-                  </View>
+                  </Pressable>
                 ) : null}
                 {lastInGroup && item.createdAt && (
                   <ThemedText variant="caption" muted style={{ fontSize: 10.5, marginHorizontal: 4 }}>

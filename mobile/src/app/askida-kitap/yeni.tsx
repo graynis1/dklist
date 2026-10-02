@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { View, ScrollView, Pressable, Image, Alert, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { XIcon, PlusIcon } from "lucide-react-native";
+import { XIcon, PlusIcon, BookOpenIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { createListing } from "@/api/store";
+import { search, type SearchResultBook } from "@/api/search";
+import { SearchBar } from "@/components/SearchBar";
+import { BookCover } from "@/components/BookCover";
+import { KeyboardScreen } from "@/components/KeyboardScreen";
 
 interface PickedImage {
   uri: string;
@@ -29,6 +33,31 @@ export default function YeniIlanScreen() {
   const [shippingFee, setShippingFee] = useState("");
   const [images, setImages] = useState<PickedImage[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Optional link to the catalog book (web parity) - shows the listing on that
+  // book page and notifies readers who have it on their "okuyacağım" shelf.
+  const [book, setBook] = useState<SearchResultBook | null>(null);
+  const [bookQuery, setBookQuery] = useState("");
+  const [bookResults, setBookResults] = useState<SearchResultBook[]>([]);
+  const seq = useRef(0);
+
+  async function onBookQuery(q: string) {
+    setBookQuery(q);
+    const mySeq = ++seq.current;
+    if (q.trim().length < 2) return setBookResults([]);
+    try {
+      const r = await search(q);
+      if (mySeq === seq.current) setBookResults(r.books.slice(0, 6));
+    } catch {
+      // optional field
+    }
+  }
+
+  function pickBook(b: SearchResultBook) {
+    setBook(b);
+    setBookQuery("");
+    setBookResults([]);
+    if (!title.trim()) setTitle(b.name);
+  }
 
   async function pickImages() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -85,6 +114,7 @@ export default function YeniIlanScreen() {
         price: listingType === "paid" ? Number(price) : undefined,
         stock: listingType === "paid" ? Number(stock) : undefined,
         shippingFee: listingType === "paid" && shippingFee.trim() ? Number(shippingFee) : undefined,
+        bookId: book?.id,
       });
       router.replace({ pathname: "/askida-kitap/[slug]", params: { slug: result.slug } });
     } catch (err) {
@@ -95,7 +125,8 @@ export default function YeniIlanScreen() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+    <KeyboardScreen style={{ backgroundColor: colors.bg }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }} keyboardShouldPersistTaps="handled">
       <View style={{ gap: spacing.sm }}>
         <ThemedText variant="label" color={colors.textMuted}>Fotoğraflar</ThemedText>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
@@ -137,6 +168,37 @@ export default function YeniIlanScreen() {
             </Pressable>
           )}
         </View>
+      </View>
+
+      <View style={{ gap: spacing.sm }}>
+        <ThemedText variant="label" color={colors.textMuted}>Katalogdaki kitap (opsiyonel)</ThemedText>
+        {book ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.accent, backgroundColor: colors.accent100 }}>
+            <BookCover id={book.id} title={book.name} width={36} height={52} hasImage={book.hasImage} />
+            <View style={{ flex: 1 }}>
+              <ThemedText variant="bodySemibold" numberOfLines={2}>{book.name}</ThemedText>
+              <ThemedText variant="caption" muted numberOfLines={1}>{book.writers.join(", ")}</ThemedText>
+            </View>
+            <Pressable onPress={() => setBook(null)} hitSlop={8}>
+              <XIcon size={18} color={colors.textMuted} />
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <SearchBar value={bookQuery} onChangeText={onBookQuery} placeholder="Kitap adı veya yazar ara" />
+            {bookResults.map((b) => (
+              <Pressable key={b.id} onPress={() => pickBook(b)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: 6, paddingHorizontal: 4, borderRadius: radius.md, backgroundColor: pressed ? colors.neutral200 : "transparent" })}>
+                <BookCover id={b.id} title={b.name} width={30} height={44} hasImage={b.hasImage} />
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="bodySemibold" numberOfLines={1}>{b.name}</ThemedText>
+                  <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+                </View>
+                <BookOpenIcon size={16} color={colors.accent} />
+              </Pressable>
+            ))}
+            <ThemedText variant="caption" muted>Kitabı seçersen ilanın o kitabın sayfasında görünür ve okumak isteyenlere bildirim gider.</ThemedText>
+          </>
+        )}
       </View>
 
       <TextField label="Başlık" value={title} onChangeText={setTitle} placeholder="Örn: Suç ve Ceza - İyi durumda" />
@@ -183,5 +245,6 @@ export default function YeniIlanScreen() {
       />
       {submitting && <ActivityIndicator color={colors.accent} />}
     </ScrollView>
+    </KeyboardScreen>
   );
 }

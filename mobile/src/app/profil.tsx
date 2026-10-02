@@ -22,7 +22,14 @@ import {
   ShieldBanIcon,
   LogOutIcon,
   MessageCircleIcon,
+  LibraryBigIcon,
+  CalendarHeartIcon,
+  ListOrderedIcon,
+  NewspaperIcon,
+  PlayCircleIcon,
+  LifeBuoyIcon,
 } from "lucide-react-native";
+import { HeaderBack } from "@/components/HeaderBack";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
@@ -57,6 +64,16 @@ export default function ProfilScreen() {
 
   const groups: { title: string; items: { icon: typeof HeartIcon; label: string; href: Href }[] }[] = [
     {
+      title: "Keşfet",
+      items: [
+        { icon: LibraryBigIcon, label: "Kitaplar", href: "/kitaplar" },
+        { icon: CalendarHeartIcon, label: "Ayın Kitabı", href: "/ayin-kitabi" },
+        { icon: ListOrderedIcon, label: "Okur Listeleri", href: "/listeler" },
+        { icon: NewspaperIcon, label: "Bloglar", href: "/bloglar" },
+        { icon: PlayCircleIcon, label: "Videolar", href: "/videolar" },
+      ],
+    },
+    {
       title: "Alışveriş",
       items: [
         { icon: ShoppingCartIcon, label: "Sepetim", href: "/sepetim" },
@@ -71,6 +88,7 @@ export default function ProfilScreen() {
         { icon: MessageCircleIcon, label: "Mesajlar", href: "/mesajlar" },
         { icon: SettingsIcon, label: "Hesap Ayarları", href: "/hesap-duzenle" },
         { icon: ShieldBanIcon, label: "Engellenenler", href: "/engellenenler" },
+        { icon: LifeBuoyIcon, label: "Yardım ve Destek", href: "/destek" },
       ],
     },
   ];
@@ -78,7 +96,10 @@ export default function ProfilScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing["3xl"] }}>
-        <ThemedText variant="display">Menü</ThemedText>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+          <HeaderBack />
+          <ThemedText variant="display">Menü</ThemedText>
+        </View>
 
         <Pressable
           onPress={() => router.push({ pathname: "/profil/[username]", params: { username: profile.username } })}

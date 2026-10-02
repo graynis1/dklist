@@ -63,6 +63,8 @@ export interface BookDetailResponse {
   likeCount: number;
   liked: boolean;
   comments: BookComment[];
+  /** "Alıntılar" - quotes from the book, same shape as comments. */
+  quotes?: BookComment[];
 }
 
 export async function getBook(slug: string): Promise<BookDetailResponse> {
@@ -81,10 +83,10 @@ export async function toggleBookLike(slug: string): Promise<{ liked: boolean }> 
   return apiFetch(`/book/${encodeURIComponent(slug)}/like`, { method: "POST" });
 }
 
-export async function addBookComment(slug: string, text: string): Promise<{ id: number }> {
+export async function addBookComment(slug: string, text: string, commentType: "comment" | "quotation" = "comment"): Promise<{ id: number }> {
   return apiFetch(`/book/${encodeURIComponent(slug)}/comment`, {
     method: "POST",
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, commentType }),
   });
 }
 

@@ -135,8 +135,8 @@ export default function GonderiYeniScreen() {
             style={{
               minHeight: 140,
               paddingHorizontal: spacing.lg,
-              fontSize: text.length < 90 && !image ? 22 : 16,
-              lineHeight: text.length < 90 && !image ? 30 : 23,
+              fontSize: text.length < 90 && !image ? 18 : 16,
+              lineHeight: text.length < 90 && !image ? 26 : 23,
               fontFamily: fontFamily.bodyRegular,
               color: colors.text,
               textAlignVertical: "top",

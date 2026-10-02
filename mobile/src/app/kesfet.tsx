@@ -10,7 +10,10 @@ import {
   NewspaperIcon,
   PlayCircleIcon,
   UsersIcon,
-  LayoutGridIcon,
+  LibraryBigIcon,
+  ListIcon,
+  CalendarHeartIcon,
+  PlayIcon,
   AwardIcon,
   TrophyIcon,
   GiftIcon,
@@ -33,12 +36,16 @@ import { SearchBar } from "@/components/SearchBar";
 import { BookCover } from "@/components/BookCover";
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
+import { HeaderBack } from "@/components/HeaderBack";
 import { search as searchApi, type SearchResults } from "@/api/search";
 import { getCategories, getCategory, type TopCategory, type CategoryBookItem } from "@/api/category";
 import { getLeaderboard, type LeaderboardEntry, type UserWeeklyRank } from "@/api/community";
 import { getClubList, type ClubListItem } from "@/api/clubs";
 import { getStoreList, type StoreListItem } from "@/api/store";
-import { getBlogList, type BlogListItem } from "@/api/content";
+import { getBlogList, getVideoList, type BlogListItem, type VideoListItem } from "@/api/content";
+import { getRecommendations, getBookOfMonth, getPublicLists, type BookListItem, type ReaderSuggestion, type BookOfMonthEntry, type PublicList } from "@/api/discover";
+import { videoThumb } from "@/lib/videoThumb";
+import { useAuth } from "@/auth/AuthContext";
 
 const QUICK: { icon: typeof FeatherIcon; label: string; tint: string; href: Href }[] = [
   { icon: FeatherIcon, label: "Yazarhane", tint: "#7d5411", href: "/yazarhane" },
@@ -48,7 +55,7 @@ const QUICK: { icon: typeof FeatherIcon; label: string; tint: string; href: Href
   { icon: UsersIcon, label: "Kulüpler", tint: "#6b4c9a", href: "/kulupler" },
   { icon: NewspaperIcon, label: "Bloglar", tint: "#3f6d8a", href: "/bloglar" },
   { icon: PlayCircleIcon, label: "Videolar", tint: "#b3412f", href: "/videolar" },
-  { icon: LayoutGridIcon, label: "Kategoriler", tint: "#5a6b2f", href: "/kategoriler" },
+  { icon: LibraryBigIcon, label: "Kitaplar", tint: "#5a6b2f", href: "/kitaplar" },
 ];
 
 const RECENT_KEY = "kesfet_recent_searches";
@@ -114,10 +121,29 @@ export default function KesfetScreen() {
   const [clubs, setClubs] = useState<ClubListItem[]>([]);
   const [listings, setListings] = useState<StoreListItem[]>([]);
   const [blogs, setBlogs] = useState<BlogListItem[]>([]);
+  const [videos, setVideos] = useState<VideoListItem[]>([]);
+  const [recs, setRecs] = useState<{ personalized: boolean; books: BookListItem[]; readers: ReaderSuggestion[] } | null>(null);
+  const [botm, setBotm] = useState<BookOfMonthEntry | null>(null);
+  const [lists, setLists] = useState<PublicList[]>([]);
+  const { profile } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
 
   const loadDiscovery = useCallback(async () => {
-    const [cats, lb, cl, st, bl] = await Promise.allSettled([getCategories(), getLeaderboard(), getClubList(), getStoreList(), getBlogList(1)]);
+    const [cats, lb, cl, st, bl, vd, rc, bm, ls] = await Promise.allSettled([
+      getCategories(),
+      getLeaderboard(),
+      getClubList(),
+      getStoreList(),
+      getBlogList(1),
+      getVideoList(1),
+      getRecommendations(),
+      getBookOfMonth(),
+      getPublicLists(),
+    ]);
+    if (vd.status === "fulfilled") setVideos(vd.value.items.slice(0, 8));
+    if (rc.status === "fulfilled") setRecs({ personalized: rc.value.personalized, books: rc.value.books.slice(0, 12), readers: rc.value.readers.slice(0, 10) });
+    if (bm.status === "fulfilled") setBotm(bm.value.current);
+    if (ls.status === "fulfilled") setLists(ls.value.lists.slice(0, 6));
     if (cats.status === "fulfilled") {
       setCategories(cats.value.categories);
       const top = cats.value.categories[0];
@@ -235,7 +261,12 @@ export default function KesfetScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.card }}>
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.sm, gap: spacing.sm, backgroundColor: colors.card, borderBottomWidth: searchMode ? 1 : 0, borderBottomColor: colors.divider }}>
-        {!searchMode && <ThemedText variant="display">Keşfet</ThemedText>}
+        {!searchMode && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <HeaderBack />
+            <ThemedText variant="display">Keşfet</ThemedText>
+          </View>
+        )}
         <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
           <View style={{ flex: 1 }}>
             <SearchBar
@@ -320,7 +351,7 @@ export default function KesfetScreen() {
                         {groupTitle("Kitaplar")}
                         {results.books.slice(0, limit("books")).map((b) => (
                           <Pressable key={b.id} onPress={() => open({ pathname: "/kitap/[slug]", params: { slug: b.slug } })} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: 8, paddingHorizontal: spacing.lg, backgroundColor: pressed ? colors.neutral200 : "transparent" })}>
-                            <BookCover id={b.id} title={b.name} width={44} height={64} hasImage={b.hasImage} />
+                            <BookCover id={b.id} title={b.name} width={44} height={64} hasImage={b.hasImage} score={b.score} />
                             <View style={{ flex: 1, gap: 2 }}>
                               <ThemedText variant="title" numberOfLines={2} style={{ fontSize: 15.5 }}>{b.name}</ThemedText>
                               <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ") || "Yazar bilinmiyor"}</ThemedText>
@@ -391,6 +422,49 @@ export default function KesfetScreen() {
             ))}
           </View>
 
+          {botm && (
+            <Pressable onPress={() => router.push("/ayin-kitabi")} style={({ pressed }) => ({ marginBottom: 8, opacity: pressed ? 0.9 : 1 })}>
+              <LinearGradient colors={["#3b2a1a", colors.accent700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: "row", gap: spacing.lg, padding: spacing.lg, alignItems: "center" }}>
+                <View style={{ borderRadius: 5, ...shadow.md }}>
+                  <BookCover id={botm.bookId} title={botm.bookName} width={72} height={106} hasImage={botm.hasImage} />
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <CalendarHeartIcon size={14} color="rgba(255,255,255,0.85)" />
+                    <ThemedText variant="label" color="rgba(255,255,255,0.85)">AYIN KİTABI · {botm.periodLabel}</ThemedText>
+                  </View>
+                  <ThemedText variant="title" color="#fff" numberOfLines={2} style={{ fontSize: 18 }}>{botm.bookName}</ThemedText>
+                  <ThemedText variant="caption" color="rgba(255,255,255,0.8)" numberOfLines={1}>{botm.writers.join(", ")}</ThemedText>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <View style={{ paddingVertical: 5, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: "rgba(255,255,255,0.18)" }}>
+                      <ThemedText variant="caption" color="#fff" style={{ fontWeight: "700" }}>Birlikte oku</ThemedText>
+                    </View>
+                    <ThemedText variant="caption" color="rgba(255,255,255,0.8)">{botm.participantCount} katılımcı</ThemedText>
+                  </View>
+                </View>
+              </LinearGradient>
+            </Pressable>
+          )}
+
+          {recs && recs.books.length > 0 && (
+            <Section title={recs.personalized ? "Senin için" : "Okurların favorileri"} action="Daha fazla" onAction={() => router.push("/kitaplar")} padded={false}>
+              {recs.personalized && (
+                <ThemedText variant="caption" muted style={{ paddingHorizontal: spacing.lg, marginTop: -6 }}>Okuduğun kitaplara göre seçtik</ThemedText>
+              )}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+                {recs.books.map((b) => (
+                  <Pressable key={b.id} onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: b.slug } })} style={({ pressed }) => ({ width: 104, gap: 6, opacity: pressed ? 0.8 : 1 })}>
+                    <View style={{ borderRadius: 5, ...shadow.md }}>
+                      <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={104} height={154} hasImage={b.hasImage} score={b.score} />
+                    </View>
+                    <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16 }}>{b.name}</ThemedText>
+                    <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 11, marginTop: -4 }}>{b.writers.join(", ")}</ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </Section>
+          )}
+
           {categories.length > 0 && (
             <Section title="Kategoriler" action="Tümü" onAction={() => router.push("/kategoriler")} padded={false}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: spacing.lg }}>
@@ -409,13 +483,30 @@ export default function KesfetScreen() {
                 {shelf.items.map((b, i) => (
                   <Pressable key={b.id} onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: b.slug } })} style={({ pressed }) => ({ width: 110, gap: 6, opacity: pressed ? 0.8 : 1 })}>
                     <View style={{ borderRadius: 5, ...shadow.md }}>
-                      <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={110} height={163} hasImage={b.hasImage} />
+                      <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={110} height={163} hasImage={b.hasImage} score={b.score} />
                       <View style={{ position: "absolute", left: -4, top: -4, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.card, alignItems: "center", justifyContent: "center" }}>
                         <ThemedText variant="caption" color="#fff" style={{ fontWeight: "700", fontSize: 11 }}>{i + 1}</ThemedText>
                       </View>
                     </View>
                     <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16 }}>{b.name}</ThemedText>
                     <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 11, marginTop: -4 }}>{b.writers.join(", ")}</ThemedText>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </Section>
+          )}
+
+          {profile && recs && recs.readers.length > 0 && (
+            <Section title="Seninle aynı kitapları okuyanlar" padded={false}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
+                {recs.readers.map((r) => (
+                  <Pressable key={r.id} onPress={() => router.push({ pathname: "/profil/[username]", params: { username: r.username } })} style={({ pressed }) => ({ width: 128, alignItems: "center", gap: 6, paddingVertical: spacing.md, paddingHorizontal: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, backgroundColor: pressed ? colors.neutral100 : colors.card })}>
+                    <Avatar id={r.id} name={r.username} imageUrl={r.image} size={60} />
+                    <ThemedText variant="bodySemibold" numberOfLines={1} style={{ fontSize: 13.5 }}>{r.username}</ThemedText>
+                    <ThemedText variant="caption" muted numberOfLines={1}>{r.sharedBookCount} ortak kitap</ThemedText>
+                    <View style={{ alignSelf: "stretch", alignItems: "center", paddingVertical: 6, borderRadius: radius.md, backgroundColor: colors.accent100 }}>
+                      <ThemedText variant="caption" color={colors.accent800} style={{ fontWeight: "700" }}>Profili gör</ThemedText>
+                    </View>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -456,6 +547,29 @@ export default function KesfetScreen() {
             </Section>
           )}
 
+          {videos.length > 0 && (
+            <Section title="Videolar" action="Tümü" onAction={() => router.push("/videolar")} padded={false}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+                {videos.map((v) => {
+                  const thumb = videoThumb(v.youtubeVideoId);
+                  return (
+                    <Pressable key={v.id} onPress={() => router.push({ pathname: "/video/[slug]", params: { slug: v.slug } })} style={({ pressed }) => ({ width: 230, gap: 6, opacity: pressed ? 0.85 : 1 })}>
+                      <View style={{ width: 230, aspectRatio: 16 / 9, borderRadius: radius.lg, overflow: "hidden", backgroundColor: "#222" }}>
+                        {thumb && <Image source={{ uri: thumb }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />}
+                        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
+                          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" }}>
+                            <PlayIcon size={20} color="#fff" fill="#fff" />
+                          </View>
+                        </View>
+                      </View>
+                      <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 13.5, lineHeight: 18 }}>{v.title}</ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </Section>
+          )}
+
           {clubs.length > 0 && (
             <Section title="Okuma kulüpleri" action="Tümü" onAction={() => router.push("/kulupler")} padded={false}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
@@ -477,6 +591,16 @@ export default function KesfetScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
+            </Section>
+          )}
+
+          {lists.length > 0 && (
+            <Section title="Okur listeleri" action="Tümü" onAction={() => router.push("/listeler")} padded={false}>
+              <View>
+                {lists.map((l) => (
+                  <Row key={l.id} left={<IconBubble icon={ListIcon} />} title={l.title} subtitle={`${l.bookCount} kitap · ${l.ownerUsername}`} onPress={() => router.push({ pathname: "/liste/[slug]", params: { slug: l.slug } })} />
+                ))}
+              </View>
             </Section>
           )}
 
@@ -526,7 +650,7 @@ export default function KesfetScreen() {
                       )}
                       <View style={{ flex: 1, gap: 3, justifyContent: "center" }}>
                         <ThemedText variant="title" numberOfLines={2} style={{ fontSize: 15 }}>{b.title}</ThemedText>
-                        {b.ownerUsername && <ThemedText variant="caption" muted numberOfLines={1}>@{b.ownerUsername}</ThemedText>}
+                        {b.ownerUsername && <ThemedText variant="caption" muted numberOfLines={1}>{b.ownerUsername}</ThemedText>}
                       </View>
                     </Pressable>
                   );

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { View, ActivityIndicator, useColorScheme, Platform } from "react-native";
 import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
@@ -55,12 +56,14 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <OnboardingProvider>
-        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-        <RootNavigator />
-      </OnboardingProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <OnboardingProvider>
+          <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+          <RootNavigator />
+        </OnboardingProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -158,6 +161,12 @@ function RootNavigator() {
             ["kitap/yeni", "Kitap Ekle"],
             ["yazarhane", "Yazarhane"],
             ["blog/yeni", "Yeni Yazı"],
+            ["kitaplar", "Kitaplar"],
+            ["ayin-kitabi", "Ayın Kitabı"],
+            ["listeler", "Listeler"],
+            ["destek", "Yardım ve Destek"],
+            ["engellenenler", "Engellenenler"],
+            ["kulup/yeni", "Kulüp Oluştur"],
             ["yazarhane/[username]", ""],
           ] as const
         ).map(([name, title]) => (

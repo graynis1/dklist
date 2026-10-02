@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, FlatList, Pressable, RefreshControl, ActivityIndicator, ScrollView } from "react-native";
+import { View, FlatList, Pressable, RefreshControl, ActivityIndicator, ScrollView, Alert } from "react-native";
+import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
-import { MessageCirclePlusIcon, MessagesSquareIcon, XIcon } from "lucide-react-native";
+import { MessageCirclePlusIcon, MessagesSquareIcon, XIcon, ChevronLeftIcon, MoreHorizontalIcon, Trash2Icon, CheckIcon } from "lucide-react-native";
+import { showActionSheet } from "@/components/ActionSheet";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { SearchBar } from "@/components/SearchBar";
 import { EmptyState } from "@/components/EmptyState";
 import { relativeTime } from "@/lib/relativeTime";
-import { getConversations, type ConversationItem } from "@/api/messages";
+import { getConversations, deleteChats, deleteAllChats, type ConversationItem } from "@/api/messages";
 import { search, type SearchResultUser } from "@/api/search";
 
 type Filter = "all" | "unread" | "requests";
@@ -26,6 +28,65 @@ export default function MesajlarScreen() {
   const [filter, setFilter] = useState<Filter>("all");
   const [composeOpen, setComposeOpen] = useState(false);
   const [people, setPeople] = useState<SearchResultUser[]>([]);
+  // Multi-select delete (customer: "toplu işaretleyip sil webdeki gibi").
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const canGoBack = router.canGoBack();
+
+  function toggleSelected(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelecting() {
+    setSelecting(false);
+    setSelected(new Set());
+  }
+
+  function confirmDelete(ids: number[]) {
+    if (ids.length === 0) return;
+    Alert.alert(ids.length === 1 ? "Sohbet silinsin mi?" : `${ids.length} sohbet silinsin mi?`, "Mesaj geçmişi sadece senin tarafında silinir.", [
+      { text: "Vazgeç", style: "cancel" },
+      {
+        text: "Sil",
+        style: "destructive",
+        onPress: async () => {
+          const gone = new Set(ids);
+          setConversations((c) => c.filter((x) => !gone.has(x.otherUserId)));
+          setRequests((c) => c.filter((x) => !gone.has(x.otherUserId)));
+          exitSelecting();
+          try {
+            await deleteChats(ids);
+          } catch {
+            void load();
+          }
+        },
+      },
+    ]);
+  }
+
+  function confirmDeleteAll() {
+    Alert.alert("Tüm sohbetler silinsin mi?", "Bütün mesaj geçmişin senin tarafında temizlenecek.", [
+      { text: "Vazgeç", style: "cancel" },
+      {
+        text: "Tümünü Sil",
+        style: "destructive",
+        onPress: async () => {
+          setConversations([]);
+          setRequests([]);
+          try {
+            await deleteAllChats();
+          } catch {
+            void load();
+          }
+        },
+      },
+    ]);
+  }
   const searchSeq = useRef(0);
 
   const load = useCallback(async () => {
@@ -40,7 +101,6 @@ export default function MesajlarScreen() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load().finally(() => setLoading(false));
   }, [load]);
 
@@ -124,8 +184,45 @@ export default function MesajlarScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.card }}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
+      {selecting ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
+          <Pressable onPress={exitSelecting} hitSlop={8} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.neutral200, alignItems: "center", justifyContent: "center" }}>
+            <XIcon size={20} color={colors.text} />
+          </Pressable>
+          <ThemedText variant="title" style={{ flex: 1, fontSize: 19 }}>{selected.size} sohbet seçildi</ThemedText>
+          <Pressable
+            onPress={() => confirmDelete([...selected])}
+            disabled={selected.size === 0}
+            style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: selected.size === 0 ? colors.neutral200 : pressed ? "#a93226" : "#c0392b" })}
+          >
+            <Trash2Icon size={16} color={selected.size === 0 ? colors.textMuted : "#fff"} />
+            <ThemedText variant="bodySemibold" color={selected.size === 0 ? colors.textMuted : "#fff"}>Sil</ThemedText>
+          </Pressable>
+        </View>
+      ) : (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
+        {canGoBack && (
+          <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginLeft: -6 }}>
+            <ChevronLeftIcon size={28} color={colors.accent} />
+          </Pressable>
+        )}
         <ThemedText variant="display" style={{ flex: 1 }}>Mesajlar</ThemedText>
+        {rows.length > 0 && !composeOpen && (
+          <Pressable
+            onPress={() =>
+              showActionSheet({
+                options: [
+                  { text: "Sohbet seç", onPress: () => setSelecting(true) },
+                  { text: "Tüm sohbetleri sil", destructive: true, onPress: confirmDeleteAll },
+                ],
+              })
+            }
+            hitSlop={6}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.neutral200, alignItems: "center", justifyContent: "center" }}
+          >
+            <MoreHorizontalIcon size={20} color={colors.text} />
+          </Pressable>
+        )}
         <Pressable
           onPress={() => setComposeOpen((v) => !v)}
           hitSlop={6}
@@ -134,6 +231,7 @@ export default function MesajlarScreen() {
           {composeOpen ? <XIcon size={20} color="#fff" /> : <MessageCirclePlusIcon size={20} color={colors.text} />}
         </Pressable>
       </View>
+      )}
 
       <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
         <SearchBar
@@ -205,18 +303,39 @@ export default function MesajlarScreen() {
           contentContainerStyle={{ paddingBottom: spacing["3xl"] }}
           renderItem={({ item }) => {
             const unread = item.unreadCount > 0;
+            const isSel = selected.has(item.otherUserId);
             return (
+              <Swipeable
+                enabled={!selecting}
+                friction={2}
+                overshootRight={false}
+                renderRightActions={() => (
+                  <Pressable onPress={() => confirmDelete([item.otherUserId])} style={{ width: 88, backgroundColor: "#c0392b", alignItems: "center", justifyContent: "center", gap: 2 }}>
+                    <Trash2Icon size={20} color="#fff" />
+                    <ThemedText variant="caption" color="#fff" style={{ fontWeight: "600" }}>Sil</ThemedText>
+                  </Pressable>
+                )}
+              >
               <Pressable
-                onPress={() => openThread(item.otherUsername)}
+                onPress={() => (selecting ? toggleSelected(item.otherUserId) : openThread(item.otherUsername))}
+                onLongPress={() => {
+                  setSelecting(true);
+                  setSelected(new Set([item.otherUserId]));
+                }}
                 style={({ pressed }) => ({
                   flexDirection: "row",
                   alignItems: "center",
                   gap: spacing.md,
                   paddingHorizontal: spacing.lg,
                   paddingVertical: 10,
-                  backgroundColor: pressed ? colors.neutral200 : "transparent",
+                  backgroundColor: isSel ? colors.accent100 : pressed ? colors.neutral200 : colors.card,
                 })}
               >
+                {selecting && (
+                  <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: isSel ? colors.accent : colors.neutral400, backgroundColor: isSel ? colors.accent : "transparent", alignItems: "center", justifyContent: "center" }}>
+                    {isSel && <CheckIcon size={14} color="#fff" strokeWidth={3} />}
+                  </View>
+                )}
                 <View>
                   <Avatar id={item.otherUserId} name={item.otherUsername} imageUrl={item.otherImage} size={56} />
                   {unread && (
@@ -258,6 +377,7 @@ export default function MesajlarScreen() {
                   </View>
                 </View>
               </Pressable>
+              </Swipeable>
             );
           }}
           ListEmptyComponent={

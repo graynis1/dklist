@@ -20,6 +20,7 @@ export function BookCover({
   height = 76,
   imageUrl,
   hasImage,
+  score,
 }: {
   id: number;
   title: string;
@@ -38,8 +39,31 @@ export function BookCover({
    * `imageUrl` is explicitly passed.
    */
   hasImage?: boolean;
+  /** DKList rating (0-10). When set, a "★ 9.2" badge sits on the cover -
+   * customer: "kitaplar nerede görünürse puan görünmesi lazım". */
+  score?: number | null;
 }) {
   const { colors, fontFamily } = useTheme();
+  const badge =
+    score != null && score > 0 && width >= 40 ? (
+      <View
+        style={{
+          position: "absolute",
+          right: 4,
+          top: 4,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 2,
+          paddingVertical: width >= 80 ? 3 : 2,
+          paddingHorizontal: width >= 80 ? 6 : 4,
+          borderRadius: 999,
+          backgroundColor: "rgba(20,16,12,0.78)",
+        }}
+      >
+        <Text style={{ color: "#f5c04a", fontSize: width >= 80 ? 11 : 9 }}>★</Text>
+        <Text style={{ color: "#fff", fontFamily: fontFamily.bodySemibold, fontSize: width >= 80 ? 11.5 : 9.5 }}>{score.toFixed(1)}</Text>
+      </View>
+    ) : null;
   const [broken, setBroken] = useState(false);
   const resolvedImageUrl = imageUrl ?? (hasImage ? `${API_BASE_URL}/kapak/${id}` : null);
 
@@ -59,6 +83,7 @@ export function BookCover({
             if (src && (src.width < 24 || src.height < 24)) setBroken(true);
           }}
         />
+        {badge}
       </View>
     );
   }
@@ -102,6 +127,7 @@ export function BookCover({
           {author}
         </Text>
       ) : null}
+      {badge}
     </LinearGradient>
   );
 }

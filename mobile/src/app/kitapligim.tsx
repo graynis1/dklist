@@ -9,6 +9,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { BookCover } from "@/components/BookCover";
 import { SearchBar } from "@/components/SearchBar";
 import { EmptyState } from "@/components/EmptyState";
+import { HeaderBack } from "@/components/HeaderBack";
+import { pickDropReason, type DropReason } from "@/lib/dropReason";
 import { getLibrary, setLibraryStatus, type LibraryByStatus, type LibraryBookItem, type ReadStatus } from "@/api/library";
 
 const TABS: { key: ReadStatus; label: string }[] = [
@@ -94,9 +96,13 @@ export default function KitapligimScreen() {
       options: [
         ...others.map((t) => ({
           text: t.label,
-          onPress: async () => {
-            await setLibraryStatus(book.id, t.key);
-            await load();
+          onPress: () => {
+            const move = async (reason?: DropReason) => {
+              await setLibraryStatus(book.id, t.key, reason);
+              await load();
+            };
+            if (t.key === "dropRead") pickDropReason((r) => void move(r));
+            else void move();
           },
         })),
         {
@@ -212,6 +218,7 @@ export default function KitapligimScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md }}>
+        <HeaderBack />
         <ThemedText variant="display" style={{ flex: 1 }}>Kitaplığım</ThemedText>
         {[
           { key: "scan", Icon: ScanBarcodeIcon, onPress: () => router.push("/barkod") },

@@ -57,3 +57,17 @@ export async function sendMessage(
   });
   return result.message;
 }
+
+/** Clear chats on my side only - selected ones, or every conversation. */
+export async function deleteChats(otherUserIds: number[]): Promise<void> {
+  await apiFetch("/messages/delete", { method: "POST", body: JSON.stringify({ otherUserIds }) });
+}
+
+export async function deleteAllChats(): Promise<void> {
+  await apiFetch("/messages/delete", { method: "POST", body: JSON.stringify({ all: true }) });
+}
+
+/** Hides one of my own messages (the other side keeps their copy). */
+export async function deleteOwnMessage(messageId: number): Promise<void> {
+  await apiFetch("/messages/delete", { method: "POST", body: JSON.stringify({ messageId }) });
+}

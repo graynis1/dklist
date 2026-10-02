@@ -18,6 +18,7 @@ import {
   MessageSquareIcon,
   XIcon,
   CheckIcon,
+  QuoteIcon,
 } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
@@ -31,6 +32,7 @@ import { setLibraryStatus, type ReadStatus } from "@/api/library";
 import { relativeTime } from "@/lib/relativeTime";
 import { getMyLists, addBookToList, type UserListSummary } from "@/api/lists";
 import { API_BASE_URL } from "@/api/config";
+import { pickDropReason, type DropReason } from "@/lib/dropReason";
 
 const STATUS: { key: ReadStatus; label: string; Icon: typeof BookOpenIcon }[] = [
   { key: "currentRead", label: "Okuyorum", Icon: BookOpenIcon },
@@ -62,6 +64,7 @@ export default function BookDetailScreen() {
   const [myLists, setMyLists] = useState<UserListSummary[] | null>(null);
   const [showListPicker, setShowListPicker] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [tab, setTab] = useState<"comments" | "quotes">("comments");
 
   const load = useCallback(async () => {
     try {
@@ -81,12 +84,21 @@ export default function BookDetailScreen() {
     navigation.setOptions({ title: data?.book.name ?? "" });
   }, [navigation, data?.book.name]);
 
-  async function pickStatus(status: ReadStatus) {
+  function pickStatus(status: ReadStatus) {
     if (!data) return;
     const clearing = data.myStatus?.status === status;
+    if (status === "dropRead" && !clearing) {
+      pickDropReason((reason) => void saveStatus(status, reason));
+      return;
+    }
+    void saveStatus(clearing ? null : status);
+  }
+
+  async function saveStatus(status: ReadStatus | null, dropReason?: DropReason) {
+    if (!data) return;
     setStatusSaving(true);
     try {
-      await setLibraryStatus(data.book.id, clearing ? null : status);
+      await setLibraryStatus(data.book.id, status, dropReason);
       await load();
     } catch {
       Alert.alert("Hata", "Okuma durumu güncellenemedi.");
@@ -153,7 +165,7 @@ export default function BookDetailScreen() {
     if (trimmed.length < 2) return;
     setCommentSaving(true);
     try {
-      await addBookComment(slug, trimmed);
+      await addBookComment(slug, trimmed, tab === "quotes" ? "quotation" : "comment");
       setCommentText("");
       await load();
     } catch (err) {
@@ -180,6 +192,8 @@ export default function BookDetailScreen() {
   }
 
   const { book, displayScore, pooledEditionCount, ratingCount, myRating, myStatus, likeCount, liked, comments } = data;
+  const quotes = data.quotes ?? [];
+  const shown = tab === "quotes" ? quotes : comments;
   const writerNames = book.writers.map((w) => w.name).join(", ");
   const coverUrl = book.hasImage ? `${API_BASE_URL}/kapak/${book.id}` : null;
   const description = book.content ?? book.aiSummary;
@@ -412,7 +426,18 @@ export default function BookDetailScreen() {
 
         {/* Comments */}
         <Card>
-          <SectionHeader title="Yorumlar" count={comments.length} />
+          <View style={{ flexDirection: "row", backgroundColor: colors.neutral200, borderRadius: radius.pill, padding: 3, marginBottom: spacing.md }}>
+            {([["comments", "Yorumlar", comments.length], ["quotes", "Alıntılar", quotes.length]] as const).map(([key, label, count]) => {
+              const on = tab === key;
+              return (
+                <Pressable key={key} onPress={() => setTab(key)} style={{ flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: radius.pill, backgroundColor: on ? colors.card : "transparent", ...(on ? shadow.sm : {}) }}>
+                  <ThemedText variant="bodySemibold" color={on ? colors.text : colors.textMuted} style={{ fontSize: 14 }}>
+                    {label}{count > 0 ? ` · ${count}` : ""}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, marginBottom: spacing.md }}>
             {profile && <Avatar id={profile.id} name={profile.username} imageUrl={profile.image} size={36} frameColor={profile.profileFrame} frameTier={profile.frameTier} />}
             <View style={{ flex: 1 }}>
@@ -423,19 +448,19 @@ export default function BookDetailScreen() {
                 onSend={submitComment}
                 sending={commentSaving}
                 canSend={commentText.trim().length >= 2}
-                placeholder="Bu kitap hakkında ne düşünüyorsun?"
+                placeholder={tab === "quotes" ? "Kitaptan sevdiğin bir alıntıyı paylaş…" : "Bu kitap hakkında ne düşünüyorsun?"}
               />
             </View>
           </View>
-          {comments.length === 0 ? (
+          {shown.length === 0 ? (
             <View style={{ alignItems: "center", paddingVertical: spacing.lg, gap: spacing.xs }}>
-              <MessageSquareIcon size={28} color={colors.neutral400} />
-              <ThemedText variant="body" muted>İlk yorumu sen yaz.</ThemedText>
+              {tab === "quotes" ? <QuoteIcon size={28} color={colors.neutral400} /> : <MessageSquareIcon size={28} color={colors.neutral400} />}
+              <ThemedText variant="body" muted>{tab === "quotes" ? "İlk alıntıyı sen paylaş." : "İlk yorumu sen yaz."}</ThemedText>
             </View>
           ) : (
             <View style={{ gap: spacing.md }}>
-              {comments.map((c) => (
-                <CommentRow key={c.id} comment={c} onReplied={load} />
+              {shown.map((c) => (
+                <CommentRow key={c.id} comment={c} onReplied={load} quote={tab === "quotes"} />
               ))}
             </View>
           )}
@@ -445,7 +470,7 @@ export default function BookDetailScreen() {
   );
 }
 
-function Bubble({ username, userId, image, frameColor, frameTier, text, meta, avatarSize = 36 }: {
+function Bubble({ username, userId, image, frameColor, frameTier, text, meta, avatarSize = 36, quote = false }: {
   username: string;
   userId: number;
   image: string | null;
@@ -454,6 +479,7 @@ function Bubble({ username, userId, image, frameColor, frameTier, text, meta, av
   text: string;
   meta?: React.ReactNode;
   avatarSize?: number;
+  quote?: boolean;
 }) {
   const { colors, spacing } = useTheme();
   const goProfile = () => router.push({ pathname: "/profil/[username]", params: { username } });
@@ -463,9 +489,11 @@ function Bubble({ username, userId, image, frameColor, frameTier, text, meta, av
         <Avatar id={userId} name={username} imageUrl={image} size={avatarSize} frameColor={frameColor} frameTier={frameTier} />
       </Pressable>
       <View style={{ flex: 1, alignItems: "flex-start" }}>
-        <View style={{ backgroundColor: colors.neutral200, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12, maxWidth: "100%" }}>
+        <View style={quote
+          ? { backgroundColor: colors.accent100, borderRadius: 12, borderLeftWidth: 3, borderLeftColor: colors.accent, paddingVertical: 10, paddingHorizontal: 12, alignSelf: "stretch" }
+          : { backgroundColor: colors.neutral200, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12, maxWidth: "100%" }}>
           <ThemedText variant="bodySemibold" style={{ fontSize: 13.5 }} onPress={goProfile}>{username}</ThemedText>
-          <ThemedText variant="body" style={{ lineHeight: 20, marginTop: 1 }}>{text}</ThemedText>
+          <ThemedText variant="body" style={{ lineHeight: 20, marginTop: quote ? 4 : 1, fontStyle: quote ? "italic" : "normal" }}>{quote ? `“${text}”` : text}</ThemedText>
         </View>
         {meta}
       </View>
@@ -473,7 +501,7 @@ function Bubble({ username, userId, image, frameColor, frameTier, text, meta, av
   );
 }
 
-function CommentRow({ comment, onReplied }: { comment: BookComment; onReplied: () => Promise<void> }) {
+function CommentRow({ comment, onReplied, quote = false }: { comment: BookComment; onReplied: () => Promise<void>; quote?: boolean }) {
   const { colors, spacing } = useTheme();
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -511,6 +539,7 @@ function CommentRow({ comment, onReplied }: { comment: BookComment; onReplied: (
         frameColor={comment.profileFrame}
         frameTier={comment.frameTier}
         text={comment.text}
+        quote={quote}
         meta={
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: 12, paddingTop: 4 }}>
             <ThemedText variant="caption" muted>{relativeTime(comment.date)}</ThemedText>
