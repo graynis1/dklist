@@ -790,6 +790,10 @@ export interface MyStoreItem {
   slug: string;
   status: string;
   image: string | null;
+  listingType: string;
+  price: number | null;
+  stock: number | null;
+  shippingFee: number | null;
 }
 
 /**
@@ -802,7 +806,7 @@ export interface MyStoreItem {
  */
 export async function getMyStores(userId: number): Promise<MyStoreItem[]> {
   const rows = await db
-    .select({ id: store.id, title: store.title, slug: store.slug, status: store.status })
+    .select({ id: store.id, title: store.title, slug: store.slug, status: store.status, listingType: store.listingType, price: store.price, stock: store.stock, shippingFee: store.shippingFee })
     .from(store)
     .where(eq(store.ownerId, userId))
     .orderBy(desc(store.id));
