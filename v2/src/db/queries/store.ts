@@ -522,6 +522,7 @@ export async function createStore(ownerId: number, input: CreateStoreInput): Pro
       `"${title}" ilanın incelemeye alındı, onaylandığında yayınlanacak.`,
       `Your listing "${title}" is under review and will go live once approved.`,
       "marketplace",
+      "/ilanlarim",
     );
   }
 
@@ -542,7 +543,7 @@ async function notifyWishlistersOfNewListing(bookId: number, listingOwnerId: num
 
   if (wishlisters.length === 0) return;
 
-  const [bookRow] = await db.select({ name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
+  const [bookRow] = await db.select({ name: book.name, slug: book.slug }).from(book).where(eq(book.id, bookId)).limit(1);
   if (!bookRow) return;
 
   const senderId = await resolveSystemSenderId();
@@ -556,6 +557,7 @@ async function notifyWishlistersOfNewListing(bookId: number, listingOwnerId: num
       `Okuma listendeki "${bookRow.name}" için yeni bir ikinci el ilan var.`,
       `A secondhand listing appeared for "${bookRow.name}", a book on your want-to-read list.`,
       "marketplace",
+      `/kitap/${bookRow.slug}`,
     );
   }
 }
@@ -692,7 +694,7 @@ export async function getPendingStoreListings(): Promise<PendingStoreListing[]> 
  * here, not at creation time, since this is the first moment the listing is
  * actually reachable. */
 export async function approveStoreListing(storeId: number): Promise<void> {
-  const [row] = await db.select({ ownerId: store.ownerId, title: store.title, bookId: store.bookId }).from(store).where(eq(store.id, storeId)).limit(1);
+  const [row] = await db.select({ ownerId: store.ownerId, title: store.title, bookId: store.bookId, slug: store.slug }).from(store).where(eq(store.id, storeId)).limit(1);
   if (!row) throw new Error("Böyle bir ilan yok.");
 
   await db.update(store).set({ status: "active", isActive: 1 }).where(eq(store.id, storeId));
@@ -705,6 +707,7 @@ export async function approveStoreListing(storeId: number): Promise<void> {
       `"${row.title}" ilanın onaylandı ve yayında.`,
       `Your listing "${row.title}" was approved and is now live.`,
       "marketplace",
+      `/askida-kitap/${row.slug}`,
     );
   }
 
@@ -732,6 +735,7 @@ export async function rejectStoreListing(storeId: number): Promise<void> {
       `"${row.title}" ilanın onaylanmadı ve kaldırıldı.`,
       `Your listing "${row.title}" was not approved and has been removed.`,
       "marketplace",
+      "/ilanlarim",
     );
   }
 }

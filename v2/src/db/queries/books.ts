@@ -966,3 +966,25 @@ export async function attachWriterNames<T extends { id: number }>(
 
   return books.map((b) => ({ ...b, writers: writersByBook.get(b.id) ?? [] }));
 }
+
+/**
+ * In-category search (customer: "kategoriler içinde webdeki gibi hepsinin
+ * kendi içinde arama kısmı olmalı"). Prefix match on the indexed name, the
+ * same rule as the global catalog search; uncached (the query string makes
+ * every call distinct) and capped by MAX_EXECUTION_TIME so a huge category
+ * degrades to an error instead of tying up the database.
+ */
+export async function searchBooksInCategory(categoryId: number, query: string, limit = 40): Promise<CategoryBookListItem[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const rows = (await db.execute(sql`
+    SELECT /*+ MAX_EXECUTION_TIME(8000) */ b.id, b.name, b.slug, b.score, b.view_count AS viewCount,
+      (b.image IS NOT NULL AND b.image != '') AS hasImage
+    FROM book_category bc
+    INNER JOIN book b ON b.id = bc.book_id
+    WHERE bc.category_id = ${categoryId} AND (b.name LIKE ${`${q}%`} OR b.org_name LIKE ${`${q}%`})
+    ORDER BY b.view_count DESC
+    LIMIT ${limit}
+  `))[0] as unknown as Omit<CategoryBookListItem, "writers">[];
+  return attachWriterNames(rows.map((r) => ({ ...r, hasImage: Boolean(r.hasImage) })));
+}

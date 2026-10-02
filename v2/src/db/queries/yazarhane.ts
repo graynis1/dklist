@@ -284,7 +284,7 @@ async function notifyWriterApplicationDecision(userId: number, approved: boolean
   const message = approved
     ? "Yazarhane başvurun onaylandı - artık Yazarhane'de paylaşım yapabilirsin."
     : `Yazarhane başvurun reddedildi.${reviewerNote ? ` Sebep: ${reviewerNote}` : ""}`;
-  await addNotification(userId, senderId, message, message);
+  await addNotification(userId, senderId, message, message, "system", "/yazarhane");
 }
 
 export async function approveWriterApplication(applicationId: number, reviewerId: number): Promise<void> {

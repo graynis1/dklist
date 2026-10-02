@@ -405,8 +405,8 @@ export async function processIyzicoCallback(token: string): Promise<{ orderIds: 
     for (const order of orders) {
       const [storeRow] = await db.select({ title: store.title }).from(store).where(eq(store.id, order.storeId)).limit(1);
       const title = storeRow?.title ?? "";
-      await addNotification(order.sellerId, order.buyerId, `"${title}" ilanınız satın alındı! Sipariş detaylarını "Siparişlerim" sayfasından görebilirsiniz.`, `Your listing "${title}" was purchased! Check "My Orders" for details.`, "marketplace");
-      await addNotification(order.buyerId, order.sellerId, `"${title}" siparişiniz alındı, satıcı kargoya verecek.`, `Your order "${title}" was received, the seller will ship it soon.`, "marketplace");
+      await addNotification(order.sellerId, order.buyerId, `"${title}" ilanınız satın alındı! Sipariş detaylarını "Siparişlerim" sayfasından görebilirsiniz.`, `Your listing "${title}" was purchased! Check "My Orders" for details.`, "marketplace", "/siparislerim");
+      await addNotification(order.buyerId, order.sellerId, `"${title}" siparişiniz alındı, satıcı kargoya verecek.`, `Your order "${title}" was received, the seller will ship it soon.`, "marketplace", "/siparislerim");
     }
   }
 
@@ -505,7 +505,7 @@ async function transitionStatus(
   const messages = notifyMessages[toStatus];
   if (messages) {
     const notifyTarget = requiredRole === "seller" ? order.buyerId : order.sellerId;
-    await addNotification(notifyTarget, userId, messages[0], messages[1], "marketplace");
+    await addNotification(notifyTarget, userId, messages[0], messages[1], "marketplace", "/siparislerim");
   }
 
   return serializeOrder({ ...order, status: toStatus, updatedDate: now, trackingNumber: finalTrackingNumber });
@@ -571,7 +571,7 @@ export async function refundOrder(userId: number, isElevated: boolean, orderId: 
   if (storeRow?.stock !== null) await restoreStock(order.storeId);
 
   const title = storeRow?.title ?? "";
-  await addNotification(order.buyerId, order.sellerId, `"${title}" siparişiniz iade edildi, ödemeniz size geri gönderildi`, `Your order "${title}" was refunded`, "marketplace");
+  await addNotification(order.buyerId, order.sellerId, `"${title}" siparişiniz iade edildi, ödemeniz size geri gönderildi`, `Your order "${title}" was refunded`, "marketplace", "/siparislerim");
 
   return serializeOrder({ ...order, status: "refunded", updatedDate: now });
 }

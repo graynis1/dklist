@@ -221,7 +221,7 @@ export async function isClubMember(clubId: number, userId: number): Promise<bool
  * when the gate is on, so the caller/UI can show the right state.
  */
 export async function joinClub(clubId: number, userId: number): Promise<{ pending: boolean }> {
-  const [club] = await db.select({ id: bookClub.id, ownerId: bookClub.ownerId, name: bookClub.name, requiresApproval: bookClub.requiresApproval }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  const [club] = await db.select({ id: bookClub.id, ownerId: bookClub.ownerId, name: bookClub.name, slug: bookClub.slug, requiresApproval: bookClub.requiresApproval }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
   if (!club) throw new Error("Kulüp bulunamadı.");
 
   if (club.requiresApproval) {
@@ -242,6 +242,7 @@ export async function joinClub(clubId: number, userId: number): Promise<{ pendin
           `"${requester.username}" "${club.name}" kulübüne katılmak istiyor.`,
           `"${requester.username}" wants to join "${club.name}".`,
           "club",
+          `/kulup/${club.slug}`,
         );
       }
     }
@@ -294,9 +295,9 @@ export async function approveClubJoinRequest(clubId: number, targetUserId: numbe
   }
   await awardPoints(targetUserId, (await getPointSettings()).clubJoin, "club_join", `club_join:${targetUserId}:${clubId}`);
 
-  const [club] = await db.select({ name: bookClub.name }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  const [club] = await db.select({ name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
   if (club) {
-    await addNotification(targetUserId, actorUserId, `"${club.name}" kulübüne katılma isteğin onaylandı.`, `Your request to join "${club.name}" was approved.`, "club");
+    await addNotification(targetUserId, actorUserId, `"${club.name}" kulübüne katılma isteğin onaylandı.`, `Your request to join "${club.name}" was approved.`, "club", `/kulup/${club.slug}`);
   }
   invalidateTag("book-club-list");
 }
@@ -305,9 +306,9 @@ export async function rejectClubJoinRequest(clubId: number, targetUserId: number
   await requireClubManagePermission(clubId, actorUserId, actorUserType);
   await db.delete(bookClubJoinRequest).where(and(eq(bookClubJoinRequest.clubId, clubId), eq(bookClubJoinRequest.userId, targetUserId)));
 
-  const [club] = await db.select({ name: bookClub.name }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  const [club] = await db.select({ name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
   if (club) {
-    await addNotification(targetUserId, actorUserId, `"${club.name}" kulübüne katılma isteğin reddedildi.`, `Your request to join "${club.name}" was declined.`, "club");
+    await addNotification(targetUserId, actorUserId, `"${club.name}" kulübüne katılma isteğin reddedildi.`, `Your request to join "${club.name}" was declined.`, "club", `/kulup/${club.slug}`);
   }
 }
 
@@ -379,6 +380,7 @@ export async function updateClubCurrentBook(clubId: number, bookId: number | nul
       `"${club.name}" kulübü yeni kitabını seçti: "${newBook.name}"`,
       `"${club.name}" picked a new book: "${newBook.name}"`,
       "club",
+      `/kulup/${club.slug}`,
     );
   }
 }

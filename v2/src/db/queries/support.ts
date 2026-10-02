@@ -162,7 +162,7 @@ export async function replyToSupportTicket(id: number, replyText: string): Promi
     const senderId = await resolveSystemSenderId();
     if (senderId) {
       const msg = `Destek talebinize yanıt verildi: ${trimmed}`;
-      await addNotification(ticket.userId, senderId, msg, msg);
+      await addNotification(ticket.userId, senderId, msg, msg, "system", "/destek");
     }
   } else if (isMailConfigured()) {
     await sendMail(

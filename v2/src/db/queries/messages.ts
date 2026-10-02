@@ -456,6 +456,7 @@ export async function sendMessage(
       `Sana bir mesaj gönderdi: "${notifyText}"`,
       `Sent you a message: "${notifyText}"`,
       "message",
+      `/mesajlar?user=${encodeURIComponent(sender.username)}`,
     );
   }
 

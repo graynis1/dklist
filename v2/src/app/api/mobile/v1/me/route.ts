@@ -26,6 +26,7 @@ export async function GET(request: Request) {
       image: userTable.image,
       userType: userTable.userType,
       verified: userTable.verified,
+      mailAuth: userTable.mailAuth,
     })
     .from(userTable)
     .where(eq(userTable.id, session.userId))
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
   const decorations = await getUserDecorations([row.id]);
   const { profileFrame, frameTier } = decorationFor(decorations, row.id);
 
-  return mobileJson({ status: "ok", user: { ...row, verified: Boolean(row.verified), profileFrame, frameTier } });
+  return mobileJson({ status: "ok", user: { ...row, verified: Boolean(row.verified), mailVerified: row.mailAuth === 1, profileFrame, frameTier } });
 }
 
 /** Hesap düzenle - name/surname/sex/birthDate come back from the edit

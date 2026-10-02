@@ -177,6 +177,7 @@ async function checkMilestoneBadges(userId: number): Promise<void> {
         `Yeni rozet kazandın: "${milestone.name}" (${milestone.comment}).`,
         `New badge earned: "${milestone.nameUs}" (${milestone.commentUs}).`,
         "badge",
+        "/rozetler",
       );
     }
     // Customer's ask: "puan kazanma olaylarının akışa düşmesi" - logging
@@ -595,6 +596,7 @@ export async function recordWeeklyWinner(
       `Tebrikler! ${yearWeek} haftasının en aktif okuru sensin (${points} puan).${prizeText}`,
       `Congratulations! You're the top reader for week ${yearWeek} (${points} points).${prizeText}`,
       "badge",
+      "/puan-tablosu",
     );
   }
 

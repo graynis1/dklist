@@ -54,6 +54,10 @@ export async function addNotification(
   messageTr: string,
   messageUs: string,
   type: NotificationType = "system",
+  /** Site-relative page this notification is about (e.g. "/kulup/slug") -
+   * lets the app and web open it directly instead of leaving the user to
+   * hunt for it. Stored in the previously unused `meta` column. */
+  link?: string,
 ): Promise<void> {
   if (ownerUserId === senderUserId) return;
   if (!(await isNotificationTypeEnabled(ownerUserId, type))) return;
@@ -79,6 +83,7 @@ export async function addNotification(
     commentUs: messageUs,
     view: 0,
     type,
+    meta: link ? JSON.stringify({ link }) : null,
   });
 
   invalidateTag(`notifications:${ownerUserId}`);
@@ -94,6 +99,19 @@ export interface NotificationItem {
   contentTr: string;
   view: boolean;
   senderUsername: string;
+  senderImage: string | null;
+  type: string;
+  link: string | null;
+}
+
+function linkFromMeta(meta: string | null): string | null {
+  if (!meta) return null;
+  try {
+    const parsed = JSON.parse(meta) as { link?: unknown };
+    return typeof parsed.link === "string" && parsed.link.startsWith("/") ? parsed.link : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Deliberately uncached - the notification bell needs to reflect a just-sent
@@ -106,6 +124,9 @@ export async function getNotifications(userId: number, limit = 30): Promise<Noti
       contentTr: dknotifiaction.commentTr,
       view: dknotifiaction.view,
       senderUsername: user.username,
+      senderImage: user.image,
+      type: dknotifiaction.type,
+      meta: dknotifiaction.meta,
     })
     .from(dknotifiaction)
     .innerJoin(user, eq(dknotifiaction.senderUserId, user.id))
@@ -113,7 +134,7 @@ export async function getNotifications(userId: number, limit = 30): Promise<Noti
     .orderBy(desc(dknotifiaction.id))
     .limit(limit);
 
-  return rows.map((r) => ({ ...r, view: Boolean(r.view) }));
+  return rows.map(({ meta, ...r }) => ({ ...r, view: Boolean(r.view), link: linkFromMeta(meta) }));
 }
 
 export async function getUnreadNotificationCount(userId: number): Promise<number> {
@@ -129,6 +150,14 @@ export async function markAllNotificationsRead(userId: number): Promise<void> {
     .update(dknotifiaction)
     .set({ view: 1 })
     .where(and(eq(dknotifiaction.ownerUserId, userId), eq(dknotifiaction.view, 0)));
+  invalidateTag(`unread-notifications:${userId}`);
+}
+
+export async function markNotificationRead(userId: number, notificationId: number): Promise<void> {
+  await db
+    .update(dknotifiaction)
+    .set({ view: 1 })
+    .where(and(eq(dknotifiaction.id, notificationId), eq(dknotifiaction.ownerUserId, userId)));
   invalidateTag(`unread-notifications:${userId}`);
 }
 

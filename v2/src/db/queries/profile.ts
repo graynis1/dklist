@@ -343,6 +343,7 @@ export async function toggleFollow(followerId: number, followedId: number): Prom
         `" ${follower.username} " sizi takip etmeye başladı`,
         `"${follower.username}" started following you`,
         "follow",
+        `/profil/${follower.username}`,
       );
     }
     await awardPoints(followerId, (await getPointSettings()).follow, "follow", `follow:${followedId}`);

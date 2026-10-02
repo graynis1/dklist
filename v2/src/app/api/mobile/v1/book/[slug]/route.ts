@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   const session = await getMobileSession(request);
 
-  const [pooledScore, ratingCount, myRating, myStatus, likeCount, liked, comments] = await Promise.all([
+  const [pooledScore, ratingCount, myRating, myStatus, likeCount, liked, comments, quotes] = await Promise.all([
     book.workId ? getWorkPooledScore(book.workId) : Promise.resolve(null),
     getBookRatingCount(book.id),
     session ? getUserBookRating(session.userId, book.id) : Promise.resolve(null),
@@ -26,10 +26,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     getBookLikeCount(book.id),
     session ? isBookLiked(session.userId, book.id) : Promise.resolve(false),
     getEntityComments(book.id, "book"),
+    getEntityComments(book.id, "book", "quotation"),
   ]);
 
-  const repliesByComment = await getRepliesForComments(comments.map((c) => c.id));
+  const repliesByComment = await getRepliesForComments([...comments, ...quotes].map((c) => c.id));
   const commentsWithReplies = comments.map((c) => ({ ...c, replies: repliesByComment.get(c.id) ?? [] }));
+  const quotesWithReplies = quotes.map((c) => ({ ...c, replies: repliesByComment.get(c.id) ?? [] }));
 
   return mobileJson({
     status: "ok",
@@ -42,6 +44,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     likeCount,
     liked,
     comments: commentsWithReplies,
+    quotes: quotesWithReplies,
   });
 }
 

@@ -18,7 +18,66 @@ import {
   badges,
   read,
   score,
+  libraryBook,
+  userBook,
 } from "@/db/schema";
+
+/**
+ * Feed events come from the points ledger, which is append-only - undoing
+ * an action ("Okuyorum" cleared, a like removed, an unfollow) left the old
+ * event in Akış forever (customer report: a book whose "Okuyorum" was
+ * undone stayed under "Şu an okunanlar"). Events whose underlying state no
+ * longer holds are dropped here, checked against the current rows for just
+ * this page's (actor, target) pairs.
+ */
+async function dropUndoneEvents<T extends { reason: string; actorId: number; entityId: number | null; entityKind: string | null; reasonKey: string }>(rows: T[]): Promise<T[]> {
+  const readPairs = rows.filter((r) => (r.reason === "reading_status" || r.reason === "book_read" || r.reason === "reading_progress") && r.entityId);
+  const libraryPairs = rows.filter((r) => r.reason === "library_add" && r.entityId);
+  const likePairs = rows.filter((r) => r.reason === "like" && r.entityKind === "book" && r.entityId);
+  const followPairs = rows.filter((r) => r.reason === "follow" && r.entityId);
+  const ids = (list: T[]) => ({ actors: [...new Set(list.map((r) => r.actorId))], targets: [...new Set(list.map((r) => r.entityId!))] });
+
+  const [readRows, libraryRows, likeRows, followRows] = await Promise.all([
+    readPairs.length
+      ? db.select({ a: read.userId, t: read.bookId, status: read.status }).from(read).where(and(inArray(read.userId, ids(readPairs).actors), inArray(read.bookId, ids(readPairs).targets)))
+      : Promise.resolve([]),
+    libraryPairs.length
+      ? db.select({ a: libraryBook.ownerId, t: libraryBook.bookId }).from(libraryBook).where(and(inArray(libraryBook.ownerId, ids(libraryPairs).actors), inArray(libraryBook.bookId, ids(libraryPairs).targets)))
+      : Promise.resolve([]),
+    likePairs.length
+      ? db.select({ a: userBook.userId, t: userBook.bookId }).from(userBook).where(and(inArray(userBook.userId, ids(likePairs).actors), inArray(userBook.bookId, ids(likePairs).targets)))
+      : Promise.resolve([]),
+    followPairs.length
+      ? db.select({ a: follow.followerId, t: follow.followedId }).from(follow).where(and(inArray(follow.followerId, ids(followPairs).actors), inArray(follow.followedId, ids(followPairs).targets)))
+      : Promise.resolve([]),
+  ]);
+
+  const statusByPair = new Map(readRows.map((r) => [`${r.a}:${r.t}`, r.status]));
+  const libraryKeys = new Set(libraryRows.map((r) => `${r.a}:${r.t}`));
+  const likeKeys = new Set(likeRows.map((r) => `${r.a}:${r.t}`));
+  const followKeys = new Set(followRows.map((r) => `${r.a}:${r.t}`));
+
+  return rows.filter((r) => {
+    if (!r.entityId) return true;
+    const key = `${r.actorId}:${r.entityId}`;
+    switch (r.reason) {
+      case "reading_status":
+        return statusByPair.get(key) === r.reasonKey.split(":")[1];
+      case "book_read":
+        return statusByPair.get(key) === "finishRead";
+      case "reading_progress":
+        return statusByPair.get(key) === "currentRead";
+      case "library_add":
+        return libraryKeys.has(key);
+      case "like":
+        return r.entityKind !== "book" || likeKeys.has(key);
+      case "follow":
+        return followKeys.has(key);
+      default:
+        return true;
+    }
+  });
+}
 import { getCommentLikeStates, type CommentLikeState } from "@/db/queries/comment-likes";
 import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } from "@/db/queries/feed-posts";
 import { getRepliesForComments, type CommentReply, type SubCommentParentType } from "@/db/queries/comments";
@@ -290,10 +349,12 @@ export async function getSiteFeed(opts: {
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
-  const parsed = page.map((r) => ({
-    ...r,
-    ...parseReasonKey(r.reason, r.reasonKey),
-  }));
+  const parsed = await dropUndoneEvents(
+    page.map((r) => ({
+      ...r,
+      ...parseReasonKey(r.reason, r.reasonKey),
+    })),
+  );
 
   const bookIds = new Set<number>();
   const writerIds = new Set<number>();

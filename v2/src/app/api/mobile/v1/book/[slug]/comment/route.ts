@@ -17,9 +17,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   const body = await request.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text : "";
+  // "Alıntı yap" - a quote from the book is stored as the same comment
+  // with commentType "quotation", exactly like the web book page.
+  const commentType = body?.commentType === "quotation" ? "quotation" : "comment";
 
   try {
-    const id = await addEntityComment(session.userId, book.id, "book", text);
+    const id = await addEntityComment(session.userId, book.id, "book", text, commentType);
     return mobileJson({ status: "ok", id });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Yorum eklenemedi.";

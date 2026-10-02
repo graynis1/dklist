@@ -162,7 +162,7 @@ export async function createBookSubmission(
   invalidateTag("pending-book-submissions");
   if (approved) {
     invalidateTag("latest-books");
-    if (writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, name);
+    if (writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, name, slug);
   }
 
   // Fire-and-forget - the model can take a few seconds to warm up on first
@@ -179,7 +179,7 @@ export async function createBookSubmission(
  * writer's page. Only fires once the book is actually live (approve=1) -
  * called from both the auto-approve path above and approveBookSubmission
  * below, never from a still-pending submission. */
-async function notifyWriterLikersOfNewBook(writerIds: number[], bookName: string): Promise<void> {
+async function notifyWriterLikersOfNewBook(writerIds: number[], bookName: string, bookSlug: string): Promise<void> {
   const likerRows = await db
     .select({ userId: userWriter.userId, writerName: writer.name })
     .from(userWriter)
@@ -205,6 +205,8 @@ async function notifyWriterLikersOfNewBook(writerIds: number[], bookName: string
       senderId,
       `Beğendiğin yazar ${names}'in yeni kitabı: "${bookName}".`,
       `A writer you liked (${names}) has a new book: "${bookName}".`,
+      "system",
+      `/kitap/${bookSlug}`,
     );
   }
 }
@@ -263,10 +265,10 @@ export async function approveBookSubmission(bookId: number): Promise<void> {
   invalidateTag("latest-books");
   invalidateTag("admin-book-list");
 
-  const [bookRow] = await db.select({ name: book.name }).from(book).where(eq(book.id, bookId)).limit(1);
+  const [bookRow] = await db.select({ name: book.name, slug: book.slug }).from(book).where(eq(book.id, bookId)).limit(1);
   const writerRows = await db.select({ writerId: writerBook.writerId }).from(writerBook).where(eq(writerBook.bookId, bookId));
   const writerIds = writerRows.map((r) => r.writerId);
-  if (bookRow && writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, bookRow.name);
+  if (bookRow && writerIds.length > 0) await notifyWriterLikersOfNewBook(writerIds, bookRow.name, bookRow.slug);
 }
 
 /** Reject = delete outright - unlike blog's dual-version system, a rejected

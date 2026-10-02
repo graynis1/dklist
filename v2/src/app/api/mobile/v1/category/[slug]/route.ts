@@ -1,4 +1,4 @@
-import { getCategoryBySlug, getBooksByCategory, type CategorySortBy } from "@/db/queries/books";
+import { getCategoryBySlug, getBooksByCategory, searchBooksInCategory, type CategorySortBy } from "@/db/queries/books";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -12,7 +12,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   const page = Number(searchParams.get("page") ?? "1") || 1;
   const sortBy = (searchParams.get("sort") === "score" ? "score" : "viewCount") as CategorySortBy;
 
+  const q = searchParams.get("q")?.trim() ?? "";
+
   try {
+    if (q.length >= 2) {
+      const items = await searchBooksInCategory(category.id, q);
+      return mobileJson({ status: "ok", category, items, total: items.length, lastPage: 1 });
+    }
     const result = await getBooksByCategory(category.id, page, 40, sortBy);
     return mobileJson({ status: "ok", category, ...result });
   } catch {
