@@ -53,7 +53,11 @@ export const ROLE_LABELS: Record<UserType, string> = {
  * (Mod = "Kütüphaneci" can already approve others', so its own submissions
  * skip the queue too, matching v1's own `add()` logic for Admin); Yazar/
  * Yayinevi submissions land pending, same as v1's Blogger-post model. */
+// Customer (2026-10-01): every member may add a missing book; anything not
+// from Admin/Mod lands in the approval queue (createBookSubmission).
 export const DATA_ENTRY_ROLES: UserType[] = [
+  USER_TYPES.Member,
+  USER_TYPES.Blogger,
   USER_TYPES.Yazar,
   USER_TYPES.Yayinevi,
   USER_TYPES.Mod,

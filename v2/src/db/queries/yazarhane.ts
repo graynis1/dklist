@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { user, writer, yazarhanePost, writerApplication } from "@/db/schema";
+import { user, writer, yazarhanePost, writerApplication, publisher } from "@/db/schema";
 import { USER_TYPES } from "@/lib/roles";
 import { awardPoints, getPointSettings, resolveSystemSenderId } from "@/db/queries/points";
 import { isDirty } from "@/lib/dirty-controller";
@@ -211,10 +211,57 @@ export async function getMyWriterApplication(userId: number): Promise<WriterAppl
   const [row] = await db
     .select({ id: writerApplication.id, status: writerApplication.status, reviewerNote: writerApplication.reviewerNote, submittedAt: writerApplication.submittedAt })
     .from(writerApplication)
-    .where(eq(writerApplication.userId, userId))
+    .where(and(eq(writerApplication.userId, userId), eq(writerApplication.kind, "writer")))
     .orderBy(desc(writerApplication.id))
     .limit(1);
   return row ? { ...row, status: row.status as WriterApplicationStatus["status"] } : null;
+}
+
+export async function getMyPublisherApplication(userId: number): Promise<WriterApplicationStatus | null> {
+  const [row] = await db
+    .select({ id: writerApplication.id, status: writerApplication.status, reviewerNote: writerApplication.reviewerNote, submittedAt: writerApplication.submittedAt })
+    .from(writerApplication)
+    .where(and(eq(writerApplication.userId, userId), eq(writerApplication.kind, "publisher")))
+    .orderBy(desc(writerApplication.id))
+    .limit(1);
+  return row ? { ...row, status: row.status as WriterApplicationStatus["status"] } : null;
+}
+
+/**
+ * Customer: a publisher should be able to apply for a publisher account the
+ * way authors apply to Yazarhane. Same queue as writer applications
+ * (/admin/yazar-basvurulari); approval sets userType Yayinevi + publisherId.
+ */
+export async function submitPublisherApplication(
+  userId: number,
+  message: string,
+  proposedPublisherId?: number | null,
+): Promise<{ status: boolean; message?: string }> {
+  const [target] = await db.select({ userType: user.userType }).from(user).where(eq(user.id, userId)).limit(1);
+  if (!target) return { status: false, message: "Kullanıcı bulunamadı." };
+  if (target.userType === USER_TYPES.Yayinevi) return { status: false, message: "Zaten bir yayınevi üyesisiniz." };
+
+  const existing = await getMyPublisherApplication(userId);
+  if (existing?.status === "pending") return { status: false, message: "Zaten inceleme bekleyen bir başvurunuz var." };
+
+  const trimmed = message.trim();
+  if (trimmed.length < 10) return { status: false, message: "Yayınevinizi ve iletişim bilgilerinizi kısaca yazın." };
+  if (isDirty(trimmed)) return { status: false, message: "Hakaret içeren içerik ekleyemezsiniz." };
+
+  if (proposedPublisherId) {
+    const [p] = await db.select({ id: publisher.id }).from(publisher).where(eq(publisher.id, proposedPublisherId)).limit(1);
+    if (!p) return { status: false, message: "Böyle bir yayınevi kaydı yok." };
+  }
+
+  await db.insert(writerApplication).values({
+    userId,
+    kind: "publisher",
+    message: trimmed.slice(0, 1000),
+    proposedPublisherId: proposedPublisherId || null,
+    status: "pending",
+    submittedAt: nowSql(),
+  });
+  return { status: true };
 }
 
 export async function submitWriterApplication(
@@ -257,6 +304,9 @@ export interface PendingWriterApplication {
   proposedWriterId: number | null;
   proposedWriterName: string | null;
   submittedAt: string;
+  kind: string;
+  proposedPublisherId: number | null;
+  proposedPublisherName: string | null;
 }
 
 export async function getPendingWriterApplications(): Promise<PendingWriterApplication[]> {
@@ -269,27 +319,34 @@ export async function getPendingWriterApplications(): Promise<PendingWriterAppli
       proposedWriterId: writerApplication.proposedWriterId,
       proposedWriterName: writer.name,
       submittedAt: writerApplication.submittedAt,
+      kind: writerApplication.kind,
+      proposedPublisherId: writerApplication.proposedPublisherId,
+      proposedPublisherName: publisher.name,
     })
     .from(writerApplication)
     .innerJoin(user, eq(writerApplication.userId, user.id))
     .leftJoin(writer, eq(writerApplication.proposedWriterId, writer.id))
+    .leftJoin(publisher, eq(writerApplication.proposedPublisherId, publisher.id))
     .where(eq(writerApplication.status, "pending"))
     .orderBy(writerApplication.id);
   return rows;
 }
 
-async function notifyWriterApplicationDecision(userId: number, approved: boolean, reviewerNote?: string): Promise<void> {
+async function notifyWriterApplicationDecision(userId: number, approved: boolean, reviewerNote?: string, kind = "writer"): Promise<void> {
   const senderId = await resolveSystemSenderId();
   if (!senderId) return;
+  const label = kind === "publisher" ? "Yayınevi üyelik başvurun" : "Yazarhane başvurun";
   const message = approved
-    ? "Yazarhane başvurun onaylandı - artık Yazarhane'de paylaşım yapabilirsin."
-    : `Yazarhane başvurun reddedildi.${reviewerNote ? ` Sebep: ${reviewerNote}` : ""}`;
-  await addNotification(userId, senderId, message, message, "system", "/yazarhane");
+    ? kind === "publisher"
+      ? "Yayınevi üyelik başvurun onaylandı - artık kataloğa kitap ekleyebilirsin."
+      : "Yazarhane başvurun onaylandı - artık Yazarhane'de paylaşım yapabilirsin."
+    : `${label} reddedildi.${reviewerNote ? ` Sebep: ${reviewerNote}` : ""}`;
+  await addNotification(userId, senderId, message, message, "system", kind === "publisher" ? "/kitap/yeni" : "/yazarhane");
 }
 
 export async function approveWriterApplication(applicationId: number, reviewerId: number): Promise<void> {
   const [app] = await db
-    .select({ userId: writerApplication.userId, proposedWriterId: writerApplication.proposedWriterId, status: writerApplication.status })
+    .select({ userId: writerApplication.userId, proposedWriterId: writerApplication.proposedWriterId, status: writerApplication.status, kind: writerApplication.kind, proposedPublisherId: writerApplication.proposedPublisherId })
     .from(writerApplication)
     .where(eq(writerApplication.id, applicationId))
     .limit(1);
@@ -300,14 +357,18 @@ export async function approveWriterApplication(applicationId: number, reviewerId
     .update(writerApplication)
     .set({ status: "approved", reviewedAt: nowSql(), reviewedBy: reviewerId })
     .where(eq(writerApplication.id, applicationId));
-  await db.update(user).set({ userType: USER_TYPES.Yazar, writerId: app.proposedWriterId }).where(eq(user.id, app.userId));
+  if (app.kind === "publisher") {
+    await db.update(user).set({ userType: USER_TYPES.Yayinevi, publisherId: app.proposedPublisherId }).where(eq(user.id, app.userId));
+  } else {
+    await db.update(user).set({ userType: USER_TYPES.Yazar, writerId: app.proposedWriterId }).where(eq(user.id, app.userId));
+  }
 
-  await notifyWriterApplicationDecision(app.userId, true);
+  await notifyWriterApplicationDecision(app.userId, true, undefined, app.kind);
 }
 
 export async function rejectWriterApplication(applicationId: number, reviewerId: number, reviewerNote: string): Promise<void> {
   const [app] = await db
-    .select({ userId: writerApplication.userId, status: writerApplication.status })
+    .select({ userId: writerApplication.userId, status: writerApplication.status, kind: writerApplication.kind })
     .from(writerApplication)
     .where(eq(writerApplication.id, applicationId))
     .limit(1);
@@ -322,5 +383,5 @@ export async function rejectWriterApplication(applicationId: number, reviewerId:
     .set({ status: "rejected", reviewedAt: nowSql(), reviewedBy: reviewerId, reviewerNote: trimmedNote || null })
     .where(eq(writerApplication.id, applicationId));
 
-  await notifyWriterApplicationDecision(app.userId, false, trimmedNote);
+  await notifyWriterApplicationDecision(app.userId, false, trimmedNote, app.kind);
 }

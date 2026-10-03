@@ -174,6 +174,7 @@ function RootNavigator() {
             ["destek", "Yardım ve Destek"],
             ["engellenenler", "Engellenenler"],
             ["kulup/yeni", "Kulüp Oluştur"],
+            ["yayinevi-basvuru", "Yayınevi Başvurusu"],
             ["yazarhane/[username]", ""],
           ] as const
         ).map(([name, title]) => (

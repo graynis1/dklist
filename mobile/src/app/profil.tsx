@@ -29,6 +29,7 @@ import {
   NewspaperIcon,
   PlayCircleIcon,
   LifeBuoyIcon,
+  Building2Icon,
   type LucideIcon,
 } from "lucide-react-native";
 import { HeaderBack } from "@/components/HeaderBack";
@@ -72,6 +73,7 @@ const GROUPS: { title: string; items: { icon: LucideIcon; label: string; href: H
     items: [
       { icon: ScanBarcodeIcon, label: "Barkodla Kitap Bul", href: "/barkod" },
       { icon: BookPlusIcon, label: "Kitap Ekle", href: "/kitap/yeni" },
+      { icon: Building2Icon, label: "Yayınevi Başvurusu", href: "/yayinevi-basvuru", subtitle: "Yayınevi hesabı ile kataloğa kitap ekleyin" },
     ],
   },
   {

@@ -852,6 +852,9 @@ export const writerApplication = mysqlTable("writer_application", {
 	submittedAt: datetime("submitted_at", { mode: 'string' }).notNull(),
 	reviewedAt: datetime("reviewed_at", { mode: 'string' }),
 	reviewedBy: int("reviewed_by").references(() => user.id),
+	// Migration 0060 - "writer" (Yazarhane) or "publisher" (Yayınevi üyeliği).
+	kind: varchar({ length: 20 }).notNull().default("writer"),
+	proposedPublisherId: int("proposed_publisher_id"),
 },
 (table) => [
 	primaryKey({ columns: [table.id], name: "writer_application_id" }),

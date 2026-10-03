@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EntitySearchPicker } from "@/components/dklist/entity-search-picker";
 import { auth } from "@/auth";
-import { hasRole, DATA_ENTRY_ROLES } from "@/lib/permission";
+import { hasRole, DATA_ENTRY_ROLES, AUTO_APPROVE_ROLES } from "@/lib/permission";
 import {
   createBookSubmissionAction,
   searchPublishersAction,
@@ -84,6 +84,12 @@ async function NewBookContent({
     <Card>
       <CardHeader>
         <CardTitle className="font-heading text-2xl">Yeni Kitap Ekle</CardTitle>
+        {!hasRole(session.user.userType, AUTO_APPROVE_ROLES) && (
+          <p className="text-sm text-muted-foreground">
+            Eklediğin kitap ekibimizin onayından sonra yayına girer. Yayınevi misin?{" "}
+            <Link href="/yayinevi-basvuru" className="font-medium text-primary hover:underline">Yayınevi üyeliğine başvur</Link>
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <form action={createBookSubmissionAction} className="flex flex-col gap-4">

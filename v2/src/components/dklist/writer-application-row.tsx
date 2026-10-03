@@ -39,6 +39,14 @@ export function WriterApplicationRow({ item }: { item: PendingWriterApplication 
         <ProfileLink username={item.username} className="font-medium hover:underline">
           @{item.username}
         </ProfileLink>
+        <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${item.kind === "publisher" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-800"}`}>
+          {item.kind === "publisher" ? "Yayınevi başvurusu" : "Yazar başvurusu"}
+        </span>
+        {item.proposedPublisherName && (
+          <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+            Yayınevi: {item.proposedPublisherName}
+          </span>
+        )}
         {item.proposedWriterName && (
           <span className="ml-2 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
             Katalog eşleşmesi: {item.proposedWriterName}
