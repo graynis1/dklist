@@ -31,6 +31,7 @@ import {
   CrownIcon,
 } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
+import { ListingThumb } from "@/components/ListingThumb";
 import { ThemedText } from "@/components/ThemedText";
 import { SearchBar } from "@/components/SearchBar";
 import { BookCover } from "@/components/BookCover";
@@ -608,13 +609,7 @@ export default function KesfetScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
                 {listings.map((l) => (
                   <Pressable key={l.id} onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: l.slug } })} style={({ pressed }) => ({ width: 150, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.divider, opacity: pressed ? 0.85 : 1 })}>
-                    {mediaUrl(l.image) ? (
-                      <Image source={{ uri: mediaUrl(l.image)! }} style={{ width: "100%", height: 150, backgroundColor: colors.surface }} resizeMode="cover" />
-                    ) : (
-                      <View style={{ width: "100%", height: 150, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
-                        <TagIcon size={30} color={colors.accent} />
-                      </View>
-                    )}
+                    <ListingThumb image={l.image} bookId={l.bookId} bookHasImage={l.bookHasImage} title={l.title} height={150} />
                     <View style={{ padding: spacing.sm, gap: 2 }}>
                       <ThemedText variant="bodySemibold" color={colors.accent700} style={{ fontSize: 15 }}>
                         {l.price && l.price > 0 ? `${l.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}

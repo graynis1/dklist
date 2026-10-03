@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, FlatList, Pressable, ActivityIndicator, Image, RefreshControl, useWindowDimensions } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, useWindowDimensions } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { PlusIcon, TagIcon, MapPinIcon, PinIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
+import { ListingThumb } from "@/components/ListingThumb";
 import { ThemedText } from "@/components/ThemedText";
 import { SearchBar } from "@/components/SearchBar";
 import { EmptyState } from "@/components/EmptyState";
 import { useAuth } from "@/auth/AuthContext";
 import { getStoreList, type StoreListItem } from "@/api/store";
-import { mediaUrl } from "@/lib/media";
 
 type TypeFilter = "free" | "paid" | null;
 
 /** Askıda Kitap - customer: "arama yok, sitede olduğu gibi aramalar eklenmeli". */
 export default function AskidaKitapScreen() {
-  const { colors, spacing, radius, shadow } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const { width } = useWindowDimensions();
   const navigation = useNavigation();
   const { profile } = useAuth();
@@ -30,11 +30,11 @@ export default function AskidaKitapScreen() {
     navigation.setOptions({
       headerRight: () => (
         <Pressable onPress={() => router.push("/askida-kitap/yeni")} hitSlop={8} style={{ padding: 4 }}>
-          <PlusIcon size={24} color={colors.accent} />
+          <PlusIcon size={24} color={colors.text} />
         </Pressable>
       ),
     });
-  }, [navigation, profile, colors.accent]);
+  }, [navigation, profile, colors.text]);
 
   const load = useCallback(async (t: TypeFilter, q: string) => {
     const mySeq = ++seq.current;
@@ -91,16 +91,9 @@ export default function AskidaKitapScreen() {
             />
           }
           renderItem={({ item }) => {
-            const img = mediaUrl(item.image);
             return (
-              <Pressable onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })} style={({ pressed }) => ({ width: colW, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.card, borderWidth: item.isPinned ? 2 : 1, borderColor: item.isPinned ? colors.accent : colors.divider, opacity: pressed ? 0.85 : 1, ...shadow.sm })}>
-                {img ? (
-                  <Image source={{ uri: img }} style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.surface }} resizeMode="cover" />
-                ) : (
-                  <View style={{ width: "100%", aspectRatio: 1, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
-                    <TagIcon size={30} color={colors.accent} />
-                  </View>
-                )}
+              <Pressable onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })} style={({ pressed }) => ({ width: colW, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.card, borderWidth: item.isPinned ? 2 : 0, borderColor: colors.accent, opacity: pressed ? 0.85 : 1 })}>
+                <ListingThumb image={item.image} bookId={item.bookId} bookHasImage={item.bookHasImage} title={item.title} height={colW} />
                 {item.isPinned && (
                   <View style={{ position: "absolute", top: 6, left: 6, flexDirection: "row", alignItems: "center", gap: 3, paddingVertical: 2, paddingHorizontal: 7, borderRadius: radius.pill, backgroundColor: colors.accent }}>
                     <PinIcon size={10} color="#fff" />

@@ -44,6 +44,9 @@ export interface StoreListItem {
   ownerUsername: string;
   ownerIsPremium: boolean;
   isPinned: boolean;
+  /** Linked catalog book, if any - lets clients show its cover when the listing has no photo. */
+  bookId: number | null;
+  bookHasImage: boolean;
 }
 
 /**
@@ -150,9 +153,12 @@ export async function getStoreList(
       ownerUsername: user.username,
       ownerIsPremium: ownerIsPremiumExpr(),
       isPinned: isPinnedExpr(),
+      bookId: store.bookId,
+      bookHasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
     })
     .from(store)
     .innerJoin(user, eq(store.ownerId, user.id))
+    .leftJoin(book, eq(store.bookId, book.id))
     .where(whereClause)
     // Pinned listings sort first (a deliberate paid highlight), then
     // premium sellers' listings, then the requested sort, then an id-desc
@@ -179,6 +185,7 @@ export async function getStoreList(
     ...r,
     ownerIsPremium: Boolean(Number(r.ownerIsPremium)),
     isPinned: Boolean(Number(r.isPinned)),
+    bookHasImage: Boolean(Number(r.bookHasImage)),
     image: firstImageByStore.get(r.id) ?? null,
   }));
 

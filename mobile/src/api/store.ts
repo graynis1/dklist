@@ -13,6 +13,8 @@ export interface StoreListItem {
   ownerUsername: string;
   ownerIsPremium: boolean;
   isPinned: boolean;
+  bookId?: number | null;
+  bookHasImage?: boolean;
 }
 
 export interface StoreDetail {

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, FlatList, Pressable, ActivityIndicator, Image, Alert, Modal, TextInput, ScrollView } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, Alert, Modal, TextInput, ScrollView } from "react-native";
 import { router, useNavigation, useFocusEffect } from "expo-router";
 import { PlusIcon, MoreHorizontalIcon, TagIcon, XIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
+import { ListingThumb } from "@/components/ListingThumb";
 import { ThemedText } from "@/components/ThemedText";
 import { EmptyState } from "@/components/EmptyState";
 import { showActionSheet } from "@/components/ActionSheet";
 import { getMyListings, setListingStatus, deleteListing, updateListingPrice, type MyStoreItem } from "@/api/store";
-import { mediaUrl } from "@/lib/media";
 
 const STATUS: Record<string, { label: string; tone: "accent" | "green" | "muted" | "amber" }> = {
   pending: { label: "Onay bekliyor", tone: "amber" },
@@ -181,16 +181,9 @@ export default function IlanlarimScreen() {
         }
         renderItem={({ item }) => {
           const st = STATUS[item.status] ?? { label: item.status, tone: "muted" as const };
-          const img = mediaUrl(item.image);
           return (
             <Pressable onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: item.slug } })} onLongPress={() => menu(item)} style={({ pressed }) => ({ flexDirection: "row", gap: spacing.md, padding: spacing.sm, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral100 : colors.card, alignItems: "center", ...shadow.sm })}>
-              {img ? (
-                <Image source={{ uri: img }} style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: colors.surface }} />
-              ) : (
-                <View style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
-                  <TagIcon size={24} color={colors.accent} />
-                </View>
-              )}
+              <ListingThumb image={item.image} title={item.title} width={64} height={64} radius={8} />
               <View style={{ flex: 1, gap: 4 }}>
                 <ThemedText variant="title" numberOfLines={2} style={{ fontSize: 15 }}>{item.title}</ThemedText>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
