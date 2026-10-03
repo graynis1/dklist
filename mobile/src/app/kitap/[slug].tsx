@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator, Alert, Image } from "react-native";
+import { View, ScrollView, Pressable, ActivityIndicator, Alert, Image, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { showActionSheet } from "@/components/ActionSheet";
 import { shareLink } from "@/lib/share";
 import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
@@ -13,12 +15,11 @@ import {
   BookmarkIcon,
   PauseCircleIcon,
   StarIcon,
-  FileTextIcon,
-  EyeIcon,
   MessageSquareIcon,
   XIcon,
-  CheckIcon,
   QuoteIcon,
+  ChevronLeftIcon,
+  ChevronDownIcon,
 } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
@@ -32,7 +33,7 @@ import { setLibraryStatus, type ReadStatus } from "@/api/library";
 import { relativeTime } from "@/lib/relativeTime";
 import { getMyLists, addBookToList, type UserListSummary } from "@/api/lists";
 import { API_BASE_URL } from "@/api/config";
-import { pickDropReason, type DropReason } from "@/lib/dropReason";
+import { pickDropReason, dropReasonLabel, type DropReason } from "@/lib/dropReason";
 
 const STATUS: { key: ReadStatus; label: string; Icon: typeof BookOpenIcon }[] = [
   { key: "currentRead", label: "Okuyorum", Icon: BookOpenIcon },
@@ -51,6 +52,7 @@ function Card({ children, style }: { children: React.ReactNode; style?: object }
 export default function BookDetailScreen() {
   const { colors, spacing, radius, shadow } = useTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { profile } = useAuth();
   const [data, setData] = useState<BookDetailResponse | null>(null);
@@ -80,13 +82,27 @@ export default function BookDetailScreen() {
     load().finally(() => setLoading(false));
   }, [load]);
 
+  // The hero draws its own floating back/share buttons over the blurred cover.
   useEffect(() => {
-    navigation.setOptions({ title: data?.book.name ?? "" });
-  }, [navigation, data?.book.name]);
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
+  function openStatusSheet() {
+    if (!data) return;
+    const current = data.myStatus?.status;
+    showActionSheet({
+      title: "Okuma durumu",
+      options: [
+        ...STATUS.map((st) => ({ text: (current === st.key ? "✓ " : "") + st.label, onPress: () => pickStatus(st.key) })),
+        ...(current ? [{ text: "Rafımdan çıkar", destructive: true, onPress: () => void saveStatus(null) }] : []),
+      ],
+    });
+  }
 
   function pickStatus(status: ReadStatus) {
     if (!data) return;
     const clearing = data.myStatus?.status === status;
+    if (clearing) return;
     if (status === "dropRead" && !clearing) {
       pickDropReason((reason) => void saveStatus(status, reason));
       return;
@@ -210,12 +226,14 @@ export default function BookDetailScreen() {
   if (langLabel) details.push({ label: "Dil", value: langLabel });
   if (pooledEditionCount && pooledEditionCount > 1) details.push({ label: "Baskı", value: `${pooledEditionCount} farklı baskı` });
 
-  const stats = [
-    { Icon: StarIcon, value: displayScore > 0 ? displayScore.toFixed(1) : "—", label: `${ratingCount} oy` },
-    { Icon: HeartIcon, value: String(likeCount), label: "beğeni" },
-    { Icon: FileTextIcon, value: book.pageNumber > 0 ? String(book.pageNumber) : "—", label: "sayfa" },
-    { Icon: EyeIcon, value: book.viewCount > 999 ? `${(book.viewCount / 1000).toFixed(1)}B` : String(book.viewCount), label: "görüntülenme" },
-  ];
+  const statusInfo = STATUS.find((st) => st.key === myStatus?.status);
+  const meta = [
+    displayScore > 0 ? `★ ${displayScore.toFixed(1)}` : null,
+    ratingCount > 0 ? `${ratingCount} oy` : null,
+    book.pageNumber > 0 ? `${book.pageNumber} sayfa` : null,
+    likeCount > 0 ? `${likeCount} beğeni` : null,
+  ].filter(Boolean).join("  ·  ");
+  const glass = { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.32)", alignItems: "center" as const, justifyContent: "center" as const };
 
   return (
     <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -223,71 +241,81 @@ export default function BookDetailScreen() {
         {/* Hero */}
         <View style={{ overflow: "hidden" }}>
           {coverUrl ? (
-            <Image source={{ uri: coverUrl }} blurRadius={24} style={{ position: "absolute", top: -20, left: -20, right: -20, bottom: -20 }} resizeMode="cover" />
+            <Image source={{ uri: coverUrl }} blurRadius={30} style={{ position: "absolute", top: -30, left: -30, right: -30, bottom: -30 }} resizeMode="cover" />
           ) : null}
           <LinearGradient
-            colors={coverUrl ? ["rgba(20,18,16,0.55)", "rgba(20,18,16,0.85)"] : [colors.accent700, colors.accent900]}
-            style={{ alignItems: "center", paddingTop: spacing.xl, paddingBottom: spacing.xl, paddingHorizontal: spacing.lg, gap: spacing.sm }}
+            colors={coverUrl ? ["rgba(18,16,14,0.45)", "rgba(18,16,14,0.78)", "rgba(18,16,14,0.92)"] : [colors.accent700, colors.accent900]}
+            style={{ paddingTop: insets.top + 6, paddingBottom: spacing.xl, paddingHorizontal: spacing.lg }}
           >
-            <View style={{ borderRadius: 6, ...shadow.lg }}>
-              <BookCover id={book.id} title={book.name} author={writerNames} width={132} height={196} hasImage={book.hasImage} />
-            </View>
-            <ThemedText variant="headline" color="#fff" style={{ textAlign: "center", fontSize: 26, marginTop: spacing.sm }}>
-              {book.name}
-            </ThemedText>
-            {book.writers.length > 0 && (
-              <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }}>
-                {book.writers.map((w, i) => (
-                  <ThemedText key={w.id} variant="bodySemibold" color={colors.accent300} onPress={() => router.push({ pathname: "/yazar/[slug]", params: { slug: w.slug } })}>
-                    {w.name}
-                    {i < book.writers.length - 1 ? ", " : ""}
-                  </ThemedText>
-                ))}
-              </View>
-            )}
-            {book.categories.length > 0 && (
-              <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 2 }}>
-                {book.categories.slice(0, 3).map((c) => (
-                  <Pressable key={c.id} onPress={() => router.push({ pathname: "/kategori/[slug]", params: { slug: c.slug } })} style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: "rgba(255,255,255,0.16)" }}>
-                    <ThemedText variant="caption" color="#fff">{c.name}</ThemedText>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </LinearGradient>
-        </View>
-
-        {/* Stats + actions */}
-        <View style={{ backgroundColor: colors.card, ...shadow.sm }}>
-          <View style={{ flexDirection: "row", paddingVertical: spacing.md }}>
-            {stats.map((s, i) => (
-              <View key={s.label} style={{ flex: 1, alignItems: "center", gap: 2, borderLeftWidth: i === 0 ? 0 : 1, borderLeftColor: colors.divider }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <s.Icon size={14} color={colors.accent} fill={s.Icon === StarIcon ? colors.accent : "transparent"} />
-                  <ThemedText variant="title" style={{ fontSize: 17 }}>{s.value}</ThemedText>
-                </View>
-                <ThemedText variant="caption" muted style={{ fontSize: 11 }}>{s.label}</ThemedText>
-              </View>
-            ))}
-          </View>
-          <View style={{ height: 1, backgroundColor: colors.divider, marginHorizontal: spacing.lg }} />
-          <View style={{ flexDirection: "row", paddingHorizontal: spacing.sm, paddingVertical: 4 }}>
-            {[
-              { key: "like", label: liked ? "Beğendin" : "Beğen", Icon: HeartIcon, on: liked, onPress: onToggleLike, disabled: likeSaving },
-              { key: "list", label: "Listeye Ekle", Icon: ListPlusIcon, on: showListPicker, onPress: onOpenListPicker, disabled: false },
-              { key: "share", label: "Paylaş", Icon: Share2Icon, on: false, onPress: onShare, disabled: false },
-            ].map((a) => (
-              <Pressable
-                key={a.key}
-                onPress={a.onPress}
-                disabled={a.disabled}
-                style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral200 : "transparent" })}
-              >
-                <a.Icon size={19} color={a.on ? colors.accent : colors.textMuted} fill={a.key === "like" && a.on ? colors.accent : "transparent"} />
-                <ThemedText variant="bodySemibold" color={a.on ? colors.accent : colors.textMuted} style={{ fontSize: 13.5 }}>{a.label}</ThemedText>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm }}>
+              <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} hitSlop={8} style={glass} accessibilityLabel="Geri">
+                <ChevronLeftIcon size={24} color="#fff" />
               </Pressable>
-            ))}
-          </View>
+              <Pressable onPress={onShare} hitSlop={8} style={glass} accessibilityLabel="Paylaş">
+                <Share2Icon size={19} color="#fff" />
+              </Pressable>
+            </View>
+
+            <View style={{ alignItems: "center", gap: spacing.sm }}>
+              <View style={{ borderRadius: 6, ...shadow.lg }}>
+                <BookCover id={book.id} title={book.name} author={writerNames} width={138} height={206} hasImage={book.hasImage} />
+              </View>
+              <ThemedText variant="bookTitle" color="#fff" style={{ textAlign: "center", fontSize: 29, lineHeight: 33, marginTop: spacing.sm }}>
+                {book.name}
+              </ThemedText>
+              {book.writers.length > 0 && (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }}>
+                  {book.writers.map((w, i) => (
+                    <ThemedText key={w.id} variant="bodySemibold" color={colors.accent300} onPress={() => router.push({ pathname: "/yazar/[slug]", params: { slug: w.slug } })}>
+                      {w.name}
+                      {i < book.writers.length - 1 ? ", " : ""}
+                    </ThemedText>
+                  ))}
+                </View>
+              )}
+              {meta ? <ThemedText variant="caption" color="rgba(255,255,255,0.78)" style={{ fontSize: 13 }}>{meta}</ThemedText> : null}
+            </View>
+
+            {/* Primary actions */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.lg }}>
+              <View style={{ flex: 1, flexDirection: "row", height: 48, borderRadius: 24, overflow: "hidden", backgroundColor: statusInfo ? "#fff" : colors.accent, opacity: statusSaving ? 0.6 : 1 }}>
+                <Pressable
+                  disabled={statusSaving}
+                  onPress={() => (statusInfo ? openStatusSheet() : pickStatus("targetRead"))}
+                  style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: pressed ? "rgba(0,0,0,0.08)" : "transparent" })}
+                >
+                  {statusSaving ? (
+                    <ActivityIndicator color={statusInfo ? colors.accent : "#fff"} />
+                  ) : statusInfo ? (
+                    <>
+                      <statusInfo.Icon size={18} color={colors.accent700} />
+                      <ThemedText variant="bodySemibold" color={colors.accent800}>{statusInfo.label}</ThemedText>
+                    </>
+                  ) : (
+                    <>
+                      <BookmarkIcon size={18} color="#fff" />
+                      <ThemedText variant="bodySemibold" color="#fff">Okuyacağım</ThemedText>
+                    </>
+                  )}
+                </Pressable>
+                <View style={{ width: StyleSheet.hairlineWidth, marginVertical: 10, backgroundColor: statusInfo ? colors.divider : "rgba(255,255,255,0.45)" }} />
+                <Pressable disabled={statusSaving} onPress={openStatusSheet} accessibilityLabel="Okuma durumunu seç" style={({ pressed }) => ({ width: 50, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? "rgba(0,0,0,0.08)" : "transparent" })}>
+                  <ChevronDownIcon size={20} color={statusInfo ? colors.accent800 : "#fff"} />
+                </Pressable>
+              </View>
+              <Pressable onPress={onToggleLike} disabled={likeSaving} accessibilityLabel="Beğen" style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.16)" })}>
+                <HeartIcon size={21} color={liked ? "#ff6b6b" : "#fff"} fill={liked ? "#ff6b6b" : "transparent"} />
+              </Pressable>
+              <Pressable onPress={onOpenListPicker} accessibilityLabel="Listeye ekle" style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: pressed || showListPicker ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.16)" })}>
+                <ListPlusIcon size={21} color="#fff" />
+              </Pressable>
+            </View>
+            {myStatus?.status === "dropRead" && myStatus.dropReason ? (
+              <ThemedText variant="caption" color="rgba(255,255,255,0.7)" style={{ textAlign: "center", marginTop: spacing.sm }}>
+                Yarıda bıraktın · {dropReasonLabel(myStatus.dropReason)}
+              </ThemedText>
+            ) : null}
+          </LinearGradient>
         </View>
 
         {showListPicker && (
@@ -322,45 +350,6 @@ export default function BookDetailScreen() {
           </Card>
         )}
 
-        {/* Reading status */}
-        <Card>
-          <SectionHeader title="Okuma durumun" />
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
-            {STATUS.map(({ key, label, Icon }) => {
-              const active = myStatus?.status === key;
-              return (
-                <Pressable
-                  key={key}
-                  disabled={statusSaving}
-                  onPress={() => pickStatus(key)}
-                  style={({ pressed }) => ({
-                    width: "48.7%",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: spacing.sm,
-                    paddingVertical: 11,
-                    paddingHorizontal: spacing.md,
-                    borderRadius: radius.lg,
-                    backgroundColor: active ? colors.accent : pressed ? colors.neutral300 : colors.neutral200,
-                    opacity: statusSaving ? 0.6 : 1,
-                  })}
-                >
-                  <Icon size={18} color={active ? "#fff" : colors.accent} />
-                  <ThemedText variant="bodySemibold" color={active ? "#fff" : colors.text} style={{ flex: 1, fontSize: 13.5 }} numberOfLines={1}>
-                    {label}
-                  </ThemedText>
-                  {active && <CheckIcon size={16} color="#fff" />}
-                </Pressable>
-              );
-            })}
-          </View>
-          {myStatus && (
-            <ThemedText variant="caption" muted style={{ marginTop: spacing.sm }}>
-              Rafından çıkarmak için seçili duruma tekrar dokun.
-            </ThemedText>
-          )}
-        </Card>
-
         {/* Rating */}
         <Card>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -375,13 +364,13 @@ export default function BookDetailScreen() {
             {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
               const on = myRating != null && n <= myRating;
               return (
-                <Pressable key={n} disabled={rateSaving} onPress={() => submitRating(n)} hitSlop={4} style={{ alignItems: "center", gap: 2 }}>
-                  <StarIcon size={26} color={on ? colors.accent : colors.neutral400} fill={on ? colors.accent : "transparent"} strokeWidth={1.6} />
-                  <ThemedText variant="caption" muted style={{ fontSize: 9.5 }}>{n}</ThemedText>
+                <Pressable key={n} disabled={rateSaving} onPress={() => submitRating(n)} hitSlop={4} accessibilityLabel={`${n} puan`}>
+                  <StarIcon size={27} color={on ? colors.accent : colors.neutral300} fill={on ? colors.accent : colors.neutral200} strokeWidth={1.5} />
                 </Pressable>
               );
             })}
           </View>
+          {!myRating && <ThemedText variant="caption" muted style={{ marginTop: spacing.sm }}>Puan vermek için bir yıldıza dokun</ThemedText>}
         </Card>
 
         {/* About */}

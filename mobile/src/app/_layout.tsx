@@ -129,7 +129,7 @@ function RootNavigator() {
         <Stack.Screen
           name="kitap/[slug]"
           options={{
-            headerShown: true,
+            headerShown: false,
             title: "",
             headerStyle: { backgroundColor: colors.bg },
             headerTintColor: colors.accent,
