@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Pressable, ActivityIndicator, FlatList, RefreshControl, useWindowDimensions, ScrollView, StyleSheet } from "react-native";
-import { useAuth } from "@/auth/AuthContext";
-import { getProfile, type ReadingGoal } from "@/api/profileOther";
+import { View, Pressable, ActivityIndicator, FlatList, RefreshControl, useWindowDimensions } from "react-native";
 import { showActionSheet } from "@/components/ActionSheet";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
-import { LayoutGridIcon, ListIcon, ArrowUpDownIcon, LibraryIcon, ScanBarcodeIcon, BookPlusIcon, TargetIcon, ChevronRightIcon } from "lucide-react-native";
+import { LayoutGridIcon, ListIcon, ArrowUpDownIcon, LibraryIcon, BookOpenIcon, CheckCircle2Icon, BookmarkIcon, PauseCircleIcon, ScanBarcodeIcon, BookPlusIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { BookCover } from "@/components/BookCover";
@@ -43,15 +41,8 @@ export default function KitapligimScreen() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>("recent");
   const [view, setView] = useState<"grid" | "list">("grid");
-  const { profile } = useAuth();
-  const [goal, setGoal] = useState<ReadingGoal | null>(null);
 
   const load = useCallback(async () => {
-    if (profile) {
-      getProfile(profile.username)
-        .then((p) => setGoal(p.readingGoal ?? null))
-        .catch(() => {});
-    }
     try {
       const result = await getLibrary();
       setLibrary(result);
@@ -59,7 +50,7 @@ export default function KitapligimScreen() {
     } catch {
       setError("Kitaplığın yüklenemedi.");
     }
-  }, [profile]);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -130,69 +121,85 @@ export default function KitapligimScreen() {
 
   const gap = spacing.md;
   const tileWidth = Math.floor((width - spacing.lg * 2 - gap * 2) / 3);
-  const coverWidth = tileWidth;
+  const coverWidth = tileWidth - spacing.sm * 2;
   const coverHeight = Math.round(coverWidth * 1.48);
 
-  const goalPct = goal ? Math.min(1, goal.readCount / Math.max(1, goal.targetCount)) : 0;
-  const openStats = () => profile && router.push({ pathname: "/profil/[username]", params: { username: profile.username, tab: "stats" } });
+  const stats = [
+    { key: "currentRead" as const, icon: BookOpenIcon, label: "Okuyor" },
+    { key: "finishRead" as const, icon: CheckCircle2Icon, label: "Okudu" },
+    { key: "targetRead" as const, icon: BookmarkIcon, label: "Okuyacak" },
+    { key: "dropRead" as const, icon: PauseCircleIcon, label: "Bıraktı" },
+  ];
 
   const header = (
     <View style={{ gap: spacing.md, paddingBottom: spacing.md }}>
-      {/* Shelves */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: spacing.lg }}>
-        {TABS.map((t) => {
-          const on = t.key === active;
-          const n = library?.[t.key].length ?? 0;
-          return (
-            <Pressable key={t.key} onPress={() => setActive(t.key)} style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 36, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: on ? colors.text : colors.card, borderWidth: on ? 0 : StyleSheet.hairlineWidth, borderColor: colors.divider }}>
-              <ThemedText variant="bodySemibold" color={on ? colors.card : colors.text} style={{ fontSize: 13.5 }}>{t.label}</ThemedText>
-              <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: "center", justifyContent: "center", backgroundColor: on ? "rgba(255,255,255,0.18)" : colors.neutral200 }}>
-                <ThemedText variant="caption" color={on ? colors.card : colors.textMuted} style={{ fontSize: 11, fontWeight: "700" }}>{n}</ThemedText>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {/* Reading goal */}
-      <Pressable onPress={openStats} style={({ pressed }) => ({ marginHorizontal: spacing.lg, flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral100 : colors.card })}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
-          <TargetIcon size={20} color={colors.accent} />
-        </View>
-        {goal ? (
-          <View style={{ flex: 1, gap: 6 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <ThemedText variant="bodySemibold" style={{ fontSize: 14 }}>{goal.year} hedefi</ThemedText>
-              <ThemedText variant="caption" muted><ThemedText variant="caption" style={{ fontWeight: "700" }}>{goal.readCount}</ThemedText> / {goal.targetCount} kitap</ThemedText>
-            </View>
-            <View style={{ height: 7, borderRadius: 4, backgroundColor: colors.neutral200, overflow: "hidden" }}>
-              <View style={{ width: `${goalPct * 100}%`, height: 7, borderRadius: 4, backgroundColor: goalPct >= 1 ? "#3f8a5a" : colors.accent }} />
-            </View>
+      <View style={{ marginHorizontal: spacing.lg, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, padding: spacing.md, ...shadow.sm }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md }}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
+            <LibraryIcon size={18} color={colors.accent} />
           </View>
-        ) : (
           <View style={{ flex: 1 }}>
-            <ThemedText variant="bodySemibold" style={{ fontSize: 14 }}>{new Date().getFullYear()} okuma hedefini belirle</ThemedText>
-            <ThemedText variant="caption" muted>Toplam {total} kitap · istatistiklerini gör</ThemedText>
+            <ThemedText variant="title">Toplam {total} kitap</ThemedText>
+            <ThemedText variant="caption" muted>Bir rafa dokunarak kitaplarını gör</ThemedText>
           </View>
-        )}
-        <ChevronRightIcon size={18} color={colors.neutral400} />
-      </Pressable>
-
-      {/* Search + sort + view */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg }}>
-        <View style={{ flex: 1 }}>
-          <SearchBar value={query} onChangeText={setQuery} placeholder="Rafta ara" />
         </View>
-        <Pressable onPress={cycleSort} hitSlop={4} accessibilityLabel={`Sırala: ${SORT_LABEL[sort]}`} style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}>
-          <ArrowUpDownIcon size={17} color={colors.text} />
-        </Pressable>
-        <Pressable onPress={() => setView((v) => (v === "grid" ? "list" : "grid"))} hitSlop={4} accessibilityLabel="Görünümü değiştir" style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}>
-          {view === "grid" ? <ListIcon size={17} color={colors.text} /> : <LayoutGridIcon size={17} color={colors.text} />}
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {stats.map((s) => {
+            const Icon = s.icon;
+            const isActive = s.key === active;
+            return (
+              <Pressable
+                key={s.key}
+                onPress={() => setActive(s.key)}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  gap: 2,
+                  paddingVertical: spacing.sm,
+                  borderRadius: radius.lg,
+                  borderWidth: 1.5,
+                  borderColor: isActive ? colors.accent : "transparent",
+                  backgroundColor: isActive ? colors.accent100 : colors.neutral100,
+                }}
+              >
+                <Icon size={16} color={isActive ? colors.accent : colors.textMuted} />
+                <ThemedText variant="title" color={isActive ? colors.accent : colors.text} style={{ fontSize: 20 }}>
+                  {library?.[s.key].length ?? 0}
+                </ThemedText>
+                <ThemedText variant="caption" muted>{s.label}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
-      <ThemedText variant="caption" muted style={{ paddingHorizontal: spacing.lg, marginTop: -4 }}>
-        {query ? `${items.length} sonuç` : `${items.length} kitap`} · {SORT_LABEL[sort]} · rafını değiştirmek için uzun bas
-      </ThemedText>
+
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        <SearchBar value={query} onChangeText={setQuery} placeholder="Kitaplığında ara (ad, yazar)" />
+      </View>
+
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg }}>
+        <View style={{ flex: 1 }}>
+          <ThemedText variant="title" style={{ fontSize: 18 }}>{TABS.find((t) => t.key === active)?.label}</ThemedText>
+          <ThemedText variant="caption" muted>
+            {query ? `${items.length} sonuç` : `${items.length} kitap`} · taşımak için uzun bas
+          </ThemedText>
+        </View>
+        <Pressable onPress={cycleSort} hitSlop={6} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: colors.neutral200 }}>
+          <ArrowUpDownIcon size={13} color={colors.text} />
+          <ThemedText variant="caption" style={{ fontWeight: "600" }}>{SORT_LABEL[sort]}</ThemedText>
+        </Pressable>
+        <View style={{ flexDirection: "row", marginLeft: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.neutral200, padding: 2 }}>
+          {(["grid", "list"] as const).map((v) => {
+            const Icon = v === "grid" ? LayoutGridIcon : ListIcon;
+            const on = view === v;
+            return (
+              <Pressable key={v} onPress={() => setView(v)} style={{ paddingVertical: 5, paddingHorizontal: 9, borderRadius: radius.pill, backgroundColor: on ? colors.card : "transparent" }}>
+                <Icon size={15} color={on ? colors.accent : colors.textMuted} />
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
     </View>
   );
 
@@ -214,11 +221,11 @@ export default function KitapligimScreen() {
         <HeaderBack />
         <ThemedText variant="display" style={{ flex: 1 }}>Kitaplığım</ThemedText>
         {[
-          { key: "scan", Icon: ScanBarcodeIcon, label: "Barkod tara", onPress: () => router.push("/barkod") },
-          { key: "add", Icon: BookPlusIcon, label: "Kitap ekle", onPress: () => router.push("/kitap/yeni") },
-        ].map(({ key, Icon, label, onPress }) => (
-          <Pressable key={key} onPress={onPress} hitSlop={6} accessibilityLabel={label} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral200 : "transparent", alignItems: "center", justifyContent: "center" })}>
-            <Icon size={23} color={colors.text} />
+          { key: "scan", Icon: ScanBarcodeIcon, onPress: () => router.push("/barkod") },
+          { key: "add", Icon: BookPlusIcon, onPress: () => router.push("/kitap/yeni") },
+        ].map(({ key, Icon, onPress }) => (
+          <Pressable key={key} onPress={onPress} hitSlop={6} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral300 : colors.neutral200, alignItems: "center", justifyContent: "center" })}>
+            <Icon size={20} color={colors.text} />
           </Pressable>
         ))}
       </View>
@@ -238,17 +245,25 @@ export default function KitapligimScreen() {
           ListHeaderComponent={header}
           ListEmptyComponent={empty}
           contentContainerStyle={{ paddingBottom: spacing["3xl"] }}
-          columnWrapperStyle={{ gap, paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}
+          columnWrapperStyle={{ gap, paddingHorizontal: spacing.lg, marginBottom: gap }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
           renderItem={({ item }) => (
             <Pressable
               onPress={() => openBook(item)}
               onLongPress={() => onLongPressBook(item)}
-              style={({ pressed }) => ({ width: tileWidth, gap: 7, opacity: pressed ? 0.75 : 1 })}
+              style={({ pressed }) => ({
+                width: tileWidth,
+                backgroundColor: colors.card,
+                borderRadius: radius.lg,
+                borderWidth: 1,
+                borderColor: colors.divider,
+                padding: spacing.sm,
+                gap: 6,
+                opacity: pressed ? 0.85 : 1,
+                ...shadow.sm,
+              })}
             >
-              <View style={{ borderRadius: 5, ...shadow.md }}>
-                <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={coverWidth} height={coverHeight} hasImage={item.hasImage} />
-              </View>
+              <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={coverWidth} height={coverHeight} hasImage={item.hasImage} />
               <View style={{ minHeight: 44 }}>
                 <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16 }}>
                   {item.name}
@@ -279,16 +294,17 @@ export default function KitapligimScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: spacing.md,
-                paddingHorizontal: spacing.lg,
-                paddingVertical: 10,
-                backgroundColor: pressed ? colors.neutral200 : colors.card,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                borderBottomColor: colors.divider,
+                marginHorizontal: spacing.lg,
+                marginBottom: spacing.sm,
+                padding: spacing.sm,
+                backgroundColor: pressed ? colors.neutral100 : colors.card,
+                borderRadius: radius.lg,
+                borderWidth: 1,
+                borderColor: colors.divider,
+                ...shadow.sm,
               })}
             >
-              <View style={{ borderRadius: 4, ...shadow.sm }}>
-                <BookCover id={item.id} title={item.name} width={48} height={72} hasImage={item.hasImage} />
-              </View>
+              <BookCover id={item.id} title={item.name} width={48} height={70} hasImage={item.hasImage} />
               <View style={{ flex: 1, gap: 2 }}>
                 <ThemedText variant="title" numberOfLines={2}>{item.name}</ThemedText>
                 <ThemedText variant="caption" muted numberOfLines={1}>{item.writers.join(", ") || "Yazar bilinmiyor"}</ThemedText>
