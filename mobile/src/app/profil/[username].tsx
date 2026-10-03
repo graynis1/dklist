@@ -57,13 +57,13 @@ function ActionButton({ label, icon, onPress, primary, disabled, square }: { lab
 
 export default function OtherProfileScreen() {
   const { colors, spacing, radius, shadow } = useTheme();
-  const { username } = useLocalSearchParams<{ username: string }>();
+  const { username, tab: initialTab } = useLocalSearchParams<{ username: string; tab?: string }>();
   const navigation = useNavigation();
   const [data, setData] = useState<OtherProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [followSaving, setFollowSaving] = useState(false);
-  const [tab, setTab] = useState<"library" | "stats" | "blogs" | "badges">("library");
+  const [tab, setTab] = useState<"library" | "stats" | "blogs" | "badges">(initialTab === "stats" || initialTab === "blogs" || initialTab === "badges" ? initialTab : "library");
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
