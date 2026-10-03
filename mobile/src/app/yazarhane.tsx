@@ -3,7 +3,7 @@ import { View, ScrollView, Pressable, ActivityIndicator, RefreshControl, TextInp
 import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { PenLineIcon, FeatherIcon, ClockIcon, XCircleIcon, SendIcon, UsersIcon, SearchIcon, XIcon, CheckIcon } from "lucide-react-native";
+import { PenLineIcon, FeatherIcon, ClockIcon, XCircleIcon, SendIcon, UsersIcon, SearchIcon, XIcon, CheckIcon, ChevronDownIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
@@ -114,6 +114,9 @@ function ApplicationCard({ data, onApplied }: { data: YazarhaneHome; onApplied: 
   const [saving, setSaving] = useState(false);
   const seq = useRef(0);
   const app = data.myApplication;
+  // Collapsed by default so it doesn't push the posts down (customer request);
+  // a rejected application opens it so the reviewer's note is visible.
+  const [open, setOpen] = useState(app?.status === "rejected");
 
   if (app?.status === "pending") {
     return (
@@ -155,15 +158,19 @@ function ApplicationCard({ data, onApplied }: { data: YazarhaneHome; onApplied: 
 
   return (
     <View style={{ gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.divider, ...shadow.sm }}>
-      <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
+      <Pressable onPress={() => setOpen((v) => !v)} style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
         <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
           <PenLineIcon size={22} color={colors.accent} />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText variant="title" style={{ fontSize: 18 }}>Yazarhane&apos;de yazmak ister misin?</ThemedText>
-          <ThemedText variant="caption" muted>Yazar hesabı ile paylaşım yapar, kataloğa kitap eklersin.</ThemedText>
+          <ThemedText variant="title" style={{ fontSize: 17 }}>Yazarhane&apos;de yazmak ister misin?</ThemedText>
+          <ThemedText variant="caption" muted>{open ? "Yazar hesabı ile paylaşım yapar, kataloğa kitap eklersin." : "Başvurmak için dokun"}</ThemedText>
         </View>
-      </View>
+        <ChevronDownIcon size={20} color={colors.textMuted} style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }} />
+      </Pressable>
+
+      {open && (
+      <>
 
       {app?.status === "rejected" && (
         <View style={{ flexDirection: "row", gap: 8, padding: spacing.sm, borderRadius: radius.lg, backgroundColor: "#fdecea" }}>
@@ -212,9 +219,13 @@ function ApplicationCard({ data, onApplied }: { data: YazarhaneHome; onApplied: 
       {message.trim().length > 0 && message.trim().length < 10 && (
         <ThemedText variant="caption" muted style={{ marginTop: -4 }}>Biraz daha ayrıntı yaz (en az 10 karakter).</ThemedText>
       )}
+      </>
+      )}
     </View>
   );
 }
+
+const AUTHOR_LIMIT = 8;
 
 export default function YazarhaneScreen() {
   const { colors, spacing, radius, shadow } = useTheme();
@@ -222,6 +233,7 @@ export default function YazarhaneScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allAuthors, setAllAuthors] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -285,21 +297,30 @@ export default function YazarhaneScreen() {
 
           {data.members.length > 0 && (
             <View>
-              <SectionHeader title="Yazarlar" count={data.members.length} />
+              <SectionHeader
+                title="Yazarlar"
+                count={data.members.length}
+                actionLabel={data.members.length > AUTHOR_LIMIT ? (allAuthors ? "Daralt" : "Tümünü göster") : undefined}
+                onAction={() => setAllAuthors((v) => !v)}
+              />
               <FlatList
-                data={data.members}
-                horizontal
+                key={allAuthors ? "grid" : "row"}
+                data={allAuthors ? data.members : data.members.slice(0, AUTHOR_LIMIT)}
+                horizontal={!allAuthors}
+                numColumns={allAuthors ? 2 : undefined}
+                scrollEnabled={!allAuthors}
+                columnWrapperStyle={allAuthors ? { gap: spacing.sm } : undefined}
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(m) => String(m.userId)}
-                contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.lg }}
-                style={{ marginHorizontal: -spacing.lg, paddingLeft: spacing.lg }}
+                contentContainerStyle={allAuthors ? { gap: spacing.sm } : { gap: spacing.sm, paddingRight: spacing.lg }}
+                style={allAuthors ? undefined : { marginHorizontal: -spacing.lg, paddingLeft: spacing.lg }}
                 renderItem={({ item: m }) => (
                   <Pressable
                     onPress={() => router.push({ pathname: "/yazarhane/[username]", params: { username: m.username } })}
-                    style={({ pressed }) => ({ width: 140, alignItems: "center", gap: 6, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral100 : colors.card, borderWidth: 1, borderColor: colors.divider, ...shadow.sm })}
+                    style={({ pressed }) => ({ width: allAuthors ? undefined : 140, flex: allAuthors ? 1 : undefined, alignItems: "center", gap: 6, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral100 : colors.card, borderWidth: 1, borderColor: colors.divider, ...shadow.sm })}
                   >
                     <Avatar id={m.userId} name={m.username} imageUrl={m.image} size={60} frameColor={m.profileFrame} frameTier={m.frameTier} />
-                    <ThemedText variant="bodySemibold" numberOfLines={1}>@{m.username}</ThemedText>
+                    <ThemedText variant="bodySemibold" numberOfLines={1}>{m.username}</ThemedText>
                     {m.writerName ? <ThemedText variant="caption" muted numberOfLines={1}>{m.writerName}</ThemedText> : null}
                     <View style={{ paddingVertical: 3, paddingHorizontal: 9, borderRadius: radius.pill, backgroundColor: colors.accent100 }}>
                       <ThemedText variant="caption" color={colors.accent700} style={{ fontSize: 11 }}>{m.postCount} paylaşım</ThemedText>

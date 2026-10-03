@@ -15,7 +15,7 @@ import type { WriterApplicationStatus } from "@/db/queries/yazarhane";
  * request behind it. This is that request path, shown to any signed-in
  * member who isn't already an author-like role.
  */
-export function WriterApplicationForm({ existingApplication }: { existingApplication: WriterApplicationStatus | null }) {
+export function WriterApplicationForm({ existingApplication, embedded = false }: { existingApplication: WriterApplicationStatus | null; embedded?: boolean }) {
   const [application, setApplication] = useState(existingApplication);
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +43,13 @@ export function WriterApplicationForm({ existingApplication }: { existingApplica
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center gap-2">
-        <PenLineIcon className="size-4 text-primary" />
-        <p className="text-sm font-medium">Yazarhane&apos;de Yazmak İster misin?</p>
-      </div>
+    <div className={embedded ? "flex flex-col gap-3" : "flex flex-col gap-3 rounded-xl border border-border bg-card p-4"}>
+      {!embedded && (
+        <div className="flex items-center gap-2">
+          <PenLineIcon className="size-4 text-primary" />
+          <p className="text-sm font-medium">Yazarhane&apos;de Yazmak İster misin?</p>
+        </div>
+      )}
       {application?.status === "rejected" && (
         <p className="flex items-start gap-1.5 text-xs text-destructive">
           <XCircleIcon className="mt-0.5 size-3.5 shrink-0" />

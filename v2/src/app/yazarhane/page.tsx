@@ -9,7 +9,7 @@ export const metadata: Metadata = pageMetadata({
 });
 import { connection } from "next/server";
 import Link from "next/link";
-import { PenLineIcon } from "lucide-react";
+import { PenLineIcon, ChevronDownIcon } from "lucide-react";
 import { auth } from "@/auth";
 import { USER_TYPES } from "@/lib/roles";
 import { SiteHeader } from "@/components/dklist/site-header";
@@ -70,6 +70,8 @@ function YazarhaneSkeleton() {
   );
 }
 
+const AUTHOR_LIMIT = 8;
+
 async function YazarhaneContent() {
   await connection();
   const session = await auth();
@@ -84,17 +86,7 @@ async function YazarhaneContent() {
   ]);
   const decorations = await getUserDecorations([...members.map((m) => m.userId), ...posts.map((p) => p.userId)]);
 
-  return (
-    <div className="flex flex-col gap-8">
-      {session?.user?.id && !isAlreadyAuthor && (
-        <WriterApplicationForm existingApplication={myApplication} />
-      )}
-
-      {members.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Yazarlar</h2>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {members.map((m) => (
+  const authorCard = (m: (typeof members)[number]) => (
               <Link
                 key={m.userId}
                 href={`/yazarhane/${m.username}`}
@@ -110,13 +102,53 @@ async function YazarhaneContent() {
                   highestBadge={decorationFor(decorations, m.userId).highestBadge}
                 />
                 <div className="flex min-w-0 flex-col">
-                  <p className="truncate text-sm font-medium">@{m.username}</p>
+                  <p className="truncate text-sm font-medium">{m.username}</p>
                   {m.writerName && <p className="truncate text-xs text-muted-foreground">{m.writerName}</p>}
                   <p className="text-xs text-muted-foreground">{m.postCount} paylaşım</p>
                 </div>
               </Link>
-            ))}
+  );
+
+  return (
+    <div className="flex flex-col gap-8">
+      {session?.user?.id && !isAlreadyAuthor && myApplication?.status === "pending" && (
+        <WriterApplicationForm existingApplication={myApplication} />
+      )}
+      {session?.user?.id && !isAlreadyAuthor && myApplication?.status !== "pending" && (
+        // Collapsed by default so the form doesn't push the posts down; a
+        // rejected application opens so the reviewer's note is visible.
+        <details className="group rounded-xl border border-border bg-card" open={myApplication?.status === "rejected"}>
+          <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <PenLineIcon className="size-5" />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="font-heading text-base font-medium">Yazarhane&apos;de yazmak ister misin?</span>
+              <span className="text-xs text-muted-foreground">Başvurmak için tıkla</span>
+            </span>
+            <ChevronDownIcon className="size-5 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="border-t border-border p-4">
+            <WriterApplicationForm existingApplication={myApplication} embedded />
           </div>
+        </details>
+      )}
+
+      {members.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Yazarlar <span className="font-normal">({members.length})</span></h2>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {members.slice(0, AUTHOR_LIMIT).map(authorCard)}
+          </div>
+          {members.length > AUTHOR_LIMIT && (
+            <details className="group mt-2">
+              <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-sm font-medium text-primary hover:underline [&::-webkit-details-marker]:hidden">
+                <span className="group-open:hidden">Tümünü göster ({members.length})</span>
+                <span className="hidden group-open:inline">Daralt</span>
+              </summary>
+              <div className="mt-3 flex flex-wrap gap-3">{members.slice(AUTHOR_LIMIT).map(authorCard)}</div>
+            </details>
+          )}
         </section>
       )}
 
