@@ -11,6 +11,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
+import { GoogleButton } from "@/components/GoogleButton";
 import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/api/config";
 
 const LOGO = require("../../../assets/brand/dklist-mark.png");
@@ -150,9 +151,12 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: spacing["2xl"] }} keyboardShouldPersistTaps="handled">
         <View style={{ alignItems: "center", paddingTop: spacing["2xl"], paddingBottom: spacing.lg, gap: spacing.md }}>
           <Image source={LOGO} style={{ width: 132, height: 77, tintColor: colors.text }} resizeMode="contain" accessibilityLabel="DKList" />
-          <ThemedText variant="headline" style={{ fontSize: 30, lineHeight: 35, textAlign: "center" }}>
-            DKList&apos;e Hoş Geldin
-          </ThemedText>
+          <View style={{ alignItems: "center", gap: 4 }}>
+            <ThemedText variant="bookTitle" style={{ fontSize: 32, lineHeight: 36, textAlign: "center" }}>
+              DKList&apos;e Hoş Geldin
+            </ThemedText>
+            <ThemedText variant="body" muted style={{ textAlign: "center" }}>Okuduklarını kaydet, yeni kitaplar keşfet.</ThemedText>
+          </View>
         </View>
 
         <View style={{ gap: spacing.md }}>
@@ -226,20 +230,14 @@ export default function LoginScreen() {
             />
           )}
 
-          <Button
-            title={googleBusy ? "Bağlanılıyor..." : "Google ile Giriş Yap"}
-            variant="secondary"
-            onPress={onGooglePress}
-            disabled={googleBusy}
-            block
-          />
+          <GoogleButton onPress={onGooglePress} busy={googleBusy} />
         </View>
 
         <View style={{ flex: 1, minHeight: spacing.xl }} />
 
         <Pressable onPress={() => router.push("/kayit-ol")} style={{ alignItems: "center", paddingVertical: spacing["2xl"] }}>
           <ThemedText variant="caption" muted>
-            Hesabın yok mu? <ThemedText variant="caption" color={colors.accent} style={{ fontWeight: "600" }}>Kayıt Ol</ThemedText>
+            Hesabın yok mu? <ThemedText variant="caption" color={colors.accent700} style={{ fontWeight: "700" }}>Kayıt Ol</ThemedText>
           </ThemedText>
         </Pressable>
       </ScrollView>

@@ -22,7 +22,7 @@ export function EmptyState({
       <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center", marginBottom: spacing.xs }}>
         {icon}
       </View>
-      <ThemedText variant="headline" style={{ textAlign: "center" }}>{title}</ThemedText>
+      <ThemedText variant="headline" style={{ textAlign: "center", fontSize: 19, lineHeight: 25 }}>{title}</ThemedText>
       {subtitle && (
         <ThemedText variant="body" muted style={{ textAlign: "center", lineHeight: 21 }}>
           {subtitle}
