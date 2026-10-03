@@ -84,6 +84,7 @@ export async function addNotification(
     view: 0,
     type,
     meta: link ? JSON.stringify({ link }) : null,
+    createdAt: new Date().toISOString().slice(0, 19).replace("T", " "),
   });
 
   invalidateTag(`notifications:${ownerUserId}`);
@@ -100,6 +101,8 @@ export interface NotificationItem {
   view: boolean;
   senderUsername: string;
   senderImage: string | null;
+  /** UTC "YYYY-MM-DD HH:MM:SS"; null for notifications older than migration 0061. */
+  createdAt: string | null;
   type: string;
   link: string | null;
 }
@@ -126,6 +129,7 @@ export async function getNotifications(userId: number, limit = 30): Promise<Noti
       senderUsername: user.username,
       senderImage: user.image,
       type: dknotifiaction.type,
+      createdAt: dknotifiaction.createdAt,
       meta: dknotifiaction.meta,
     })
     .from(dknotifiaction)

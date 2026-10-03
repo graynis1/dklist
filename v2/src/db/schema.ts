@@ -218,6 +218,8 @@ export const dknotifiaction = mysqlTable("dknotifiaction", {
 	meta: longtext(),
 	// Migration 0048 - see notifications.ts's NotificationType/preference gate.
 	type: varchar({ length: 30 }).notNull().default("system"),
+	// Migration 0061 - null for notifications created before it.
+	createdAt: datetime("created_at", { mode: 'string' }),
 },
 (table) => [
 	index("IDX_5E795EC62B18554A").on(table.ownerUserId),

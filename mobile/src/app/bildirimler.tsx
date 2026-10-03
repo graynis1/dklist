@@ -4,6 +4,7 @@ import { router, useNavigation, type Href } from "expo-router";
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable";
 import { BellIcon, UserPlusIcon, MessageCircleIcon, UsersIcon, TagIcon, AwardIcon, AtSignIcon, Trash2Icon, CheckCheckIcon, MoreHorizontalIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
+import { relativeTime } from "@/lib/relativeTime";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
@@ -189,6 +190,7 @@ export default function BildirimlerScreen() {
                 <ThemedText variant="body" style={{ flex: 1, lineHeight: 20, fontSize: 14.5 }} numberOfLines={3}>
                   {item.senderUsername ? <ThemedText variant="bodySemibold" style={{ fontSize: 14.5 }}>{item.senderUsername} </ThemedText> : null}
                   {item.senderUsername ? item.contentTr.replace(/^./, (c) => c.toLocaleLowerCase("tr-TR")) : item.contentTr}
+                  {item.createdAt ? <ThemedText variant="caption" muted style={{ fontSize: 13 }}>{"  "}{relativeTime(item.createdAt.replace(" ", "T") + "Z")}</ThemedText> : null}
                 </ThemedText>
                 {!item.view && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent }} />}
               </Pressable>

@@ -9,6 +9,7 @@ export interface NotificationItem {
   type: string;
   /** Site-relative page the notification is about, when known. */
   link: string | null;
+  createdAt?: string | null;
 }
 
 export async function getNotifications() {
