@@ -93,6 +93,8 @@ export default function RootLayout() {
  * comment for the real bug this fixed: a local, non-reactive copy of this
  * flag never flipped the guard when onboarding finished).
  */
+const HEADER_TITLE = { fontFamily: "Inter_600SemiBold", fontSize: 17 };
+
 function RootNavigator() {
   const { profile } = useAuth();
   const { hasSeenOnboarding } = useOnboarding();
@@ -131,8 +133,9 @@ function RootNavigator() {
           options={{
             headerShown: false,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -141,8 +144,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -151,8 +155,9 @@ function RootNavigator() {
           options={{
             headerShown: false,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -178,8 +183,9 @@ function RootNavigator() {
             options={{
               headerShown: true,
               title,
-              headerStyle: { backgroundColor: colors.bg },
-              headerTintColor: colors.accent,
+              headerStyle: { backgroundColor: colors.card },
+              headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
               headerShadowVisible: false,
             }}
           />
@@ -189,8 +195,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -199,8 +206,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -209,8 +217,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -219,8 +228,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Bildirimler",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -229,8 +239,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Hesabım",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -239,8 +250,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Favorilerim",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -249,8 +261,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Listelerim",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -259,8 +272,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -269,8 +283,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Rozet Galerisi",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -279,8 +294,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Puan Tablosu",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -289,8 +305,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Bloglar",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -299,8 +316,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -309,8 +327,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Videolar",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -319,8 +338,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -329,8 +349,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Kulüpler",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -339,8 +360,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -349,8 +371,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -359,8 +382,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Kategoriler",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -369,8 +393,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Premium",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -379,8 +404,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Puan Mağazası",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -389,8 +415,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Askıda Kitap",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -399,8 +426,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -409,8 +437,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Yeni İlan",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -419,8 +448,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Sepetim",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -429,8 +459,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "Siparişlerim",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />
@@ -439,8 +470,9 @@ function RootNavigator() {
           options={{
             headerShown: true,
             title: "İlanlarım",
-            headerStyle: { backgroundColor: colors.bg },
-            headerTintColor: colors.accent,
+            headerStyle: { backgroundColor: colors.card },
+            headerTintColor: colors.text,
+            headerTitleStyle: HEADER_TITLE,
             headerShadowVisible: false,
           }}
         />

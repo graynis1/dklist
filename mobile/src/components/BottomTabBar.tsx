@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Pressable, Keyboard, Platform } from "react-native";
+import { View, Pressable, Keyboard, Platform, StyleSheet } from "react-native";
 import { router, usePathname } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -57,17 +57,17 @@ export function BottomTabBar() {
     <View
       style={{
         flexDirection: "row",
-        backgroundColor: colors.bg,
-        borderTopWidth: 1,
+        backgroundColor: colors.card,
+        borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: colors.divider,
-        height: 58 + insets.bottom,
-        paddingTop: 8,
+        height: 62 + insets.bottom,
+        paddingTop: 6,
         paddingBottom: insets.bottom,
       }}
     >
       {TABS.map((tab) => {
         const active = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(`${tab.href}/`));
-        const color = active ? colors.accent : colors.neutral500;
+        const color = active ? colors.accent700 : colors.neutral600;
         return (
           <Pressable
             key={tab.href}
@@ -75,10 +75,14 @@ export function BottomTabBar() {
               Haptics.selectionAsync().catch(() => {});
               if (pathname !== tab.href) router.replace(tab.href as never);
             }}
-            style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}
           >
-            <tab.icon color={color} size={24} strokeWidth={2.25} />
-            <ThemedText variant="caption" color={color} style={{ fontFamily: fontFamily.bodyMedium, fontSize: 10.5 }}>
+            <View style={{ width: 58, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: active ? colors.accent100 : "transparent" }}>
+              <tab.icon color={color} size={22} strokeWidth={active ? 2.4 : 1.9} />
+            </View>
+            <ThemedText variant="caption" color={active ? colors.text : colors.neutral600} style={{ fontFamily: active ? fontFamily.bodySemibold : fontFamily.bodyMedium, fontSize: 11 }}>
               {tab.label}
             </ThemedText>
           </Pressable>
@@ -89,17 +93,19 @@ export function BottomTabBar() {
           Haptics.selectionAsync().catch(() => {});
           if (pathname !== "/profil") router.replace("/profil");
         }}
-        style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: pathname === "/profil" }}
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 4 }}
       >
-        {profile ? (
-          <Avatar id={profile.id} name={profile.name ?? profile.username} imageUrl={profile.image} size={24} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
-        ) : (
-          <Avatar id={0} name="?" size={24} />
-        )}
+        <View style={{ width: 58, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", backgroundColor: pathname === "/profil" ? colors.accent100 : "transparent" }}>
+          <View style={{ borderRadius: 13, borderWidth: pathname === "/profil" ? 2 : 0, borderColor: colors.accent700, padding: pathname === "/profil" ? 1 : 0 }}>
+            <Avatar id={profile?.id ?? 0} name={profile ? profile.name ?? profile.username : "?"} imageUrl={profile?.image} size={pathname === "/profil" ? 20 : 24} />
+          </View>
+        </View>
         <ThemedText
           variant="caption"
-          color={pathname === "/profil" ? colors.accent : colors.neutral500}
-          style={{ fontFamily: fontFamily.bodyMedium, fontSize: 10.5 }}
+          color={pathname === "/profil" ? colors.text : colors.neutral600}
+          style={{ fontFamily: pathname === "/profil" ? fontFamily.bodySemibold : fontFamily.bodyMedium, fontSize: 11 }}
         >
           Profil
         </ThemedText>
