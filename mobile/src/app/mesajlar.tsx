@@ -9,6 +9,7 @@ import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { SearchBar } from "@/components/SearchBar";
+import { Chip } from "@/components/ui";
 import { EmptyState } from "@/components/EmptyState";
 import { relativeTime } from "@/lib/relativeTime";
 import { getConversations, deleteChats, deleteAllChats, type ConversationItem } from "@/api/messages";
@@ -218,17 +219,19 @@ export default function MesajlarScreen() {
               })
             }
             hitSlop={6}
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.neutral200, alignItems: "center", justifyContent: "center" }}
+            accessibilityLabel="Seçenekler"
+            style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral200 : "transparent", alignItems: "center", justifyContent: "center" })}
           >
-            <MoreHorizontalIcon size={20} color={colors.text} />
+            <MoreHorizontalIcon size={23} color={colors.text} />
           </Pressable>
         )}
         <Pressable
           onPress={() => setComposeOpen((v) => !v)}
           hitSlop={6}
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: composeOpen ? colors.accent : colors.neutral200, alignItems: "center", justifyContent: "center" }}
+          accessibilityLabel={composeOpen ? "Kapat" : "Yeni mesaj"}
+          style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral200 : "transparent", alignItems: "center", justifyContent: "center" })}
         >
-          {composeOpen ? <XIcon size={20} color="#fff" /> : <MessageCirclePlusIcon size={20} color={colors.text} />}
+          {composeOpen ? <XIcon size={23} color={colors.text} /> : <MessageCirclePlusIcon size={23} color={colors.text} />}
         </Pressable>
       </View>
       )}
@@ -245,23 +248,9 @@ export default function MesajlarScreen() {
 
       {!composeOpen && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.xs, paddingBottom: spacing.sm, alignItems: "center" }}>
-          {chips.map((c) => {
-            const on = filter === c.key;
-            return (
-              <Pressable
-                key={c.key}
-                onPress={() => setFilter(c.key)}
-                style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 7, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: on ? colors.accent100 : colors.neutral200 }}
-              >
-                <ThemedText variant="bodySemibold" color={on ? colors.accent700 : colors.text} style={{ fontSize: 13.5 }}>{c.label}</ThemedText>
-                {c.count != null && c.count > 0 && (
-                  <View style={{ minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" }}>
-                    <ThemedText variant="caption" color="#fff" style={{ fontSize: 10.5 }}>{c.count}</ThemedText>
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
+          {chips.map((c) => (
+            <Chip key={c.key} label={c.label} count={c.count} active={filter === c.key} onPress={() => setFilter(c.key)} />
+          ))}
         </ScrollView>
       )}
 

@@ -11,6 +11,7 @@ import { Avatar } from "@/components/Avatar";
 import { BookCover } from "@/components/BookCover";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedGroupCard } from "@/components/FeedCard";
+import { Chip } from "@/components/ui";
 import { getFeed, type FeedItem } from "@/api/feed";
 import { getNotifications } from "@/api/notifications";
 import { groupFeed, matchesFilter, type FeedFilter } from "@/lib/feedGroups";
@@ -95,7 +96,7 @@ function SkeletonCard() {
 }
 
 export default function AkisScreen() {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing } = useTheme();
   const { profile } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -218,14 +219,9 @@ export default function AkisScreen() {
       {/* Filters */}
       <View style={{ backgroundColor: colors.card, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.divider, marginBottom: 8 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: spacing.lg, paddingVertical: 10, alignItems: "center" }}>
-          {FILTERS.map((f) => {
-            const on = filter === f.key;
-            return (
-              <Pressable key={f.key} onPress={() => setFilter(f.key)} style={{ height: 32, justifyContent: "center", paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: on ? colors.text : colors.neutral200 }}>
-                <ThemedText variant="bodySemibold" color={on ? colors.card : colors.text} style={{ fontSize: 13 }}>{f.label}</ThemedText>
-              </Pressable>
-            );
-          })}
+          {FILTERS.map((f) => (
+            <Chip key={f.key} label={f.label} active={filter === f.key} onPress={() => setFilter(f.key)} />
+          ))}
         </ScrollView>
       </View>
     </View>

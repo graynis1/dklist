@@ -120,3 +120,34 @@ export function SectionTitle({ title, action, onAction, style }: { title: string
     </View>
   );
 }
+
+/** Filter/sort pill - one style app-wide: bronze fill when selected, neutral otherwise. */
+export function Chip({ label, active, onPress, count, disabled }: { label: string; active: boolean; onPress: () => void; count?: number; disabled?: boolean }) {
+  const { colors, radius } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        height: 34,
+        paddingHorizontal: 14,
+        borderRadius: radius.pill,
+        backgroundColor: active ? (pressed ? colors.accent700 : colors.accent) : pressed ? colors.neutral300 : colors.neutral200,
+      })}
+    >
+      <ThemedText variant="bodySemibold" color={active ? "#fff" : colors.text} style={{ fontSize: 13.5 }}>
+        {label}
+      </ThemedText>
+      {count != null && count > 0 && (
+        <ThemedText variant="caption" color={active ? "rgba(255,255,255,0.85)" : colors.textMuted} style={{ fontSize: 12, fontWeight: "600" }}>
+          {count}
+        </ThemedText>
+      )}
+    </Pressable>
+  );
+}
