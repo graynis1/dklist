@@ -1,23 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Pressable, ActivityIndicator, FlatList, RefreshControl, useWindowDimensions } from "react-native";
-import { showActionSheet } from "@/components/ActionSheet";
+import { View, Pressable, ActivityIndicator, FlatList, RefreshControl, useWindowDimensions, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
-import { LayoutGridIcon, ListIcon, ArrowUpDownIcon, LibraryIcon, BookOpenIcon, CheckCircle2Icon, BookmarkIcon, PauseCircleIcon, ScanBarcodeIcon, BookPlusIcon } from "lucide-react-native";
+import { LayoutGridIcon, ListIcon, LibraryIcon, ScanBarcodeIcon, BookPlusIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { BookCover } from "@/components/BookCover";
 import { SearchBar } from "@/components/SearchBar";
 import { EmptyState } from "@/components/EmptyState";
 import { HeaderBack } from "@/components/HeaderBack";
+import { showActionSheet } from "@/components/ActionSheet";
 import { pickDropReason, type DropReason } from "@/lib/dropReason";
 import { getLibrary, setLibraryStatus, type LibraryByStatus, type LibraryBookItem, type ReadStatus } from "@/api/library";
 
-const TABS: { key: ReadStatus; label: string }[] = [
-  { key: "currentRead", label: "Okuyorum" },
-  { key: "finishRead", label: "Okudum" },
-  { key: "targetRead", label: "Okuyacağım" },
-  { key: "dropRead", label: "Yarıda Bıraktım" },
+const SHELVES: { key: ReadStatus; label: string; long: string }[] = [
+  { key: "currentRead", label: "Okuyorum", long: "Okuyorum" },
+  { key: "finishRead", label: "Okudum", long: "Okudum" },
+  { key: "targetRead", label: "Okuyacağım", long: "Okuyacağım" },
+  { key: "dropRead", label: "Bıraktım", long: "Yarıda Bıraktım" },
 ];
 
 const EMPTY_COPY: Record<ReadStatus, { title: string; subtitle: string }> = {
@@ -28,7 +28,10 @@ const EMPTY_COPY: Record<ReadStatus, { title: string; subtitle: string }> = {
 };
 
 type SortMode = "recent" | "az" | "za";
-const SORT_LABEL: Record<SortMode, string> = { recent: "Son eklenen", az: "A → Z", za: "Z → A" };
+const SORT_LABEL: Record<SortMode, string> = { recent: "Son eklenen", az: "Ada göre (A-Z)", za: "Ada göre (Z-A)" };
+
+const COLUMNS = 3;
+const GAP = 14;
 
 export default function KitapligimScreen() {
   const { colors, spacing, radius, shadow } = useTheme();
@@ -44,8 +47,7 @@ export default function KitapligimScreen() {
 
   const load = useCallback(async () => {
     try {
-      const result = await getLibrary();
-      setLibrary(result);
+      setLibrary(await getLibrary());
       setError(null);
     } catch {
       setError("Kitaplığın yüklenemedi.");
@@ -82,20 +84,20 @@ export default function KitapligimScreen() {
     return sort === "az" ? sorted : sorted.reverse();
   }, [library, active, query, sort]);
 
-  const total = library ? TABS.reduce((n, t) => n + library[t.key].length, 0) : 0;
-
-  function cycleSort() {
-    setSort((s) => (s === "recent" ? "az" : s === "az" ? "za" : "recent"));
+  function openSortSheet() {
+    showActionSheet({
+      title: "Sırala",
+      options: (Object.keys(SORT_LABEL) as SortMode[]).map((k) => ({ text: (sort === k ? "✓ " : "") + SORT_LABEL[k], onPress: () => setSort(k) })),
+    });
   }
 
   function onLongPressBook(book: LibraryBookItem) {
-    const others = TABS.filter((t) => t.key !== active);
     showActionSheet({
       title: book.name,
-      message: "Bu kitabı hangi rafa taşımak istersin?",
+      message: "Rafını değiştir",
       options: [
-        ...others.map((t) => ({
-          text: t.label,
+        ...SHELVES.filter((t) => t.key !== active).map((t) => ({
+          text: t.long,
           onPress: () => {
             const move = async (reason?: DropReason) => {
               await setLibraryStatus(book.id, t.key, reason);
@@ -119,86 +121,52 @@ export default function KitapligimScreen() {
 
   const openBook = (b: LibraryBookItem) => router.push({ pathname: "/kitap/[slug]", params: { slug: b.slug } });
 
-  const gap = spacing.md;
-  const tileWidth = Math.floor((width - spacing.lg * 2 - gap * 2) / 3);
-  const coverWidth = tileWidth - spacing.sm * 2;
-  const coverHeight = Math.round(coverWidth * 1.48);
-
-  const stats = [
-    { key: "currentRead" as const, icon: BookOpenIcon, label: "Okuyor" },
-    { key: "finishRead" as const, icon: CheckCircle2Icon, label: "Okudu" },
-    { key: "targetRead" as const, icon: BookmarkIcon, label: "Okuyacak" },
-    { key: "dropRead" as const, icon: PauseCircleIcon, label: "Bıraktı" },
-  ];
+  const tileWidth = Math.floor((width - spacing.lg * 2 - GAP * (COLUMNS - 1)) / COLUMNS);
+  const coverHeight = Math.round(tileWidth * 1.5);
 
   const header = (
     <View style={{ gap: spacing.md, paddingBottom: spacing.md }}>
-      <View style={{ marginHorizontal: spacing.lg, backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.divider, padding: spacing.md, ...shadow.sm }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md }}>
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
-            <LibraryIcon size={18} color={colors.accent} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText variant="title">Toplam {total} kitap</ThemedText>
-            <ThemedText variant="caption" muted>Bir rafa dokunarak kitaplarını gör</ThemedText>
-          </View>
-        </View>
-        <View style={{ flexDirection: "row", gap: 6 }}>
-          {stats.map((s) => {
-            const Icon = s.icon;
-            const isActive = s.key === active;
-            return (
-              <Pressable
-                key={s.key}
-                onPress={() => setActive(s.key)}
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  gap: 2,
-                  paddingVertical: spacing.sm,
-                  borderRadius: radius.lg,
-                  borderWidth: 1.5,
-                  borderColor: isActive ? colors.accent : "transparent",
-                  backgroundColor: isActive ? colors.accent100 : colors.neutral100,
-                }}
-              >
-                <Icon size={16} color={isActive ? colors.accent : colors.textMuted} />
-                <ThemedText variant="title" color={isActive ? colors.accent : colors.text} style={{ fontSize: 20 }}>
-                  {library?.[s.key].length ?? 0}
-                </ThemedText>
-                <ThemedText variant="caption" muted>{s.label}</ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
+      {/* Shelf picker - native-style segmented control */}
+      <View style={{ marginHorizontal: spacing.lg, flexDirection: "row", padding: 4, borderRadius: 14, backgroundColor: colors.neutral200 }}>
+        {SHELVES.map((s) => {
+          const on = s.key === active;
+          const n = library?.[s.key].length ?? 0;
+          return (
+            <Pressable
+              key={s.key}
+              onPress={() => setActive(s.key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              style={{ flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 11, backgroundColor: on ? colors.card : "transparent", ...(on ? shadow.sm : null) }}
+            >
+              <ThemedText variant="title" color={on ? colors.accent700 : colors.text} style={{ fontSize: 18, lineHeight: 22 }}>{n}</ThemedText>
+              <ThemedText variant="caption" color={on ? colors.text : colors.textMuted} numberOfLines={1} style={{ fontSize: 11.5, fontWeight: on ? "600" : "500" }}>{s.label}</ThemedText>
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={{ paddingHorizontal: spacing.lg }}>
         <SearchBar value={query} onChangeText={setQuery} placeholder="Kitaplığında ara (ad, yazar)" />
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg }}>
-        <View style={{ flex: 1 }}>
-          <ThemedText variant="title" style={{ fontSize: 18 }}>{TABS.find((t) => t.key === active)?.label}</ThemedText>
-          <ThemedText variant="caption" muted>
-            {query ? `${items.length} sonuç` : `${items.length} kitap`} · taşımak için uzun bas
-          </ThemedText>
-        </View>
-        <Pressable onPress={cycleSort} hitSlop={6} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 6, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: colors.neutral200 }}>
-          <ArrowUpDownIcon size={13} color={colors.text} />
-          <ThemedText variant="caption" style={{ fontWeight: "600" }}>{SORT_LABEL[sort]}</ThemedText>
+      {/* Toolbar */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg, minHeight: 32 }}>
+        <ThemedText variant="body" muted style={{ flex: 1, fontSize: 14 }}>
+          {query ? `${items.length} sonuç` : `${items.length} kitap`}
+        </ThemedText>
+        <Pressable onPress={openSortSheet} hitSlop={8} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 3, paddingVertical: 6, paddingHorizontal: 8, borderRadius: radius.md, backgroundColor: pressed ? colors.neutral200 : "transparent" })}>
+          <ThemedText variant="body" style={{ fontSize: 14, fontWeight: "600" }}>{SORT_LABEL[sort]}</ThemedText>
+          <ChevronDownIcon size={16} color={colors.text} />
         </Pressable>
-        <View style={{ flexDirection: "row", marginLeft: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.neutral200, padding: 2 }}>
-          {(["grid", "list"] as const).map((v) => {
-            const Icon = v === "grid" ? LayoutGridIcon : ListIcon;
-            const on = view === v;
-            return (
-              <Pressable key={v} onPress={() => setView(v)} style={{ paddingVertical: 5, paddingHorizontal: 9, borderRadius: radius.pill, backgroundColor: on ? colors.card : "transparent" }}>
-                <Icon size={15} color={on ? colors.accent : colors.textMuted} />
-              </Pressable>
-            );
-          })}
-        </View>
+        <Pressable
+          onPress={() => setView((v) => (v === "grid" ? "list" : "grid"))}
+          hitSlop={8}
+          accessibilityLabel={view === "grid" ? "Liste görünümü" : "Izgara görünümü"}
+          style={({ pressed }) => ({ marginLeft: 4, width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? colors.neutral200 : "transparent" })}
+        >
+          {view === "grid" ? <ListIcon size={20} color={colors.text} /> : <LayoutGridIcon size={19} color={colors.text} />}
+        </Pressable>
       </View>
     </View>
   );
@@ -215,17 +183,26 @@ export default function KitapligimScreen() {
     />
   );
 
+  const footer =
+    items.length > 0 ? (
+      <ThemedText variant="caption" muted style={{ textAlign: "center", paddingTop: spacing.lg }}>
+        Rafını değiştirmek için bir kitaba uzun bas
+      </ThemedText>
+    ) : null;
+
+  const refresh = <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />;
+
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingLeft: spacing.lg, paddingRight: spacing.sm, height: 56 }}>
         <HeaderBack />
         <ThemedText variant="display" style={{ flex: 1 }}>Kitaplığım</ThemedText>
         {[
-          { key: "scan", Icon: ScanBarcodeIcon, onPress: () => router.push("/barkod") },
-          { key: "add", Icon: BookPlusIcon, onPress: () => router.push("/kitap/yeni") },
-        ].map(({ key, Icon, onPress }) => (
-          <Pressable key={key} onPress={onPress} hitSlop={6} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral300 : colors.neutral200, alignItems: "center", justifyContent: "center" })}>
-            <Icon size={20} color={colors.text} />
+          { key: "scan", Icon: ScanBarcodeIcon, label: "Barkod tara", onPress: () => router.push("/barkod") },
+          { key: "add", Icon: BookPlusIcon, label: "Kitap ekle", onPress: () => router.push("/kitap/yeni") },
+        ].map(({ key, Icon, label, onPress }) => (
+          <Pressable key={key} onPress={onPress} hitSlop={6} accessibilityLabel={label} style={({ pressed }) => ({ width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? colors.neutral200 : "transparent" })}>
+            <Icon size={23} color={colors.text} />
           </Pressable>
         ))}
       </View>
@@ -241,39 +218,27 @@ export default function KitapligimScreen() {
           key="grid"
           data={items}
           keyExtractor={(item) => String(item.id)}
-          numColumns={3}
+          numColumns={COLUMNS}
           ListHeaderComponent={header}
           ListEmptyComponent={empty}
-          contentContainerStyle={{ paddingBottom: spacing["3xl"] }}
-          columnWrapperStyle={{ gap, paddingHorizontal: spacing.lg, marginBottom: gap }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
+          ListFooterComponent={footer}
+          contentContainerStyle={{ paddingTop: spacing.xs, paddingBottom: spacing["3xl"] }}
+          columnWrapperStyle={{ gap: GAP, paddingHorizontal: spacing.lg, marginBottom: spacing.xl }}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refresh}
           renderItem={({ item }) => (
-            <Pressable
-              onPress={() => openBook(item)}
-              onLongPress={() => onLongPressBook(item)}
-              style={({ pressed }) => ({
-                width: tileWidth,
-                backgroundColor: colors.card,
-                borderRadius: radius.lg,
-                borderWidth: 1,
-                borderColor: colors.divider,
-                padding: spacing.sm,
-                gap: 6,
-                opacity: pressed ? 0.85 : 1,
-                ...shadow.sm,
-              })}
-            >
-              <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={coverWidth} height={coverHeight} hasImage={item.hasImage} />
-              <View style={{ minHeight: 44 }}>
-                <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16 }}>
-                  {item.name}
-                </ThemedText>
-                {item.writers.length > 0 && (
-                  <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 11, marginTop: 1 }}>
-                    {item.writers.join(", ")}
-                  </ThemedText>
-                )}
+            <Pressable onPress={() => openBook(item)} onLongPress={() => onLongPressBook(item)} style={({ pressed }) => ({ width: tileWidth, opacity: pressed ? 0.75 : 1 })}>
+              <View style={{ borderRadius: 6, backgroundColor: colors.card, ...shadow.md }}>
+                <BookCover id={item.id} title={item.name} author={item.writers.join(", ")} width={tileWidth} height={coverHeight} hasImage={item.hasImage} />
               </View>
+              <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 13, lineHeight: 17, marginTop: 8 }}>
+                {item.name}
+              </ThemedText>
+              {item.writers.length > 0 && (
+                <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 12, marginTop: 2 }}>
+                  {item.writers.join(", ")}
+                </ThemedText>
+              )}
             </Pressable>
           )}
         />
@@ -284,38 +249,44 @@ export default function KitapligimScreen() {
           keyExtractor={(item) => String(item.id)}
           ListHeaderComponent={header}
           ListEmptyComponent={empty}
-          contentContainerStyle={{ paddingBottom: spacing["3xl"] }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => openBook(item)}
-              onLongPress={() => onLongPressBook(item)}
-              style={({ pressed }) => ({
-                flexDirection: "row",
-                alignItems: "center",
-                gap: spacing.md,
-                marginHorizontal: spacing.lg,
-                marginBottom: spacing.sm,
-                padding: spacing.sm,
-                backgroundColor: pressed ? colors.neutral100 : colors.card,
-                borderRadius: radius.lg,
-                borderWidth: 1,
-                borderColor: colors.divider,
-                ...shadow.sm,
-              })}
-            >
-              <BookCover id={item.id} title={item.name} width={48} height={70} hasImage={item.hasImage} />
-              <View style={{ flex: 1, gap: 2 }}>
-                <ThemedText variant="title" numberOfLines={2}>{item.name}</ThemedText>
-                <ThemedText variant="caption" muted numberOfLines={1}>{item.writers.join(", ") || "Yazar bilinmiyor"}</ThemedText>
-              </View>
-              <View style={{ paddingVertical: 4, paddingHorizontal: 8, borderRadius: radius.pill, backgroundColor: colors.accent100 }}>
-                <ThemedText variant="caption" color={colors.accent700} style={{ fontSize: 11 }}>
-                  {TABS.find((t) => t.key === active)?.label}
-                </ThemedText>
-              </View>
-            </Pressable>
-          )}
+          ListFooterComponent={footer}
+          contentContainerStyle={{ paddingTop: spacing.xs, paddingBottom: spacing["3xl"] }}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refresh}
+          renderItem={({ item, index }) => {
+            const first = index === 0;
+            const last = index === items.length - 1;
+            return (
+              <Pressable
+                onPress={() => openBook(item)}
+                onLongPress={() => onLongPressBook(item)}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: spacing.md,
+                  marginHorizontal: spacing.lg,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: 10,
+                  backgroundColor: pressed ? colors.neutral100 : colors.card,
+                  borderTopLeftRadius: first ? radius.lg : 0,
+                  borderTopRightRadius: first ? radius.lg : 0,
+                  borderBottomLeftRadius: last ? radius.lg : 0,
+                  borderBottomRightRadius: last ? radius.lg : 0,
+                  borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
+                  borderBottomColor: colors.divider,
+                })}
+              >
+                <View style={{ borderRadius: 4, ...shadow.sm }}>
+                  <BookCover id={item.id} title={item.name} width={50} height={75} hasImage={item.hasImage} />
+                </View>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <ThemedText variant="title" numberOfLines={2} style={{ fontSize: 15.5 }}>{item.name}</ThemedText>
+                  <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 13 }}>{item.writers.join(", ") || "Yazar bilinmiyor"}</ThemedText>
+                </View>
+                <ChevronRightIcon size={18} color={colors.neutral400} />
+              </Pressable>
+            );
+          }}
         />
       )}
     </SafeAreaView>
