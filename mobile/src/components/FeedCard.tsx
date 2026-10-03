@@ -1,6 +1,6 @@
 import { mediaUrl } from "@/lib/media";
-import { useState } from "react";
-import { View, Pressable, Image, Alert, ScrollView } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Pressable, Image, Alert, ScrollView, StyleSheet } from "react-native";
 import { router, type Href } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -11,8 +11,6 @@ import {
   ChevronRightIcon,
   StarIcon,
   BookOpenIcon,
-  BookmarkIcon,
-  CheckCircle2Icon,
   LibraryIcon,
   UsersIcon,
   UserPlusIcon,
@@ -22,7 +20,6 @@ import {
   AwardIcon,
   TargetIcon,
   QuoteIcon,
-  TrendingUpIcon,
 } from "lucide-react-native";
 import type { FeedItem, FeedReply } from "@/api/feed";
 import { reactToComment, reactToFeedPost, replyToFeedItem } from "@/api/feed";
@@ -49,13 +46,13 @@ function ActorHeader({ item, subtitle, onMore }: { item: FeedItem; subtitle: Rea
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg }}>
       <Pressable onPress={() => router.push(actorProfileHref(item))}>
-        <Avatar id={item.actorId} name={item.actorUsername} imageUrl={item.actorImage} size={42} frameColor={item.profileFrame} frameTier={item.frameTier} />
+        <Avatar id={item.actorId} name={item.actorUsername} imageUrl={item.actorImage} size={40} frameColor={item.profileFrame} frameTier={item.frameTier} />
       </Pressable>
       <View style={{ flex: 1 }}>
-        <ThemedText variant="bodySemibold" style={{ fontSize: 15.5 }} onPress={() => router.push(actorProfileHref(item))} numberOfLines={1}>
+        <ThemedText variant="bodySemibold" style={{ fontSize: 15 }} onPress={() => router.push(actorProfileHref(item))} numberOfLines={1}>
           {item.actorUsername}
         </ThemedText>
-        <ThemedText variant="caption" muted numberOfLines={2} style={{ fontSize: 12.5, marginTop: 1 }}>
+        <ThemedText variant="caption" muted numberOfLines={2} style={{ fontSize: 13, marginTop: 1 }}>
           {subtitle}
         </ThemedText>
       </View>
@@ -81,13 +78,13 @@ function moreMenu(item: FeedItem) {
   });
 }
 
-/** Tappable book attachment - gray inset box, like a link preview on Facebook. */
-function BookAttachment({ item, large }: { item: FeedItem; large?: boolean }) {
-  const { colors, spacing, radius } = useTheme();
+/** Tappable book attachment - a link-preview style card. `rating` is the actor's own score, shown as a badge. */
+function BookAttachment({ item, large, rating }: { item: FeedItem; large?: boolean; rating?: number | null }) {
+  const { colors, spacing, radius, shadow } = useTheme();
   const href = resolveFeedTargetHref(item);
   if (!item.bookCover && item.entityKind !== "book") return null;
   const coverUrl = item.bookCover?.hasImage ? `${API_BASE_URL}/kapak/${item.bookCover.id}` : null;
-  const w = large ? 72 : 52;
+  const w = large ? 76 : 56;
   const score = item.bookCover?.score ?? 0;
 
   return (
@@ -99,30 +96,46 @@ function BookAttachment({ item, large }: { item: FeedItem; large?: boolean }) {
         alignItems: "center",
         gap: spacing.md,
         marginHorizontal: spacing.lg,
-        padding: spacing.sm,
+        padding: spacing.md,
         borderRadius: radius.lg,
-        backgroundColor: pressed ? colors.neutral300 : colors.neutral100,
-        borderWidth: 1,
-        borderColor: colors.divider,
+        backgroundColor: pressed ? colors.neutral300 : colors.neutral200,
       })}
     >
-      <View style={{ borderRadius: 5 }}>
-        <BookCover id={item.bookCover?.id ?? item.id} title={item.targetLabel ?? ""} width={w} height={Math.round(w * 1.48)} imageUrl={coverUrl} />
+      <View style={{ borderRadius: 4, ...shadow.md }}>
+        <BookCover id={item.bookCover?.id ?? item.id} title={item.targetLabel ?? ""} width={w} height={Math.round(w * 1.5)} imageUrl={coverUrl} />
       </View>
-      <View style={{ flex: 1, gap: 3 }}>
-        <ThemedText variant="label" color={colors.accent} style={{ fontSize: 10 }}>Kitap</ThemedText>
-        <ThemedText variant="title" numberOfLines={2} style={{ fontSize: large ? 17 : 15.5 }}>{item.targetLabel}</ThemedText>
-        {score > 0 && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <StarIcon size={13} color={colors.accent} fill={colors.accent} />
-            <ThemedText variant="caption" color={colors.accent700} style={{ fontWeight: "600" }}>{score.toFixed(1)}/10</ThemedText>
-            <ThemedText variant="caption" muted>DKList puanı</ThemedText>
-          </View>
-        )}
+      <View style={{ flex: 1, gap: 6 }}>
+        <ThemedText variant="title" numberOfLines={2} style={{ fontSize: large ? 17 : 15.5, lineHeight: large ? 22 : 20 }}>{item.targetLabel}</ThemedText>
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+          {score > 0 && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+              <StarIcon size={13} color={colors.accent} fill={colors.accent} />
+              <ThemedText variant="caption" color={colors.text} style={{ fontWeight: "600" }}>{score.toFixed(1)}</ThemedText>
+              <ThemedText variant="caption" muted>DKList</ThemedText>
+            </View>
+          )}
+          {rating != null && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingVertical: 2, paddingHorizontal: 8, borderRadius: radius.pill, backgroundColor: colors.accent }}>
+              <StarIcon size={11} color="#fff" fill="#fff" />
+              <ThemedText variant="caption" color="#fff" style={{ fontWeight: "700", fontSize: 12 }}>{rating}/10</ThemedText>
+            </View>
+          )}
+        </View>
+        {href && <ThemedText variant="caption" color={colors.accent700} style={{ fontWeight: "600" }}>Kitabı incele</ThemedText>}
       </View>
       <ChevronRightIcon size={18} color={colors.textMuted} />
     </Pressable>
   );
+}
+
+/** Post photo at its real aspect ratio (clamped so a tall phone shot doesn't fill the screen). */
+function PostImage({ uri }: { uri: string }) {
+  const { colors } = useTheme();
+  const [ratio, setRatio] = useState(4 / 3);
+  useEffect(() => {
+    Image.getSize(uri, (w, h) => h > 0 && setRatio(Math.min(1.9, Math.max(0.8, w / h))), () => {});
+  }, [uri]);
+  return <Image source={{ uri }} style={{ width: "100%", aspectRatio: ratio, backgroundColor: colors.surface }} resizeMode="cover" />;
 }
 
 const ENTITY_ICON: Record<string, typeof UsersIcon> = {
@@ -144,7 +157,7 @@ function EntityAttachment({ item }: { item: FeedItem }) {
     <Pressable
       disabled={!href}
       onPress={() => href && router.push(href)}
-      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral300 : colors.neutral100, borderWidth: 1, borderColor: colors.divider })}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}
     >
       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
         <Icon size={21} color={colors.accent} />
@@ -161,10 +174,10 @@ function ActionButton({ icon, label, color, onPress, disabled }: { icon: React.R
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingVertical: 9, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral200 : "transparent" })}
+      style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: radius.md, backgroundColor: pressed ? colors.neutral200 : "transparent" })}
     >
       {icon}
-      <ThemedText variant="bodySemibold" color={color} style={{ fontSize: 13.5 }}>{label}</ThemedText>
+      <ThemedText variant="body" color={color} style={{ fontSize: 13.5, fontWeight: "500" }}>{label}</ThemedText>
     </Pressable>
   );
 }
@@ -282,7 +295,7 @@ export function PostCard({ item }: { item: FeedItem }) {
         </ThemedText>
       ) : null}
 
-      {item.feedPostImage && <Image source={{ uri: mediaUrl(item.feedPostImage)! }} style={{ width: "100%", aspectRatio: 4 / 3, backgroundColor: colors.surface }} resizeMode="cover" />}
+      {item.feedPostImage && <PostImage uri={mediaUrl(item.feedPostImage)!} />}
 
       {item.entityKind === "book" && <BookAttachment item={item} />}
 
@@ -309,7 +322,7 @@ export function PostCard({ item }: { item: FeedItem }) {
               )}
             </View>
           )}
-          <View style={{ height: 1, backgroundColor: colors.divider }} />
+          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.divider }} />
           <View style={{ flexDirection: "row", paddingVertical: 3 }}>
             <ActionButton
               onPress={onToggleLike}
@@ -327,7 +340,7 @@ export function PostCard({ item }: { item: FeedItem }) {
             />
           </View>
 
-          {(replies.length > 0 || composing) && <View style={{ height: 1, backgroundColor: colors.divider }} />}
+          {(replies.length > 0 || composing) && <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.divider }} />}
 
           {replies.length > 0 && (
             <View style={{ gap: spacing.sm, paddingTop: spacing.sm }}>
@@ -395,26 +408,17 @@ export function MilestoneCard({ item }: { item: FeedItem }) {
   );
 }
 
-const ACTION_ICON: Partial<Record<FeedItem["reason"], typeof HeartIcon>> = {
-  like: HeartIcon,
-  reading_status: BookOpenIcon,
-  rating: StarIcon,
-  book_read: CheckCircle2Icon,
-  library_add: LibraryIcon,
-  reading_progress: TrendingUpIcon,
-};
-
 /** One or more passive activities by the same person on the same target. */
 function SameTargetCard({ items }: { items: FeedItem[] }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing } = useTheme();
   const first = items[0];
   const multi = items.length > 1;
-  const href = resolveFeedTargetHref(first);
   const isBook = first.entityKind === "book";
   const subtitle = multi ? `${joinTr(items.map(shortAction))}` : describeFeedItem(first).verb.replace(/:$/, "");
+  const rating = items.find((i) => i.reason === "rating" && i.ratingValue != null)?.ratingValue ?? null;
 
   return (
-    <View style={{ backgroundColor: colors.card, paddingTop: spacing.md, paddingBottom: isBook ? 4 : spacing.md, gap: spacing.md }}>
+    <View style={{ backgroundColor: colors.card, paddingVertical: spacing.md, gap: spacing.md }}>
       <ActorHeader
         item={first}
         onMore={() => moreMenu(first)}
@@ -424,38 +428,7 @@ function SameTargetCard({ items }: { items: FeedItem[] }) {
           </>
         }
       />
-      {isBook ? <BookAttachment item={first} large /> : <EntityAttachment item={first} />}
-
-      {multi && isBook && (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: spacing.lg }}>
-          {items.map((i) => {
-            const Icon = ACTION_ICON[i.reason] ?? BookmarkIcon;
-            return (
-              <View key={i.id} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 5, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: colors.accent100 }}>
-                <Icon size={13} color={colors.accent700} fill={i.reason === "like" || i.reason === "rating" ? colors.accent700 : "transparent"} />
-                <ThemedText variant="caption" color={colors.accent800} style={{ fontWeight: "600" }}>
-                  {shortAction(i).replace(/^./, (c) => c.toLocaleUpperCase("tr-TR"))}
-                </ThemedText>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {isBook && href && (
-        <View style={{ paddingHorizontal: spacing.lg }}>
-          <View style={{ height: 1, backgroundColor: colors.divider }} />
-          <View style={{ flexDirection: "row", paddingVertical: 3 }}>
-            <ActionButton onPress={() => router.push(href)} icon={<BookOpenIcon size={18} color={colors.textMuted} />} label="Kitabı İncele" color={colors.textMuted} />
-            <ActionButton
-              onPress={() => void shareLink(first.targetLabel ?? "", shareUrl(first))}
-              icon={<Share2Icon size={18} color={colors.textMuted} />}
-              label="Paylaş"
-              color={colors.textMuted}
-            />
-          </View>
-        </View>
-      )}
+      {isBook ? <BookAttachment item={first} large rating={rating} /> : <EntityAttachment item={first} />}
     </View>
   );
 }

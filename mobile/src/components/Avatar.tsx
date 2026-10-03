@@ -153,7 +153,7 @@ export function Avatar({
           end={{ x: 0.85, y: 1 }}
           style={{ width: size, height: size, borderRadius: size / 2, alignItems: "center", justifyContent: "center" }}
         >
-          <Text style={{ fontFamily: fontFamily.headingSemibold, fontSize: Math.max(10, size * 0.34), color: "#ffffff" }}>
+          <Text style={{ fontFamily: fontFamily.bodySemibold, fontSize: Math.max(10, size * 0.34), color: "#ffffff" }}>
             {initialsOf(name)}
           </Text>
         </LinearGradient>

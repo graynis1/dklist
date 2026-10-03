@@ -11,7 +11,8 @@ import {
   CormorantGaramond_600SemiBold,
   CormorantGaramond_600SemiBold_Italic,
 } from "@expo-google-fonts/cormorant-garamond";
-import { useFonts as useLoraFonts, Lora_400Regular, Lora_600SemiBold } from "@expo-google-fonts/lora";
+import { useFonts as useLoraFonts, Lora_400Regular, Lora_400Regular_Italic, Lora_600SemiBold } from "@expo-google-fonts/lora";
+import { useFonts as useInterFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from "@expo-google-fonts/inter";
 import { AuthProvider, useAuth } from "@/auth/AuthContext";
 import { OnboardingProvider, useOnboarding } from "@/auth/OnboardingContext";
 import { BottomTabBar } from "@/components/BottomTabBar";
@@ -31,8 +32,9 @@ export default function RootLayout() {
     CormorantGaramond_600SemiBold,
     CormorantGaramond_600SemiBold_Italic,
   });
-  const [loraLoaded] = useLoraFonts({ Lora_400Regular, Lora_600SemiBold });
-  const fontsReady = cormorantLoaded && loraLoaded;
+  const [loraLoaded] = useLoraFonts({ Lora_400Regular, Lora_400Regular_Italic, Lora_600SemiBold });
+  const [interLoaded] = useInterFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold });
+  const fontsReady = cormorantLoaded && loraLoaded && interLoaded;
 
   useEffect(() => {
     if (fontsReady) SplashScreen.hideAsync().catch(() => {});

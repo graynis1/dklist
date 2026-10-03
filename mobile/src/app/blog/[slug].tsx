@@ -112,7 +112,7 @@ export default function BlogDetailScreen() {
 
         <View style={{ backgroundColor: colors.card, padding: spacing.lg, gap: spacing.md, ...shadow.sm }}>
           <ThemedText variant="label" color={colors.accent}>Blog</ThemedText>
-          <ThemedText variant="headline" style={{ fontSize: 30, lineHeight: 36 }}>{blog.title}</ThemedText>
+          <ThemedText variant="bookTitle" style={{ fontSize: 32, lineHeight: 37 }}>{blog.title}</ThemedText>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
             <Pressable onPress={goAuthor}>

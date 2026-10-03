@@ -1,12 +1,10 @@
 /**
- * Design tokens ported 1:1 from the reference design (`referans/DKList iOS
- * App.dc.html` + its linked `_ds/classical-.../styles.css`) - not
- * reinterpreted. Same hex values, same tight "classical" radii (2/4/7px,
- * deliberately NOT the bouncy 12-24px radii most mobile UIs default to),
- * same bronze/gold single accent. Extended here only where the reference
- * (a static web mockup) didn't need to decide something a real app must
- * (platform shadow/elevation, RN font-weight numerics instead of CSS
- * font-weight keywords).
+ * Design tokens. Started as a 1:1 port of the web reference (tight 2-7px
+ * radii, serif everywhere); revised 2026-10 after the maintainer judged the
+ * app amateurish next to Goodreads/StoryGraph/1000Kitap. The bronze accent
+ * ramp is the brand and stays; the UI now uses a sans-serif (Inter) with
+ * the serif kept for brand/display moments, a warm paper background,
+ * hairline dividers, native-feeling radii and soft shadows.
  */
 
 export interface ThemeColors {
@@ -39,22 +37,22 @@ export interface ThemeColors {
 
 export const palette: { light: ThemeColors; dark: ThemeColors } = {
   light: {
-    bg: "#f3f2f2",
-    surface: "#eae9e9",
-    text: "#201f1d",
-    textMuted: "#605d5d",
-    divider: "rgba(32,31,29,0.16)",
+    bg: "#f5f3ef",
+    surface: "#eeebe5",
+    text: "#1c1a17",
+    textMuted: "#6e6961",
+    divider: "rgba(28,26,23,0.09)",
     card: "#ffffff",
     accent: "#b68235",
-    neutral100: "#f8f4f4",
-    neutral200: "#eae7e7",
-    neutral300: "#d7d3d3",
-    neutral400: "#bab6b6",
-    neutral500: "#9b9797",
-    neutral600: "#7d7979",
-    neutral700: "#605d5d",
-    neutral800: "#444141",
-    neutral900: "#2d2b2b",
+    neutral100: "#f8f6f3",
+    neutral200: "#efece7",
+    neutral300: "#dedad3",
+    neutral400: "#bdb7ae",
+    neutral500: "#9c968c",
+    neutral600: "#7d776e",
+    neutral700: "#5f5a52",
+    neutral800: "#423e38",
+    neutral900: "#2b2824",
     accent100: "#fff3e4",
     accent200: "#ffe3bf",
     accent300: "#facb8d",
@@ -66,12 +64,12 @@ export const palette: { light: ThemeColors; dark: ThemeColors } = {
     accent900: "#3a270d",
   },
   dark: {
-    bg: "#141210",
-    surface: "#211d16",
-    text: "#efe9de",
-    textMuted: "#9a9184",
-    divider: "#3a352c",
-    card: "#211d16",
+    bg: "#121110",
+    surface: "#1d1b18",
+    text: "#f1ece4",
+    textMuted: "#9d968b",
+    divider: "rgba(241,236,228,0.10)",
+    card: "#1c1a17",
     // Same ramp, but the reference deliberately opens the accent up on dark
     // (lighter #e1ad66 as the "on-dark" primary tone rather than the light
     // theme's darker #b68235) - "aynı ton, dark üstünde açılır" per its own
@@ -99,18 +97,24 @@ export const palette: { light: ThemeColors; dark: ThemeColors } = {
 };
 
 /**
- * Cormorant Garamond (headings, display) + Lora (body) - both loaded via
- * @expo-google-fonts in `_layout.tsx`. RN's `fontWeight` is a string enum
- * ("400"/"600"/"700"...), not usable to pick a variable font's registered
- * weight the way CSS `font-weight` + one variable file can - each weight
- * needed is its own named font family from the *_google-fonts package.
+ * Inter for the interface (body, buttons, labels, metadata) + Cormorant
+ * Garamond for brand/display moments + Lora for long-form reading (blog
+ * bodies, quotes). Each weight is its own registered family - on Android a
+ * `fontWeight` on a custom font silently falls back to the system font, so
+ * ThemedText maps weights to these families instead.
  */
 export const fontFamily = {
   headingRegular: "CormorantGaramond_400Regular",
   headingSemibold: "CormorantGaramond_600SemiBold",
   headingSemiboldItalic: "CormorantGaramond_600SemiBold_Italic",
-  bodyRegular: "Lora_400Regular",
-  bodySemibold: "Lora_600SemiBold",
+  bodyRegular: "Inter_400Regular",
+  bodyMedium: "Inter_500Medium",
+  bodySemibold: "Inter_600SemiBold",
+  bodyBold: "Inter_700Bold",
+  bodyExtraBold: "Inter_800ExtraBold",
+  readingRegular: "Lora_400Regular",
+  readingItalic: "Lora_400Regular_Italic",
+  readingSemibold: "Lora_600SemiBold",
 } as const;
 
 export const spacing = {
@@ -123,13 +127,11 @@ export const spacing = {
   "3xl": 32,
 } as const;
 
-// Same tight radii as the web reference - the classical design system's
-// whole point is that it does NOT read as a default bouncy mobile UI.
 export const radius = {
-  sm: 2,
-  md: 5,
-  lg: 8,
-  xl: 14,
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 18,
   pill: 999,
 } as const;
 
@@ -143,18 +145,18 @@ export const radius = {
  */
 export const shadow = {
   sm: {
-    shadowColor: "#2d2b2b",
+    shadowColor: "#3a2f22",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.14,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+    elevation: 1,
   },
   md: {
-    shadowColor: "#2d2b2b",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowColor: "#3a2f22",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
   lg: {
     shadowColor: "#2d2b2b",

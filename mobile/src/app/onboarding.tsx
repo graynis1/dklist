@@ -33,7 +33,7 @@ const SLIDES = [
 ] as const;
 
 export default function OnboardingScreen() {
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors, spacing } = useTheme();
   const { markSeen } = useOnboarding();
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
@@ -90,7 +90,7 @@ export default function OnboardingScreen() {
               <item.icon color="#fff" size={52} strokeWidth={1.75} />
             </LinearGradient>
             <View style={{ gap: spacing.sm, alignItems: "center" }}>
-              <ThemedText variant="headline" style={{ textAlign: "center", fontFamily: fontFamily.headingSemibold }}>
+              <ThemedText variant="headline" style={{ textAlign: "center" }}>
                 {item.title}
               </ThemedText>
               <ThemedText variant="body" muted style={{ textAlign: "center" }}>

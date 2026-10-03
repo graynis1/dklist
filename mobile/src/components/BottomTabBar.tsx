@@ -78,7 +78,7 @@ export function BottomTabBar() {
             style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 3 }}
           >
             <tab.icon color={color} size={24} strokeWidth={2.25} />
-            <ThemedText variant="caption" color={color} style={{ fontFamily: fontFamily.headingSemibold, fontSize: 10.5 }}>
+            <ThemedText variant="caption" color={color} style={{ fontFamily: fontFamily.bodyMedium, fontSize: 10.5 }}>
               {tab.label}
             </ThemedText>
           </Pressable>
@@ -99,7 +99,7 @@ export function BottomTabBar() {
         <ThemedText
           variant="caption"
           color={pathname === "/profil" ? colors.accent : colors.neutral500}
-          style={{ fontFamily: fontFamily.headingSemibold, fontSize: 10.5 }}
+          style={{ fontFamily: fontFamily.bodyMedium, fontSize: 10.5 }}
         >
           Profil
         </ThemedText>

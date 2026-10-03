@@ -80,7 +80,7 @@ function Inline({ html, baseStyle }: { html: string; baseStyle: object }) {
         key={key++}
         onPress={link ? () => Linking.openURL(link).catch(() => {}) : undefined}
         style={{
-          fontFamily: bold ? fontFamily.bodySemibold : fontFamily.bodyRegular,
+          fontFamily: bold ? fontFamily.readingSemibold : fontFamily.readingRegular,
           fontStyle: italic ? "italic" : "normal",
           textDecorationLine: underline || link ? "underline" : "none",
           color: link ? colors.accent700 : undefined,
@@ -109,7 +109,7 @@ function Inline({ html, baseStyle }: { html: string; baseStyle: object }) {
 export function RichText({ html }: { html: string }) {
   const { colors, spacing, fontFamily, radius } = useTheme();
   const blocks = toBlocks(html);
-  const body = { fontSize: 17, lineHeight: 28, color: colors.text, fontFamily: fontFamily.bodyRegular };
+  const body = { fontSize: 17, lineHeight: 28, color: colors.text, fontFamily: fontFamily.readingRegular };
 
   return (
     <View style={{ gap: spacing.md }}>

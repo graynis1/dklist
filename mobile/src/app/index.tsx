@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, FlatList, RefreshControl, Pressable, ScrollView, ActivityIndicator, Animated } from "react-native";
+import { View, FlatList, RefreshControl, Pressable, ScrollView, ActivityIndicator, Animated, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { BellIcon, SearchIcon, MessageCircleIcon, ImageIcon, BookIcon, ScanBarcodeIcon, PlusIcon, RssIcon, WifiOffIcon } from "lucide-react-native";
+import { BellIcon, SearchIcon, MessageCircleIcon, ImageIcon, ScanBarcodeIcon, PlusIcon, RssIcon, WifiOffIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
@@ -25,16 +25,37 @@ const FILTERS: { key: FeedFilter; label: string }[] = [
   { key: "community", label: "Topluluk" },
 ];
 
-function HeaderButton({ onPress, children, badge }: { onPress: () => void; children: React.ReactNode; badge?: number }) {
+function HeaderButton({ onPress, children, badge, label }: { onPress: () => void; children: React.ReactNode; badge?: number; label: string }) {
   const { colors } = useTheme();
   return (
-    <Pressable onPress={onPress} hitSlop={4} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral300 : colors.neutral200, alignItems: "center", justifyContent: "center" })}>
+    <Pressable onPress={onPress} hitSlop={6} accessibilityLabel={label} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral200 : "transparent", alignItems: "center", justifyContent: "center" })}>
       {children}
       {badge != null && badge > 0 && (
-        <View style={{ position: "absolute", top: -3, right: -3, minWidth: 19, height: 19, borderRadius: 10, paddingHorizontal: 4, backgroundColor: "#d93025", borderWidth: 2, borderColor: colors.card, alignItems: "center", justifyContent: "center" }}>
-          <ThemedText variant="caption" color="#fff" style={{ fontSize: 10, lineHeight: 12, fontWeight: "700" }}>{badge > 9 ? "9+" : badge}</ThemedText>
+        <View style={{ position: "absolute", top: 3, right: 1, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: "#e0393e", borderWidth: 2, borderColor: colors.card, alignItems: "center", justifyContent: "center" }}>
+          <ThemedText variant="caption" color="#fff" style={{ fontSize: 9.5, lineHeight: 11, fontWeight: "700" }}>{badge > 9 ? "9+" : badge}</ThemedText>
         </View>
       )}
+    </Pressable>
+  );
+}
+
+/** Instagram-style story bubble: reader's avatar in a bronze ring with the book they started as a corner badge. */
+function StoryBubble({ item }: { item: FeedItem }) {
+  const { colors } = useTheme();
+  const href = resolveFeedTargetHref(item);
+  return (
+    <Pressable onPress={() => href && router.push(href)} style={({ pressed }) => ({ width: 72, alignItems: "center", gap: 5, opacity: pressed ? 0.7 : 1 })}>
+      <View>
+        <LinearGradient colors={[colors.accent400, colors.accent700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 66, height: 66, borderRadius: 33, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 61, height: 61, borderRadius: 31, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" }}>
+            <Avatar id={item.actorId} name={item.actorUsername} imageUrl={item.actorImage} size={55} />
+          </View>
+        </LinearGradient>
+        <View style={{ position: "absolute", right: -4, bottom: -2, borderRadius: 3, borderWidth: 2, borderColor: colors.card, overflow: "hidden" }}>
+          <BookCover id={item.bookCover!.id} title={item.targetLabel ?? ""} width={22} height={32} imageUrl={item.bookCover!.hasImage ? `${API_BASE_URL}/kapak/${item.bookCover!.id}` : null} />
+        </View>
+      </View>
+      <ThemedText variant="caption" numberOfLines={1} style={{ fontSize: 11.5, maxWidth: 72 }}>{item.actorUsername}</ThemedText>
     </Pressable>
   );
 }
@@ -74,7 +95,7 @@ function SkeletonCard() {
 }
 
 export default function AkisScreen() {
-  const { colors, spacing, radius, shadow } = useTheme();
+  const { colors, spacing, radius } = useTheme();
   const { profile } = useAuth();
   const [items, setItems] = useState<FeedItem[]>([]);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -152,107 +173,78 @@ export default function AkisScreen() {
   }, [items]);
 
   const firstName = profile?.name?.split(" ")[0] ?? profile?.username ?? "";
-  const STORY_W = 104;
-  const STORY_H = 168;
 
   const header = (
     <View>
-      {/* Composer */}
-      <View style={{ backgroundColor: colors.card, paddingTop: spacing.md, marginBottom: 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg }}>
-          {profile && (
-            <Pressable onPress={() => router.push({ pathname: "/profil/[username]", params: { username: profile.username } })}>
-              <Avatar id={profile.id} name={profile.username} imageUrl={profile.image} size={42} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
-            </Pressable>
-          )}
-          <Pressable
-            onPress={() => router.push("/gonderi-yeni")}
-            style={({ pressed }) => ({ flex: 1, height: 42, borderRadius: 21, borderWidth: 1, borderColor: colors.divider, backgroundColor: pressed ? colors.neutral200 : colors.neutral100, justifyContent: "center", paddingHorizontal: 16 })}
-          >
-            <ThemedText variant="body" muted numberOfLines={1}>Ne okuyorsun, {firstName}?</ThemedText>
+      {/* Composer - one row, shortcuts inside it */}
+      <View style={{ backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        {profile && (
+          <Pressable onPress={() => router.push({ pathname: "/profil/[username]", params: { username: profile.username } })}>
+            <Avatar id={profile.id} name={profile.username} imageUrl={profile.image} size={40} frameColor={profile.profileFrame} frameTier={profile.frameTier} />
           </Pressable>
-        </View>
-        <View style={{ height: 1, backgroundColor: colors.divider, marginTop: spacing.md }} />
-        <View style={{ flexDirection: "row", paddingVertical: 4, paddingHorizontal: spacing.sm }}>
-          {[
-            { key: "photo", label: "Fotoğraf", Icon: ImageIcon, tint: "#3f8a5a", onPress: () => router.push({ pathname: "/gonderi-yeni", params: { action: "photo" } }) },
-            { key: "book", label: "Kitap", Icon: BookIcon, tint: colors.accent, onPress: () => router.push({ pathname: "/gonderi-yeni", params: { action: "book" } }) },
-            { key: "scan", label: "Barkod", Icon: ScanBarcodeIcon, tint: "#2f5d8a", onPress: () => router.push("/barkod") },
-          ].map((a) => (
-            <Pressable
-              key={a.key}
-              onPress={a.onPress}
-              style={({ pressed }) => ({ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingVertical: 9, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral200 : "transparent" })}
-            >
-              <a.Icon size={20} color={a.tint} />
-              <ThemedText variant="bodySemibold" color={colors.textMuted} style={{ fontSize: 13.5 }}>{a.label}</ThemedText>
-            </Pressable>
-          ))}
-        </View>
+        )}
+        <Pressable
+          onPress={() => router.push("/gonderi-yeni")}
+          style={({ pressed }) => ({ flex: 1, height: 40, borderRadius: 20, backgroundColor: pressed ? colors.neutral300 : colors.neutral200, justifyContent: "center", paddingHorizontal: 16 })}
+        >
+          <ThemedText variant="body" muted numberOfLines={1} style={{ fontSize: 14.5 }}>Ne okuyorsun, {firstName}?</ThemedText>
+        </Pressable>
+        <Pressable onPress={() => router.push({ pathname: "/gonderi-yeni", params: { action: "photo" } })} hitSlop={6} accessibilityLabel="Fotoğraf paylaş" style={{ padding: 4 }}>
+          <ImageIcon size={23} color="#3f8a5a" />
+        </Pressable>
+        <Pressable onPress={() => router.push("/barkod")} hitSlop={6} accessibilityLabel="Barkod tara" style={{ padding: 4 }}>
+          <ScanBarcodeIcon size={23} color={colors.accent} />
+        </Pressable>
       </View>
 
-      {/* Now reading strip */}
-      <View style={{ backgroundColor: colors.card, paddingVertical: spacing.md, marginBottom: 8, gap: spacing.sm }}>
-        <ThemedText variant="title" style={{ paddingHorizontal: spacing.lg, fontSize: 16.5 }}>Şu an okunanlar</ThemedText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg }}>
-          <Pressable onPress={() => router.push("/kitapligim")} style={{ width: STORY_W, height: STORY_H, borderRadius: 12, overflow: "hidden", backgroundColor: colors.neutral100, borderWidth: 1, borderColor: colors.divider }}>
-            <View style={{ height: STORY_H * 0.62, alignItems: "center", justifyContent: "center", backgroundColor: colors.accent100 }}>
-              {profile && <Avatar id={profile.id} name={profile.username} imageUrl={profile.image} size={58} />}
+      {/* Now reading - compact story rings */}
+      <View style={{ backgroundColor: colors.card, paddingTop: spacing.xs, paddingBottom: spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.divider }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: spacing.md, paddingTop: spacing.sm }}>
+          <Pressable onPress={() => router.push({ pathname: "/gonderi-yeni", params: { action: "book" } })} style={({ pressed }) => ({ width: 72, alignItems: "center", gap: 5, opacity: pressed ? 0.7 : 1 })}>
+            <View>
+              <View style={{ width: 66, height: 66, borderRadius: 33, alignItems: "center", justifyContent: "center" }}>
+                {profile && <Avatar id={profile.id} name={profile.username} imageUrl={profile.image} size={60} />}
+              </View>
+              <View style={{ position: "absolute", right: 0, bottom: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.accent, borderWidth: 2.5, borderColor: colors.card, alignItems: "center", justifyContent: "center" }}>
+                <PlusIcon size={13} color="#fff" strokeWidth={3} />
+              </View>
             </View>
-            <View style={{ position: "absolute", top: STORY_H * 0.62 - 17, alignSelf: "center", width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.card, alignItems: "center", justifyContent: "center" }}>
-              <PlusIcon size={18} color="#fff" strokeWidth={3} />
-            </View>
-            <View style={{ flex: 1, justifyContent: "flex-end", padding: 8 }}>
-              <ThemedText variant="bodySemibold" style={{ fontSize: 12.5, textAlign: "center" }} numberOfLines={2}>Ne okuyorsun?</ThemedText>
-            </View>
+            <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 11.5 }}>Okuduğun</ThemedText>
           </Pressable>
-          {nowReading.map((i) => {
-            const href = resolveFeedTargetHref(i);
+          {nowReading.map((i) => <StoryBubble key={i.id} item={i} />)}
+        </ScrollView>
+      </View>
+
+      {/* Filters */}
+      <View style={{ backgroundColor: colors.card, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.divider, marginBottom: 8 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: spacing.lg, paddingVertical: 10, alignItems: "center" }}>
+          {FILTERS.map((f) => {
+            const on = filter === f.key;
             return (
-              <Pressable key={i.id} onPress={() => href && router.push(href)} style={{ width: STORY_W, height: STORY_H, borderRadius: 12, overflow: "hidden", ...shadow.sm }}>
-                <BookCover id={i.bookCover!.id} title={i.targetLabel ?? ""} width={STORY_W} height={STORY_H} imageUrl={i.bookCover!.hasImage ? `${API_BASE_URL}/kapak/${i.bookCover!.id}` : null} />
-                <LinearGradient colors={["rgba(0,0,0,0.35)", "transparent", "rgba(0,0,0,0.75)"]} locations={[0, 0.4, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
-                <View style={{ position: "absolute", top: 8, left: 8, borderRadius: 20, borderWidth: 2.5, borderColor: colors.accent400 }}>
-                  <Avatar id={i.actorId} name={i.actorUsername} imageUrl={i.actorImage} size={32} />
-                </View>
-                <View style={{ position: "absolute", left: 8, right: 8, bottom: 8 }}>
-                  <ThemedText variant="bodySemibold" color="#fff" numberOfLines={1} style={{ fontSize: 12.5 }}>{i.actorUsername}</ThemedText>
-                  <ThemedText variant="caption" color="rgba(255,255,255,0.85)" numberOfLines={1} style={{ fontSize: 10.5 }}>{i.targetLabel}</ThemedText>
-                </View>
+              <Pressable key={f.key} onPress={() => setFilter(f.key)} style={{ height: 32, justifyContent: "center", paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: on ? colors.text : colors.neutral200 }}>
+                <ThemedText variant="bodySemibold" color={on ? colors.card : colors.text} style={{ fontSize: 13 }}>{f.label}</ThemedText>
               </Pressable>
             );
           })}
         </ScrollView>
       </View>
-
-      {/* Filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: spacing.xs, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, alignItems: "center" }}>
-        {FILTERS.map((f) => {
-          const on = filter === f.key;
-          return (
-            <Pressable key={f.key} onPress={() => setFilter(f.key)} style={{ paddingVertical: 7, paddingHorizontal: 15, borderRadius: radius.pill, backgroundColor: on ? colors.accent : colors.card, borderWidth: 1, borderColor: on ? colors.accent : colors.divider }}>
-              <ThemedText variant="bodySemibold" color={on ? "#fff" : colors.text} style={{ fontSize: 13.5 }}>{f.label}</ThemedText>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
     </View>
   );
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.card }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.sm, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.divider }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 2, paddingLeft: spacing.lg, paddingRight: spacing.sm, height: 52, backgroundColor: colors.card, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.divider }}>
         <Pressable onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} style={{ flex: 1 }}>
-          <ThemedText variant="display" color={colors.accent} style={{ fontSize: 30 }}>dklist</ThemedText>
+          <ThemedText variant="brand" color={colors.accent} style={{ fontSize: 32, marginTop: -4 }}>dklist</ThemedText>
         </Pressable>
-        <HeaderButton onPress={() => router.push("/kesfet")}>
-          <SearchIcon size={20} color={colors.text} />
+        <HeaderButton label="Ara" onPress={() => router.push("/kesfet")}>
+          <SearchIcon size={23} color={colors.text} strokeWidth={2} />
         </HeaderButton>
-        <HeaderButton onPress={() => router.push("/bildirimler")} badge={unreadCount}>
-          <BellIcon size={20} color={colors.text} />
+        <HeaderButton label="Bildirimler" onPress={() => router.push("/bildirimler")} badge={unreadCount}>
+          <BellIcon size={23} color={colors.text} strokeWidth={2} />
         </HeaderButton>
-        <HeaderButton onPress={() => router.replace("/mesajlar")}>
-          <MessageCircleIcon size={20} color={colors.text} />
+        <HeaderButton label="Mesajlar" onPress={() => router.replace("/mesajlar")}>
+          <MessageCircleIcon size={23} color={colors.text} strokeWidth={2} />
         </HeaderButton>
       </View>
 
