@@ -132,7 +132,7 @@ async function Results({
                 <div className="flex items-center gap-1 text-xs">
                   <StarRating value={book.score} />
                   <span className="text-muted-foreground">
-                    {book.score.toFixed(1)}/10
+                    {book.score.toFixed(1)}
                   </span>
                 </div>
               </div>
@@ -167,7 +167,7 @@ async function Results({
                 <div className="flex items-center gap-1 text-xs">
                   <StarRating value={book.score} />
                   <span className="text-muted-foreground">
-                    {book.score.toFixed(1)}/10
+                    {book.score.toFixed(1)}
                   </span>
                 </div>
               </div>

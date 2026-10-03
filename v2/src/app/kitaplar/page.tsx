@@ -152,7 +152,7 @@ async function BookListContent({
                   </p>
                   <div className="flex items-center gap-1 text-[0.7rem]">
                     <StarRating value={b.score} />
-                    <span className="text-muted-foreground">{b.score.toFixed(1)}/10</span>
+                    <span className="text-muted-foreground">{b.score.toFixed(1)}</span>
                   </div>
                 </div>
               </Link>

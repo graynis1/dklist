@@ -120,7 +120,7 @@ async function TranslatorContent({
           </h1>
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={translator.score} />
-            <span className="font-medium">{translator.score.toFixed(1)}/10</span>
+            <span className="font-medium">{translator.score.toFixed(1)}</span>
             {ratingCount > 0 && (
               <span className="text-muted-foreground">({ratingCount} oy)</span>
             )}
@@ -186,7 +186,7 @@ async function TranslatorContent({
                 <div className="flex items-center gap-1 text-xs">
                   <StarRating value={book.score} />
                   <span className="text-muted-foreground">
-                    {book.score.toFixed(1)}/10
+                    {book.score.toFixed(1)}
                   </span>
                 </div>
               </div>

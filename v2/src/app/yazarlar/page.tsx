@@ -88,7 +88,7 @@ async function WriterList({
                   <span className="truncate text-sm font-medium">{w.name}</span>
                   <div className="flex items-center gap-1 text-xs">
                     <StarRating value={w.score} />
-                    <span className="text-muted-foreground">{w.score.toFixed(1)}/10</span>
+                    <span className="text-muted-foreground">{w.score.toFixed(1)}</span>
                   </div>
                 </div>
               </Link>

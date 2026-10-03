@@ -109,7 +109,7 @@ async function ListDetailContent({
                   </p>
                   <div className="flex items-center gap-1 text-xs">
                     <StarRating value={b.score} />
-                    <span className="text-muted-foreground">{b.score.toFixed(1)}/10</span>
+                    <span className="text-muted-foreground">{b.score.toFixed(1)}</span>
                   </div>
                 </div>
               </Link>

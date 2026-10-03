@@ -13,12 +13,15 @@ import type { ReactNode } from "react";
  * shows a single star icon + "X.X/10" text instead) - kept the 5-glyph shape
  * since every caller already lays out around it, just fixed the scale.
  */
+/**
+ * Customer (2026-10-01): use the same "★ 9.0 (N oy)" style everywhere -
+ * one gold star in front of the number - instead of a 5-glyph bar plus
+ * "X.X/10". Callers print the number (and vote count) right after this.
+ */
 export function StarRating({ value }: { value: number }) {
-  const full = Math.min(5, Math.max(0, Math.round(value / 2)));
   return (
-    <span className="text-primary" aria-hidden>
-      {"★".repeat(full)}
-      <span className="text-muted-foreground/40">{"★".repeat(5 - full)}</span>
+    <span className={value > 0 ? "text-amber-500" : "text-muted-foreground/40"} aria-hidden>
+      ★
     </span>
   );
 }

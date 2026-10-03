@@ -70,7 +70,7 @@ function WriterBookCard({
           <p className="truncate text-sm font-medium">{front.name}</p>
           <div className="flex items-center gap-1 text-xs">
             <StarRating value={front.score} />
-            <span className="text-muted-foreground">{front.score.toFixed(1)}/10</span>
+            <span className="text-muted-foreground">{front.score.toFixed(1)}</span>
           </div>
         </div>
       </Link>

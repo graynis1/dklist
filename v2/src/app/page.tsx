@@ -143,7 +143,7 @@ async function FeaturedSection() {
           <p className="text-lg text-muted-foreground">{writerNames}</p>
           <div className="flex items-center gap-2 text-sm">
             <StarRating value={featuredScore} />
-            <span className="font-medium">{featuredScore.toFixed(1)}/10</span>
+            <span className="font-medium">{featuredScore.toFixed(1)}</span>
             <span className="text-muted-foreground">
               · {featured.viewCount.toLocaleString("tr-TR")} görüntülenme
             </span>
@@ -183,7 +183,7 @@ async function FeaturedSection() {
                   </p>
                   <div className="flex items-center gap-1 text-xs">
                     <StarRating value={displayScore} />
-                    <span className="text-muted-foreground">{displayScore.toFixed(1)}/10</span>
+                    <span className="text-muted-foreground">{displayScore.toFixed(1)}</span>
                   </div>
                 </div>
               </Link>

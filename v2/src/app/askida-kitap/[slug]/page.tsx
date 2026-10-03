@@ -149,7 +149,7 @@ async function StoreDetailContent({
             <span className="flex items-center gap-1">
               <StarRating value={item.ownerSellerScore} />
               <span className="text-xs">
-                {item.ownerSellerScore.toFixed(1)}/10 ({item.ownerSellerRatingCount})
+                Satıcı puanı {item.ownerSellerScore.toFixed(1)} ({item.ownerSellerRatingCount} değerlendirme)
               </span>
             </span>
           )}

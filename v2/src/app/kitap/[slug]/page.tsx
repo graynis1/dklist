@@ -75,7 +75,7 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/kit
   // real ⭐ character (follow-up ask: "görsel bir yıldız... daha görsel
   // bir koyulukta yazmalı") since a plain-text OG description can't use
   // an actual icon/bold styling - this is the one visual lever available.
-  const scoreLine = book.score > 0 ? `⭐ ${book.score.toFixed(1)}/10 · ` : "";
+  const scoreLine = book.score > 0 ? `⭐ ${book.score.toFixed(1)} · ` : "";
   const description = truncateDescription(
     quote
       ? `"${quote}" - ${book.name}${writerNames ? ` (${writerNames})` : ""} hakkında DKList'te paylaşıldı.`
@@ -316,8 +316,8 @@ async function BookDetailContent({
               <StarRating value={workPooledScore ? workPooledScore.avgScore : detail.score} />
               <span className="font-medium">
                 {workPooledScore
-                  ? `Kitap puanı ${workPooledScore.avgScore.toFixed(1)}/10 (${workPooledScore.editionCount} baskı)`
-                  : `${detail.score.toFixed(1)}/10`}
+                  ? `${workPooledScore.avgScore.toFixed(1)}`
+                  : `${detail.score.toFixed(1)}`}
               </span>
               {/* Real gap found while wiring this up: ratingCount was
                   already fetched but only ever used in the invisible
@@ -336,7 +336,7 @@ async function BookDetailContent({
               )}
               {workPooledScore && (
                 <span className="text-muted-foreground">
-                  · Bu baskının puanı {detail.score.toFixed(1)}/10
+                  · Bu baskının puanı {detail.score.toFixed(1)}
                   {ratingCount > 0 && ` (${ratingCount} oy)`}
                 </span>
               )}
@@ -525,7 +525,7 @@ async function BookDetailContent({
                       className="w-full"
                     />
                     <p className="truncate text-xs font-medium">{e.name}</p>
-                    <p className="text-[0.7rem] text-muted-foreground">{e.score.toFixed(1)}/10</p>
+                    <p className="text-[0.7rem] text-muted-foreground">{e.score.toFixed(1)}</p>
                   </Link>
                 ))}
               </div>
@@ -555,7 +555,7 @@ async function BookDetailContent({
                             className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-accent"
                           >
                             <span className="truncate text-primary hover:underline">{e.name}</span>
-                            <span className="shrink-0 text-xs text-muted-foreground">{e.score.toFixed(1)}/10</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{e.score.toFixed(1)}</span>
                           </Link>
                         ))}
                       </div>

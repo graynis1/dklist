@@ -89,7 +89,7 @@ async function TranslatorList({
                   <span className="truncate text-sm font-medium">{t.name}</span>
                   <div className="flex items-center gap-1 text-xs">
                     <StarRating value={t.score} />
-                    <span className="text-muted-foreground">{t.score.toFixed(1)}/10</span>
+                    <span className="text-muted-foreground">{t.score.toFixed(1)}</span>
                   </div>
                 </div>
               </Link>
