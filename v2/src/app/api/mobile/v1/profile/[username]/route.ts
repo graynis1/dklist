@@ -4,7 +4,12 @@ import {
   isFollowing,
   getUserBadges,
   getBooksByStatus,
+  getCurrentReadingGoal,
+  getPastReadingGoals,
+  getReadingScoreStats,
+  getMonthlyFinishedCounts,
 } from "@/db/queries/profile";
+import { getBlogsByOwner } from "@/db/queries/blog";
 import { isBlockedByMe } from "@/db/queries/blocks";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 import { getMobileSession } from "@/lib/mobile-auth";
@@ -30,9 +35,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
   ]);
 
   const canSeeLibrary = isSelf || !target.privacy || following;
-  const [badges, library] = canSeeLibrary
-    ? await Promise.all([getUserBadges(target.id), getBooksByStatus(target.id)])
-    : [[], null];
+  const year = String(new Date().getFullYear());
+  const [badges, library, readingGoal, pastGoals, stats, monthly, blogs] = canSeeLibrary
+    ? await Promise.all([
+        getUserBadges(target.id),
+        getBooksByStatus(target.id),
+        getCurrentReadingGoal(target.id),
+        getPastReadingGoals(target.id),
+        getReadingScoreStats(target.id, year),
+        getMonthlyFinishedCounts(target.id, year),
+        getBlogsByOwner(target.id, isSelf),
+      ])
+    : [[], null, null, [], null, null, []];
 
   const decorations = await getUserDecorations([target.id]);
   const { frameTier } = decorationFor(decorations, target.id);
@@ -47,6 +61,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
     canSeeLibrary,
     badges,
     library,
+    readingGoal,
+    pastGoals,
+    stats,
+    monthly,
+    blogs,
   });
 }
 

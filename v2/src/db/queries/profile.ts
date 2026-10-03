@@ -680,6 +680,19 @@ export async function getReadingScoreStats(userId: number, year: string): Promis
   };
 }
 
+/** Books finished per month of `year` (1-12), from read.finishedAt - rows
+ * finished before that column existed have no month and are left out. */
+export async function getMonthlyFinishedCounts(userId: number, year: string): Promise<number[]> {
+  const rows = await db
+    .select({ m: sql<number>`month(${read.finishedAt})`, n: sql<number>`count(*)` })
+    .from(read)
+    .where(and(eq(read.userId, userId), eq(read.status, "finishRead"), sql`year(${read.finishedAt}) = ${Number(year)}`))
+    .groupBy(sql`month(${read.finishedAt})`);
+  const months = Array.from({ length: 12 }, () => 0);
+  for (const r of rows) if (r.m >= 1 && r.m <= 12) months[r.m - 1] = Number(r.n);
+  return months;
+}
+
 export interface TopReader {
   id: number;
   username: string;
