@@ -186,8 +186,9 @@ export default function BildirimlerScreen() {
                     <Icon size={12} color="#fff" />
                   </View>
                 </View>
-                <ThemedText variant="body" style={{ flex: 1, lineHeight: 20, fontFamily: undefined }} numberOfLines={3}>
-                  {item.contentTr}
+                <ThemedText variant="body" style={{ flex: 1, lineHeight: 20, fontSize: 14.5 }} numberOfLines={3}>
+                  {item.senderUsername ? <ThemedText variant="bodySemibold" style={{ fontSize: 14.5 }}>{item.senderUsername} </ThemedText> : null}
+                  {item.senderUsername ? item.contentTr.replace(/^./, (c) => c.toLocaleLowerCase("tr-TR")) : item.contentTr}
                 </ThemedText>
                 {!item.view && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.accent }} />}
               </Pressable>

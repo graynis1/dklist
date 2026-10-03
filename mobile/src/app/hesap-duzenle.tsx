@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, ActivityIndicator, Switch, Alert, Share, Pressable, Modal, TextInput } from "react-native";
-import { MailCheckIcon, TriangleAlertIcon } from "lucide-react-native";
+import { MailCheckIcon, CameraIcon, LockIcon, ShieldCheckIcon, ShieldBanIcon, DownloadIcon, Trash2Icon, type LucideIcon } from "lucide-react-native";
+import { Group, Row, IconTile } from "@/components/ui";
 import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { deleteAccount, verifyEmail, resendVerificationEmail } from "@/api/auth";
 import * as ImagePicker from "expo-image-picker";
@@ -8,7 +9,6 @@ import { router } from "expo-router";
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
-import { TextField } from "@/components/TextField";
 import { Button } from "@/components/Button";
 import { Avatar } from "@/components/Avatar";
 import { getEditableProfile, updateAccount, uploadAvatar, getDataExport, type EditableProfile } from "@/api/accountEdit";
@@ -172,9 +172,9 @@ export default function HesapDuzenleScreen() {
 
   return (
     <KeyboardScreen style={{ flex: 1, backgroundColor: colors.bg }}>
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingVertical: spacing.lg, gap: spacing.xl, paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
       {authProfile?.mailVerified === false && (
-        <View style={{ padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.accent100, gap: spacing.sm }}>
+        <View style={{ marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.accent100, gap: spacing.sm }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
             <MailCheckIcon size={20} color={colors.accent700} />
             <ThemedText variant="bodySemibold" color={colors.accent800} style={{ flex: 1 }}>E-postanı doğrula</ThemedText>
@@ -198,50 +198,41 @@ export default function HesapDuzenleScreen() {
         </View>
       )}
 
-      <Pressable onPress={onPickAvatar} disabled={avatarUploading} style={{ alignItems: "center", gap: spacing.xs }}>
-        <Avatar id={authProfile?.id ?? 0} name={name || "?"} imageUrl={profile.image} size={84} />
-        <ThemedText variant="caption" color={colors.accent}>{avatarUploading ? "Yükleniyor…" : "Fotoğrafı Değiştir"}</ThemedText>
+      <Pressable onPress={onPickAvatar} disabled={avatarUploading} style={{ alignItems: "center", gap: spacing.sm, paddingVertical: spacing.sm }}>
+        <View>
+          <Avatar id={authProfile?.id ?? 0} name={name || "?"} imageUrl={profile.image} size={92} />
+          <View style={{ position: "absolute", right: 0, bottom: 0, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.accent, borderWidth: 3, borderColor: colors.bg, alignItems: "center", justifyContent: "center" }}>
+            {avatarUploading ? <ActivityIndicator size="small" color="#fff" /> : <CameraIcon size={14} color="#fff" />}
+          </View>
+        </View>
+        <ThemedText variant="body" color={colors.accent700} style={{ fontSize: 14, fontWeight: "600" }}>Fotoğrafı değiştir</ThemedText>
       </Pressable>
 
-      <TextField label="Ad" value={name} onChangeText={setName} />
-      <TextField label="Soyad" value={surname} onChangeText={setSurname} />
-      <TextField label="Şehir" value={livingCity} onChangeText={setLivingCity} />
-      <TextField label="Biyografi" value={biyo} onChangeText={setBiyo} multiline style={{ height: 90, textAlignVertical: "top", paddingTop: 10 }} />
-      <TextField label="Yeni Şifre (opsiyonel)" value={password} onChangeText={setPassword} secureTextEntry placeholder="Değiştirmek istemiyorsan boş bırak" />
+      <Group title="Profil">
+        <FieldRow label="Ad" value={name} onChangeText={setName} />
+        <FieldRow label="Soyad" value={surname} onChangeText={setSurname} />
+        <FieldRow label="Şehir" value={livingCity} onChangeText={setLivingCity} placeholder="Nerede yaşıyorsun?" />
+        <FieldRow label="Biyografi" value={biyo} onChangeText={setBiyo} placeholder="Kendinden ve okuma zevkinden bahset" multiline />
+      </Group>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View style={{ flex: 1 }}>
-          <ThemedText variant="bodySemibold">Gizli Profil</ThemedText>
-          <ThemedText variant="caption" muted>Takipçin olmayanlar kitaplığını/rozetlerini göremez.</ThemedText>
-        </View>
-        <Switch value={privacy} onValueChange={setPrivacy} trackColor={{ true: colors.accent }} />
+      <Group title="Gizlilik ve güvenlik">
+        <SwitchRow icon={LockIcon} title="Gizli profil" subtitle="Takipçin olmayanlar kitaplığını ve rozetlerini göremez" value={privacy} onChange={setPrivacy} />
+        <SwitchRow icon={ShieldCheckIcon} title="İki adımlı doğrulama" subtitle="Girişte e-posta koduyla ek doğrulama" value={twoFactorEnabled} onChange={setTwoFactorEnabled} />
+        <FieldRow label="Yeni şifre" value={password} onChangeText={setPassword} placeholder="Değiştirmeyeceksen boş bırak" secureTextEntry />
+      </Group>
+
+      <View style={{ paddingHorizontal: spacing.lg }}>
+        <Button title={saving ? "Kaydediliyor…" : "Değişiklikleri Kaydet"} onPress={onSave} disabled={saving} block />
       </View>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View style={{ flex: 1 }}>
-          <ThemedText variant="bodySemibold">İki Adımlı Doğrulama</ThemedText>
-          <ThemedText variant="caption" muted>Girişte e-posta koduyla ek doğrulama iste.</ThemedText>
-        </View>
-        <Switch value={twoFactorEnabled} onValueChange={setTwoFactorEnabled} trackColor={{ true: colors.accent }} />
-      </View>
+      <Group title="Veriler">
+        <Row icon={ShieldBanIcon} title="Engellenen kullanıcılar" onPress={() => router.push("/engellenenler")} />
+        <Row icon={DownloadIcon} title="Verilerimi indir" subtitle="KVKK kapsamında tüm verilerinin kopyası" onPress={onExportData} />
+      </Group>
 
-      <Button title="Kaydet" onPress={onSave} disabled={saving} block />
-
-      <View style={{ gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.md }}>
-        <Button title="Engellenen Kullanıcılar" variant="ghost" onPress={() => router.push("/engellenenler")} />
-        <Button title="Verilerimi İndir (KVKK)" variant="ghost" onPress={onExportData} />
-      </View>
-
-      <View style={{ gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: "#c0504d55" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-          <TriangleAlertIcon size={18} color="#c0504d" />
-          <ThemedText variant="bodySemibold" color="#c0504d">Tehlikeli Bölge</ThemedText>
-        </View>
-        <ThemedText variant="caption" muted>Hesabını sildiğinde kitaplığın, yorumların, gönderilerin ve mesajların kalıcı olarak silinir. Bu işlem geri alınamaz.</ThemedText>
-        <Pressable onPress={() => { setDeleteConfirm(""); setShowDelete(true); }} style={({ pressed }) => ({ alignItems: "center", paddingVertical: 11, borderRadius: radius.md, backgroundColor: pressed ? "#c0504d22" : "#c0504d14" })}>
-          <ThemedText variant="bodySemibold" color="#c0504d">Hesabımı Sil</ThemedText>
-        </Pressable>
-      </View>
+      <Group footer="Hesabını sildiğinde kitaplığın, yorumların, gönderilerin ve mesajların kalıcı olarak silinir. Bu işlem geri alınamaz.">
+        <Row icon={Trash2Icon} title="Hesabımı sil" destructive chevron={false} onPress={() => { setDeleteConfirm(""); setShowDelete(true); }} />
+      </Group>
     </ScrollView>
 
     <Modal visible={showDelete} transparent animationType="fade" onRequestClose={() => setShowDelete(false)}>
@@ -276,5 +267,38 @@ export default function HesapDuzenleScreen() {
       </KeyboardScreen>
     </Modal>
     </KeyboardScreen>
+  );
+}
+
+/** Label-left, input-right row inside a Group (iOS settings style). */
+function FieldRow({ label, value, onChangeText, placeholder, multiline, secureTextEntry }: { label: string; value: string; onChangeText: (v: string) => void; placeholder?: string; multiline?: boolean; secureTextEntry?: boolean }) {
+  const { colors, spacing } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: multiline ? "flex-start" : "center", paddingHorizontal: spacing.lg, minHeight: 52, paddingVertical: multiline ? 12 : 0, gap: spacing.md }}>
+      <ThemedText variant="body" style={{ width: 92, fontSize: 15, paddingTop: multiline ? 2 : 0 }}>{label}</ThemedText>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.neutral500}
+        multiline={multiline}
+        secureTextEntry={secureTextEntry}
+        style={{ flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", color: colors.text, paddingVertical: multiline ? 0 : 14, minHeight: multiline ? 72 : undefined, textAlignVertical: multiline ? "top" : "center" }}
+      />
+    </View>
+  );
+}
+
+function SwitchRow({ icon, title, subtitle, value, onChange }: { icon: LucideIcon; title: string; subtitle?: string; value: boolean; onChange: (v: boolean) => void }) {
+  const { colors, spacing } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: 10, minHeight: 56 }}>
+      <IconTile icon={icon} />
+      <View style={{ flex: 1 }}>
+        <ThemedText variant="body" style={{ fontSize: 15.5 }}>{title}</ThemedText>
+        {subtitle ? <ThemedText variant="caption" muted>{subtitle}</ThemedText> : null}
+      </View>
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent, false: colors.neutral300 }} thumbColor="#fff" />
+    </View>
   );
 }
