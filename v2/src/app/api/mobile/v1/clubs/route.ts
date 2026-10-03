@@ -1,5 +1,6 @@
 import { getClubList, createBookClub } from "@/db/queries/book-clubs";
 import { getMobileSession } from "@/lib/mobile-auth";
+import { clubImageUrl } from "@/lib/image-urls";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
 export async function GET(request: Request) {
@@ -7,7 +8,7 @@ export async function GET(request: Request) {
   const page = Number(searchParams.get("page") ?? "1") || 1;
   const search = searchParams.get("q") ?? "";
   const result = await getClubList(page, 20, search);
-  return mobileJson({ status: "ok", ...result });
+  return mobileJson({ status: "ok", ...result, items: result.items.map((c) => ({ ...c, image: c.image ? clubImageUrl(c.image) : null })) });
 }
 
 /** Real gap: web has a "Yeni Kulüp" creation page (kulup/yeni), mobile had

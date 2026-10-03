@@ -3,7 +3,8 @@ import { cacheLife, cacheTag } from "next/cache";
 import { invalidateTag } from "@/lib/cache-tag";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { bookClub, bookClubMember, bookClubJoinRequest, user, book, writerBook, writer } from "@/db/schema";
+import { bookClub, bookClubMember, bookClubJoinRequest, user, book, writerBook, writer, feedPost } from "@/db/schema";
+import { saveUploadedImage, deleteUploadedImage } from "@/lib/image-upload";
 import { isDuplicateKeyError } from "@/lib/db-errors";
 import { hasRole, USER_TYPES } from "@/lib/roles";
 import { awardPoints, getPointSettings } from "@/db/queries/points";
@@ -91,6 +92,8 @@ export interface ClubListItem {
   memberCount: number;
   currentBookName: string | null;
   currentBookSlug: string | null;
+  image: string | null;
+  color: string | null;
 }
 
 export async function getClubList(page = 1, pageSize = 20, search = ""): Promise<{ items: ClubListItem[]; total: number; page: number; lastPage: number }> {
@@ -117,6 +120,8 @@ export async function getClubList(page = 1, pageSize = 20, search = ""): Promise
       description: bookClub.description,
       currentBookName: book.name,
       currentBookSlug: book.slug,
+      image: bookClub.image,
+      color: bookClub.color,
       memberCount: sql<number>`(SELECT COUNT(*) FROM book_club_member WHERE club_id = ${bookClub.id})`,
     })
     .from(bookClub)
@@ -158,6 +163,8 @@ export interface ClubDetail {
   memberCount: number;
   members: ClubMember[];
   requiresApproval: boolean;
+  image: string | null;
+  color: string | null;
 }
 
 export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
@@ -178,6 +185,8 @@ export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
       // hava katmazmıydı?" (wouldn't it add a more visual feel?).
       currentBookHasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
       requiresApproval: bookClub.requiresApproval,
+      image: bookClub.image,
+      color: bookClub.color,
     })
     .from(bookClub)
     .leftJoin(user, eq(bookClub.ownerId, user.id))
@@ -344,11 +353,75 @@ export async function leaveClub(clubId: number, userId: number): Promise<void> {
   invalidateTag("book-club-list");
 }
 
-async function requireClubManagePermission(clubId: number, actorUserId: number, actorUserType: string): Promise<void> {
-  if (hasRole(actorUserType, [USER_TYPES.Admin, USER_TYPES.Mod])) return;
+/**
+ * Customer: "Kulüp için kurucusu dışında istenilen kişilere kulüpte işlem
+ * yapma yetkisi paylaşımı verilebilmeli" - besides the owner and site
+ * Admin/Mod, members the owner promoted to role "admin" can manage the club.
+ */
+export async function canManageClub(clubId: number, actorUserId: number, actorUserType: string): Promise<boolean> {
+  if (hasRole(actorUserType, [USER_TYPES.Admin, USER_TYPES.Mod])) return true;
   const [club] = await db.select({ ownerId: bookClub.ownerId }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  if (!club) return false;
+  if (club.ownerId === actorUserId) return true;
+  const [m] = await db.select({ role: bookClubMember.role }).from(bookClubMember).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, actorUserId))).limit(1);
+  return m?.role === "admin";
+}
+
+async function requireClubManagePermission(clubId: number, actorUserId: number, actorUserType: string): Promise<void> {
+  const [club] = await db.select({ id: bookClub.id }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
   if (!club) throw new Error("Kulüp bulunamadı.");
-  if (club.ownerId !== actorUserId) throw new Error("Bu işlem için yetkiniz yok.");
+  if (!(await canManageClub(clubId, actorUserId, actorUserType))) throw new Error("Bu işlem için yetkiniz yok.");
+}
+
+/** Owner-only (or site Admin/Mod): promote a member to club admin or demote back. */
+export async function setClubMemberRole(clubId: number, targetUserId: number, role: "admin" | "member", actorUserId: number, actorUserType: string): Promise<void> {
+  const [club] = await db.select({ ownerId: bookClub.ownerId, name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  if (!club) throw new Error("Kulüp bulunamadı.");
+  if (club.ownerId !== actorUserId && !hasRole(actorUserType, [USER_TYPES.Admin, USER_TYPES.Mod])) {
+    throw new Error("Yönetici atamayı yalnızca kulüp kurucusu yapabilir.");
+  }
+  const [m] = await db.select({ role: bookClubMember.role }).from(bookClubMember).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, targetUserId))).limit(1);
+  if (!m) throw new Error("Bu kişi kulübün üyesi değil.");
+  if (m.role === "owner") throw new Error("Kurucunun rolü değiştirilemez.");
+  await db.update(bookClubMember).set({ role }).where(and(eq(bookClubMember.clubId, clubId), eq(bookClubMember.userId, targetUserId)));
+  if (role === "admin" && m.role !== "admin") {
+    await addNotification(targetUserId, actorUserId, `"${club.name}" kulübünde yönetici yapıldın.`, `You are now an admin of "${club.name}".`, "club", `/kulup/${club.slug}`);
+  }
+}
+
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * Customer: "Kulüpte ikon yada görsel bir şey olmalı sayfanın renklenmesi
+ * ve grubu temsil etmesi adına" - an uploaded logo and an accent color.
+ * `image`: a new file replaces the old one; `removeImage` clears it.
+ */
+export async function updateClubBranding(
+  clubId: number,
+  input: { image?: File | null; removeImage?: boolean; color?: string | null },
+  actorUserId: number,
+  actorUserType: string,
+): Promise<{ image: string | null; color: string | null }> {
+  await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  const [club] = await db.select({ image: bookClub.image, color: bookClub.color }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  if (!club) throw new Error("Kulüp bulunamadı.");
+
+  const patch: { image?: string | null; color?: string | null } = {};
+  if (input.image && input.image.size > 0) {
+    patch.image = await saveUploadedImage("club-image", input.image);
+  } else if (input.removeImage) {
+    patch.image = null;
+  }
+  if (input.color !== undefined) {
+    if (input.color !== null && !HEX_COLOR.test(input.color)) throw new Error("Geçersiz renk.");
+    patch.color = input.color;
+  }
+  if (Object.keys(patch).length === 0) return { image: club.image, color: club.color };
+
+  await db.update(bookClub).set(patch).where(eq(bookClub.id, clubId));
+  if (patch.image !== undefined && club.image && club.image !== patch.image) await deleteUploadedImage("club-image", club.image);
+  invalidateTag("book-club-list");
+  return { image: patch.image !== undefined ? patch.image : club.image, color: patch.color !== undefined ? patch.color : club.color };
 }
 
 /**
@@ -412,6 +485,13 @@ export async function updateClubName(clubId: number, name: string, actorUserId: 
 
 export async function deleteClub(clubId: number, actorUserId: number, actorUserType: string): Promise<void> {
   await requireClubManagePermission(clubId, actorUserId, actorUserType);
+  const posts = await db.select({ id: feedPost.id }).from(feedPost).where(eq(feedPost.clubId, clubId));
+  if (posts.length > 0) {
+    const { deleteClubPost } = await import("@/db/queries/club-posts");
+    for (const p of posts) await deleteClubPost(clubId, p.id, actorUserId, actorUserType);
+  }
+  const [branding] = await db.select({ image: bookClub.image }).from(bookClub).where(eq(bookClub.id, clubId)).limit(1);
+  if (branding?.image) await deleteUploadedImage("club-image", branding.image);
   await db.delete(bookClubMember).where(eq(bookClubMember.clubId, clubId));
   await db.delete(bookClub).where(eq(bookClub.id, clubId));
   invalidateTag("book-club-list");

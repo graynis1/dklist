@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { XIcon } from "lucide-react";
+import { XIcon, ShieldIcon, ShieldOffIcon } from "lucide-react";
 import { ProfileLink } from "@/components/dklist/profile-link";
 
 interface ActionResult {
@@ -27,13 +27,18 @@ export function ClubMemberList({
   slug,
   members,
   canManage,
+  isOwnerViewer = false,
   removeAction,
+  roleAction,
 }: {
   clubId: number;
   slug: string;
   members: Member[];
   canManage: boolean;
+  /** The club owner (or site Admin/Mod) - the only one who can grant club admin. */
+  isOwnerViewer?: boolean;
   removeAction: (clubId: number, slug: string, targetUserId: number) => Promise<ActionResult>;
+  roleAction?: (clubId: number, slug: string, targetUserId: number, role: "admin" | "member") => Promise<ActionResult>;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -53,7 +58,27 @@ export function ClubMemberList({
               <ProfileLink username={m.username} className="hover:underline">
                 @{m.username}
                 {m.role === "owner" && <span className="ml-1 text-xs text-muted-foreground">(kurucu)</span>}
+                {m.role === "admin" && <span className="ml-1 text-xs text-primary">(yönetici)</span>}
               </ProfileLink>
+              {isOwnerViewer && roleAction && m.role !== "owner" && (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  title={m.role === "admin" ? "Yöneticilikten al" : "Yönetici yap"}
+                  aria-label={m.role === "admin" ? `@${m.username} yöneticilikten al` : `@${m.username} yönetici yap`}
+                  className="flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-primary"
+                  onClick={() => {
+                    startTransition(async () => {
+                      setError(null);
+                      const result = await roleAction(clubId, slug, m.userId, m.role === "admin" ? "member" : "admin");
+                      if (result.status) router.refresh();
+                      else setError(result.message ?? "Rol değiştirilemedi.");
+                    });
+                  }}
+                >
+                  {m.role === "admin" ? <ShieldOffIcon className="size-3" /> : <ShieldIcon className="size-3" />}
+                </button>
+              )}
               {canManage && m.role !== "owner" && (
                 <button
                   type="button"

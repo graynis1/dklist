@@ -1258,6 +1258,10 @@ export const bookClub = mysqlTable("book_club", {
 	// doc comment for why this is additive, not a behavior change for
 	// existing private clubs).
 	requiresApproval: tinyint("requires_approval").notNull().default(0),
+	// Migration 0059 - uploaded club logo (uploads/club-image) and an
+	// optional accent color (#rrggbb) for the club page.
+	image: varchar({ length: 255 }),
+	color: varchar({ length: 9 }),
 },
 (table) => [
 	unique("uniq_book_club_slug").on(table.slug),
@@ -1312,9 +1316,12 @@ export const feedPost = mysqlTable("feed_post", {
 	// prose. Null when the post isn't about a specific book.
 	bookId: int("book_id").references(() => book.id, { onDelete: "set null" }),
 	createdAt: datetime("created_at", { mode: 'string' }).notNull(),
+	// Migration 0059 - set for in-club posts (kept out of the public Akış).
+	clubId: int("club_id"),
 },
 (table) => [
 	index("idx_feed_post_user").on(table.userId),
+	index("idx_feed_post_club").on(table.clubId, table.id),
 	primaryKey({ columns: [table.id], name: "feed_post_id" }),
 ]);
 

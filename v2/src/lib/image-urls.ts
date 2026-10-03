@@ -47,6 +47,10 @@ export function avatarUrl(image: string | null | undefined): string | null {
   return `/api/avatar/${image}`;
 }
 
+export function clubImageUrl(filename: string): string {
+  return `/api/club-image/${filename}`;
+}
+
 export function feedPostImageUrl(filename: string): string {
   return `/api/feed-post-image/${filename}`;
 }

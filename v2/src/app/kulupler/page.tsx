@@ -14,6 +14,8 @@ import { AdSlot } from "@/components/dklist/ad-slot";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getClubList, getUserClubs } from "@/db/queries/book-clubs";
+import { ClubLogo, clubDisplayName } from "@/components/dklist/club-logo";
+import { clubImageUrl } from "@/lib/image-urls";
 import { auth } from "@/auth";
 
 export default function BookClubListPage({ searchParams }: PageProps<"/kulupler">) {
@@ -128,20 +130,21 @@ async function ClubList({
               <Link
                 key={club.id}
                 href={`/kulup/${club.slug}`}
-                className="flex flex-col gap-2 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
+                className="flex gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium">{club.name}</p>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {club.memberCount} üye
-                  </span>
+                <ClubLogo name={club.name} image={club.image ? clubImageUrl(club.image) : null} color={club.color} size={56} />
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate font-medium">{clubDisplayName(club.name)}</p>
+                    <span className="shrink-0 text-xs text-muted-foreground">{club.memberCount} üye</span>
+                  </div>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{club.description.replace(/\s*\n+\s*/g, " ")}</p>
+                  {club.currentBookName && (
+                    <p className="text-xs text-muted-foreground">
+                      Şu an okunuyor: <span className="font-medium text-foreground">{club.currentBookName}</span>
+                    </p>
+                  )}
                 </div>
-                <p className="line-clamp-2 text-sm text-muted-foreground">{club.description}</p>
-                {club.currentBookName && (
-                  <p className="text-xs text-muted-foreground">
-                    📖 Şu an okunuyor: <span className="font-medium">{club.currentBookName}</span>
-                  </p>
-                )}
               </Link>
             ))}
           </div>

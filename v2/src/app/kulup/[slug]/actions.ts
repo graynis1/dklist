@@ -21,7 +21,10 @@ import {
   approveClubJoinRequest,
   rejectClubJoinRequest,
   setClubRequiresApproval,
+  setClubMemberRole,
+  updateClubBranding,
 } from "@/db/queries/book-clubs";
+import { createClubPost, deleteClubPost } from "@/db/queries/club-posts";
 import { getBookList } from "@/db/queries/books";
 
 export interface ActionResult {
@@ -229,6 +232,75 @@ export async function deleteClubAction(clubId: number): Promise<ActionResult> {
   }
   try {
     await deleteClub(clubId, Number(session.user.id), session.user.userType ?? "");
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+async function sessionUser(): Promise<{ id: number; type: string } | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  return { id: Number(session.user.id), type: session.user.userType ?? "" };
+}
+
+/** In-club post (text + optional image) - members only. */
+export async function createClubPostAction(clubId: number, slug: string, formData: FormData): Promise<ActionResult> {
+  const me = await sessionUser();
+  if (!me) return { status: false, message: "Giriş yapmalısınız." };
+  const imageValue = formData.get("image");
+  try {
+    await createClubPost(clubId, me.id, String(formData.get("text") ?? ""), imageValue instanceof File && imageValue.size > 0 ? imageValue : null);
+    revalidatePath(`/kulup/${slug}`);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function deleteClubPostAction(clubId: number, slug: string, postId: number): Promise<ActionResult> {
+  const me = await sessionUser();
+  if (!me) return { status: false, message: "Giriş yapmalısınız." };
+  try {
+    await deleteClubPost(clubId, postId, me.id, me.type);
+    revalidatePath(`/kulup/${slug}`);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+export async function setClubMemberRoleAction(clubId: number, slug: string, targetUserId: number, role: "admin" | "member"): Promise<ActionResult> {
+  const me = await sessionUser();
+  if (!me) return { status: false, message: "Giriş yapmalısınız." };
+  try {
+    await setClubMemberRole(clubId, targetUserId, role, me.id, me.type);
+    revalidatePath(`/kulup/${slug}`);
+    return { status: true };
+  } catch (err) {
+    return { status: false, message: (err as Error).message };
+  }
+}
+
+/** formData: image (file), removeImage ("1"), color ("#rrggbb" or ""). */
+export async function updateClubBrandingAction(clubId: number, slug: string, formData: FormData): Promise<ActionResult> {
+  const me = await sessionUser();
+  if (!me) return { status: false, message: "Giriş yapmalısınız." };
+  const imageValue = formData.get("image");
+  const colorRaw = formData.get("color");
+  try {
+    await updateClubBranding(
+      clubId,
+      {
+        image: imageValue instanceof File && imageValue.size > 0 ? imageValue : null,
+        removeImage: formData.get("removeImage") === "1",
+        color: colorRaw === null ? undefined : String(colorRaw) || null,
+      },
+      me.id,
+      me.type,
+    );
+    revalidatePath(`/kulup/${slug}`);
+    revalidatePath("/kulupler");
     return { status: true };
   } catch (err) {
     return { status: false, message: (err as Error).message };
