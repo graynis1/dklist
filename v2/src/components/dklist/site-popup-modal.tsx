@@ -25,6 +25,7 @@ const SESSION_KEY = "dklist-site-popup-shown";
 export function SitePopupModal() {
   const [open, setOpen] = useState(false);
   const [popup, setPopup] = useState<{ title: string | null; content: string | null; image: string | null; link: string | null } | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -38,16 +39,26 @@ export function SitePopupModal() {
     // `load` event AND an extra 3s, well past when LCP finalizes. Combined
     // with the shorter image aspect + server-side resize below, the popup
     // is off the LCP critical path entirely.
+    // Real customer report: opening a shared link on a phone and tapping
+    // the menu, the popup opened on top of the drawer and blurred/blocked
+    // it. Never stack on another open dialog (menu, login, share...) -
+    // keep waiting until it closes.
     let popupTimer: number;
+    const anotherDialogOpen = () => document.querySelector("[role=\"dialog\"], [role=\"alertdialog\"]") !== null;
+    const show = () => {
+      if (anotherDialogOpen()) {
+        popupTimer = window.setTimeout(show, 2000);
+        return;
+      }
+      getSitePopupAction().then((result) => {
+        if (!result.active || anotherDialogOpen()) return;
+        setPopup(result);
+        setOpen(true);
+        window.sessionStorage.setItem(SESSION_KEY, "1");
+      });
+    };
     const schedule = () => {
-      popupTimer = window.setTimeout(() => {
-        getSitePopupAction().then((result) => {
-          if (!result.active) return;
-          setPopup(result);
-          setOpen(true);
-          window.sessionStorage.setItem(SESSION_KEY, "1");
-        });
-      }, 3000);
+      popupTimer = window.setTimeout(show, 3000);
     };
     if (document.readyState === "complete") {
       schedule();
@@ -71,7 +82,7 @@ export function SitePopupModal() {
           className="fixed top-1/2 left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-popover text-popover-foreground shadow-2xl ring-1 ring-foreground/10 duration-150 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
         >
           <div className="relative">
-            {popup.image ? (
+            {popup.image && !imageFailed ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={sitePopupImageUrl(popup.image)}
@@ -81,16 +92,16 @@ export function SitePopupModal() {
                 loading="lazy"
                 decoding="async"
                 className="aspect-[20/9] w-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
+                onError={() => setImageFailed(true)}
               />
             ) : (
               <div className="flex aspect-[20/9] w-full items-center justify-center bg-gradient-to-br from-primary/25 via-secondary to-primary/10">
                 <MegaphoneIcon className="size-10 text-primary/70" />
               </div>
             )}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
+            {popup.image && !imageFailed && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
+            )}
             <DialogPrimitive.Close
               className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
               aria-label="Kapat"
@@ -115,8 +126,9 @@ export function SitePopupModal() {
             {popup.link && (
               <a
                 href={popup.link}
-                target="_blank"
-                rel="noopener noreferrer"
+                {...(/^https?:\/\//i.test(popup.link) && !/^https?:\/\/(www\.)?dklist\.com/i.test(popup.link)
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
                 className="mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Daha Fazla
