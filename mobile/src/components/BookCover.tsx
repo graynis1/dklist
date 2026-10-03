@@ -50,7 +50,7 @@ export function BookCover({
         style={{
           position: "absolute",
           right: 4,
-          top: 4,
+          bottom: 4,
           flexDirection: "row",
           alignItems: "center",
           gap: 2,
