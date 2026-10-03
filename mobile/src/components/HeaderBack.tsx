@@ -9,7 +9,7 @@ export function HeaderBack() {
   if (!router.canGoBack()) return null;
   return (
     <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginLeft: -6 }} accessibilityLabel="Geri">
-      <ChevronLeftIcon size={28} color={colors.accent} />
+      <ChevronLeftIcon size={28} color={colors.text} />
     </Pressable>
   );
 }

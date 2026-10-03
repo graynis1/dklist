@@ -190,10 +190,10 @@ export default function AkisScreen() {
           <ThemedText variant="body" muted numberOfLines={1} style={{ fontSize: 14.5 }}>Ne okuyorsun, {firstName}?</ThemedText>
         </Pressable>
         <Pressable onPress={() => router.push({ pathname: "/gonderi-yeni", params: { action: "photo" } })} hitSlop={6} accessibilityLabel="Fotoğraf paylaş" style={{ padding: 4 }}>
-          <ImageIcon size={23} color="#3f8a5a" />
+          <ImageIcon size={23} color={colors.text} />
         </Pressable>
         <Pressable onPress={() => router.push("/barkod")} hitSlop={6} accessibilityLabel="Barkod tara" style={{ padding: 4 }}>
-          <ScanBarcodeIcon size={23} color={colors.accent} />
+          <ScanBarcodeIcon size={23} color={colors.text} />
         </Pressable>
       </View>
 

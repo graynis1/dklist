@@ -36,6 +36,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { BookCover } from "@/components/BookCover";
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
+import { IconTile } from "@/components/ui";
 import { HeaderBack } from "@/components/HeaderBack";
 import { search as searchApi, type SearchResults } from "@/api/search";
 import { getCategories, getCategory, type TopCategory, type CategoryBookItem } from "@/api/category";
@@ -47,15 +48,15 @@ import { getRecommendations, getBookOfMonth, getPublicLists, type BookListItem, 
 import { videoThumb } from "@/lib/videoThumb";
 import { useAuth } from "@/auth/AuthContext";
 
-const QUICK: { icon: typeof FeatherIcon; label: string; tint: string; href: Href }[] = [
-  { icon: FeatherIcon, label: "Yazarhane", tint: "#7d5411", href: "/yazarhane" },
-  { icon: ScanBarcodeIcon, label: "Barkod", tint: "#2f5d8a", href: "/barkod" },
-  { icon: BookPlusIcon, label: "Kitap Ekle", tint: "#3f7d4f", href: "/kitap/yeni" },
-  { icon: TagIcon, label: "Askıda Kitap", tint: "#a0602a", href: "/askida-kitap" },
-  { icon: UsersIcon, label: "Kulüpler", tint: "#6b4c9a", href: "/kulupler" },
-  { icon: NewspaperIcon, label: "Bloglar", tint: "#3f6d8a", href: "/bloglar" },
-  { icon: PlayCircleIcon, label: "Videolar", tint: "#b3412f", href: "/videolar" },
-  { icon: LibraryBigIcon, label: "Kitaplar", tint: "#5a6b2f", href: "/kitaplar" },
+const QUICK: { icon: typeof FeatherIcon; label: string; href: Href }[] = [
+  { icon: FeatherIcon, label: "Yazarhane", href: "/yazarhane" },
+  { icon: ScanBarcodeIcon, label: "Barkod", href: "/barkod" },
+  { icon: BookPlusIcon, label: "Kitap Ekle", href: "/kitap/yeni" },
+  { icon: TagIcon, label: "Askıda Kitap", href: "/askida-kitap" },
+  { icon: UsersIcon, label: "Kulüpler", href: "/kulupler" },
+  { icon: NewspaperIcon, label: "Bloglar", href: "/bloglar" },
+  { icon: PlayCircleIcon, label: "Videolar", href: "/videolar" },
+  { icon: LibraryBigIcon, label: "Kitaplar", href: "/kitaplar" },
 ];
 
 const RECENT_KEY = "kesfet_recent_searches";
@@ -414,10 +415,8 @@ export default function KesfetScreen() {
           <View style={{ backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg, paddingTop: spacing.sm, marginBottom: 8, flexDirection: "row", flexWrap: "wrap", rowGap: spacing.md }}>
             {QUICK.map((q) => (
               <Pressable key={q.label} onPress={() => router.push(q.href)} style={({ pressed }) => ({ width: "25%", alignItems: "center", gap: 6, opacity: pressed ? 0.6 : 1 })}>
-                <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: `${q.tint}1A`, alignItems: "center", justifyContent: "center" }}>
-                  <q.icon size={25} color={q.tint} />
-                </View>
-                <ThemedText variant="caption" numberOfLines={1} style={{ fontSize: 12, fontWeight: "600" }}>{q.label}</ThemedText>
+                <IconTile icon={q.icon} size={50} tone="accent" />
+                <ThemedText variant="caption" numberOfLines={1} style={{ fontSize: 12, fontWeight: "500" }}>{q.label}</ThemedText>
               </Pressable>
             ))}
           </View>

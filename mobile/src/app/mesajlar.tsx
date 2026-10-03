@@ -203,7 +203,7 @@ export default function MesajlarScreen() {
       <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
         {canGoBack && (
           <Pressable onPress={() => router.back()} hitSlop={10} style={{ marginLeft: -6 }}>
-            <ChevronLeftIcon size={28} color={colors.accent} />
+            <ChevronLeftIcon size={28} color={colors.text} />
           </Pressable>
         )}
         <ThemedText variant="display" style={{ flex: 1 }}>Mesajlar</ThemedText>
