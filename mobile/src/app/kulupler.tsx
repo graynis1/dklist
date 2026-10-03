@@ -91,7 +91,7 @@ export default function KuluplerScreen() {
             onPress={() => router.push({ pathname: "/kulup/[slug]", params: { slug: item.slug } })}
             style={({ pressed }) => ({ flexDirection: "row", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral100 : colors.card })}
           >
-            <ClubMark name={item.name} />
+            <ClubMark name={item.name} image={item.image} color={item.color} />
             <View style={{ flex: 1, gap: 3 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
                 <ThemedText variant="title" numberOfLines={1} style={{ flexShrink: 1 }}>{clubDisplayName(item.name)}</ThemedText>

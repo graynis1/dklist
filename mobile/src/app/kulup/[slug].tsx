@@ -3,12 +3,14 @@ import { View, ScrollView, ActivityIndicator, Pressable, Alert, Switch, StyleShe
 import { useLocalSearchParams, router, useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { XIcon, PencilIcon, ChevronLeftIcon, ChevronRightIcon, Share2Icon, BadgeCheckIcon, CheckIcon, ClockIcon, UserPlusIcon, BookOpenIcon, Trash2Icon, UsersIcon } from "lucide-react-native";
+import { PencilIcon, MoreHorizontalIcon, ImageIcon, ChevronLeftIcon, ChevronRightIcon, Share2Icon, BadgeCheckIcon, CheckIcon, ClockIcon, UserPlusIcon, BookOpenIcon, Trash2Icon, UsersIcon } from "lucide-react-native";
 import { FloatingBack } from "@/components/ui";
 import { EmptyState } from "@/components/EmptyState";
 import { showActionSheet } from "@/components/ActionSheet";
 import { shareLink } from "@/lib/share";
-import { ClubMark, clubDisplayName, clubHue } from "@/components/ClubMark";
+import { ClubMark, clubDisplayName, clubHue, CLUB_COLORS } from "@/components/ClubMark";
+import { ClubPostsSection } from "@/components/ClubPosts";
+import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
@@ -29,6 +31,8 @@ import {
   updateClubDescription,
   updateClubCurrentBook,
   deleteClub,
+  setClubMemberRole,
+  updateClubBranding,
   type ClubDetail,
   type ClubJoinRequest,
 } from "@/api/clubs";
@@ -61,9 +65,11 @@ export default function KulupDetailScreen() {
   const [bookQuery, setBookQuery] = useState("");
   const [bookResults, setBookResults] = useState<SearchResultBook[]>([]);
 
-  const canManage = Boolean(
-    club && profile && (club.ownerId === profile.id || MANAGE_ROLES.includes(profile.userType)),
-  );
+  const [serverCanManage, setServerCanManage] = useState<boolean | null>(null);
+  const [brandingBusy, setBrandingBusy] = useState(false);
+  const isOwnerViewer = Boolean(club && profile && (club.ownerId === profile.id || MANAGE_ROLES.includes(profile.userType)));
+  // Club admins (role "admin") can manage too - the server says so.
+  const canManage = serverCanManage ?? isOwnerViewer;
 
   const load = useCallback(async (ignore?: { current: boolean }) => {
     const result = await getClub(slug);
@@ -71,6 +77,7 @@ export default function KulupDetailScreen() {
       setClub(result.club);
       setIsMember(result.isMember);
       setIsPending(result.isPending);
+      if (typeof result.canManage === "boolean") setServerCanManage(result.canManage);
     }
   }, [slug]);
 
@@ -235,6 +242,55 @@ export default function KulupDetailScreen() {
     ]);
   }
 
+  async function pickLogo() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("İzin gerekli", "Logo seçmek için galeri izni vermelisin.");
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.85 });
+    if (res.canceled || res.assets.length === 0) return;
+    const a = res.assets[0];
+    await saveBranding({ image: { uri: a.uri, name: a.fileName ?? `club-${Date.now()}.jpg`, type: a.mimeType ?? "image/jpeg" } });
+  }
+
+  async function saveBranding(input: Parameters<typeof updateClubBranding>[1]) {
+    setBrandingBusy(true);
+    try {
+      const r = await updateClubBranding(slug, input);
+      setClub((c) => (c ? { ...c, image: r.image, color: r.color } : c));
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Kaydedilemedi.");
+    } finally {
+      setBrandingBusy(false);
+    }
+  }
+
+  function onMemberMenu(m: { userId: number; username: string; role: string }) {
+    showActionSheet({
+      title: m.username,
+      options: [
+        { text: "Profili görüntüle", onPress: () => router.push({ pathname: "/profil/[username]", params: { username: m.username } }) },
+        ...(isOwnerViewer
+          ? [
+              {
+                text: m.role === "admin" ? "Yöneticilikten al" : "Yönetici yap",
+                onPress: async () => {
+                  try {
+                    await setClubMemberRole(slug, m.userId, m.role === "admin" ? "member" : "admin");
+                    await load();
+                  } catch (err) {
+                    Alert.alert("Hata", err instanceof Error ? err.message : "Rol değiştirilemedi.");
+                  }
+                },
+              },
+            ]
+          : []),
+        { text: "Kulüpten çıkar", destructive: true, onPress: () => onRemoveMember(m.userId, m.username) },
+      ],
+    });
+  }
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
@@ -254,7 +310,7 @@ export default function KulupDetailScreen() {
   }
 
   const official = /^dklist\s*\|/i.test(club.name);
-  const hue = clubHue(club.name);
+  const hue = clubHue(club.name, club.color);
   const descLines = club.description.split(/\n/).map((l) => l.trim());
   const longDesc = club.description.length > 280 || descLines.length > 7;
   const shownLines = descExpanded || !longDesc ? descLines : descLines.slice(0, 6);
@@ -295,7 +351,7 @@ export default function KulupDetailScreen() {
       {/* Identity */}
       <View style={{ backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }}>
         <View style={{ marginTop: -44, alignSelf: "flex-start", padding: 4, borderRadius: 30, backgroundColor: colors.card }}>
-          <ClubMark name={club.name} size={84} />
+          <ClubMark name={club.name} size={84} image={club.image} color={club.color} />
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.sm }}>
           <ThemedText variant="headline" style={{ flexShrink: 1, fontSize: 23 }}>{clubDisplayName(club.name)}</ThemedText>
@@ -447,6 +503,8 @@ export default function KulupDetailScreen() {
         </Section>
       ) : null}
 
+      <ClubPostsSection slug={slug} canPost={isMember} canManage={canManage} />
+
       {/* Members */}
       <Section title={`Üyeler · ${club.members.length}`}>
         <View>
@@ -460,8 +518,8 @@ export default function KulupDetailScreen() {
                 </View>
               </Pressable>
               {canManage && m.role !== "owner" && m.userId !== profile?.id && (
-                <Pressable onPress={() => onRemoveMember(m.userId, m.username)} hitSlop={8} accessibilityLabel="Üyeyi çıkar" style={{ padding: 6 }}>
-                  <XIcon size={17} color={colors.textMuted} />
+                <Pressable onPress={() => onMemberMenu(m)} hitSlop={8} accessibilityLabel="Üye seçenekleri" style={{ padding: 6 }}>
+                  <MoreHorizontalIcon size={19} color={colors.textMuted} />
                 </Pressable>
               )}
             </View>
@@ -473,6 +531,32 @@ export default function KulupDetailScreen() {
       {canManage && (
         <Section title="Yönetim">
           <View style={{ gap: spacing.md }}>
+            <View style={{ gap: spacing.sm }}>
+              <ThemedText variant="label" color={colors.textMuted}>Görünüm</ThemedText>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                <ClubMark name={club.name} size={56} image={club.image} color={club.color} />
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Pressable onPress={pickLogo} disabled={brandingBusy} style={({ pressed }) => ({ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}>
+                    {brandingBusy ? <ActivityIndicator size="small" color={colors.text} /> : <ImageIcon size={15} color={colors.text} />}
+                    <ThemedText variant="bodySemibold" style={{ fontSize: 13.5 }}>{club.image ? "Logoyu değiştir" : "Logo yükle"}</ThemedText>
+                  </Pressable>
+                  {club.image ? <ThemedText variant="caption" color={colors.textMuted} onPress={() => void saveBranding({ removeImage: true })}>Logoyu kaldır</ThemedText> : null}
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 }}>
+                {CLUB_COLORS.map((c) => (
+                  <Pressable key={c} onPress={() => void saveBranding({ color: c })} disabled={brandingBusy} accessibilityLabel={`Renk ${c}`} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c, alignItems: "center", justifyContent: "center", borderWidth: club.color === c ? 3 : 0, borderColor: colors.card }}>
+                    {club.color === c && <CheckIcon size={15} color="#fff" />}
+                  </Pressable>
+                ))}
+                {club.color ? (
+                  <Pressable onPress={() => void saveBranding({ color: null })} disabled={brandingBusy} style={{ height: 32, justifyContent: "center", paddingHorizontal: 6 }}>
+                    <ThemedText variant="caption" muted>Otomatik</ThemedText>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.divider }} />
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
               <View style={{ flex: 1 }}>
                 <ThemedText variant="body">Katılım onayı gerektir</ThemedText>

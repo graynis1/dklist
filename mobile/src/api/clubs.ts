@@ -8,6 +8,8 @@ export interface ClubListItem {
   memberCount: number;
   currentBookName: string | null;
   currentBookSlug: string | null;
+  image?: string | null;
+  color?: string | null;
 }
 
 export interface ClubMember {
@@ -34,6 +36,8 @@ export interface ClubDetail {
   memberCount: number;
   members: ClubMember[];
   requiresApproval: boolean;
+  image?: string | null;
+  color?: string | null;
 }
 
 export interface ClubJoinRequest {
@@ -48,7 +52,7 @@ export async function getClubList(q = "") {
 }
 
 export async function getClub(slug: string) {
-  return apiFetch<{ status: "ok"; club: ClubDetail; isMember: boolean; isPending: boolean }>(`/clubs/${encodeURIComponent(slug)}`);
+  return apiFetch<{ status: "ok"; club: ClubDetail; isMember: boolean; isPending: boolean; canManage?: boolean; myRole?: string | null }>(`/clubs/${encodeURIComponent(slug)}`);
 }
 
 export async function createClub(input: { name: string; description: string; visibility: "public" | "private"; currentBookId?: number | null }) {
@@ -108,4 +112,62 @@ export async function updateClubCurrentBook(slug: string, bookId: number | null)
 
 export async function deleteClub(slug: string) {
   return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}`, { method: "DELETE" });
+}
+
+export interface ClubPostReply {
+  id: number;
+  text: string;
+  authorUsername: string;
+  authorUserId: number;
+  authorImage: string | null;
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
+  replies: ClubPostReply[];
+}
+
+export interface ClubPost {
+  id: number;
+  text: string | null;
+  image: string | null;
+  createdAt: string;
+  authorUserId: number;
+  authorUsername: string;
+  authorImage: string | null;
+  profileFrame: string | null;
+  frameTier: 1 | 2 | 3 | 4;
+  likeState: { count: number; liked: boolean };
+  replies: ClubPostReply[];
+}
+
+export async function getClubPosts(slug: string, before?: number) {
+  return apiFetch<{ status: "ok"; items: ClubPost[]; nextCursor: number | null }>(`/clubs/${encodeURIComponent(slug)}/posts${before ? `?before=${before}` : ""}`);
+}
+
+export async function createClubPost(slug: string, text: string, image?: { uri: string; name: string; type: string } | null) {
+  const formData = new FormData();
+  formData.append("text", text);
+  if (image) {
+    // @ts-expect-error - RN FormData accepts a local asset descriptor.
+    formData.append("image", { uri: image.uri, name: image.name, type: image.type });
+  }
+  return apiFetch<{ status: "ok"; id: number }>(`/clubs/${encodeURIComponent(slug)}/posts`, { method: "POST", body: formData });
+}
+
+export async function deleteClubPost(slug: string, postId: number) {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/posts/${postId}`, { method: "DELETE" });
+}
+
+export async function setClubMemberRole(slug: string, userId: number, role: "admin" | "member") {
+  return apiFetch<{ status: "ok" }>(`/clubs/${encodeURIComponent(slug)}/members/${userId}`, { method: "PATCH", body: JSON.stringify({ role }) });
+}
+
+export async function updateClubBranding(slug: string, input: { image?: { uri: string; name: string; type: string }; removeImage?: boolean; color?: string | null }) {
+  const formData = new FormData();
+  if (input.image) {
+    // @ts-expect-error - RN FormData accepts a local asset descriptor.
+    formData.append("image", { uri: input.image.uri, name: input.image.name, type: input.image.type });
+  }
+  if (input.removeImage) formData.append("removeImage", "1");
+  if (input.color !== undefined) formData.append("color", input.color ?? "");
+  return apiFetch<{ status: "ok"; image: string | null; color: string | null }>(`/clubs/${encodeURIComponent(slug)}/branding`, { method: "POST", body: formData });
 }

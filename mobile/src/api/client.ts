@@ -31,7 +31,13 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(`${MOBILE_API_BASE}${path}`, { ...options, headers });
+  // Expo's fetch rejects React Native's `{ uri, name, type }` file parts
+  // ("Unsupported FormDataPart implementation"), which broke every photo
+  // upload. XMLHttpRequest still speaks that format, so multipart goes there.
+  const response =
+    options.body instanceof FormData
+      ? await xhrRequest(`${MOBILE_API_BASE}${path}`, options.method ?? "POST", headers, options.body)
+      : await fetch(`${MOBILE_API_BASE}${path}`, { ...options, headers });
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
@@ -42,4 +48,24 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   return body as T;
+}
+
+function xhrRequest(url: string, method: string, headers: Headers, body: FormData): Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    headers.forEach((value, key) => {
+      if (key.toLowerCase() !== "content-type") xhr.setRequestHeader(key, value);
+    });
+    xhr.onload = () =>
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        json: async () => JSON.parse(xhr.responseText),
+      });
+    xhr.onerror = () => reject(new Error("Sunucuya bağlanılamadı."));
+    xhr.ontimeout = () => reject(new Error("İstek zaman aşımına uğradı."));
+    xhr.timeout = 120000;
+    xhr.send(body);
+  });
 }
