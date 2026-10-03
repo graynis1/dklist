@@ -14,6 +14,28 @@ export interface OtherProfile {
   privacy: boolean;
 }
 
+export interface ReadingGoal {
+  year: string;
+  targetCount: number;
+  readCount: number;
+}
+
+export interface ReadingStats {
+  year: string;
+  booksRead: number;
+  totalPages: number;
+  totalMinutes: number;
+  topCategory: string | null;
+  topWriter: string | null;
+}
+
+export interface ProfileBlog {
+  id: number;
+  title: string;
+  slug: string;
+  approved: boolean;
+}
+
 export interface OtherProfileResponse {
   profile: OtherProfile;
   counts: { followers: number; following: number };
@@ -23,6 +45,16 @@ export interface OtherProfileResponse {
   canSeeLibrary: boolean;
   badges: { id: number; name: string; comment: string; img: string }[];
   library: LibraryByStatus | null;
+  // Absent until the backend with these fields is deployed - treat as optional.
+  readingGoal?: ReadingGoal | null;
+  pastGoals?: ReadingGoal[];
+  stats?: ReadingStats | null;
+  monthly?: number[] | null;
+  blogs?: ProfileBlog[];
+}
+
+export async function setReadingGoal(count: number) {
+  return apiFetch<{ status: "ok"; goal: ReadingGoal | null }>("/me/reading-goal", { method: "POST", body: JSON.stringify({ count }) });
 }
 
 export async function getProfile(username: string) {

@@ -4,7 +4,9 @@ import { shareLink } from "@/lib/share";
 import { showActionSheet } from "@/components/ActionSheet";
 import { useLocalSearchParams, useNavigation, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { BadgeCheckIcon, MessageCircleIcon, MoreHorizontalIcon, UserPlusIcon, UserCheckIcon, LockIcon, LibraryIcon, AwardIcon, PencilIcon, Share2Icon } from "lucide-react-native";
+import { BadgeCheckIcon, MessageCircleIcon, MoreHorizontalIcon, UserPlusIcon, UserCheckIcon, LockIcon, LibraryIcon, AwardIcon, PencilIcon, Share2Icon, ChevronLeftIcon, NewspaperIcon, ChevronRightIcon, PlusIcon } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ReadingStatsSection } from "@/components/ReadingStats";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
@@ -61,11 +63,12 @@ export default function OtherProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [followSaving, setFollowSaving] = useState(false);
-  const [tab, setTab] = useState<"library" | "badges">("library");
+  const [tab, setTab] = useState<"library" | "stats" | "blogs" | "badges">("library");
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    navigation.setOptions({ title: `@${username}` });
-  }, [navigation, username]);
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   const load = useCallback(async () => {
     try {
@@ -148,6 +151,8 @@ export default function OtherProfileScreen() {
   }
 
   const { profile, counts, isSelf, following, blocked, canSeeLibrary, badges, library } = data;
+  const blogs = data.blogs ?? [];
+  const glass = { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center" as const, justifyContent: "center" as const };
   const displayName = [profile.name, profile.surname].filter(Boolean).join(" ") || profile.username;
   const readCount = library?.finishRead.length ?? 0;
   const AVATAR = 112;
@@ -159,7 +164,15 @@ export default function OtherProfileScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />}
     >
       <View style={{ backgroundColor: colors.card, paddingBottom: spacing.md, ...shadow.sm }}>
-        <LinearGradient colors={[colors.accent700, colors.accent400]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 150 }}>
+        <LinearGradient colors={[colors.accent800, colors.accent500]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 150 + insets.top }}>
+          <View style={{ position: "absolute", top: insets.top + 6, left: spacing.md, right: spacing.md, flexDirection: "row", justifyContent: "space-between", zIndex: 2 }}>
+            <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} hitSlop={8} style={glass} accessibilityLabel="Geri">
+              <ChevronLeftIcon size={23} color="#fff" />
+            </Pressable>
+            <Pressable onPress={onShare} hitSlop={8} style={glass} accessibilityLabel="Profili paylaş">
+              <Share2Icon size={18} color="#fff" />
+            </Pressable>
+          </View>
           <View style={{ position: "absolute", right: -40, top: -30, width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.08)" }} />
           <View style={{ position: "absolute", right: 70, bottom: -50, width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(255,255,255,0.06)" }} />
           <ThemedText variant="quote" color="rgba(255,255,255,0.75)" style={{ position: "absolute", right: spacing.lg, bottom: spacing.md, fontSize: 13 }}>
@@ -182,16 +195,17 @@ export default function OtherProfileScreen() {
             <ThemedText variant="body" style={{ marginTop: spacing.sm, lineHeight: 21 }}>{profile.biyo}</ThemedText>
           ) : null}
 
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.lg, marginTop: spacing.md }}>
+          <View style={{ flexDirection: "row", marginTop: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.lg, backgroundColor: colors.neutral100 }}>
             {[
-              { n: readCount, label: "okudu" },
-              { n: counts.followers, label: "takipçi" },
-              { n: counts.following, label: "takip" },
-              { n: badges.length, label: "rozet" },
-            ].map((s) => (
-              <ThemedText key={s.label} variant="body" muted>
-                <ThemedText variant="bodySemibold" style={{ fontSize: 16 }}>{s.n}</ThemedText> {s.label}
-              </ThemedText>
+              { n: readCount, label: "Okudu", onPress: () => setTab("library") },
+              { n: counts.followers, label: "Takipçi" },
+              { n: counts.following, label: "Takip" },
+              { n: badges.length, label: "Rozet", onPress: () => setTab("badges") },
+            ].map((st, i) => (
+              <Pressable key={st.label} disabled={!st.onPress} onPress={st.onPress} style={{ flex: 1, alignItems: "center", borderLeftWidth: i === 0 ? 0 : 1, borderLeftColor: colors.divider }}>
+                <ThemedText variant="title" style={{ fontSize: 19 }}>{st.n}</ThemedText>
+                <ThemedText variant="caption" muted>{st.label}</ThemedText>
+              </Pressable>
             ))}
           </View>
 
@@ -233,14 +247,57 @@ export default function OtherProfileScreen() {
           scrollable={false}
           tabs={[
             { key: "library" as const, label: "Kitaplık" },
-            { key: "badges" as const, label: "Rozetler", count: badges.length },
+            { key: "stats" as const, label: "İstatistik" },
+            ...(blogs.length > 0 || isSelf ? [{ key: "blogs" as const, label: "Bloglar", count: blogs.length || undefined }] : []),
+            { key: "badges" as const, label: "Rozetler", count: badges.length || undefined },
           ]}
           active={tab}
           onChange={setTab}
         />
       </View>
 
-      {tab === "library" ? (
+      {tab === "stats" ? (
+        !canSeeLibrary ? (
+          <EmptyState icon={<LockIcon size={30} color={colors.accent} />} title="İstatistikler gizli" subtitle={`@${profile.username} profilini gizli tutuyor.`} />
+        ) : (
+          <ReadingStatsSection
+            username={profile.username}
+            isSelf={isSelf}
+            goal={data.readingGoal ?? null}
+            pastGoals={data.pastGoals ?? []}
+            stats={data.stats ?? null}
+            monthly={data.monthly ?? null}
+            onGoalChanged={load}
+          />
+        )
+      ) : tab === "blogs" ? (
+        <View style={{ padding: spacing.lg, gap: spacing.sm }}>
+          {isSelf && (
+            <Pressable onPress={() => router.push("/blog/yeni")} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 46, borderRadius: radius.lg, backgroundColor: pressed ? colors.accent700 : colors.accent })}>
+              <PlusIcon size={18} color="#fff" />
+              <ThemedText variant="bodySemibold" color="#fff">Yeni yazı</ThemedText>
+            </Pressable>
+          )}
+          {blogs.length === 0 ? (
+            <EmptyState icon={<NewspaperIcon size={30} color={colors.accent} />} title="Henüz blog yazısı yok" subtitle={isSelf ? "Okuduklarını, düşüncelerini yaz; DKList okurlarıyla paylaş." : "Bu okur henüz yazı paylaşmamış."} />
+          ) : (
+            <View style={{ backgroundColor: colors.card, borderRadius: radius.lg, overflow: "hidden" }}>
+              {blogs.map((b, i) => (
+                <Pressable key={b.id} onPress={() => router.push({ pathname: "/blog/[slug]", params: { slug: b.slug } })} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.divider, backgroundColor: pressed ? colors.neutral100 : colors.card })}>
+                  <View style={{ width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
+                    <NewspaperIcon size={19} color={colors.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText variant="bodySemibold" numberOfLines={2}>{b.title}</ThemedText>
+                    {!b.approved && <ThemedText variant="caption" color={colors.accent700}>Onay bekliyor</ThemedText>}
+                  </View>
+                  <ChevronRightIcon size={18} color={colors.neutral400} />
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : tab === "library" ? (
         !canSeeLibrary ? (
           <EmptyState icon={<LockIcon size={30} color={colors.accent} />} title="Kitaplık gizli" subtitle={`@${profile.username} kitaplığını yalnızca kendisi görebilecek şekilde ayarlamış.`} />
         ) : !library || SHELVES.every((s) => library[s].length === 0) ? (

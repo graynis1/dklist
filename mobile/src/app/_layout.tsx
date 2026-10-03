@@ -149,7 +149,7 @@ function RootNavigator() {
         <Stack.Screen
           name="profil/[username]"
           options={{
-            headerShown: true,
+            headerShown: false,
             title: "",
             headerStyle: { backgroundColor: colors.bg },
             headerTintColor: colors.accent,
