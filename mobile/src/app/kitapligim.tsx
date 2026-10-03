@@ -11,16 +11,22 @@ import { EmptyState } from "@/components/EmptyState";
 import { HeaderBack } from "@/components/HeaderBack";
 import { showActionSheet } from "@/components/ActionSheet";
 import { pickDropReason, type DropReason } from "@/lib/dropReason";
-import { getLibrary, setLibraryStatus, type LibraryByStatus, type LibraryBookItem, type ReadStatus } from "@/api/library";
+import { getLibrary, setLibraryStatus, getOwnedBooks, toggleOwnedBook, type LibraryByStatus, type LibraryBookItem, type ReadStatus } from "@/api/library";
 
-const SHELVES: { key: ReadStatus; label: string; long: string }[] = [
+type ShelfKey = ReadStatus | "owned";
+
+const SHELVES: { key: ShelfKey; label: string; long: string }[] = [
   { key: "currentRead", label: "Okuyorum", long: "Okuyorum" },
   { key: "finishRead", label: "Okudum", long: "Okudum" },
   { key: "targetRead", label: "Okuyacağım", long: "Okuyacağım" },
   { key: "dropRead", label: "Bıraktım", long: "Yarıda Bıraktım" },
+  { key: "owned", label: "Kütüphane", long: "Kütüphanem" },
 ];
 
-const EMPTY_COPY: Record<ReadStatus, { title: string; subtitle: string }> = {
+const READ_SHELVES = SHELVES.filter((s): s is { key: ReadStatus; label: string; long: string } => s.key !== "owned");
+
+const EMPTY_COPY: Record<ShelfKey, { title: string; subtitle: string }> = {
+  owned: { title: "Kütüphanen boş", subtitle: "Evindeki kitapları ekle: barkodunu tara ya da kitap sayfasındaki kütüphane düğmesine dokun." },
   currentRead: { title: "Şu an okuduğun kitap yok", subtitle: "Bir kitabın sayfasından “Okuyorum” diyerek buraya ekleyebilirsin." },
   finishRead: { title: "Henüz bitirdiğin kitap yok", subtitle: "Okuduğun kitapları işaretle, kitaplığın büyüdükçe rozet kazan." },
   targetRead: { title: "Okuma listen boş", subtitle: "Okumak istediğin kitapları kaydet, hiçbirini unutma." },
@@ -37,7 +43,8 @@ export default function KitapligimScreen() {
   const { colors, spacing, radius, shadow } = useTheme();
   const { width } = useWindowDimensions();
   const [library, setLibrary] = useState<LibraryByStatus | null>(null);
-  const [active, setActive] = useState<ReadStatus>("currentRead");
+  const [active, setActive] = useState<ShelfKey>("currentRead");
+  const [owned, setOwned] = useState<LibraryBookItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +54,9 @@ export default function KitapligimScreen() {
 
   const load = useCallback(async () => {
     try {
-      setLibrary(await getLibrary());
+      const [lib, own] = await Promise.all([getLibrary(), getOwnedBooks().catch(() => [] as LibraryBookItem[])]);
+      setLibrary(lib);
+      setOwned(own);
       setError(null);
     } catch {
       setError("Kitaplığın yüklenemedi.");
@@ -74,7 +83,7 @@ export default function KitapligimScreen() {
   }
 
   const items = useMemo(() => {
-    const base = library?.[active] ?? [];
+    const base = active === "owned" ? owned : (library?.[active] ?? []);
     const q = query.trim().toLocaleLowerCase("tr-TR");
     const filtered = q
       ? base.filter((b) => b.name.toLocaleLowerCase("tr-TR").includes(q) || b.writers.some((w) => w.toLocaleLowerCase("tr-TR").includes(q)))
@@ -82,7 +91,7 @@ export default function KitapligimScreen() {
     if (sort === "recent") return filtered;
     const sorted = [...filtered].sort((a, b) => a.name.localeCompare(b.name, "tr"));
     return sort === "az" ? sorted : sorted.reverse();
-  }, [library, active, query, sort]);
+  }, [library, owned, active, query, sort]);
 
   function openSortSheet() {
     showActionSheet({
@@ -92,11 +101,28 @@ export default function KitapligimScreen() {
   }
 
   function onLongPressBook(book: LibraryBookItem) {
+    if (active === "owned") {
+      showActionSheet({
+        title: book.name,
+        options: [
+          { text: "Kitabı aç", onPress: () => openBook(book) },
+          {
+            text: "Kütüphanemden çıkar",
+            destructive: true,
+            onPress: async () => {
+              await toggleOwnedBook(book.id);
+              await load();
+            },
+          },
+        ],
+      });
+      return;
+    }
     showActionSheet({
       title: book.name,
       message: "Rafını değiştir",
       options: [
-        ...SHELVES.filter((t) => t.key !== active).map((t) => ({
+        ...READ_SHELVES.filter((t) => t.key !== active).map((t) => ({
           text: t.long,
           onPress: () => {
             const move = async (reason?: DropReason) => {
@@ -130,7 +156,7 @@ export default function KitapligimScreen() {
       <View style={{ marginHorizontal: spacing.lg, flexDirection: "row", padding: 4, borderRadius: 14, backgroundColor: colors.neutral200 }}>
         {SHELVES.map((s) => {
           const on = s.key === active;
-          const n = library?.[s.key].length ?? 0;
+          const n = s.key === "owned" ? owned.length : (library?.[s.key].length ?? 0);
           return (
             <Pressable
               key={s.key}
@@ -140,11 +166,22 @@ export default function KitapligimScreen() {
               style={{ flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 11, backgroundColor: on ? colors.card : "transparent", ...(on ? shadow.sm : null) }}
             >
               <ThemedText variant="title" color={on ? colors.accent700 : colors.text} style={{ fontSize: 18, lineHeight: 22 }}>{n}</ThemedText>
-              <ThemedText variant="caption" color={on ? colors.text : colors.textMuted} numberOfLines={1} style={{ fontSize: 11.5, fontWeight: on ? "600" : "500" }}>{s.label}</ThemedText>
+              <ThemedText variant="caption" color={on ? colors.text : colors.textMuted} numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: 11, fontWeight: on ? "600" : "500" }}>{s.label}</ThemedText>
             </Pressable>
           );
         })}
       </View>
+
+      {active === "owned" && (
+        <Pressable onPress={() => router.push("/barkod")} style={({ pressed }) => ({ marginHorizontal: spacing.lg, flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.accent200 : colors.accent100 })}>
+          <ScanBarcodeIcon size={22} color={colors.accent800} />
+          <View style={{ flex: 1 }}>
+            <ThemedText variant="bodySemibold" color={colors.accent800}>Barkod tarayarak ekle</ThemedText>
+            <ThemedText variant="caption" color={colors.accent700}>Kitabın arkasındaki ISBN&apos;i okut, kütüphanene ekle</ThemedText>
+          </View>
+          <ChevronRightIcon size={18} color={colors.accent700} />
+        </Pressable>
+      )}
 
       <View style={{ paddingHorizontal: spacing.lg }}>
         <SearchBar value={query} onChangeText={setQuery} placeholder="Kitaplığında ara (ad, yazar)" />

@@ -4,6 +4,7 @@ import { getReadStatus } from "@/db/queries/reading-status";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
 import { getMobileSession } from "@/lib/mobile-auth";
+import { isInLibrary } from "@/db/queries/library";
 import { mobileJson, mobileCorsPreflight } from "@/lib/mobile-api";
 
 /** Mobile book detail - same real data the web `/kitap/[slug]` page shows:
@@ -18,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   const session = await getMobileSession(request);
 
-  const [pooledScore, ratingCount, myRating, myStatus, likeCount, liked, comments, quotes, similar, readers, readerCount] = await Promise.all([
+  const [pooledScore, ratingCount, myRating, myStatus, likeCount, liked, comments, quotes, similar, readers, readerCount, owned] = await Promise.all([
     book.workId ? getWorkPooledScore(book.workId) : Promise.resolve(null),
     getBookRatingCount(book.id),
     session ? getUserBookRating(session.userId, book.id) : Promise.resolve(null),
@@ -30,6 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     book.categories.length > 0 ? getSimilarBooks(book.id, book.categories[0].id, 10, book.lang).catch(() => []) : Promise.resolve([]),
     getBookReaders(book.id, 12),
     getBookReaderCount(book.id),
+    session ? isInLibrary(session.userId, book.id) : Promise.resolve(false),
   ]);
 
   const repliesByComment = await getRepliesForComments([...comments, ...quotes].map((c) => c.id));
@@ -51,6 +53,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     similar,
     readers,
     readerCount,
+    owned,
   });
 }
 

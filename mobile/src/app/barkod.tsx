@@ -4,12 +4,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import * as Haptics from "expo-haptics";
-import { XIcon, FlashlightIcon, FlashlightOffIcon, KeyboardIcon, ScanLineIcon, BookPlusIcon, RotateCcwIcon, SearchIcon, ChevronRightIcon, CameraOffIcon } from "lucide-react-native";
+import { XIcon, FlashlightIcon, FlashlightOffIcon, KeyboardIcon, ScanLineIcon, BookPlusIcon, RotateCcwIcon, SearchIcon, CameraOffIcon, LibraryIcon, CheckIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { BookCover } from "@/components/BookCover";
 import { Button } from "@/components/Button";
 import { lookupIsbn, getSubmitMeta, type IsbnLookup } from "@/api/contribute";
+import { addOwnedBook } from "@/api/library";
 
 const FRAME_W = 280;
 const FRAME_H = 170;
@@ -31,6 +32,22 @@ export default function BarkodScreen() {
   const [result, setResult] = useState<IsbnLookup | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(false);
+  const [ownedIds, setOwnedIds] = useState<Set<number>>(new Set());
+
+  async function addToLibrary(bookId: number) {
+    if (ownedIds.has(bookId)) return;
+    setOwnedIds((p) => new Set(p).add(bookId));
+    try {
+      await addOwnedBook(bookId);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch {
+      setOwnedIds((p) => {
+        const n = new Set(p);
+        n.delete(bookId);
+        return n;
+      });
+    }
+  }
   const lastCode = useRef<string | null>(null);
   const [line] = useState(() => new Animated.Value(0));
 
@@ -247,7 +264,15 @@ export default function BarkodScreen() {
                           <ThemedText variant="bodySemibold" numberOfLines={2}>{b.name}</ThemedText>
                           <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
                         </View>
-                        <ChevronRightIcon size={18} color={colors.textMuted} />
+                        <Pressable
+                          onPress={() => void addToLibrary(b.id)}
+                          hitSlop={6}
+                          accessibilityLabel="Kütüphaneme ekle"
+                          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 7, paddingHorizontal: 11, borderRadius: radius.pill, backgroundColor: ownedIds.has(b.id) ? colors.accent100 : pressed ? colors.accent700 : colors.accent })}
+                        >
+                          {ownedIds.has(b.id) ? <CheckIcon size={14} color={colors.accent800} /> : <LibraryIcon size={14} color="#fff" />}
+                          <ThemedText variant="caption" color={ownedIds.has(b.id) ? colors.accent800 : "#fff"} style={{ fontWeight: "700" }}>{ownedIds.has(b.id) ? "Eklendi" : "Kütüphaneme"}</ThemedText>
+                        </Pressable>
                       </Pressable>
                     ))}
                   </>

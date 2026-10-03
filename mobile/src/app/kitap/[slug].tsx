@@ -18,6 +18,7 @@ import {
   MessageSquareIcon,
   XIcon,
   QuoteIcon,
+  LibraryIcon,
   ChevronLeftIcon,
   ChevronDownIcon,
 } from "lucide-react-native";
@@ -30,7 +31,7 @@ import { Avatar } from "@/components/Avatar";
 import { ComposerBar } from "@/components/ComposerBar";
 import { EmptyState, SectionHeader } from "@/components/EmptyState";
 import { getBook, rateBook, toggleBookLike, addBookComment, addCommentReply, type BookDetailResponse, type BookComment, type CommentReply } from "@/api/book";
-import { setLibraryStatus, type ReadStatus } from "@/api/library";
+import { setLibraryStatus, toggleOwnedBook, type ReadStatus } from "@/api/library";
 import { relativeTime } from "@/lib/relativeTime";
 import { getMyLists, addBookToList, type UserListSummary } from "@/api/lists";
 import { API_BASE_URL } from "@/api/config";
@@ -158,6 +159,19 @@ export default function BookDetailScreen() {
       Alert.alert("Eklendi", "Kitap listeye eklendi.");
     } catch (err) {
       Alert.alert("Hata", err instanceof Error ? err.message : "Eklenemedi.");
+    }
+  }
+
+  async function onToggleOwned() {
+    if (!data) return;
+    const was = Boolean(data.owned);
+    setData({ ...data, owned: !was });
+    try {
+      const r = await toggleOwnedBook(data.book.id);
+      setData((d) => (d ? { ...d, owned: r.inLibrary } : d));
+    } catch {
+      setData((d) => (d ? { ...d, owned: was } : d));
+      Alert.alert("Hata", "Kütüphane güncellenemedi.");
     }
   }
 
@@ -311,6 +325,9 @@ export default function BookDetailScreen() {
               <Pressable onPress={onToggleLike} disabled={likeSaving} accessibilityLabel="Beğen" style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.16)" })}>
                 <HeartIcon size={21} color={liked ? "#ff6b6b" : "#fff"} fill={liked ? "#ff6b6b" : "transparent"} />
               </Pressable>
+              <Pressable onPress={onToggleOwned} accessibilityLabel={data.owned ? "Kütüphanemden çıkar" : "Kütüphaneme ekle"} style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: data.owned ? "#fff" : pressed ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.16)" })}>
+                <LibraryIcon size={20} color={data.owned ? colors.accent700 : "#fff"} />
+              </Pressable>
               <Pressable onPress={onOpenListPicker} accessibilityLabel="Listeye ekle" style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: pressed || showListPicker ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.16)" })}>
                 <ListPlusIcon size={21} color="#fff" />
               </Pressable>
@@ -318,6 +335,11 @@ export default function BookDetailScreen() {
             {myStatus?.status === "dropRead" && myStatus.dropReason ? (
               <ThemedText variant="caption" color="rgba(255,255,255,0.7)" style={{ textAlign: "center", marginTop: spacing.sm }}>
                 Yarıda bıraktın · {dropReasonLabel(myStatus.dropReason)}
+              </ThemedText>
+            ) : null}
+            {data.owned ? (
+              <ThemedText variant="caption" color="rgba(255,255,255,0.75)" style={{ textAlign: "center", marginTop: spacing.sm }}>
+                Kütüphanende var
               </ThemedText>
             ) : null}
           </LinearGradient>

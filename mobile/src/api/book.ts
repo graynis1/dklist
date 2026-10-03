@@ -68,6 +68,8 @@ export interface BookDetailResponse {
   similar?: { id: number; name: string; slug: string; score: number; hasImage: boolean; writers: string[] }[];
   readers?: { id: number; username: string; image: string | null; status: string }[];
   readerCount?: number;
+  /** In the caller's "Kütüphanem" (owned books). */
+  owned?: boolean;
 }
 
 export async function getBook(slug: string): Promise<BookDetailResponse> {
