@@ -1,3 +1,4 @@
+import { mediaUrl } from "@/lib/media";
 import { useState } from "react";
 import { View, Pressable, Image, Alert, ScrollView } from "react-native";
 import { router, type Href } from "expo-router";
@@ -281,7 +282,7 @@ export function PostCard({ item }: { item: FeedItem }) {
         </ThemedText>
       ) : null}
 
-      {item.feedPostImage && <Image source={{ uri: item.feedPostImage }} style={{ width: "100%", aspectRatio: 4 / 3, backgroundColor: colors.surface }} resizeMode="cover" />}
+      {item.feedPostImage && <Image source={{ uri: mediaUrl(item.feedPostImage)! }} style={{ width: "100%", aspectRatio: 4 / 3, backgroundColor: colors.surface }} resizeMode="cover" />}
 
       {item.entityKind === "book" && <BookAttachment item={item} />}
 
