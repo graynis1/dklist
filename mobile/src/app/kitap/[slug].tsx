@@ -24,6 +24,7 @@ import {
 import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
+import { FloatingBack } from "@/components/ui";
 import { BookCover } from "@/components/BookCover";
 import { Avatar } from "@/components/Avatar";
 import { ComposerBar } from "@/components/ComposerBar";
@@ -45,9 +46,11 @@ const STATUS: { key: ReadStatus; label: string; Icon: typeof BookOpenIcon }[] = 
 const LANG_LABEL: Record<string, string> = { tur: "Türkçe", tr: "Türkçe", eng: "İngilizce", en: "İngilizce", ger: "Almanca", fre: "Fransızca", rus: "Rusça", spa: "İspanyolca", ita: "İtalyanca", ara: "Arapça" };
 
 function Card({ children, style }: { children: React.ReactNode; style?: object }) {
-  const { colors, spacing, shadow } = useTheme();
-  return <View style={[{ backgroundColor: colors.card, marginTop: spacing.sm, padding: spacing.lg, ...shadow.sm }, style]}>{children}</View>;
+  const { colors, spacing, radius } = useTheme();
+  return <View style={[{ backgroundColor: colors.card, marginTop: spacing.md, marginHorizontal: spacing.md, padding: spacing.lg, borderRadius: radius.lg }, style]}>{children}</View>;
 }
+
+const READER_STATUS: Record<string, string> = { currentRead: "Okuyor", finishRead: "Okudu", targetRead: "Okuyacak", dropRead: "Bıraktı" };
 
 export default function BookDetailScreen() {
   const { colors, spacing, radius, shadow } = useTheme();
@@ -194,6 +197,7 @@ export default function BookDetailScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+        <FloatingBack />
         <ActivityIndicator color={colors.accent} />
       </View>
     );
@@ -202,6 +206,7 @@ export default function BookDetailScreen() {
   if (error || !data) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: "center" }}>
+        <FloatingBack />
         <EmptyState icon={<BookOpenIcon size={30} color={colors.accent} />} title="Kitap bulunamadı" subtitle={error ?? undefined} actionLabel="Tekrar Dene" onAction={load} />
       </View>
     );
@@ -410,6 +415,44 @@ export default function BookDetailScreen() {
                 </View>
               </View>
             )}
+          </Card>
+        )}
+
+        {/* Readers */}
+        {data.readers && data.readers.length > 0 && (
+          <Card style={{ paddingHorizontal: 0 }}>
+            <View style={{ paddingHorizontal: spacing.lg }}>
+              <SectionHeader title="Bu kitabı okuyanlar" count={data.readerCount ?? data.readers.length} />
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+              {data.readers.map((r) => (
+                <Pressable key={r.id} onPress={() => router.push({ pathname: "/profil/[username]", params: { username: r.username } })} style={({ pressed }) => ({ width: 64, alignItems: "center", gap: 4, opacity: pressed ? 0.7 : 1 })}>
+                  <Avatar id={r.id} name={r.username} imageUrl={r.image} size={52} />
+                  <ThemedText variant="caption" numberOfLines={1} style={{ fontSize: 11.5, fontWeight: "500" }}>{r.username}</ThemedText>
+                  <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 10.5, marginTop: -3 }}>{READER_STATUS[r.status] ?? ""}</ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Card>
+        )}
+
+        {/* Similar books */}
+        {data.similar && data.similar.length > 0 && (
+          <Card style={{ paddingHorizontal: 0 }}>
+            <View style={{ paddingHorizontal: spacing.lg }}>
+              <SectionHeader title="Benzer kitaplar" />
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+              {data.similar.map((b) => (
+                <Pressable key={b.id} onPress={() => router.push({ pathname: "/kitap/[slug]", params: { slug: b.slug } })} style={({ pressed }) => ({ width: 96, gap: 6, opacity: pressed ? 0.75 : 1 })}>
+                  <View style={{ borderRadius: 4, ...shadow.md }}>
+                    <BookCover id={b.id} title={b.name} author={b.writers.join(", ")} width={96} height={142} hasImage={b.hasImage} score={b.score} />
+                  </View>
+                  <ThemedText variant="bodySemibold" numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 16 }}>{b.name}</ThemedText>
+                  <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 11, marginTop: -4 }}>{b.writers.join(", ")}</ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
           </Card>
         )}
 

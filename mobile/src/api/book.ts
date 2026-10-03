@@ -65,6 +65,9 @@ export interface BookDetailResponse {
   comments: BookComment[];
   /** "Alıntılar" - quotes from the book, same shape as comments. */
   quotes?: BookComment[];
+  similar?: { id: number; name: string; slug: string; score: number; hasImage: boolean; writers: string[] }[];
+  readers?: { id: number; username: string; image: string | null; status: string }[];
+  readerCount?: number;
 }
 
 export async function getBook(slug: string): Promise<BookDetailResponse> {

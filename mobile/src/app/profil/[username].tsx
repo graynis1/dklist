@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReadingStatsSection } from "@/components/ReadingStats";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
+import { FloatingBack } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { BookCover } from "@/components/BookCover";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
@@ -137,6 +138,7 @@ export default function OtherProfileScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+        <FloatingBack />
         <ActivityIndicator color={colors.accent} />
       </View>
     );
@@ -145,6 +147,7 @@ export default function OtherProfileScreen() {
   if (!data) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: "center" }}>
+        <FloatingBack />
         <EmptyState icon={<LockIcon size={30} color={colors.accent} />} title="Kullanıcı bulunamadı" subtitle="Bu profil silinmiş ya da hiç var olmamış olabilir." />
       </View>
     );

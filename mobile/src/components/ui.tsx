@@ -1,6 +1,8 @@
 import { Children, Fragment, isValidElement } from "react";
 import { View, Pressable, StyleSheet, type ViewStyle } from "react-native";
-import { ChevronRightIcon, type LucideIcon } from "lucide-react-native";
+import { ChevronRightIcon, ChevronLeftIcon, type LucideIcon } from "lucide-react-native";
+import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 
@@ -148,6 +150,22 @@ export function Chip({ label, active, onPress, count, disabled }: { label: strin
           {count}
         </ThemedText>
       )}
+    </Pressable>
+  );
+}
+
+/** Back button for header-less screens' loading/error states, so the user is never stuck. */
+export function FloatingBack({ dark = false }: { dark?: boolean }) {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <Pressable
+      onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+      hitSlop={8}
+      accessibilityLabel="Geri"
+      style={{ position: "absolute", top: insets.top + 6, left: 12, width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: dark ? "rgba(0,0,0,0.32)" : colors.card, zIndex: 10 }}
+    >
+      <ChevronLeftIcon size={24} color={dark ? "#fff" : colors.text} />
     </Pressable>
   );
 }
