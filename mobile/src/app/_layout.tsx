@@ -238,7 +238,7 @@ function RootNavigator() {
           name="hesap-duzenle"
           options={{
             headerShown: true,
-            title: "Hesabım",
+            title: "Hesap Ayarları",
             headerStyle: { backgroundColor: colors.card },
             headerTintColor: colors.text,
             headerTitleStyle: HEADER_TITLE,
