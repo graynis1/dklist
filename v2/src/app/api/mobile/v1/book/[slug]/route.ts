@@ -1,4 +1,4 @@
-import { getBookBySlug, getWorkPooledScore } from "@/db/queries/book-detail";
+import { getBookBySlug, getWorkPooledScore, getSimilarBooks, getBookReaders, getBookReaderCount } from "@/db/queries/book-detail";
 import { getUserBookRating, getBookRatingCount } from "@/db/queries/rating";
 import { getReadStatus } from "@/db/queries/reading-status";
 import { isBookLiked, getBookLikeCount } from "@/db/queries/likes";
@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   const session = await getMobileSession(request);
 
-  const [pooledScore, ratingCount, myRating, myStatus, likeCount, liked, comments, quotes] = await Promise.all([
+  const [pooledScore, ratingCount, myRating, myStatus, likeCount, liked, comments, quotes, similar, readers, readerCount] = await Promise.all([
     book.workId ? getWorkPooledScore(book.workId) : Promise.resolve(null),
     getBookRatingCount(book.id),
     session ? getUserBookRating(session.userId, book.id) : Promise.resolve(null),
@@ -27,6 +27,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     session ? isBookLiked(session.userId, book.id) : Promise.resolve(false),
     getEntityComments(book.id, "book"),
     getEntityComments(book.id, "book", "quotation"),
+    book.categories.length > 0 ? getSimilarBooks(book.id, book.categories[0].id, 10, book.lang).catch(() => []) : Promise.resolve([]),
+    getBookReaders(book.id, 12),
+    getBookReaderCount(book.id),
   ]);
 
   const repliesByComment = await getRepliesForComments([...comments, ...quotes].map((c) => c.id));
@@ -45,6 +48,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     liked,
     comments: commentsWithReplies,
     quotes: quotesWithReplies,
+    similar,
+    readers,
+    readerCount,
   });
 }
 
