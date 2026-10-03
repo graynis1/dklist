@@ -358,7 +358,7 @@ function RootNavigator() {
         <Stack.Screen
           name="kulup/[slug]"
           options={{
-            headerShown: true,
+            headerShown: false,
             title: "",
             headerStyle: { backgroundColor: colors.card },
             headerTintColor: colors.text,

@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Pressable, Alert, Switch } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { XIcon, PencilIcon } from "lucide-react-native";
+import { View, ScrollView, ActivityIndicator, Pressable, Alert, Switch, StyleSheet } from "react-native";
+import { useLocalSearchParams, router, useNavigation } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { XIcon, PencilIcon, ChevronLeftIcon, ChevronRightIcon, Share2Icon, BadgeCheckIcon, CheckIcon, ClockIcon, UserPlusIcon, BookOpenIcon, Trash2Icon, UsersIcon } from "lucide-react-native";
+import { FloatingBack } from "@/components/ui";
+import { EmptyState } from "@/components/EmptyState";
+import { showActionSheet } from "@/components/ActionSheet";
+import { shareLink } from "@/lib/share";
+import { ClubMark, clubDisplayName, clubHue } from "@/components/ClubMark";
 import { useTheme } from "@/theme/useTheme";
 import { ThemedText } from "@/components/ThemedText";
 import { TextField } from "@/components/TextField";
@@ -29,8 +36,15 @@ import {
 const MANAGE_ROLES = ["Admin", "Mod"];
 
 export default function KulupDetailScreen() {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, radius, shadow } = useTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const [descExpanded, setDescExpanded] = useState(false);
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
   const { profile } = useAuth();
   const [club, setClub] = useState<ClubDetail | null>(null);
   const [isMember, setIsMember] = useState(false);
@@ -224,6 +238,7 @@ export default function KulupDetailScreen() {
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+        <FloatingBack />
         <ActivityIndicator color={colors.accent} />
       </View>
     );
@@ -231,146 +246,276 @@ export default function KulupDetailScreen() {
 
   if (!club) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg, padding: spacing["2xl"] }}>
-        <ThemedText variant="body" muted>Kulüp bulunamadı.</ThemedText>
+      <View style={{ flex: 1, justifyContent: "center", backgroundColor: colors.bg }}>
+        <FloatingBack />
+        <EmptyState icon={<UsersIcon size={30} color={colors.accent} />} title="Kulüp bulunamadı" subtitle="Bu kulüp silinmiş ya da bağlantı hatalı olabilir." />
       </View>
     );
   }
 
-  const buttonTitle = isMember ? "Kulüpten Ayrıl" : isPending ? "Onay Bekliyor" : "Katıl";
+  const official = /^dklist\s*\|/i.test(club.name);
+  const hue = clubHue(club.name);
+  const descLines = club.description.split(/\n/).map((l) => l.trim());
+  const longDesc = club.description.length > 280 || descLines.length > 7;
+  const shownLines = descExpanded || !longDesc ? descLines : descLines.slice(0, 6);
+  const glass = { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.25)", alignItems: "center" as const, justifyContent: "center" as const };
+  const ROLE_LABEL: Record<string, string> = { owner: "Kurucu", admin: "Yönetici", moderator: "Moderatör" };
+
+  function onShare() {
+    if (!club) return;
+    void shareLink(`DKList'te "${clubDisplayName(club.name)}" kulübüne göz at`, `https://dklist.com/kulup/${slug}`);
+  }
+
+  function onMemberAction() {
+    if (isMember) {
+      showActionSheet({
+        title: clubDisplayName(club!.name),
+        options: [{ text: "Kulüpten ayrıl", destructive: true, onPress: () => void onToggleMembership() }],
+      });
+    } else if (!isPending) {
+      void onToggleMembership();
+    }
+  }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
-      {editingInfo ? (
-        <View style={{ gap: spacing.sm }}>
-          <TextField label="Kulüp Adı" value={nameDraft} onChangeText={setNameDraft} />
-          <TextField label="Açıklama" value={descriptionDraft} onChangeText={setDescriptionDraft} multiline style={{ height: 80 }} />
-          <View style={{ flexDirection: "row", gap: spacing.sm }}>
-            <Button title="Vazgeç" variant="secondary" onPress={() => setEditingInfo(false)} disabled={infoSaving} />
-            <Button title="Kaydet" onPress={onSaveInfo} disabled={infoSaving} />
-          </View>
-        </View>
-      ) : (
-        <View style={{ gap: spacing.xs }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-            <ThemedText variant="headline" style={{ flex: 1 }}>{club.name}</ThemedText>
-            {canManage && (
-              <Pressable onPress={openInfoEdit} hitSlop={8}>
-                <PencilIcon size={18} color={colors.textMuted} />
-              </Pressable>
-            )}
-          </View>
-          <ThemedText variant="caption" muted>{club.memberCount} üye · {club.visibility === "public" ? "Herkese açık" : "Gizli"}</ThemedText>
-          <ThemedText variant="body">{club.description}</ThemedText>
-        </View>
-      )}
-
-      {!canManage && (
-        <Button title={buttonTitle} variant={isMember ? "secondary" : "primary"} onPress={onToggleMembership} disabled={saving || isPending} />
-      )}
-
-      {club.currentBookName && !bookPickerOpen && (
-        <View style={{ gap: 4 }}>
-          <ThemedText variant="label" color={colors.textMuted}>Şu An Okunan Kitap</ThemedText>
-          <Pressable
-            onPress={() => club.currentBookSlug && router.push({ pathname: "/kitap/[slug]", params: { slug: club.currentBookSlug } })}
-            style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}
-          >
-            <BookCover id={club.currentBookId ?? 0} title={club.currentBookName} width={44} height={64} hasImage={club.currentBookHasImage} />
-            <View>
-              <ThemedText variant="title">{club.currentBookName}</ThemedText>
-              <ThemedText variant="caption" muted>{club.currentBookWriters.join(", ")}</ThemedText>
-            </View>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ paddingBottom: spacing["3xl"] }} keyboardShouldPersistTaps="handled">
+      {/* Cover */}
+      <LinearGradient colors={hue} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ height: 130 + insets.top }}>
+        <View style={{ position: "absolute", right: -40, top: -20, width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,0.07)" }} />
+        <View style={{ position: "absolute", top: insets.top + 6, left: spacing.md, right: spacing.md, flexDirection: "row", justifyContent: "space-between" }}>
+          <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/kulupler"))} hitSlop={8} style={glass} accessibilityLabel="Geri">
+            <ChevronLeftIcon size={24} color="#fff" />
           </Pressable>
-          {canManage && (
-            <View style={{ flexDirection: "row", gap: spacing.md, marginTop: 4 }}>
-              <Pressable onPress={() => setBookPickerOpen(true)}>
-                <ThemedText variant="caption" color={colors.accent}>Değiştir</ThemedText>
-              </Pressable>
-              <Pressable onPress={onClearCurrentBook}>
-                <ThemedText variant="caption" color={colors.textMuted}>Kaldır</ThemedText>
-              </Pressable>
-            </View>
-          )}
+          <Pressable onPress={onShare} hitSlop={8} style={glass} accessibilityLabel="Kulübü paylaş">
+            <Share2Icon size={18} color="#fff" />
+          </Pressable>
         </View>
-      )}
+      </LinearGradient>
 
-      {canManage && !club.currentBookName && !bookPickerOpen && (
-        <Pressable onPress={() => setBookPickerOpen(true)}>
-          <ThemedText variant="caption" color={colors.accent}>+ Şu an okunan kitabı seç</ThemedText>
-        </Pressable>
-      )}
+      {/* Identity */}
+      <View style={{ backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }}>
+        <View style={{ marginTop: -44, alignSelf: "flex-start", padding: 4, borderRadius: 30, backgroundColor: colors.card }}>
+          <ClubMark name={club.name} size={84} />
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.sm }}>
+          <ThemedText variant="headline" style={{ flexShrink: 1, fontSize: 23 }}>{clubDisplayName(club.name)}</ThemedText>
+          {official && <BadgeCheckIcon size={20} color={colors.accent} />}
+        </View>
+        <ThemedText variant="body" muted style={{ marginTop: 2, fontSize: 14 }}>
+          {official ? "Resmi DKList kulübü · " : ""}{club.memberCount} üye · {club.visibility === "public" ? "Herkese açık" : "Gizli"}
+        </ThemedText>
 
-      {bookPickerOpen && (
-        <View style={{ gap: spacing.xs }}>
-          <TextField label="Kitap ara" value={bookQuery} onChangeText={onBookQueryChange} placeholder="Kitap adı…" autoFocus />
-          {bookResults.map((b) => (
-            <Pressable key={b.id} onPress={() => onSelectCurrentBook(b)} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", paddingVertical: 6 }}>
-              <BookCover id={b.id} title={b.name} width={28} height={40} hasImage={b.hasImage} />
-              <View style={{ flex: 1 }}>
-                <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
-                <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+        {/* Member faces */}
+        {club.members.length > 0 && (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: spacing.md }}>
+            {club.members.slice(0, 6).map((m, i) => (
+              <View key={m.userId} style={{ marginLeft: i === 0 ? 0 : -10, borderRadius: 18, borderWidth: 2, borderColor: colors.card }}>
+                <Avatar id={m.userId} name={m.username} imageUrl={m.image} size={30} />
               </View>
-            </Pressable>
-          ))}
-          <Pressable onPress={() => setBookPickerOpen(false)}>
-            <ThemedText variant="caption" muted>Vazgeç</ThemedText>
-          </Pressable>
-        </View>
-      )}
-
-      {canManage && (
-        <View style={{ gap: spacing.sm, borderWidth: 1, borderColor: colors.divider, borderRadius: 12, padding: spacing.md }}>
-          <ThemedText variant="label" color={colors.textMuted}>Kulüp Yönetimi</ThemedText>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <ThemedText variant="body">Katılım onayı gerektir</ThemedText>
-            <Switch value={club.requiresApproval} onValueChange={onToggleApproval} disabled={approvalBusy} />
+            ))}
+            <ThemedText variant="caption" muted style={{ marginLeft: spacing.sm }}>
+              {club.members.slice(0, 2).map((m) => m.username).join(", ")}
+              {club.memberCount > 2 ? ` ve ${club.memberCount - 2} kişi daha` : ""}
+            </ThemedText>
           </View>
+        )}
 
-          {club.requiresApproval && requests.length > 0 && (
-            <View style={{ gap: spacing.xs, marginTop: spacing.xs }}>
-              <ThemedText variant="caption" muted>Bekleyen İstekler ({requests.length})</ThemedText>
-              {requests.map((r) => (
-                <View key={r.userId} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-                  <Avatar id={r.userId} name={r.username} imageUrl={r.image} size={26} />
-                  <ThemedText variant="body" style={{ flex: 1 }}>@{r.username}</ThemedText>
-                  <Pressable onPress={() => onRespondToRequest(r.userId, "reject")}>
-                    <ThemedText variant="caption" color={colors.textMuted}>Reddet</ThemedText>
-                  </Pressable>
-                  <Pressable onPress={() => onRespondToRequest(r.userId, "approve")}>
-                    <ThemedText variant="caption" color={colors.accent}>Onayla</ThemedText>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
+        {/* Actions */}
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.lg }}>
+          {canManage ? (
+            <Pressable onPress={openInfoEdit} style={({ pressed }) => ({ flex: 1, height: 44, borderRadius: radius.lg, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}>
+              <PencilIcon size={16} color={colors.text} />
+              <ThemedText variant="bodySemibold">Kulübü düzenle</ThemedText>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={onMemberAction}
+              disabled={saving || isPending}
+              style={({ pressed }) => ({ flex: 1, height: 44, borderRadius: radius.lg, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, opacity: saving ? 0.6 : 1, backgroundColor: isMember || isPending ? (pressed ? colors.neutral300 : colors.neutral200) : pressed ? colors.accent700 : colors.accent })}
+            >
+              {saving ? (
+                <ActivityIndicator color={isMember ? colors.text : "#fff"} />
+              ) : isMember ? (
+                <>
+                  <CheckIcon size={17} color={colors.text} />
+                  <ThemedText variant="bodySemibold">Üyesin</ThemedText>
+                </>
+              ) : isPending ? (
+                <>
+                  <ClockIcon size={16} color={colors.textMuted} />
+                  <ThemedText variant="bodySemibold" muted>Onay bekliyor</ThemedText>
+                </>
+              ) : (
+                <>
+                  <UserPlusIcon size={17} color="#fff" />
+                  <ThemedText variant="bodySemibold" color="#fff">Kulübe katıl</ThemedText>
+                </>
+              )}
+            </Pressable>
           )}
-
-          <Pressable onPress={onDeleteClub} style={{ marginTop: spacing.sm }}>
-            <ThemedText variant="caption" color="#c0392b">Kulübü Sil</ThemedText>
+          <Pressable onPress={onShare} style={({ pressed }) => ({ height: 44, paddingHorizontal: 18, borderRadius: radius.lg, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}>
+            <Share2Icon size={16} color={colors.text} />
+            <ThemedText variant="bodySemibold">Paylaş</ThemedText>
           </Pressable>
         </View>
+      </View>
+
+      {editingInfo && (
+        <Section title="Kulüp bilgileri">
+          <View style={{ gap: spacing.sm }}>
+            <TextField label="Kulüp adı" value={nameDraft} onChangeText={setNameDraft} />
+            <TextField label="Açıklama" value={descriptionDraft} onChangeText={setDescriptionDraft} multiline style={{ height: 120, textAlignVertical: "top", paddingTop: 10 }} />
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <Button title="Vazgeç" variant="secondary" onPress={() => setEditingInfo(false)} disabled={infoSaving} />
+              <Button title="Kaydet" onPress={onSaveInfo} disabled={infoSaving} />
+            </View>
+          </View>
+        </Section>
       )}
 
-      <View style={{ gap: spacing.sm }}>
-        <ThemedText variant="label" color={colors.textMuted}>Üyeler ({club.members.length})</ThemedText>
-        {club.members.map((m) => (
-          <View key={m.userId} style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
-            <Pressable
-              onPress={() => router.push({ pathname: "/profil/[username]", params: { username: m.username } })}
-              style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center", flex: 1 }}
-            >
-              <Avatar id={m.userId} name={m.username} imageUrl={m.image} size={28} />
-              <ThemedText variant="body">@{m.username}</ThemedText>
-              {m.role !== "member" && <ThemedText variant="caption" color={colors.accent}>· {m.role}</ThemedText>}
-            </Pressable>
-            {canManage && m.role !== "owner" && m.userId !== profile?.id && (
-              <Pressable onPress={() => onRemoveMember(m.userId, m.username)} style={{ padding: 4 }}>
-                <XIcon size={16} color={colors.textMuted} />
+      {/* Current book */}
+      {(club.currentBookName || canManage) && (
+        <Section title="Şu an birlikte okunan">
+          {bookPickerOpen ? (
+            <View style={{ gap: spacing.xs }}>
+              <TextField label="Kitap ara" value={bookQuery} onChangeText={onBookQueryChange} placeholder="Kitap adı…" autoFocus />
+              {bookResults.map((b) => (
+                <Pressable key={b.id} onPress={() => onSelectCurrentBook(b)} style={({ pressed }) => ({ flexDirection: "row", gap: spacing.sm, alignItems: "center", paddingVertical: 8, opacity: pressed ? 0.6 : 1 })}>
+                  <BookCover id={b.id} title={b.name} width={30} height={44} hasImage={b.hasImage} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText variant="body" numberOfLines={1}>{b.name}</ThemedText>
+                    <ThemedText variant="caption" muted numberOfLines={1}>{b.writers.join(", ")}</ThemedText>
+                  </View>
+                </Pressable>
+              ))}
+              <ThemedText variant="bodySemibold" muted onPress={() => setBookPickerOpen(false)} style={{ paddingVertical: 6 }}>Vazgeç</ThemedText>
+            </View>
+          ) : club.currentBookName ? (
+            <View style={{ gap: spacing.md }}>
+              <Pressable
+                onPress={() => club.currentBookSlug && router.push({ pathname: "/kitap/[slug]", params: { slug: club.currentBookSlug } })}
+                style={({ pressed }) => ({ flexDirection: "row", gap: spacing.md, alignItems: "center", opacity: pressed ? 0.75 : 1 })}
+              >
+                <View style={{ borderRadius: 4, ...shadow.md }}>
+                  <BookCover id={club.currentBookId ?? 0} title={club.currentBookName} width={60} height={90} hasImage={club.currentBookHasImage} />
+                </View>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <ThemedText variant="title" numberOfLines={2} style={{ fontSize: 17 }}>{club.currentBookName}</ThemedText>
+                  <ThemedText variant="caption" muted numberOfLines={1} style={{ fontSize: 13 }}>{club.currentBookWriters.join(", ")}</ThemedText>
+                  <ThemedText variant="caption" color={colors.accent700} style={{ fontWeight: "600", marginTop: 4 }}>Kitabı incele</ThemedText>
+                </View>
+                <ChevronRightIcon size={18} color={colors.neutral400} />
               </Pressable>
+              {canManage && (
+                <View style={{ flexDirection: "row", gap: spacing.lg }}>
+                  <ThemedText variant="bodySemibold" color={colors.accent700} onPress={() => setBookPickerOpen(true)}>Değiştir</ThemedText>
+                  <ThemedText variant="bodySemibold" muted onPress={onClearCurrentBook}>Kaldır</ThemedText>
+                </View>
+              )}
+            </View>
+          ) : (
+            <Pressable onPress={() => setBookPickerOpen(true)} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.accent400, backgroundColor: pressed ? colors.accent100 : "transparent" })}>
+              <BookOpenIcon size={20} color={colors.accent} />
+              <ThemedText variant="bodySemibold" color={colors.accent800}>Birlikte okunacak kitabı seç</ThemedText>
+            </Pressable>
+          )}
+        </Section>
+      )}
+
+      {/* About */}
+      {club.description.trim() ? (
+        <Section title="Hakkında">
+          <View style={{ gap: 6 }}>
+            {shownLines.map((line, i) =>
+              /^[*•-]\s*/.test(line) ? (
+                <View key={i} style={{ flexDirection: "row", gap: 10, paddingLeft: 2 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, marginTop: 8 }} />
+                  <ThemedText variant="body" style={{ flex: 1, lineHeight: 22 }}>{line.replace(/^[*•-]\s*/, "")}</ThemedText>
+                </View>
+              ) : line ? (
+                <ThemedText key={i} variant="body" style={{ lineHeight: 22 }}>{line}</ThemedText>
+              ) : (
+                <View key={i} style={{ height: 4 }} />
+              ),
             )}
           </View>
-        ))}
-      </View>
+          {longDesc && (
+            <ThemedText variant="bodySemibold" color={colors.accent700} style={{ marginTop: spacing.sm }} onPress={() => setDescExpanded((v) => !v)}>
+              {descExpanded ? "Daha az göster" : "Devamını gör"}
+            </ThemedText>
+          )}
+        </Section>
+      ) : null}
+
+      {/* Members */}
+      <Section title={`Üyeler · ${club.members.length}`}>
+        <View>
+          {club.members.map((m, i) => (
+            <View key={m.userId} style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: 10, borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth, borderTopColor: colors.divider }}>
+              <Pressable onPress={() => router.push({ pathname: "/profil/[username]", params: { username: m.username } })} style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
+                <Avatar id={m.userId} name={m.username} imageUrl={m.image} size={40} />
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="bodySemibold" numberOfLines={1}>{m.username}</ThemedText>
+                  {ROLE_LABEL[m.role] ? <ThemedText variant="caption" color={colors.accent700}>{ROLE_LABEL[m.role]}</ThemedText> : null}
+                </View>
+              </Pressable>
+              {canManage && m.role !== "owner" && m.userId !== profile?.id && (
+                <Pressable onPress={() => onRemoveMember(m.userId, m.username)} hitSlop={8} accessibilityLabel="Üyeyi çıkar" style={{ padding: 6 }}>
+                  <XIcon size={17} color={colors.textMuted} />
+                </Pressable>
+              )}
+            </View>
+          ))}
+        </View>
+      </Section>
+
+      {/* Management */}
+      {canManage && (
+        <Section title="Yönetim">
+          <View style={{ gap: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+              <View style={{ flex: 1 }}>
+                <ThemedText variant="body">Katılım onayı gerektir</ThemedText>
+                <ThemedText variant="caption" muted>Yeni üyeleri sen onayladıktan sonra katılırlar</ThemedText>
+              </View>
+              <Switch value={club.requiresApproval} onValueChange={onToggleApproval} disabled={approvalBusy} trackColor={{ true: colors.accent, false: colors.neutral300 }} thumbColor="#fff" />
+            </View>
+
+            {club.requiresApproval && requests.length > 0 && (
+              <View style={{ gap: spacing.sm }}>
+                <ThemedText variant="label" color={colors.textMuted}>Bekleyen istekler · {requests.length}</ThemedText>
+                {requests.map((r) => (
+                  <View key={r.userId} style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                    <Avatar id={r.userId} name={r.username} imageUrl={r.image} size={36} />
+                    <ThemedText variant="bodySemibold" style={{ flex: 1 }} numberOfLines={1}>{r.username}</ThemedText>
+                    <Pressable onPress={() => onRespondToRequest(r.userId, "reject")} style={({ pressed }) => ({ paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}>
+                      <ThemedText variant="caption" style={{ fontWeight: "600" }}>Reddet</ThemedText>
+                    </Pressable>
+                    <Pressable onPress={() => onRespondToRequest(r.userId, "approve")} style={({ pressed }) => ({ paddingVertical: 7, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: pressed ? colors.accent700 : colors.accent })}>
+                      <ThemedText variant="caption" color="#fff" style={{ fontWeight: "600" }}>Onayla</ThemedText>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            <Pressable onPress={onDeleteClub} style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
+              <Trash2Icon size={17} color="#c0392b" />
+              <ThemedText variant="bodySemibold" color="#c0392b">Kulübü sil</ThemedText>
+            </Pressable>
+          </View>
+        </Section>
+      )}
     </ScrollView>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const { colors, spacing, radius } = useTheme();
+  return (
+    <View style={{ marginTop: spacing.md, marginHorizontal: spacing.md, padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.card, gap: spacing.md }}>
+      <ThemedText variant="title" style={{ fontSize: 17 }}>{title}</ThemedText>
+      {children}
+    </View>
   );
 }
