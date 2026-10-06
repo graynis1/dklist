@@ -1,4 +1,5 @@
 import { mediaUrl } from "@/lib/media";
+import { ClubMark, clubDisplayName } from "@/components/ClubMark";
 import { useEffect, useState } from "react";
 import { View, Pressable, Image, Alert, ScrollView, StyleSheet } from "react-native";
 import { router, type Href } from "expo-router";
@@ -161,7 +162,9 @@ function EntityAttachment({ item }: { item: FeedItem }) {
       onPress={() => href && router.push(href)}
       style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}
     >
-      {mediaImg ? (
+      {item.entityKind === "club" ? (
+        <ClubMark name={item.targetLabel} image={item.media?.image} size={60} />
+      ) : mediaImg ? (
         <Image source={{ uri: mediaImg }} style={round ? { width: 52, height: 52, borderRadius: 26 } : { width: 84, height: 84, borderRadius: radius.md, backgroundColor: colors.surface }} resizeMode="cover" />
       ) : (
         <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
@@ -172,7 +175,7 @@ function EntityAttachment({ item }: { item: FeedItem }) {
         {item.entityKind === "store" && item.media?.price != null && (
           <ThemedText variant="bodySemibold" color={colors.accent700} style={{ fontSize: 14 }}>{item.media.price > 0 ? `${item.media.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}</ThemedText>
         )}
-        <ThemedText variant="title" numberOfLines={2}>{item.targetLabel.replace(/[“”"]/g, "")}</ThemedText>
+        <ThemedText variant="title" numberOfLines={2}>{clubDisplayName(item.targetLabel.replace(/[“”"]/g, ""))}</ThemedText>
         {item.media?.subtitle ? <ThemedText variant="caption" muted numberOfLines={2} style={{ fontSize: 13, lineHeight: 18 }}>{item.media.subtitle}</ThemedText> : null}
       </View>
       {href && <ChevronRightIcon size={18} color={colors.textMuted} />}
@@ -486,10 +489,19 @@ function SameReasonCard({ items }: { items: FeedItem[] }) {
                 onPress={() => href && router.push(href)}
                 style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.divider, backgroundColor: pressed ? colors.neutral200 : colors.neutral100 })}
               >
-                <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
-                  <Icon size={18} color={colors.accent} />
+                {i.entityKind === "club" ? (
+                  <ClubMark name={i.targetLabel ?? ""} image={i.media?.image} size={44} />
+                ) : mediaUrl(i.media?.image) ? (
+                  <Image source={{ uri: mediaUrl(i.media?.image)! }} style={{ width: 44, height: 44, borderRadius: i.entityKind === "user" || i.entityKind === "writer" ? 22 : 8, backgroundColor: colors.surface }} />
+                ) : (
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
+                    <Icon size={18} color={colors.accent} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="bodySemibold" numberOfLines={1}>{clubDisplayName((i.targetLabel ?? "").replace(/[“”"]/g, ""))}</ThemedText>
+                  {i.media?.subtitle ? <ThemedText variant="caption" muted numberOfLines={1}>{i.entityKind === "store" && i.media.price != null ? `${i.media.price > 0 ? `${i.media.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"} · ` : ""}{i.media.subtitle}</ThemedText> : null}
                 </View>
-                <ThemedText variant="bodySemibold" numberOfLines={1} style={{ flex: 1 }}>{(i.targetLabel ?? "").replace(/[“”"]/g, "")}</ThemedText>
                 {href && <ChevronRightIcon size={17} color={colors.textMuted} />}
               </Pressable>
             );

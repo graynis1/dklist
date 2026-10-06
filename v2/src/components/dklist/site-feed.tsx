@@ -36,6 +36,7 @@ import { RelativeTime } from "@/components/dklist/relative-time";
 import { feedPostImageUrl } from "@/lib/image-urls";
 import { loadMoreFeedAction, deleteFeedPostAction, updateFeedPostAction } from "@/app/akis/actions";
 import type { FeedItem } from "@/db/queries/feed";
+import { ClubLogo, clubDisplayName } from "@/components/dklist/club-logo";
 import { ProfileLink } from "@/components/dklist/profile-link";
 
 const ICON_BY_REASON = {
@@ -248,7 +249,9 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
   const media = item.media;
   const mediaCard = !item.bookCover && media && item.targetHref && (
     <Link href={item.targetHref} className="flex overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/25">
-      {media.image ? (
+      {item.entityKind === "club" && !media.image ? (
+        <ClubLogo name={item.targetLabel ?? ""} image={null} color={null} size={64} className="m-3" />
+      ) : media.image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={media.image}
@@ -261,7 +264,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
         {media.price != null && item.entityKind === "store" && (
           <p className="text-sm font-semibold text-primary">{media.price > 0 ? `${media.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}</p>
         )}
-        {item.targetLabel && <p className="line-clamp-2 text-sm font-semibold">{item.targetLabel}</p>}
+        {item.targetLabel && <p className="line-clamp-2 text-sm font-semibold">{item.entityKind === "club" ? clubDisplayName(item.targetLabel) : item.targetLabel}</p>}
         {media.subtitle && <p className="line-clamp-2 text-xs text-muted-foreground">{media.subtitle}</p>}
       </div>
       <ChevronRightIcon className="mr-3 size-4 shrink-0 self-center text-muted-foreground/40" />
