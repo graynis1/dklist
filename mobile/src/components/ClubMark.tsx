@@ -1,3 +1,4 @@
+import { upperTr } from "@/lib/dateTr";
 import { Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ThemedText } from "@/components/ThemedText";

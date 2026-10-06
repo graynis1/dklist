@@ -4,3 +4,8 @@ export function formatDateTr(d: string) {
   if (Number.isNaN(date.getTime())) return d;
   return date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
 }
+
+/** Turkish-aware uppercase that doesn't depend on Intl (absent in some Hermes builds). */
+export function upperTr(s: string): string {
+  return s.normalize("NFC").replace(/i/g, "İ").replace(/ı/g, "I").toUpperCase();
+}
