@@ -52,7 +52,7 @@ export async function getCurrentBookOfMonth(): Promise<BookOfMonthEntry | null> 
       bookName: book.name,
       bookSlug: book.slug,
       hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
-      participantCount: sql<number>`(SELECT count(*) FROM book_of_month_participant p WHERE p.book_of_month_id = ${bookOfMonth.id})`,
+      participantCount: sql<number>`(SELECT count(*) FROM book_of_month_participant p WHERE p.book_of_month_id = book_of_month.id)`,
     })
     .from(bookOfMonth)
     .innerJoin(book, eq(bookOfMonth.bookId, book.id))
@@ -75,7 +75,7 @@ export async function getPastBooksOfMonth(limit = 20): Promise<BookOfMonthEntry[
       bookName: book.name,
       bookSlug: book.slug,
       hasImage: sql<number>`(${book.image} is not null and ${book.image} != '')`,
-      participantCount: sql<number>`(SELECT count(*) FROM book_of_month_participant p WHERE p.book_of_month_id = ${bookOfMonth.id})`,
+      participantCount: sql<number>`(SELECT count(*) FROM book_of_month_participant p WHERE p.book_of_month_id = book_of_month.id)`,
     })
     .from(bookOfMonth)
     .innerJoin(book, eq(bookOfMonth.bookId, book.id))

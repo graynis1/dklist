@@ -122,7 +122,7 @@ export async function getClubList(page = 1, pageSize = 20, search = ""): Promise
       currentBookSlug: book.slug,
       image: bookClub.image,
       color: bookClub.color,
-      memberCount: sql<number>`(SELECT COUNT(*) FROM book_club_member WHERE club_id = ${bookClub.id})`,
+      memberCount: sql<number>`(SELECT COUNT(*) FROM book_club_member m WHERE m.club_id = book_club.id)`,
     })
     .from(bookClub)
     .leftJoin(book, eq(bookClub.currentBookId, book.id))

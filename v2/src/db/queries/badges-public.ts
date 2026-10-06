@@ -31,10 +31,10 @@ export async function getPublicBadgeGallery(): Promise<PublicBadgeItem[]> {
       name: badges.name,
       comment: badges.comment,
       img: badges.img,
-      earnedByCount: sql<number>`(SELECT count(*) FROM user_badges ub WHERE ub.badges_id = ${badges.id})`,
+      earnedByCount: sql<number>`(SELECT count(*) FROM user_badges ub WHERE ub.badges_id = badges.id)`,
     })
     .from(badges)
-    .orderBy(desc(sql`(SELECT count(*) FROM user_badges ub WHERE ub.badges_id = ${badges.id})`));
+    .orderBy(desc(sql`(SELECT count(*) FROM user_badges ub WHERE ub.badges_id = badges.id)`));
 
   const milestoneByName = new Map<string, number>(POINT_MILESTONES.map((m) => [m.name, m.threshold]));
 

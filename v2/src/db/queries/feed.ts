@@ -86,6 +86,7 @@ import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations
 import type { FrameTier } from "@/lib/profile-frame-tier";
 import { avatarUrl, clubImageUrl, writerImageUrl } from "@/lib/image-urls";
 import { blogImageUrl } from "@/db/queries/blog";
+import { storeImageUrl } from "@/db/queries/store";
 
 /**
  * Site-wide activity feed ("akış") - the customer explicitly called the
@@ -494,7 +495,7 @@ export async function getSiteFeed(opts: {
             price: store.price,
             listingType: store.listingType,
             location: store.location,
-            picture: sql<string | null>`(SELECT ${storePicture.imageName} FROM ${storePicture} WHERE ${storePicture.advertId} = ${store.id} ORDER BY ${storePicture.id} LIMIT 1)`,
+            picture: sql<string | null>`(SELECT sp.image_name FROM store_picture sp WHERE sp.advert_id = store.id ORDER BY sp.id LIMIT 1)`,
           })
           .from(store).where(inArray(store.id, [...storeIds])) : Promise.resolve([]),
     clubIds.size
@@ -506,7 +507,7 @@ export async function getSiteFeed(opts: {
             image: bookClub.image,
             color: bookClub.color,
             description: bookClub.description,
-            memberCount: sql<number>`(SELECT COUNT(*) FROM book_club_member WHERE club_id = ${bookClub.id})`,
+            memberCount: sql<number>`(SELECT COUNT(*) FROM book_club_member m WHERE m.club_id = book_club.id)`,
           })
           .from(bookClub).where(inArray(bookClub.id, [...clubIds])) : Promise.resolve([]),
     publisherIds.size ? db.select({ id: publisher.id, name: publisher.name, slug: publisher.slug }).from(publisher).where(inArray(publisher.id, [...publisherIds])) : Promise.resolve([]),
@@ -574,7 +575,7 @@ export async function getSiteFeed(opts: {
     };
     const blogMedia = (bl: { img: string | null; preview: string } | undefined) => (bl ? { image: blogImageUrl(bl.img), subtitle: clip(bl.preview), price: null } : null);
     const storeMedia = (st: { picture: string | null; price: number | null; listingType: string; location: string | null } | undefined) =>
-      st ? { image: st.picture ? `/api/store-image/${st.picture}` : null, subtitle: st.location, price: st.listingType === "paid" ? st.price ?? null : 0 } : null;
+      st ? { image: storeImageUrl(st.picture), subtitle: st.location, price: st.listingType === "paid" ? st.price ?? null : 0 } : null;
     const clubMedia = (cl: { image: string | null; description: string; memberCount: number } | undefined) =>
       cl ? { image: cl.image ? clubImageUrl(cl.image) : null, subtitle: `${Number(cl.memberCount)} üye${cl.description ? ` · ${clip(cl.description, 90)}` : ""}`, price: null } : null;
     const userMedia = (u: { image: string | null; biyo: string | null } | undefined) => (u ? { image: avatarUrl(u.image), subtitle: clip(u.biyo, 90), price: null } : null);
