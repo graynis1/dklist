@@ -25,6 +25,8 @@ export function invalidateTag(tag: string): void {
   try {
     updateTag(tag);
   } catch {
-    revalidateTag(tag, "max");
+    // Route Handlers (the mobile API) cannot use updateTag; expire right away
+    // so the app sees its own change on the very next request.
+    revalidateTag(tag, { expire: 0 });
   }
 }
