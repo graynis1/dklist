@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   const typeParam = searchParams.get("type");
   const listingType: StoreListingTypeFilter = typeParam === "free" || typeParam === "paid" ? typeParam : null;
 
-  const result = await getStoreList({ page, search, listingType });
+  const sellerId = Number(searchParams.get("sellerId")) || undefined;
+  const result = await getStoreList({ page, search, listingType, ownerId: sellerId });
   return mobileJson({ status: "ok", ...result, items: result.items.map((i) => ({ ...i, image: storeImageUrl(i.image) })) });
 }
 

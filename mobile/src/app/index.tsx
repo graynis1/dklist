@@ -17,6 +17,7 @@ import { getNotifications } from "@/api/notifications";
 import { groupFeed, matchesFilter, type FeedFilter } from "@/lib/feedGroups";
 import { resolveFeedTargetHref } from "@/lib/feedNav";
 import { consumeFeedDirty } from "@/lib/feedRefresh";
+import { onTabReselect } from "@/lib/tabEvents";
 import { API_BASE_URL } from "@/api/config";
 
 const FILTERS: { key: FeedFilter; label: string }[] = [
@@ -107,6 +108,15 @@ export default function AkisScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [filter, setFilter] = useState<FeedFilter>("all");
   const listRef = useRef<FlatList>(null);
+
+  // Tapping "Akış" again while already on it jumps back to the top.
+  useEffect(
+    () =>
+      onTabReselect((href) => {
+        if (href === "/") listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }),
+    [],
+  );
 
   const loadFirstPage = useCallback(async () => {
     try {

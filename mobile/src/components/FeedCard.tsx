@@ -152,6 +152,8 @@ function EntityAttachment({ item }: { item: FeedItem }) {
   const { colors, spacing, radius } = useTheme();
   const href = resolveFeedTargetHref(item);
   const Icon = ENTITY_ICON[item.entityKind ?? ""] ?? BookOpenIcon;
+  const mediaImg = mediaUrl(item.media?.image);
+  const round = item.entityKind === "user" || item.entityKind === "writer";
   if (!item.targetLabel) return null;
   return (
     <Pressable
@@ -159,10 +161,20 @@ function EntityAttachment({ item }: { item: FeedItem }) {
       onPress={() => href && router.push(href)}
       style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: spacing.md, marginHorizontal: spacing.lg, padding: spacing.md, borderRadius: radius.lg, backgroundColor: pressed ? colors.neutral300 : colors.neutral200 })}
     >
-      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
-        <Icon size={21} color={colors.accent} />
+      {mediaImg ? (
+        <Image source={{ uri: mediaImg }} style={round ? { width: 52, height: 52, borderRadius: 26 } : { width: 84, height: 84, borderRadius: radius.md, backgroundColor: colors.surface }} resizeMode="cover" />
+      ) : (
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent100, alignItems: "center", justifyContent: "center" }}>
+          <Icon size={21} color={colors.accent} />
+        </View>
+      )}
+      <View style={{ flex: 1, gap: 3 }}>
+        {item.entityKind === "store" && item.media?.price != null && (
+          <ThemedText variant="bodySemibold" color={colors.accent700} style={{ fontSize: 14 }}>{item.media.price > 0 ? `${item.media.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}</ThemedText>
+        )}
+        <ThemedText variant="title" numberOfLines={2}>{item.targetLabel.replace(/[“”"]/g, "")}</ThemedText>
+        {item.media?.subtitle ? <ThemedText variant="caption" muted numberOfLines={2} style={{ fontSize: 13, lineHeight: 18 }}>{item.media.subtitle}</ThemedText> : null}
       </View>
-      <ThemedText variant="title" numberOfLines={2} style={{ flex: 1 }}>{item.targetLabel.replace(/[“”"]/g, "")}</ThemedText>
       {href && <ChevronRightIcon size={18} color={colors.textMuted} />}
     </Pressable>
   );

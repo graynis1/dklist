@@ -101,3 +101,12 @@ export async function addCommentReply(commentId: number, text: string): Promise<
     body: JSON.stringify({ text }),
   });
 }
+
+/** Edit / delete the caller's own comment, quote (kind "comment") or reply (kind "reply"). */
+export async function editComment(id: number, text: string, kind: "comment" | "reply" = "comment") {
+  return apiFetch<{ status: "ok" }>(`/comment/${id}${kind === "reply" ? "?kind=reply" : ""}`, { method: "PATCH", body: JSON.stringify({ text }) });
+}
+
+export async function deleteMyComment(id: number, kind: "comment" | "reply" = "comment") {
+  return apiFetch<{ status: "ok" }>(`/comment/${id}${kind === "reply" ? "?kind=reply" : ""}`, { method: "DELETE" });
+}

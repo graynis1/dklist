@@ -243,7 +243,32 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
   // its own space empty on anything but a long comment ("bomboş... orantısız
   // bir kart"). Reads like a link-preview/quote-card embedded in the flow
   // instead of a separate layout column competing with the text for space.
-  const attachmentChip = (item.bookCover || item.entityAvatarId) && item.targetHref && (
+  // Customer: a blog like / new listing / club join should look like a link
+  // preview (image + title + summary), not just "X beğendi" text.
+  const media = item.media;
+  const mediaCard = !item.bookCover && media && item.targetHref && (
+    <Link href={item.targetHref} className="flex overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-foreground/25">
+      {media.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={media.image}
+          alt=""
+          loading="lazy"
+          className={item.entityKind === "user" || item.entityKind === "writer" ? "m-3 size-16 shrink-0 rounded-full object-cover" : "h-24 w-28 shrink-0 object-cover sm:h-28 sm:w-40"}
+        />
+      ) : null}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 p-3">
+        {media.price != null && item.entityKind === "store" && (
+          <p className="text-sm font-semibold text-primary">{media.price > 0 ? `${media.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}</p>
+        )}
+        {item.targetLabel && <p className="line-clamp-2 text-sm font-semibold">{item.targetLabel}</p>}
+        {media.subtitle && <p className="line-clamp-2 text-xs text-muted-foreground">{media.subtitle}</p>}
+      </div>
+      <ChevronRightIcon className="mr-3 size-4 shrink-0 self-center text-muted-foreground/40" />
+    </Link>
+  );
+
+  const attachmentChip = mediaCard || ((item.bookCover || item.entityAvatarId) && item.targetHref && (
     <Link
       href={item.targetHref}
       className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-2.5 transition-colors hover:border-foreground/25 hover:bg-muted/60"
@@ -282,7 +307,7 @@ export function FeedItemRow({ item, signedIn, viewerId }: { item: FeedItem; sign
       </div>
       <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/40" />
     </Link>
-  );
+  ));
 
   // One toolbar row, visually separated from the content above it by a hairline
   // - the maintainer's direct complaint ("butonlar berbat yerleşmiş") was that

@@ -1,4 +1,4 @@
-import { getStoreBySlug, isStoreFavorited, getStoreFavoriteCount, isInCart, storeImageUrl } from "@/db/queries/store";
+import { getStoreBySlug, isStoreFavorited, getStoreFavoriteCount, isInCart, storeImageUrl, getStoreList } from "@/db/queries/store";
 import { isStorePinned } from "@/db/queries/store-pin";
 import { getUserSellerRating } from "@/db/queries/rating";
 import { getEntityComments, getRepliesForComments } from "@/db/queries/comments";
@@ -13,13 +13,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   }
 
   const session = await getMobileSession(request);
-  const [favoriteCount, isFavorited, inCart, pinned, myRatingOfSeller, sellerReviews] = await Promise.all([
+  const [favoriteCount, isFavorited, inCart, pinned, myRatingOfSeller, sellerReviews, otherListings] = await Promise.all([
     getStoreFavoriteCount(store.id),
     session ? isStoreFavorited(session.userId, store.id) : Promise.resolve(false),
     session ? isInCart(session.userId, store.id) : Promise.resolve(false),
     isStorePinned(store.id),
     session ? getUserSellerRating(session.userId, store.ownerId) : Promise.resolve(null),
     getEntityComments(store.ownerId, "user"),
+    getStoreList({ ownerId: store.ownerId, excludeId: store.id, pageSize: 10 }),
   ]);
   const repliesByComment = await getRepliesForComments(sellerReviews.map((c) => c.id));
   const sellerReviewsWithReplies = sellerReviews.map((c) => ({ ...c, replies: repliesByComment.get(c.id) ?? [] }));
@@ -33,6 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     pinned,
     myRatingOfSeller,
     sellerReviews: sellerReviewsWithReplies,
+    otherListings: { total: otherListings.total, items: otherListings.items.map((o) => ({ ...o, image: storeImageUrl(o.image) })) },
   });
 }
 

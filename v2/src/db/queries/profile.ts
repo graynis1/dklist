@@ -240,6 +240,7 @@ export async function getFollowCounts(userId: number): Promise<FollowCounts> {
 export interface FollowListItem {
   id: number;
   username: string;
+  image: string | null;
 }
 
 /**
@@ -254,7 +255,7 @@ export async function getFollowersList(userId: number, limit = 100): Promise<Fol
   cacheTag(`followers-list:${userId}`);
 
   return db
-    .select({ id: user.id, username: user.username })
+    .select({ id: user.id, username: user.username, image: user.image })
     .from(follow)
     .innerJoin(user, eq(follow.followerId, user.id))
     .where(eq(follow.followedId, userId))
@@ -267,7 +268,7 @@ export async function getFollowingList(userId: number, limit = 100): Promise<Fol
   cacheTag(`following-list:${userId}`);
 
   return db
-    .select({ id: user.id, username: user.username })
+    .select({ id: user.id, username: user.username, image: user.image })
     .from(follow)
     .innerJoin(user, eq(follow.followedId, user.id))
     .where(eq(follow.followerId, userId))

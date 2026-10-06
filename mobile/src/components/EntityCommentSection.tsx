@@ -8,7 +8,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
 import { ComposerBar } from "@/components/ComposerBar";
 import { relativeTime } from "@/lib/relativeTime";
-import { addCommentReply } from "@/api/book";
+import { addCommentReply, editComment, deleteMyComment } from "@/api/book";
+import { showActionSheet } from "@/components/ActionSheet";
 
 export interface EntityCommentReply {
   id: number;
@@ -140,9 +141,65 @@ function EntityCommentRow({ comment, onReplied }: { comment: EntityComment; onRe
     }
   }
 
+  const { profile } = useAuth();
+  const [editing, setEditing] = useState<{ id: number; kind: "comment" | "reply"; text: string } | null>(null);
+
+  function ownMenu(id: number, kind: "comment" | "reply", text: string) {
+    showActionSheet({
+      options: [
+        { text: "Düzenle", onPress: () => setEditing({ id, kind, text }) },
+        {
+          text: "Sil",
+          destructive: true,
+          onPress: () =>
+            Alert.alert(kind === "reply" ? "Yanıt silinsin mi?" : "Yorum silinsin mi?", undefined, [
+              { text: "Vazgeç", style: "cancel" },
+              {
+                text: "Sil",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    await deleteMyComment(id, kind);
+                    await onReplied();
+                  } catch (err) {
+                    Alert.alert("Hata", err instanceof Error ? err.message : "Silinemedi.");
+                  }
+                },
+              },
+            ]),
+        },
+      ],
+    });
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      await editComment(editing.id, editing.text.trim(), editing.kind);
+      setEditing(null);
+      await onReplied();
+    } catch (err) {
+      Alert.alert("Hata", err instanceof Error ? err.message : "Kaydedilemedi.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const editBox = (id: number, kind: "comment" | "reply") =>
+    editing && editing.id === id && editing.kind === kind ? (
+      <View style={{ marginTop: spacing.sm, marginLeft: kind === "comment" ? 44 : 0 }}>
+        <ComposerBar bordered value={editing.text} onChangeText={(t) => setEditing({ ...editing, text: t })} onSend={saveEdit} sending={saving} canSend={editing.text.trim().length >= 2} placeholder="Düzenle…" autoFocus />
+        <ThemedText variant="caption" muted style={{ marginTop: 4, marginLeft: 4 }} onPress={() => setEditing(null)}>Vazgeç</ThemedText>
+      </View>
+    ) : null;
+
   const renderReply = (r: EntityCommentReply, depth: number): React.ReactNode => (
     <View key={r.id} style={{ marginLeft: depth === 1 ? 44 : 30, marginTop: spacing.sm }}>
-      <Bubble username={r.authorUsername} userId={r.authorUserId} image={r.authorImage} frameColor={r.profileFrame} frameTier={r.frameTier} text={r.text} size={26} />
+      <Pressable onLongPress={r.authorUserId === profile?.id ? () => ownMenu(r.id, "reply", r.text) : undefined} delayLongPress={350}>
+        <Bubble username={r.authorUsername} userId={r.authorUserId} image={r.authorImage} frameColor={r.profileFrame} frameTier={r.frameTier} text={r.text} size={26} />
+      </Pressable>
+      {editBox(r.id, "reply")}
       {r.replies.map((r2) => renderReply(r2, depth + 1))}
     </View>
   );
@@ -169,9 +226,15 @@ function EntityCommentRow({ comment, onReplied }: { comment: EntityComment; onRe
             <ThemedText variant="caption" color={showReplyBox ? colors.accent : colors.textMuted} style={{ fontWeight: "700" }} onPress={() => setShowReplyBox((v) => !v)}>
               Yanıtla
             </ThemedText>
+            {comment.authorUserId === profile?.id && (
+              <ThemedText variant="caption" color={colors.textMuted} style={{ fontWeight: "700" }} onPress={() => ownMenu(comment.id, "comment", comment.text)}>
+                Düzenle · Sil
+              </ThemedText>
+            )}
           </View>
         }
       />
+      {editBox(comment.id, "comment")}
       {comment.replies.map((r) => renderReply(r, 1))}
       {showReplyBox && (
         <View style={{ marginLeft: 44, marginTop: spacing.sm }}>

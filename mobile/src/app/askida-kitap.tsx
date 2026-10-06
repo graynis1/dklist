@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, FlatList, Pressable, ActivityIndicator, RefreshControl, useWindowDimensions } from "react-native";
-import { router, useNavigation } from "expo-router";
+import { router, useNavigation, useLocalSearchParams } from "expo-router";
 import { PlusIcon, TagIcon, MapPinIcon, PinIcon } from "lucide-react-native";
 import { useTheme } from "@/theme/useTheme";
 import { ListingThumb } from "@/components/ListingThumb";
@@ -19,11 +19,16 @@ export default function AskidaKitapScreen() {
   const navigation = useNavigation();
   const { profile } = useAuth();
   const [type, setType] = useState<TypeFilter>(null);
+  const { sellerId, sellerName } = useLocalSearchParams<{ sellerId?: string; sellerName?: string }>();
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<StoreListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const seq = useRef(0);
+
+  useEffect(() => {
+    if (sellerName) navigation.setOptions({ title: `${sellerName} ilanları` });
+  }, [navigation, sellerName]);
 
   useEffect(() => {
     if (!profile) return;
@@ -39,14 +44,14 @@ export default function AskidaKitapScreen() {
   const load = useCallback(async (t: TypeFilter, q: string) => {
     const mySeq = ++seq.current;
     try {
-      const result = await getStoreList(t, q.trim());
+      const result = await getStoreList(t, q.trim(), sellerId ? Number(sellerId) : undefined);
       if (mySeq === seq.current) setItems(result.items);
     } catch {
       // keep current results
     } finally {
       if (mySeq === seq.current) setLoading(false);
     }
-  }, []);
+  }, [sellerId]);
 
   useEffect(() => {
     const t = setTimeout(() => void load(type, query), query ? 400 : 0);

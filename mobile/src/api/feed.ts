@@ -66,6 +66,8 @@ export interface FeedItem {
   readingDurationDays: number | null;
   ratingValue: number | null;
   feedPostImage: string | null;
+  /** Image/summary/price preview for blog, listing, club, user and writer targets. */
+  media?: { image: string | null; subtitle: string | null; price: number | null } | null;
   /** Set only for reason "comment" - the real like button (comment_like). */
   commentId: number | null;
   likeState: FeedLikeState | null;

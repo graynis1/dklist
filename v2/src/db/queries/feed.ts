@@ -18,6 +18,7 @@ import {
   badges,
   read,
   score,
+  storePicture,
   libraryBook,
   userBook,
 } from "@/db/schema";
@@ -83,6 +84,8 @@ import { getFeedPostLikeStates, getRepliesForPosts, type FeedPostLikeState } fro
 import { getRepliesForComments, type CommentReply, type SubCommentParentType } from "@/db/queries/comments";
 import { getUserDecorations, decorationFor } from "@/db/queries/user-decorations";
 import type { FrameTier } from "@/lib/profile-frame-tier";
+import { avatarUrl, clubImageUrl, writerImageUrl } from "@/lib/image-urls";
+import { blogImageUrl } from "@/db/queries/blog";
 
 /**
  * Site-wide activity feed ("akış") - the customer explicitly called the
@@ -183,6 +186,10 @@ export interface FeedItem {
    * the concrete difference between a notification list and something that
    * reads like an actual community feed. */
   bookCover: { id: number; hasImage: boolean; score: number } | null;
+  /** Visual preview for non-book targets (customer: a blog like, a new
+   * listing or a club join should show the image/summary, not just a name).
+   * `image` is a site-relative URL. */
+  media: { image: string | null; subtitle: string | null; price: number | null } | null;
   /** Writer/translator comment/quote targets don't have a photo cover to
    * show, but still deserve more visual weight than plain text - the real
    * entity id lets the card render the same tone-colored EntityAvatar used
@@ -474,12 +481,34 @@ export async function getSiteFeed(opts: {
           .from(book)
           .where(inArray(book.id, [...bookIds]))
       : Promise.resolve([]),
-    writerIds.size ? db.select({ id: writer.id, name: writer.name, slug: writer.slug }).from(writer).where(inArray(writer.id, [...writerIds])) : Promise.resolve([]),
+    writerIds.size ? db.select({ id: writer.id, name: writer.name, slug: writer.slug, img: writer.img }).from(writer).where(inArray(writer.id, [...writerIds])) : Promise.resolve([]),
     translatorIds.size ? db.select({ id: translator.id, name: translator.name, slug: translator.slug }).from(translator).where(inArray(translator.id, [...translatorIds])) : Promise.resolve([]),
-    userIds.size ? db.select({ id: user.id, username: user.username }).from(user).where(inArray(user.id, [...userIds])) : Promise.resolve([]),
-    blogIds.size ? db.select({ id: blog.id, title: blog.title, slug: blog.slug }).from(blog).where(inArray(blog.id, [...blogIds])) : Promise.resolve([]),
-    storeIds.size ? db.select({ id: store.id, title: store.title, slug: store.slug }).from(store).where(inArray(store.id, [...storeIds])) : Promise.resolve([]),
-    clubIds.size ? db.select({ id: bookClub.id, name: bookClub.name, slug: bookClub.slug }).from(bookClub).where(inArray(bookClub.id, [...clubIds])) : Promise.resolve([]),
+    userIds.size ? db.select({ id: user.id, username: user.username, image: user.image, biyo: user.biyo }).from(user).where(inArray(user.id, [...userIds])) : Promise.resolve([]),
+    blogIds.size ? db.select({ id: blog.id, title: blog.title, slug: blog.slug, img: blog.image, preview: blog.preview }).from(blog).where(inArray(blog.id, [...blogIds])) : Promise.resolve([]),
+    storeIds.size
+      ? db
+          .select({
+            id: store.id,
+            title: store.title,
+            slug: store.slug,
+            price: store.price,
+            listingType: store.listingType,
+            location: store.location,
+            picture: sql<string | null>`(SELECT ${storePicture.imageName} FROM ${storePicture} WHERE ${storePicture.advertId} = ${store.id} ORDER BY ${storePicture.id} LIMIT 1)`,
+          })
+          .from(store).where(inArray(store.id, [...storeIds])) : Promise.resolve([]),
+    clubIds.size
+      ? db
+          .select({
+            id: bookClub.id,
+            name: bookClub.name,
+            slug: bookClub.slug,
+            image: bookClub.image,
+            color: bookClub.color,
+            description: bookClub.description,
+            memberCount: sql<number>`(SELECT COUNT(*) FROM book_club_member WHERE club_id = ${bookClub.id})`,
+          })
+          .from(bookClub).where(inArray(bookClub.id, [...clubIds])) : Promise.resolve([]),
     publisherIds.size ? db.select({ id: publisher.id, name: publisher.name, slug: publisher.slug }).from(publisher).where(inArray(publisher.id, [...publisherIds])) : Promise.resolve([]),
     badgeIds.size ? db.select({ id: badges.id, name: badges.name }).from(badges).where(inArray(badges.id, [...badgeIds])) : Promise.resolve([]),
     getCommentLikeStates(opts.viewerId ?? null, [...commentIds]),
@@ -538,6 +567,19 @@ export async function getSiteFeed(opts: {
   const badgeMap = new Map(badgeRows.map((b) => [b.id, b]));
 
   const items: FeedItem[] = parsed.map((r): FeedItem => {
+    const clip = (t: string | null | undefined, n = 140) => {
+      if (!t) return null;
+      const plain = t.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      return plain.length > n ? `${plain.slice(0, n)}…` : plain || null;
+    };
+    const blogMedia = (bl: { img: string | null; preview: string } | undefined) => (bl ? { image: blogImageUrl(bl.img), subtitle: clip(bl.preview), price: null } : null);
+    const storeMedia = (st: { picture: string | null; price: number | null; listingType: string; location: string | null } | undefined) =>
+      st ? { image: st.picture ? `/api/store-image/${st.picture}` : null, subtitle: st.location, price: st.listingType === "paid" ? st.price ?? null : 0 } : null;
+    const clubMedia = (cl: { image: string | null; description: string; memberCount: number } | undefined) =>
+      cl ? { image: cl.image ? clubImageUrl(cl.image) : null, subtitle: `${Number(cl.memberCount)} üye${cl.description ? ` · ${clip(cl.description, 90)}` : ""}`, price: null } : null;
+    const userMedia = (u: { image: string | null; biyo: string | null } | undefined) => (u ? { image: avatarUrl(u.image), subtitle: clip(u.biyo, 90), price: null } : null);
+    const writerMedia = (w: { img: string | null } | undefined) => (w ? { image: writerImageUrl(w.img), subtitle: null, price: null } : null);
+
     const base = {
       id: r.id,
       createdAt: r.createdAt,
@@ -547,6 +589,7 @@ export async function getSiteFeed(opts: {
       ...decorationFor(actorDecorations, r.actorId),
       reason: r.reason as FeedReason,
       bookCover: null as FeedItem["bookCover"],
+      media: null as FeedItem["media"],
       entityAvatarId: null as FeedItem["entityAvatarId"],
       commentId: null as FeedItem["commentId"],
       likeState: null as FeedItem["likeState"],
@@ -664,7 +707,7 @@ export async function getSiteFeed(opts: {
 
     if ((r.reason === "rating" || r.reason === "like") && r.entityKind === "writer" && r.entityId) {
       const w = writerMap.get(r.entityId);
-      return { ...base, entityKind: "writer", isQuote: false, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt: null };
+      return { ...base, entityKind: "writer", isQuote: false, targetLabel: w?.name ?? null, targetHref: w ? `/yazar/${w.slug}` : null, excerpt: null, media: writerMedia(w) };
     }
 
     if ((r.reason === "rating" || r.reason === "like") && r.entityKind === "translator" && r.entityId) {
@@ -674,7 +717,7 @@ export async function getSiteFeed(opts: {
 
     if (r.reason === "like" && r.entityKind === "blog" && r.entityId) {
       const bl = blogMap.get(r.entityId);
-      return { ...base, entityKind: "blog", isQuote: false, targetLabel: bl?.title ?? null, targetHref: bl ? `/blog/${bl.slug}` : null, excerpt: null };
+      return { ...base, entityKind: "blog", isQuote: false, targetLabel: bl?.title ?? null, targetHref: bl ? `/blog/${bl.slug}` : null, excerpt: null, media: blogMedia(bl) };
     }
 
     if (r.reason === "like" && r.entityKind === "publisher" && r.entityId) {
@@ -684,17 +727,17 @@ export async function getSiteFeed(opts: {
 
     if (r.reason === "follow" && r.entityId) {
       const u = userMap.get(r.entityId);
-      return { ...base, entityKind: "user", isQuote: false, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${encodeURIComponent(u.username)}` : null, excerpt: null };
+      return { ...base, entityKind: "user", isQuote: false, targetLabel: u?.username ?? null, targetHref: u ? `/profil/${encodeURIComponent(u.username)}` : null, excerpt: null, media: userMedia(u) };
     }
 
     if ((r.reason === "blog_published" || (r.reason === "social_share" && r.entityKind === "blog")) && r.entityId) {
       const bl = blogMap.get(r.entityId);
-      return { ...base, entityKind: "blog", isQuote: false, targetLabel: bl?.title ?? null, targetHref: bl ? `/blog/${bl.slug}` : null, excerpt: null };
+      return { ...base, entityKind: "blog", isQuote: false, targetLabel: bl?.title ?? null, targetHref: bl ? `/blog/${bl.slug}` : null, excerpt: null, media: blogMedia(bl) };
     }
 
     if ((r.reason === "store_listing" || (r.reason === "social_share" && r.entityKind === "store")) && r.entityId) {
       const s = storeMap.get(r.entityId);
-      return { ...base, entityKind: "store", isQuote: false, targetLabel: s?.title ?? null, targetHref: s ? `/askida-kitap/${s.slug}` : null, excerpt: null };
+      return { ...base, entityKind: "store", isQuote: false, targetLabel: s?.title ?? null, targetHref: s ? `/askida-kitap/${s.slug}` : null, excerpt: null, media: storeMedia(s) };
     }
 
     if (r.reason === "author_post") {
@@ -703,7 +746,7 @@ export async function getSiteFeed(opts: {
 
     if (r.reason === "club_join" && r.entityId) {
       const c = clubMap.get(r.entityId);
-      return { ...base, entityKind: "club", isQuote: false, targetLabel: c?.name ?? null, targetHref: c ? `/kulup/${c.slug}` : null, excerpt: null };
+      return { ...base, entityKind: "club", isQuote: false, targetLabel: c?.name ?? null, targetHref: c ? `/kulup/${c.slug}` : null, excerpt: null, media: clubMedia(c) };
     }
 
     if (r.reason === "reading_goal_set" || r.reason === "reading_goal_achieved") {

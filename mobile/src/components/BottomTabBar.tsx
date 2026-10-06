@@ -8,6 +8,7 @@ import { useTheme } from "@/theme/useTheme";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemedText } from "@/components/ThemedText";
 import { Avatar } from "@/components/Avatar";
+import { emitTabReselect } from "@/lib/tabEvents";
 
 /**
  * A hand-rolled bottom bar rather than expo-router's `Tabs` navigator -
@@ -74,6 +75,7 @@ export function BottomTabBar() {
             onPress={() => {
               Haptics.selectionAsync().catch(() => {});
               if (pathname !== tab.href) router.replace(tab.href as never);
+              else emitTabReselect(tab.href);
             }}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}

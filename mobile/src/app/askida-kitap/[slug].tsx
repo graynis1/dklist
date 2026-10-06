@@ -10,7 +10,8 @@ import { BookCover } from "@/components/BookCover";
 import { KeyboardScreen } from "@/components/KeyboardScreen";
 import { EntityCommentSection, type EntityComment } from "@/components/EntityCommentSection";
 import { showActionSheet } from "@/components/ActionSheet";
-import { getStore, toggleStoreFavorite, toggleCartItem, rateSeller, addSellerReview, setListingStatus, deleteListing, type StoreDetail } from "@/api/store";
+import { getStore, toggleStoreFavorite, toggleCartItem, rateSeller, addSellerReview, setListingStatus, deleteListing, type StoreDetail, type StoreListItem } from "@/api/store";
+import { ListingThumb } from "@/components/ListingThumb";
 import { mediaUrl } from "@/lib/media";
 import { shareLink } from "@/lib/share";
 
@@ -29,6 +30,7 @@ export default function AskidaKitapDetailScreen() {
   const [pinned, setPinned] = useState(false);
   const [myRatingOfSeller, setMyRatingOfSeller] = useState<number | null>(null);
   const [sellerReviews, setSellerReviews] = useState<EntityComment[]>([]);
+  const [others, setOthers] = useState<{ total: number; items: StoreListItem[] }>({ total: 0, items: [] });
   const [reviewText, setReviewText] = useState("");
   const [reviewSaving, setReviewSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,7 @@ export default function AskidaKitapDetailScreen() {
       setPinned(result.pinned);
       setMyRatingOfSeller(result.myRatingOfSeller);
       setSellerReviews(result.sellerReviews);
+      setOthers(result.otherListings ?? { total: 0, items: [] });
     } catch {
       setStore(null);
     }
@@ -328,6 +331,31 @@ export default function AskidaKitapDetailScreen() {
                 );
               })}
             </View>
+          </View>
+        )}
+
+        {others.items.length > 0 && store && (
+          <View style={{ backgroundColor: colors.card, marginTop: spacing.sm, paddingVertical: spacing.lg, gap: spacing.md }}>
+            <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.lg }}>
+              <ThemedText variant="title" style={{ flex: 1, fontSize: 17 }}>Satıcının diğer ilanları</ThemedText>
+              <ThemedText
+                variant="bodySemibold"
+                color={colors.accent700}
+                style={{ fontSize: 14 }}
+                onPress={() => router.push({ pathname: "/askida-kitap", params: { sellerId: String(store.ownerId), sellerName: store.ownerUsername } })}
+              >
+                Tümü ({others.total})
+              </ThemedText>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
+              {others.items.map((o) => (
+                <Pressable key={o.id} onPress={() => router.push({ pathname: "/askida-kitap/[slug]", params: { slug: o.slug } })} style={({ pressed }) => ({ width: 130, gap: 4, opacity: pressed ? 0.8 : 1 })}>
+                  <ListingThumb image={o.image} bookId={o.bookId} bookHasImage={o.bookHasImage} title={o.title} height={130} radius={radius.md} />
+                  <ThemedText variant="bodySemibold" color={colors.accent700} style={{ fontSize: 14 }}>{o.listingType === "paid" && o.price ? `${o.price.toLocaleString("tr-TR")} ₺` : "Ücretsiz"}</ThemedText>
+                  <ThemedText variant="caption" numberOfLines={2} style={{ fontSize: 12.5 }}>{o.title}</ThemedText>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
         )}
 

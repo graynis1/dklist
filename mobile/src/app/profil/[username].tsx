@@ -201,8 +201,8 @@ export default function OtherProfileScreen() {
           <View style={{ flexDirection: "row", marginTop: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.lg, backgroundColor: colors.neutral100 }}>
             {[
               { n: readCount, label: "Okudu", onPress: () => setTab("library") },
-              { n: counts.followers, label: "Takipçi" },
-              { n: counts.following, label: "Takip" },
+              { n: counts.followers, label: "Takipçi", onPress: () => router.push({ pathname: "/takip/[username]", params: { username: profile.username, type: "followers" } }) },
+              { n: counts.following, label: "Takip", onPress: () => router.push({ pathname: "/takip/[username]", params: { username: profile.username, type: "following" } }) },
               { n: badges.length, label: "Rozet", onPress: () => setTab("badges") },
             ].map((st, i) => (
               <Pressable key={st.label} disabled={!st.onPress} onPress={st.onPress} style={{ flex: 1, alignItems: "center", borderLeftWidth: i === 0 ? 0 : 1, borderLeftColor: colors.divider }}>

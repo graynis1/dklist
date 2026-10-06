@@ -38,14 +38,16 @@ export interface StoreDetail {
   book: { id: number; name: string; slug: string } | null;
 }
 
-export async function getStoreList(type: "free" | "paid" | null = null, q = "") {
+export async function getStoreList(type: "free" | "paid" | null = null, q = "", sellerId?: number) {
   const typeQuery = type ? `&type=${type}` : "";
-  return apiFetch<{ status: "ok"; items: StoreListItem[]; total: number; lastPage: number }>(`/store?q=${encodeURIComponent(q)}${typeQuery}`);
+  const sellerQuery = sellerId ? `&sellerId=${sellerId}` : "";
+  return apiFetch<{ status: "ok"; items: StoreListItem[]; total: number; lastPage: number }>(`/store?q=${encodeURIComponent(q)}${typeQuery}${sellerQuery}`);
 }
 
 export async function getStore(slug: string) {
   return apiFetch<{
     status: "ok";
+    otherListings?: { total: number; items: StoreListItem[] };
     store: StoreDetail;
     favoriteCount: number;
     isFavorited: boolean;
